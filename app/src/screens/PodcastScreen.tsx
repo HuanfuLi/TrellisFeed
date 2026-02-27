@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Play, Pause, Radio, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Play, Pause, Radio, RefreshCw, RotateCcw, RotateCw, ChevronRight } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { ProgressBar } from '../components/ui/ProgressBar';
@@ -24,6 +24,7 @@ export function PodcastScreen() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackProgress, setPlaybackProgress] = useState(0);
+  const [showScript, setShowScript] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const todayPodcast = getPodcastForDate(today());
@@ -80,6 +81,22 @@ export function PodcastScreen() {
     setIsPlaying((prev) => !prev);
   }, [isPlaying, playbackProgress]);
 
+  const handleSeek = useCallback((seconds: number) => {
+    const audio = audioRef.current;
+    if (audio && audio.duration) {
+      audio.currentTime = Math.max(0, Math.min(audio.duration, audio.currentTime + seconds));
+      setPlaybackProgress((audio.currentTime / audio.duration) * 100);
+    } else if (selected?.duration) {
+      // Simulated mode: adjust progress percentage directly
+      const totalSeconds = selected.duration;
+      setPlaybackProgress((prev) => {
+        const currentSecond = (prev / 100) * totalSeconds;
+        const newSecond = Math.max(0, Math.min(totalSeconds, currentSecond + seconds));
+        return (newSecond / totalSeconds) * 100;
+      });
+    }
+  }, [selected?.duration]);
+
   // Simulated playback timer (when no audio element)
   useEffect(() => {
     if (audioRef.current || !isPlaying || !selected?.duration) return;
@@ -111,6 +128,44 @@ export function PodcastScreen() {
     const s = seconds % 60;
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
+
+  // ── Full-screen script overlay ───────────────────────────────────────────
+  if (showScript && selected?.script) {
+    return (
+      <div style={{ position: 'fixed', inset: 0, zIndex: 1000, backgroundColor: 'var(--background)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        {/* Header */}
+        <div
+          style={{
+            padding: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            borderBottom: '1px solid var(--surface-variant)',
+            flexShrink: 0,
+          }}
+        >
+          <button
+            onClick={() => setShowScript(false)}
+            style={{ color: 'var(--primary-40)', background: 'none', display: 'flex', alignItems: 'center', gap: '8px', padding: 0 }}
+          >
+            <ArrowLeft size={20} /> Back
+          </button>
+          <div style={{ flex: 1 }} />
+          <p style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>
+            {isToday(selected.date) ? 'Today' : formatDateLabel(selected.date)}
+          </p>
+        </div>
+
+        {/* Scrollable script body */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '24px 16px 48px', maxWidth: '448px', width: '100%', margin: '0 auto' }}>
+          <h3 style={{ marginBottom: '16px' }}>Script</h3>
+          <p style={{ fontSize: '0.9375rem', lineHeight: 1.85, color: 'var(--foreground)', whiteSpace: 'pre-wrap' }}>
+            {selected.script}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ padding: '24px 16px 96px', maxWidth: '448px', margin: '0 auto' }}>
@@ -146,7 +201,31 @@ export function PodcastScreen() {
 
           <ProgressBar value={playbackProgress} style={{ marginBottom: '16px' } as React.CSSProperties} />
 
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '24px' }}>
+            {/* −10s */}
+            <button
+              onClick={() => handleSeek(-10)}
+              title="Rewind 10 seconds"
+              style={{
+                width: '44px',
+                height: '44px',
+                borderRadius: '50%',
+                backgroundColor: 'transparent',
+                color: 'var(--foreground)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '1px',
+                border: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              <RotateCcw size={20} />
+              <span style={{ fontSize: '0.6rem', fontWeight: 600, lineHeight: 1 }}>10</span>
+            </button>
+
+            {/* Play / Pause */}
             <button
               onClick={handlePlayPause}
               style={{
@@ -162,6 +241,29 @@ export function PodcastScreen() {
               }}
             >
               {isPlaying ? <Pause size={24} /> : <Play size={24} />}
+            </button>
+
+            {/* +10s */}
+            <button
+              onClick={() => handleSeek(10)}
+              title="Forward 10 seconds"
+              style={{
+                width: '44px',
+                height: '44px',
+                borderRadius: '50%',
+                backgroundColor: 'transparent',
+                color: 'var(--foreground)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '1px',
+                border: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              <RotateCw size={20} />
+              <span style={{ fontSize: '0.6rem', fontWeight: 600, lineHeight: 1 }}>10</span>
             </button>
           </div>
 
@@ -180,14 +282,29 @@ export function PodcastScreen() {
           )}
 
           {selected.script && (
-            <div style={{ marginTop: '16px', padding: '12px', backgroundColor: 'rgba(255,255,255,0.6)', borderRadius: '12px' }}>
-              <p style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Script Preview
-              </p>
+            <button
+              onClick={() => setShowScript(true)}
+              style={{
+                marginTop: '16px',
+                padding: '12px',
+                backgroundColor: 'rgba(255,255,255,0.6)',
+                borderRadius: '12px',
+                width: '100%',
+                textAlign: 'left',
+                cursor: 'pointer',
+                border: 'none',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <p style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Script Preview
+                </p>
+                <ChevronRight size={14} color="var(--muted-foreground)" />
+              </div>
               <p style={{ fontSize: '0.875rem', color: 'var(--foreground)', lineHeight: 1.6 }}>
-                {selected.script.slice(0, 200)}{selected.script.length > 200 ? '...' : ''}
+                {selected.script.slice(0, 200)}{selected.script.length > 200 ? '…' : ''}
               </p>
-            </div>
+            </button>
           )}
         </Card>
       )}

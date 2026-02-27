@@ -1072,9 +1072,13 @@ function useReview(): {
 
 **Purpose**: Podcast player and list.
 
-**Key screens**: PodcastPlayerScreen, PodcastListScreen
+**Key screens**: PodcastPlayerScreen, PodcastListScreen, ScriptFullScreen
 
-**Key components**: AudioPlayer, ProgressSlider, PlaybackControls, PodcastListItem
+**Key components**: AudioPlayer, ProgressSlider, PlaybackControls (play/pause + ±10s seek), PodcastListItem, ScriptViewer
+
+**Playback controls**: Play/Pause button flanked by −10s (RotateCcw) and +10s (RotateCw) seek buttons. Seeking works for both real audio (adjusts `HTMLAudioElement.currentTime`) and simulated playback (adjusts progress percentage directly).
+
+**Script full-screen view**: Tapping the Script Preview section opens a fixed full-screen overlay (`z-index: 1000`) with a scrollable area showing the complete script. A back button (ArrowLeft) returns to the player. The overlay unmounts on back — no persistent state needed.
 
 **Dependencies**: C13, C14, C12
 
@@ -1270,3 +1274,4 @@ await questionService.ask("What is dialectical materialism?");
 |---------|------|---------|
 | 1.0.0 | 2025-02-09 | Initial specification |
 | 1.1.0 | 2026-02-26 | Simplified: reduced service methods to MVP, merged C03/C04, reduced components from 25→22, removed AnalyticsService and SchedulerService, simplified event types and error codes |
+| 1.2.0 | 2026-02-27 | C20 Podcast: added ±10s seek controls; added Script full-screen overlay with scrollable script view |
