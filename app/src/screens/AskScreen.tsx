@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { History, SquarePen } from 'lucide-react';
+import { History, SquarePen, Trash2 } from 'lucide-react';
 import { ChatMessage } from '../components/ChatMessage';
 import { ChatInput } from '../components/ChatInput';
 import { useQuestions } from '../state/useQuestions';
@@ -36,6 +36,7 @@ export function AskScreen() {
   const [session, setSession] = useState<ChatSession>(() => sessionService.getActive());
   const [streaming, setStreaming] = useState<StreamingOverlay | null>(null);
   const [showHistory, setShowHistory] = useState(false);
+  const [historySessions, setHistorySessions] = useState<ChatSession[]>([]);
 
   // Keep session ref in sync for use in callbacks without stale closure
   const sessionRef = useRef(session);
@@ -46,6 +47,13 @@ export function AskScreen() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [session.messages, streaming]);
+
+  // Refresh the sessions list whenever the history panel opens
+  useEffect(() => {
+    if (showHistory) {
+      setHistorySessions(sessionService.getAll());
+    }
+  }, [showHistory]);
 
   // Build the display list: persisted messages + streaming overlay
   const displayMessages = streaming
@@ -123,7 +131,17 @@ export function AskScreen() {
     setShowHistory(false);
   }, []);
 
-  const allSessions = sessionService.getAll();
+  const handleDeleteSession = useCallback((id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    sessionService.delete(id);
+    setHistorySessions((prev) => prev.filter((s) => s.id !== id));
+    // If we deleted the active session, open a fresh one
+    if (id === sessionRef.current.id) {
+      const newSession = sessionService.createNew();
+      setSession(newSession);
+      setStreaming(null);
+    }
+  }, []);
 
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', maxWidth: '448px', margin: '0 auto', position: 'relative' }}>
@@ -294,42 +312,65 @@ export function AskScreen() {
             </div>
 
             <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
-              {allSessions.length === 0 ? (
+              {historySessions.length === 0 ? (
                 <p style={{ padding: '16px', color: 'var(--muted-foreground)', fontSize: '0.875rem', textAlign: 'center' }}>
                   No chat history yet.
                 </p>
               ) : (
-                allSessions.map((s) => (
-                  <button
+                historySessions.map((s) => (
+                  <div
                     key={s.id}
-                    onClick={() => handleSelectSession(s.id)}
                     style={{
-                      display: 'block',
-                      width: '100%',
-                      textAlign: 'left',
-                      padding: '12px 16px',
-                      backgroundColor: s.id === session.id ? 'var(--surface-variant)' : 'transparent',
-                      border: 'none',
-                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
                       borderBottom: '1px solid var(--surface-variant)',
+                      backgroundColor: s.id === session.id ? 'var(--surface-variant)' : 'transparent',
                     }}
                   >
-                    <p
+                    <button
+                      onClick={() => handleSelectSession(s.id)}
                       style={{
-                        fontSize: '0.875rem',
-                        fontWeight: 500,
-                        marginBottom: '4px',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
+                        flex: 1,
+                        textAlign: 'left',
+                        padding: '12px 16px',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        minWidth: 0,
                       }}
                     >
-                      {s.title || 'New conversation'}
-                    </p>
-                    <p style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>
-                      {formatDate(s.updatedAt)} · {s.messages.length} message{s.messages.length !== 1 ? 's' : ''}
-                    </p>
-                  </button>
+                      <p
+                        style={{
+                          fontSize: '0.875rem',
+                          fontWeight: 500,
+                          marginBottom: '4px',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {s.title || 'New conversation'}
+                      </p>
+                      <p style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>
+                        {formatDate(s.updatedAt)} · {s.messages.length} message{s.messages.length !== 1 ? 's' : ''}
+                      </p>
+                    </button>
+                    <button
+                      onClick={(e) => handleDeleteSession(s.id, e)}
+                      title="Delete conversation"
+                      style={{
+                        flexShrink: 0,
+                        padding: '12px',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        color: 'var(--muted-foreground)',
+                        opacity: 0.6,
+                      }}
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
                 ))
               )}
             </div>

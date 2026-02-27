@@ -1,18 +1,19 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Brain, BookOpen, CheckSquare, Headphones } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { useQuestions } from '../state/useQuestions';
 import { useReview } from '../state/useReview';
-import { useCalendar } from '../state/useCalendar';
 import { usePodcast } from '../state/usePodcast';
+import { mockCalendarService } from '../services/mock/calendar.mock';
+import { eventBus } from '../lib/event-bus';
 import { today, getGreeting, formatDateLabel } from '../lib/date';
 
 export function HomeScreen() {
   const navigate = useNavigate();
   const { getByDate, getRecent } = useQuestions();
   const { reviewCount } = useReview();
-  const { schedule } = useCalendar();
   const { getPodcastForDate } = usePodcast();
 
   const t = today();
@@ -20,7 +21,22 @@ export function HomeScreen() {
   const recentQuestions = getRecent(3);
   const todayPodcast = getPodcastForDate(t);
 
-  const pendingTodos = schedule?.blocks.flatMap((b) => b.todos).filter((td) => td.status === 'pending').length ?? 0;
+  const [pendingTodos, setPendingTodos] = useState(0);
+
+  useEffect(() => {
+    const refresh = async () => {
+      const result = await mockCalendarService.getDaySchedule(today());
+      if (result.success && result.data) {
+        setPendingTodos(
+          result.data.blocks.flatMap((b) => b.todos).filter((td) => td.status === 'pending').length,
+        );
+      }
+    };
+    void refresh();
+    const unsub1 = eventBus.subscribe('TODO_STATUS_CHANGED', () => void refresh());
+    const unsub2 = eventBus.subscribe('TODO_CREATED', () => void refresh());
+    return () => { unsub1(); unsub2(); };
+  }, []);
 
   return (
     <div style={{ padding: '24px 16px 96px', maxWidth: '448px', margin: '0 auto' }}>

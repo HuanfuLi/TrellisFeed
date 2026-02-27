@@ -44,7 +44,24 @@ export const flashcardService = {
 
   getDue(): FlashCard[] {
     const t = today();
-    return loadAll().filter((c) => c.reviewSchedule.nextReviewDate <= t);
+    // Pinned cards always appear in the review queue regardless of schedule
+    return loadAll().filter((c) => c.pinned || c.reviewSchedule.nextReviewDate <= t);
+  },
+
+  togglePin(id: string): void {
+    const all = loadAll();
+    const idx = all.findIndex((c) => c.id === id);
+    if (idx === -1) return;
+    const wasPinned = all[idx].pinned ?? false;
+    all[idx] = {
+      ...all[idx],
+      pinned: !wasPinned,
+      // When pinning, make it due today so it joins the current session's queue
+      reviewSchedule: !wasPinned
+        ? { ...all[idx].reviewSchedule, nextReviewDate: today() }
+        : all[idx].reviewSchedule,
+    };
+    saveAll(all);
   },
 
   getBySession(sessionId: string): FlashCard[] {
@@ -71,6 +88,10 @@ export const flashcardService = {
       all[idx] = { ...all[idx], reviewSchedule: schedule };
       saveAll(all);
     }
+  },
+
+  deleteById(id: string): void {
+    saveAll(loadAll().filter((c) => c.id !== id));
   },
 
   deleteBySession(sessionId: string): void {

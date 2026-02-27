@@ -51,7 +51,8 @@ export const reviewService = {
       card.reviewSchedule.easeFactor,
     );
     const newSchedule: ReviewSchedule = {
-      nextReviewDate: addDays(today(), days),
+      // Pinned cards always come back tomorrow regardless of SM-2 rating
+      nextReviewDate: card.pinned ? addDays(today(), 1) : addDays(today(), days),
       reviewCount: card.reviewSchedule.reviewCount + 1,
       easeFactor: newEaseFactor,
     };

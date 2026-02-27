@@ -154,14 +154,12 @@ export const mockCalendarService = {
     if (!found) return { success: false, error: { code: 'NOT_FOUND', message: 'Todo not found', retryable: false } };
 
     const { block, todo } = found;
-    const date = block.date;
-    const blocks = getBlocksForDate(date);
-    const currentIdx = blocks.findIndex((b) => b.id === block.id);
-    const nextBlock = blocks[currentIdx + 1];
+    if (todo.status !== 'pending') return { success: false, error: { code: 'VALIDATION_ERROR', message: 'Only pending todos can be postponed', retryable: false } };
 
     todo.status = 'postponed';
 
-    const targetBlock = nextBlock ?? await this._getOrCreateNextDayBlock(date);
+    // Always carry over to the next day (not just next same-day block)
+    const targetBlock = await this._getOrCreateNextDayBlock(block.date);
 
     const newTodo: TodoItem = {
       id: newTodoId(),
@@ -172,8 +170,35 @@ export const mockCalendarService = {
       postponedFrom: block.id,
     };
     targetBlock.todos.push(newTodo);
+    eventBus.emit({ type: 'TODO_STATUS_CHANGED', payload: todo });
     eventBus.emit({ type: 'TODO_CREATED', payload: newTodo });
     return { success: true, data: newTodo };
+  },
+
+  async cancelPostpone(todoId: string): Promise<ServiceResult<void>> {
+    const found = findTodoAndBlock(todoId);
+    if (!found) return { success: false, error: { code: 'NOT_FOUND', message: 'Todo not found', retryable: false } };
+
+    const { block, todo } = found;
+    if (todo.status !== 'postponed') return { success: false, error: { code: 'VALIDATION_ERROR', message: 'Todo is not postponed', retryable: false } };
+
+    // Find and remove the copy from the next day
+    const nextDate = addDays(block.date, 1);
+    const nextDayBlocks = scheduleStore.get(nextDate) ?? [];
+    for (const nextBlock of nextDayBlocks) {
+      const copyIdx = nextBlock.todos.findIndex(
+        (td) => td.postponedFrom === block.id && td.content === todo.content,
+      );
+      if (copyIdx !== -1) {
+        nextBlock.todos.splice(copyIdx, 1);
+        break;
+      }
+    }
+
+    // Restore original
+    todo.status = 'pending';
+    eventBus.emit({ type: 'TODO_STATUS_CHANGED', payload: todo });
+    return { success: true };
   },
 
   async _getOrCreateNextDayBlock(date: string): Promise<TimeBlock> {

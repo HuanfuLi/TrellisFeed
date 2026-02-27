@@ -10,6 +10,7 @@ interface UseCalendarReturn {
   addTodo: (blockId: string, content: string) => Promise<void>;
   toggleTodo: (todoId: string, currentStatus: TodoStatus) => Promise<void>;
   postponeTodo: (todoId: string) => Promise<void>;
+  cancelPostpone: (todoId: string) => Promise<void>;
 }
 
 export function useCalendar(): UseCalendarReturn {
@@ -63,7 +64,7 @@ export function useCalendar(): UseCalendarReturn {
 
   const postponeTodo = useCallback(async (todoId: string) => {
     const result = await mockCalendarService.postponeTodo(todoId);
-    if (result.success && schedule) {
+    if (result.success) {
       setSchedule((prev) => {
         if (!prev) return prev;
         return {
@@ -75,7 +76,23 @@ export function useCalendar(): UseCalendarReturn {
         };
       });
     }
-  }, [schedule]);
+  }, []);
 
-  return { schedule, isLoading, error, loadDay, addTodo, toggleTodo, postponeTodo };
+  const cancelPostpone = useCallback(async (todoId: string) => {
+    const result = await mockCalendarService.cancelPostpone(todoId);
+    if (result.success) {
+      setSchedule((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          blocks: prev.blocks.map((b) => ({
+            ...b,
+            todos: b.todos.map((td) => td.id === todoId ? { ...td, status: 'pending' as TodoStatus } : td),
+          })),
+        };
+      });
+    }
+  }, []);
+
+  return { schedule, isLoading, error, loadDay, addTodo, toggleTodo, postponeTodo, cancelPostpone };
 }

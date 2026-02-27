@@ -167,6 +167,7 @@ export interface FlashCard {
   front: string;            // concise question / concept (≤120 chars)
   back: string;             // concise answer (≤200 chars)
   createdAt: number;
+  pinned?: boolean;         // if true, appears in review queue every day
   reviewSchedule: ReviewSchedule;
 }
 

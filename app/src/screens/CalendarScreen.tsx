@@ -14,7 +14,7 @@ export function CalendarScreen() {
   const navigate = useNavigate();
   const [currentDate, setCurrentDate] = useState(today());
   const [newTodos, setNewTodos] = useState<Record<string, string>>({});
-  const { schedule, isLoading, loadDay, addTodo, toggleTodo, postponeTodo } = useCalendar();
+  const { schedule, isLoading, loadDay, addTodo, toggleTodo, postponeTodo, cancelPostpone } = useCalendar();
   const { reviewCount } = useReview();
 
   useEffect(() => {
@@ -122,8 +122,10 @@ export function CalendarScreen() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
                 {block.todos.map((todo) => (
                   <div key={todo.id} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    {/* Checkbox — disabled for postponed todos */}
                     <button
-                      onClick={() => toggleTodo(todo.id, todo.status)}
+                      onClick={() => todo.status !== 'postponed' && toggleTodo(todo.id, todo.status)}
+                      disabled={todo.status === 'postponed'}
                       style={{
                         flexShrink: 0,
                         width: '22px',
@@ -137,10 +139,13 @@ export function CalendarScreen() {
                         color: 'white',
                         fontSize: '13px',
                         fontWeight: 700,
+                        opacity: todo.status === 'postponed' ? 0.35 : 1,
+                        cursor: todo.status === 'postponed' ? 'default' : 'pointer',
                       }}
                     >
                       {todo.status === 'completed' ? '✓' : ''}
                     </button>
+
                     <span
                       style={{
                         flex: 1,
@@ -152,9 +157,11 @@ export function CalendarScreen() {
                     >
                       {todo.content}
                       {todo.status === 'postponed' && (
-                        <span style={{ fontSize: '0.75rem', marginLeft: '6px', color: 'rgba(45,45,45,0.6)' }}>(postponed)</span>
+                        <span style={{ fontSize: '0.75rem', marginLeft: '6px', color: 'rgba(45,45,45,0.6)' }}>→ tomorrow</span>
                       )}
                     </span>
+
+                    {/* Action buttons */}
                     {todo.status === 'pending' && (
                       <button
                         onClick={() => postponeTodo(todo.id)}
@@ -166,9 +173,25 @@ export function CalendarScreen() {
                           backgroundColor: 'rgba(255,255,255,0.5)',
                           color: '#2D2D2D',
                         }}
-                        title="Postpone"
+                        title="Postpone to tomorrow"
                       >
                         →
+                      </button>
+                    )}
+                    {todo.status === 'postponed' && (
+                      <button
+                        onClick={() => cancelPostpone(todo.id)}
+                        style={{
+                          flexShrink: 0,
+                          padding: '4px 8px',
+                          borderRadius: '8px',
+                          fontSize: '0.75rem',
+                          backgroundColor: 'rgba(255,255,255,0.5)',
+                          color: '#2D2D2D',
+                        }}
+                        title="Cancel postpone"
+                      >
+                        ✕
                       </button>
                     )}
                   </div>

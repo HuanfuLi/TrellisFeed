@@ -84,9 +84,7 @@ export const sessionService = {
       messages: [],
       processed: false,
     };
-    const all = loadAll();
-    all.unshift(session);
-    saveAll(all);
+    // Do NOT persist until first message — prevents empty sessions in history
     this.setActiveId(session.id);
     eventBus.emit({ type: 'SESSION_CREATED', payload: session });
     return session;

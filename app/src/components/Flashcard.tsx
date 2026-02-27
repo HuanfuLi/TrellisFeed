@@ -1,9 +1,12 @@
 import { useState } from 'react';
+import { Pin } from 'lucide-react';
 
 interface FlashcardProps {
   front: string;
   back: string;
   onRate?: (rating: number) => void;
+  pinned?: boolean;
+  onTogglePin?: () => void;
 }
 
 const ratingConfig = [
@@ -14,7 +17,7 @@ const ratingConfig = [
   { value: 5, label: '5', color: '#558B2F', description: 'Perfect' },
 ];
 
-export function Flashcard({ front, back, onRate }: FlashcardProps) {
+export function Flashcard({ front, back, onRate, pinned, onTogglePin }: FlashcardProps) {
   const [isFlipped, setIsFlipped] = useState(false);
 
   const handleRate = (rating: number) => {
@@ -24,8 +27,10 @@ export function Flashcard({ front, back, onRate }: FlashcardProps) {
 
   return (
     <div style={{ maxWidth: '448px', margin: '0 auto', padding: '0 16px' }}>
+      {/* Card face */}
       <div
         style={{
+          position: 'relative',
           backgroundColor: 'white',
           padding: '32px',
           marginBottom: '24px',
@@ -37,6 +42,32 @@ export function Flashcard({ front, back, onRate }: FlashcardProps) {
           boxShadow: 'var(--shadow-2)',
         }}
       >
+        {/* Pin button — top-right corner */}
+        {onTogglePin && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onTogglePin(); }}
+            title={pinned ? 'Unpin card' : 'Pin card (review every day)'}
+            style={{
+              position: 'absolute',
+              top: '12px',
+              right: '12px',
+              width: '32px',
+              height: '32px',
+              borderRadius: '50%',
+              backgroundColor: pinned ? 'var(--primary-40)' : 'transparent',
+              color: pinned ? 'white' : 'var(--muted-foreground)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              border: `1.5px solid ${pinned ? 'var(--primary-40)' : 'var(--surface-variant)'}`,
+              cursor: 'pointer',
+              transition: 'all 0.15s',
+            }}
+          >
+            <Pin size={15} fill={pinned ? 'currentColor' : 'none'} />
+          </button>
+        )}
+
         <div style={{ textAlign: 'center', width: '100%' }}>
           {!isFlipped ? (
             <div>
