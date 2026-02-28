@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Play, Pause, Radio, RefreshCw, RotateCcw, RotateCw, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Play, Pause, Radio, RefreshCw, RotateCcw, RotateCw, ChevronRight, Trash2, Check, X } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { ProgressBar } from '../components/ui/ProgressBar';
@@ -18,6 +18,7 @@ export function PodcastScreen() {
     generationProgress,
     getPodcastForDate,
     generatePodcast,
+    deletePodcast,
     getAudioPath,
   } = usePodcast();
 
@@ -25,6 +26,7 @@ export function PodcastScreen() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackProgress, setPlaybackProgress] = useState(0);
   const [showScript, setShowScript] = useState(false);
+  const [confirmDeletePodcastId, setConfirmDeletePodcastId] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const todayPodcast = getPodcastForDate(today());
@@ -360,8 +362,8 @@ export function PodcastScreen() {
               onMouseEnter={(e) => { if (pod.status === 'ready') e.currentTarget.style.transform = 'scale(1.01)'; }}
               onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ fontWeight: 500, marginBottom: '2px' }}>
                     {isToday(pod.date) ? 'Today' : formatDateLabel(pod.date)}
                   </p>
@@ -369,7 +371,62 @@ export function PodcastScreen() {
                     {pod.questionIds.length} questions · {formatDuration(pod.duration)}
                   </p>
                 </div>
-                <Badge color={statusColor(pod.status)}>{pod.status}</Badge>
+
+                {/* Status badge + delete */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                  <Badge color={statusColor(pod.status)}>{pod.status}</Badge>
+
+                  {/* Delete — two-step confirm */}
+                  {confirmDeletePodcastId === pod.id ? (
+                    <>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setConfirmDeletePodcastId(null); }}
+                        title="Cancel delete"
+                        style={{
+                          width: '28px', height: '28px', borderRadius: '50%',
+                          backgroundColor: 'transparent',
+                          color: 'var(--muted-foreground)',
+                          border: '1.5px solid var(--surface-variant)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                        }}
+                      >
+                        <X size={13} />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setConfirmDeletePodcastId(null);
+                          if (selectedId === pod.id) setSelectedId(null);
+                          void deletePodcast(pod.id);
+                        }}
+                        title="Confirm delete"
+                        style={{
+                          width: '28px', height: '28px', borderRadius: '50%',
+                          backgroundColor: 'rgba(220,38,38,0.12)',
+                          color: 'rgb(220,38,38)',
+                          border: '1.5px solid rgba(220,38,38,0.3)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                        }}
+                      >
+                        <Check size={13} />
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setConfirmDeletePodcastId(pod.id); }}
+                      title="Delete podcast"
+                      style={{
+                        width: '28px', height: '28px', borderRadius: '50%',
+                        backgroundColor: 'transparent',
+                        color: 'var(--muted-foreground)',
+                        border: '1.5px solid var(--surface-variant)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                      }}
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  )}
+                </div>
               </div>
               {pod.status === 'generating' && (
                 <div style={{ marginTop: '8px' }}>

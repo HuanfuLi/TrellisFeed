@@ -11,6 +11,7 @@ interface UsePodcastReturn {
   error: ServiceError | null;
   getPodcastForDate: (date: string) => DailyPodcast | undefined;
   generatePodcast: (date: string) => Promise<void>;
+  deletePodcast: (podcastId: string) => Promise<void>;
   getAudioPath: (podcastId: string) => string | null;
   reload: () => Promise<void>;
 }
@@ -98,6 +99,11 @@ export function usePodcast(): UsePodcastReturn {
     return result.success ? (result.data ?? null) : null;
   }, []);
 
+  const deletePodcast = useCallback(async (podcastId: string) => {
+    await podcastService.deletePodcast(podcastId);
+    setPodcasts((prev) => prev.filter((p) => p.id !== podcastId));
+  }, []);
+
   return {
     podcasts,
     isLoading,
@@ -106,6 +112,7 @@ export function usePodcast(): UsePodcastReturn {
     error,
     getPodcastForDate,
     generatePodcast,
+    deletePodcast,
     getAudioPath,
     reload,
   };

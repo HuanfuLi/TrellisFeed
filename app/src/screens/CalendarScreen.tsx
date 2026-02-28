@@ -1,25 +1,44 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Plus, BookOpen } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, BookOpen, Pin, Trash2, Check, X, ArrowRight } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { ProgressBar } from '../components/ui/ProgressBar';
 import { useCalendar } from '../state/useCalendar';
 import { useReview } from '../state/useReview';
 import { today, formatDateLabel, addDays } from '../lib/date';
+import type { TimeBlock } from '../types';
 
 const BLOCK_COLORS = ['var(--node-mint)', 'var(--node-salmon)', 'var(--node-lilac)', 'var(--node-peach)', 'var(--node-sky)'];
+
+// Inline edit state for a block's label + time
+type EditingBlock = { id: string; label: string; startTime: string; endTime: string };
 
 export function CalendarScreen() {
   const navigate = useNavigate();
   const [currentDate, setCurrentDate] = useState(today());
   const [newTodos, setNewTodos] = useState<Record<string, string>>({});
-  const { schedule, isLoading, loadDay, addTodo, toggleTodo, postponeTodo, cancelPostpone } = useCalendar();
+  const [editingBlock, setEditingBlock] = useState<EditingBlock | null>(null);
+  const [confirmDeleteBlockId, setConfirmDeleteBlockId] = useState<string | null>(null);
+  const [confirmDeleteTodoId, setConfirmDeleteTodoId] = useState<string | null>(null);
+
+  const {
+    schedule, isLoading, loadDay,
+    addBlock, updateBlock, deleteBlock, togglePinBlock,
+    addTodo, deleteTodo, toggleTodo, postponeTodo, cancelPostpone, togglePinTodo,
+  } = useCalendar();
   const { reviewCount } = useReview();
 
   useEffect(() => {
     loadDay(currentDate);
   }, [currentDate, loadDay]);
+
+  // Discard any unsaved edit / pending delete when navigating dates
+  useEffect(() => {
+    setEditingBlock(null);
+    setConfirmDeleteBlockId(null);
+    setConfirmDeleteTodoId(null);
+  }, [currentDate]);
 
   const allTodos = schedule?.blocks.flatMap((b) => b.todos) ?? [];
   const completed = allTodos.filter((td) => td.status === 'completed').length;
@@ -33,12 +52,69 @@ export function CalendarScreen() {
     setNewTodos((prev) => ({ ...prev, [blockId]: '' }));
   };
 
+  const handleAddBlock = async () => {
+    const newBlock = await addBlock(currentDate);
+    if (newBlock) {
+      setEditingBlock({ id: newBlock.id, label: newBlock.label, startTime: newBlock.startTime, endTime: newBlock.endTime });
+    }
+  };
+
+  const startEditingBlock = (block: TimeBlock) => {
+    setEditingBlock({ id: block.id, label: block.label, startTime: block.startTime, endTime: block.endTime });
+  };
+
+  const saveBlockEdit = async () => {
+    if (!editingBlock) return;
+    await updateBlock(editingBlock.id, {
+      label: editingBlock.label,
+      startTime: editingBlock.startTime,
+      endTime: editingBlock.endTime,
+    });
+    setEditingBlock(null);
+  };
+
+  const handleDeleteBlock = async (blockId: string) => {
+    setConfirmDeleteBlockId(null);
+    if (editingBlock?.id === blockId) setEditingBlock(null);
+    await deleteBlock(blockId);
+  };
+
+  // Shared style for editing inputs on colored card backgrounds
+  const editInputStyle: React.CSSProperties = {
+    padding: '3px 7px',
+    borderRadius: '6px',
+    backgroundColor: 'rgba(255,255,255,0.7)',
+    color: '#2D2D2D',
+    border: '1.5px solid rgba(45,45,45,0.25)',
+    fontSize: '0.875rem',
+  };
+
   return (
     <div style={{ padding: '24px 16px 96px', maxWidth: '448px', margin: '0 auto' }}>
       {/* Header */}
-      <div style={{ marginBottom: '20px' }}>
-        <h1 style={{ marginBottom: '4px' }}>Calendar</h1>
-        <p style={{ color: 'var(--muted-foreground)' }}>{completed} of {total} tasks done</p>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '20px' }}>
+        <div>
+          <h1 style={{ marginBottom: '4px' }}>Calendar</h1>
+          <p style={{ color: 'var(--muted-foreground)' }}>{completed} of {total} tasks done</p>
+        </div>
+        <button
+          onClick={handleAddBlock}
+          title="Add new block"
+          style={{
+            width: '40px',
+            height: '40px',
+            borderRadius: '50%',
+            backgroundColor: 'var(--primary-40)',
+            color: 'white',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: 'var(--shadow-1)',
+            flexShrink: 0,
+          }}
+        >
+          <Plus size={20} />
+        </button>
       </div>
 
       {/* Date Selector */}
@@ -106,132 +182,364 @@ export function CalendarScreen() {
       ) : schedule?.blocks.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--muted-foreground)' }}>
           <p style={{ fontSize: '1.25rem', marginBottom: '8px' }}>No blocks scheduled</p>
-          <p style={{ fontSize: '0.875rem' }}>Your schedule is clear for this day.</p>
+          <p style={{ fontSize: '0.875rem' }}>Tap <strong>+</strong> at the top to add a block for this day.</p>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {schedule?.blocks.map((block, i) => (
-            <Card key={block.id} style={{ backgroundColor: BLOCK_COLORS[i % BLOCK_COLORS.length] }}>
-              <div style={{ marginBottom: '12px' }}>
-                <h4 style={{ color: '#2D2D2D', marginBottom: '2px' }}>{block.label}</h4>
-                <p style={{ fontSize: '0.75rem', color: 'rgba(45,45,45,0.7)' }}>
-                  {block.startTime} – {block.endTime}
-                </p>
-              </div>
+          {schedule?.blocks.map((block, i) => {
+            const isEditing = editingBlock?.id === block.id;
+            const bgColor = BLOCK_COLORS[i % BLOCK_COLORS.length];
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
-                {block.todos.map((todo) => (
-                  <div key={todo.id} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    {/* Checkbox — disabled for postponed todos */}
-                    <button
-                      onClick={() => todo.status !== 'postponed' && toggleTodo(todo.id, todo.status)}
-                      disabled={todo.status === 'postponed'}
-                      style={{
-                        flexShrink: 0,
-                        width: '22px',
-                        height: '22px',
-                        borderRadius: '6px',
-                        border: `2px solid ${todo.status === 'completed' ? 'var(--primary-40)' : 'rgba(45,45,45,0.4)'}`,
-                        backgroundColor: todo.status === 'completed' ? 'var(--primary-40)' : 'transparent',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'white',
-                        fontSize: '13px',
-                        fontWeight: 700,
-                        opacity: todo.status === 'postponed' ? 0.35 : 1,
-                        cursor: todo.status === 'postponed' ? 'default' : 'pointer',
-                      }}
-                    >
-                      {todo.status === 'completed' ? '✓' : ''}
-                    </button>
+            return (
+              <Card key={block.id} style={{ backgroundColor: bgColor }}>
+                {/* ── Block header ───────────────────────────────────── */}
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '12px', gap: '8px' }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    {isEditing ? (
+                      <>
+                        {/* Label input */}
+                        <input
+                          value={editingBlock.label}
+                          onChange={(e) => setEditingBlock((prev) => prev ? { ...prev, label: e.target.value } : null)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') void saveBlockEdit();
+                            if (e.key === 'Escape') setEditingBlock(null);
+                          }}
+                          placeholder="Block name"
+                          autoFocus
+                          style={{
+                            ...editInputStyle,
+                            width: '100%',
+                            fontWeight: 600,
+                            fontSize: '1rem',
+                            marginBottom: '6px',
+                          }}
+                        />
 
-                    <span
-                      style={{
-                        flex: 1,
-                        fontSize: '0.9rem',
-                        color: '#2D2D2D',
-                        textDecoration: todo.status === 'completed' ? 'line-through' : 'none',
-                        opacity: todo.status === 'postponed' ? 0.5 : 1,
-                      }}
-                    >
-                      {todo.content}
-                      {todo.status === 'postponed' && (
-                        <span style={{ fontSize: '0.75rem', marginLeft: '6px', color: 'rgba(45,45,45,0.6)' }}>→ tomorrow</span>
-                      )}
-                    </span>
-
-                    {/* Action buttons */}
-                    {todo.status === 'pending' && (
+                        {/* Time inputs + save/cancel */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+                          <input
+                            type="time"
+                            value={editingBlock.startTime}
+                            onChange={(e) => setEditingBlock((prev) => prev ? { ...prev, startTime: e.target.value } : null)}
+                            style={editInputStyle}
+                          />
+                          <span style={{ fontSize: '0.75rem', color: 'rgba(45,45,45,0.7)' }}>–</span>
+                          <input
+                            type="time"
+                            value={editingBlock.endTime}
+                            onChange={(e) => setEditingBlock((prev) => prev ? { ...prev, endTime: e.target.value } : null)}
+                            style={editInputStyle}
+                          />
+                          {/* Confirm */}
+                          <button
+                            onClick={() => void saveBlockEdit()}
+                            title="Save"
+                            style={{
+                              padding: '3px 8px',
+                              borderRadius: '6px',
+                              backgroundColor: 'rgba(45,45,45,0.18)',
+                              color: '#2D2D2D',
+                              fontSize: '0.8rem',
+                              fontWeight: 600,
+                            }}
+                          >
+                            ✓
+                          </button>
+                          {/* Cancel */}
+                          <button
+                            onClick={() => setEditingBlock(null)}
+                            title="Cancel"
+                            style={{
+                              padding: '3px 6px',
+                              borderRadius: '6px',
+                              backgroundColor: 'transparent',
+                              color: 'rgba(45,45,45,0.5)',
+                              fontSize: '0.8rem',
+                            }}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      /* Display mode — click either row to enter edit mode */
                       <button
-                        onClick={() => postponeTodo(todo.id)}
-                        style={{
-                          flexShrink: 0,
-                          padding: '4px 8px',
-                          borderRadius: '8px',
-                          fontSize: '0.75rem',
-                          backgroundColor: 'rgba(255,255,255,0.5)',
-                          color: '#2D2D2D',
-                        }}
-                        title="Postpone to tomorrow"
+                        onClick={() => startEditingBlock(block)}
+                        title="Edit block name and time"
+                        style={{ textAlign: 'left', background: 'none', padding: 0, cursor: 'text', width: '100%' }}
                       >
-                        →
-                      </button>
-                    )}
-                    {todo.status === 'postponed' && (
-                      <button
-                        onClick={() => cancelPostpone(todo.id)}
-                        style={{
-                          flexShrink: 0,
-                          padding: '4px 8px',
-                          borderRadius: '8px',
-                          fontSize: '0.75rem',
-                          backgroundColor: 'rgba(255,255,255,0.5)',
-                          color: '#2D2D2D',
-                        }}
-                        title="Cancel postpone"
-                      >
-                        ✕
+                        <h4 style={{ color: '#2D2D2D', marginBottom: '2px' }}>
+                          {block.label || 'Untitled Block'}
+                        </h4>
+                        <p style={{ fontSize: '0.75rem', color: 'rgba(45,45,45,0.65)' }}>
+                          {block.startTime && block.endTime
+                            ? `${block.startTime} – ${block.endTime}`
+                            : 'Tap to set time'}
+                          {block.pinned && (
+                            <span style={{ marginLeft: '6px', fontSize: '0.7rem', opacity: 0.7 }}>· daily</span>
+                          )}
+                        </p>
                       </button>
                     )}
                   </div>
-                ))}
-              </div>
 
-              {/* Add Todo */}
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <input
-                  value={newTodos[block.id] ?? ''}
-                  onChange={(e) => setNewTodos((prev) => ({ ...prev, [block.id]: e.target.value }))}
-                  onKeyDown={(e) => e.key === 'Enter' && handleAddTodo(block.id)}
-                  placeholder="Add task..."
-                  style={{
-                    flex: 1,
-                    padding: '8px 12px',
-                    borderRadius: '12px',
-                    backgroundColor: 'rgba(255,255,255,0.6)',
-                    fontSize: '0.875rem',
-                    color: '#2D2D2D',
-                  }}
-                />
-                <button
-                  onClick={() => handleAddTodo(block.id)}
-                  style={{
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: '50%',
-                    backgroundColor: 'var(--primary-40)',
-                    color: 'white',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <Plus size={18} />
-                </button>
-              </div>
-            </Card>
-          ))}
+                  {/* Block action buttons: pin + delete */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0, marginTop: '2px' }}>
+                    {/* Pin block */}
+                    <button
+                      onClick={() => void togglePinBlock(block.id)}
+                      title={block.pinned ? 'Unpin block' : 'Pin block — appears every day'}
+                      style={{
+                        width: '28px',
+                        height: '28px',
+                        borderRadius: '50%',
+                        backgroundColor: block.pinned ? 'rgba(45,45,45,0.22)' : 'transparent',
+                        color: block.pinned ? '#2D2D2D' : 'rgba(45,45,45,0.4)',
+                        border: `1.5px solid ${block.pinned ? 'rgba(45,45,45,0.4)' : 'rgba(45,45,45,0.18)'}`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <Pin size={13} fill={block.pinned ? 'currentColor' : 'none'} />
+                    </button>
+
+                    {/* Delete block — two-step confirm */}
+                    {confirmDeleteBlockId === block.id ? (
+                      <>
+                        <button
+                          onClick={() => setConfirmDeleteBlockId(null)}
+                          title="Cancel delete"
+                          style={{
+                            width: '28px', height: '28px', borderRadius: '50%',
+                            backgroundColor: 'transparent',
+                            color: 'rgba(45,45,45,0.5)',
+                            border: '1.5px solid rgba(45,45,45,0.18)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                          }}
+                        >
+                          <X size={13} />
+                        </button>
+                        <button
+                          onClick={() => void handleDeleteBlock(block.id)}
+                          title="Confirm delete"
+                          style={{
+                            width: '28px', height: '28px', borderRadius: '50%',
+                            backgroundColor: 'rgba(220,38,38,0.15)',
+                            color: 'rgb(220,38,38)',
+                            border: '1.5px solid rgba(220,38,38,0.35)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                          }}
+                        >
+                          <Check size={13} />
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => setConfirmDeleteBlockId(block.id)}
+                        title="Delete block"
+                        style={{
+                          width: '28px', height: '28px', borderRadius: '50%',
+                          backgroundColor: 'transparent',
+                          color: 'rgba(45,45,45,0.4)',
+                          border: '1.5px solid rgba(45,45,45,0.18)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                        }}
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* ── Todo list ──────────────────────────────────────── */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+                  {block.todos.map((todo) => (
+                    <div key={todo.id} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {/* Checkbox */}
+                      <button
+                        onClick={() => todo.status !== 'postponed' && void toggleTodo(todo.id, todo.status)}
+                        disabled={todo.status === 'postponed'}
+                        style={{
+                          flexShrink: 0,
+                          width: '22px',
+                          height: '22px',
+                          borderRadius: '6px',
+                          border: `2px solid ${todo.status === 'completed' ? 'var(--primary-40)' : 'rgba(45,45,45,0.4)'}`,
+                          backgroundColor: todo.status === 'completed' ? 'var(--primary-40)' : 'transparent',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'white',
+                          fontSize: '13px',
+                          fontWeight: 700,
+                          opacity: todo.status === 'postponed' ? 0.35 : 1,
+                          cursor: todo.status === 'postponed' ? 'default' : 'pointer',
+                        }}
+                      >
+                        {todo.status === 'completed' ? '✓' : ''}
+                      </button>
+
+                      {/* Content */}
+                      <span
+                        style={{
+                          flex: 1,
+                          fontSize: '0.9rem',
+                          color: '#2D2D2D',
+                          textDecoration: todo.status === 'completed' ? 'line-through' : 'none',
+                          opacity: todo.status === 'postponed' ? 0.5 : 1,
+                        }}
+                      >
+                        {todo.content}
+                        {todo.status === 'postponed' && (
+                          <span style={{ fontSize: '0.75rem', marginLeft: '6px', color: 'rgba(45,45,45,0.6)' }}>→ tomorrow</span>
+                        )}
+                      </span>
+
+                      {/* Action buttons */}
+                      {todo.status === 'pending' && (
+                        <>
+                          {/* Pin todo */}
+                          <button
+                            onClick={() => void togglePinTodo(todo.id)}
+                            title={todo.pinned ? 'Unpin task' : 'Pin task — appears every day'}
+                            style={{
+                              flexShrink: 0,
+                              width: '24px',
+                              height: '24px',
+                              borderRadius: '50%',
+                              backgroundColor: todo.pinned ? 'rgba(45,45,45,0.2)' : 'transparent',
+                              color: todo.pinned ? '#2D2D2D' : 'rgba(45,45,45,0.35)',
+                              border: `1.5px solid ${todo.pinned ? 'rgba(45,45,45,0.35)' : 'rgba(45,45,45,0.15)'}`,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                            }}
+                          >
+                            <Pin size={11} fill={todo.pinned ? 'currentColor' : 'none'} />
+                          </button>
+
+                          {/* Postpone — round icon button */}
+                          <button
+                            onClick={() => void postponeTodo(todo.id)}
+                            title="Postpone to tomorrow"
+                            style={{
+                              flexShrink: 0,
+                              width: '24px',
+                              height: '24px',
+                              borderRadius: '50%',
+                              backgroundColor: 'transparent',
+                              color: 'rgba(45,45,45,0.35)',
+                              border: '1.5px solid rgba(45,45,45,0.15)',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                            }}
+                          >
+                            <ArrowRight size={11} />
+                          </button>
+                        </>
+                      )}
+
+                      {/* Cancel postpone */}
+                      {todo.status === 'postponed' && (
+                        <button
+                          onClick={() => void cancelPostpone(todo.id)}
+                          title="Cancel postpone"
+                          style={{
+                            flexShrink: 0,
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '50%',
+                            backgroundColor: 'transparent',
+                            color: 'rgba(45,45,45,0.35)',
+                            border: '1.5px solid rgba(45,45,45,0.15)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                          }}
+                        >
+                          <X size={11} />
+                        </button>
+                      )}
+
+                      {/* Delete todo — two-step confirm */}
+                      {confirmDeleteTodoId === todo.id ? (
+                        <>
+                          <button
+                            onClick={() => setConfirmDeleteTodoId(null)}
+                            title="Cancel delete"
+                            style={{
+                              flexShrink: 0, width: '24px', height: '24px', borderRadius: '50%',
+                              backgroundColor: 'transparent', color: 'rgba(45,45,45,0.5)',
+                              border: '1.5px solid rgba(45,45,45,0.18)',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                            }}
+                          >
+                            <X size={11} />
+                          </button>
+                          <button
+                            onClick={() => { setConfirmDeleteTodoId(null); void deleteTodo(todo.id); }}
+                            title="Confirm delete"
+                            style={{
+                              flexShrink: 0, width: '24px', height: '24px', borderRadius: '50%',
+                              backgroundColor: 'rgba(220,38,38,0.15)', color: 'rgb(220,38,38)',
+                              border: '1.5px solid rgba(220,38,38,0.35)',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                            }}
+                          >
+                            <Check size={11} />
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          onClick={() => setConfirmDeleteTodoId(todo.id)}
+                          title="Delete task"
+                          style={{
+                            flexShrink: 0, width: '24px', height: '24px', borderRadius: '50%',
+                            backgroundColor: 'transparent', color: 'rgba(45,45,45,0.35)',
+                            border: '1.5px solid rgba(45,45,45,0.15)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                          }}
+                        >
+                          <Trash2 size={11} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {/* ── Add Todo ───────────────────────────────────────── */}
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input
+                    value={newTodos[block.id] ?? ''}
+                    onChange={(e) => setNewTodos((prev) => ({ ...prev, [block.id]: e.target.value }))}
+                    onKeyDown={(e) => e.key === 'Enter' && void handleAddTodo(block.id)}
+                    placeholder="Add task..."
+                    style={{
+                      flex: 1,
+                      padding: '8px 12px',
+                      borderRadius: '12px',
+                      backgroundColor: 'rgba(255,255,255,0.6)',
+                      fontSize: '0.875rem',
+                      color: '#2D2D2D',
+                    }}
+                  />
+                  <button
+                    onClick={() => void handleAddTodo(block.id)}
+                    style={{
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '50%',
+                      backgroundColor: 'var(--primary-40)',
+                      color: 'white',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Plus size={18} />
+                  </button>
+                </div>
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>

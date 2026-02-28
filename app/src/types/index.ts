@@ -48,6 +48,8 @@ export interface TimeBlock {
   label: string;
   todos: TodoItem[];
   sortOrder: number;
+  pinned?: boolean;     // if true, block appears on every day
+  templateId?: string;  // present on injected copies; equals the original pinned block's id
 }
 
 export interface TodoItem {
@@ -58,6 +60,7 @@ export interface TodoItem {
   createdAt: number;
   completedAt?: number;
   postponedFrom?: string;
+  pinned?: boolean;  // if true, todo appears in its block every day
 }
 
 export type TodoStatus = 'pending' | 'completed' | 'postponed';

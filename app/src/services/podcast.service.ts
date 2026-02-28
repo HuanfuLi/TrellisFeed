@@ -57,7 +57,11 @@ export const podcastService = {
 
   async generatePodcast(date: string): Promise<ServiceResult<DailyPodcast>> {
     const existing = loadStore().find((p) => p.date === date);
-    if (existing?.status === 'ready') {
+
+    // Only skip if podcast is ready AND audio blob is still in memory.
+    // Blob URLs are lost on page reload, so a 'ready' podcast without a blob
+    // still needs to re-synthesize audio.
+    if (existing?.status === 'ready' && audioBlobUrls.has(existing.id)) {
       return { success: true, data: existing };
     }
 
@@ -76,7 +80,7 @@ export const podcastService = {
       id,
       date,
       questionIds: questions.map((q) => q.id),
-      script: '',
+      script: existing?.script ?? '',   // preserve existing script if re-generating audio
       status: 'generating',
       progress: 0,
       createdAt: existing?.createdAt ?? Date.now(),
@@ -89,7 +93,7 @@ export const podcastService = {
     // Run generation asynchronously so caller gets the pending pod immediately
     void (async () => {
       try {
-        // Step 1: generate script (30%)
+        // Step 1: generate script (30%) — skip LLM if script already exists
         patchPodcast(id, { progress: 30 });
         eventBus.emit({
           type: 'PODCAST_GENERATION_PROGRESS',
@@ -97,7 +101,10 @@ export const podcastService = {
         });
 
         let script: string;
-        if (!settings.llm.isConfigured || questions.length === 0) {
+        if (existing?.script) {
+          // Reuse existing script — only audio synthesis is needed
+          script = existing.script;
+        } else if (!settings.llm.isConfigured || questions.length === 0) {
           script = `Welcome to your daily EchoLearn podcast for ${date}! You reviewed ${questions.length} topic(s) today. Keep learning!`;
         } else {
           const questionLines = questions
