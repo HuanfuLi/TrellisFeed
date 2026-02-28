@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Pin, BookOpen, Trash2, Check, X } from 'lucide-react';
 import { Flashcard } from '../components/Flashcard';
+import { Confetti } from '../components/Confetti';
 import { ProgressBar } from '../components/ui/ProgressBar';
 import { Button } from '../components/ui/Button';
 import { useReview } from '../state/useReview';
+import { toast } from '../lib/toast';
 import type { FlashCard } from '../types';
 
 // ─── Library view ─────────────────────────────────────────────────────────────
@@ -159,6 +161,21 @@ export function ReviewScreen() {
   const [totalRatings, setTotalRatings] = useState(0);
   const [done, setDone] = useState(false);
   const [showLibrary, setShowLibrary] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
+
+  // Trigger confetti + toast when the user completes their review session
+  useEffect(() => {
+    if (done && reviewed > 0) {
+      setShowConfetti(true);
+      toast('All reviews done for today! 🎉', 'success');
+    }
+  }, [done, reviewed]);
+
+  useEffect(() => {
+    if (!showConfetti) return;
+    const t = setTimeout(() => setShowConfetti(false), 4000);
+    return () => clearTimeout(t);
+  }, [showConfetti]);
 
   const total = items.length + reviewed;
   const progress = total > 0 ? (reviewed / total) * 100 : 0;
@@ -298,6 +315,7 @@ export function ReviewScreen() {
     const avgRating = reviewed > 0 ? (totalRatings / reviewed).toFixed(1) : '—';
     return (
       <div style={{ padding: '24px 16px 96px', maxWidth: '448px', margin: '0 auto' }}>
+        <Confetti active={showConfetti} />
         <button
           onClick={() => navigate(-1)}
           style={{ color: 'var(--primary-40)', background: 'none', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px', padding: 0 }}
@@ -337,7 +355,7 @@ export function ReviewScreen() {
             </div>
           )}
 
-          <Button onClick={() => navigate(-1)} fullWidth>Back to Calendar</Button>
+          <Button onClick={() => navigate(-1)} fullWidth>Back</Button>
         </div>
 
         {/* All Flashcards button */}

@@ -289,7 +289,7 @@ export function PodcastScreen() {
               style={{
                 marginTop: '16px',
                 padding: '12px',
-                backgroundColor: 'rgba(255,255,255,0.6)',
+                backgroundColor: 'var(--script-preview-bg)',
                 borderRadius: '12px',
                 width: '100%',
                 textAlign: 'left',

@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { Brain, Volume2, Network, Radio, BookOpen, Palette, RotateCcw, CheckCircle, XCircle } from 'lucide-react';
+import { Brain, Volume2, Network, Radio, BookOpen, Palette, RotateCcw, CheckCircle, XCircle, Shield } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { mockSettingsService } from '../services/mock/settings.mock';
 import { testLLMConnection } from '../providers/llm';
 import { testTTSConnection } from '../providers/tts';
 import type { LLMConfig, TTSConfig, AppSettings } from '../types';
+import { toast } from '../lib/toast';
+import { applyTheme } from '../lib/theme';
 
 function SectionHeader({ icon, title }: { icon: React.ReactNode; title: string }) {
   return (
@@ -117,6 +119,7 @@ export function SettingsScreen() {
   const [reviewNotif, setReviewNotif] = useState(() => mockSettingsService.getSync().review.notificationsEnabled);
   const [reviewReminderTime, setReviewReminderTime] = useState(() => mockSettingsService.getSync().review.reminderTime);
   const [theme, setTheme] = useState<AppSettings['preferences']['theme']>(() => mockSettingsService.getSync().preferences.theme);
+  const [aiConsent, setAiConsent] = useState(() => mockSettingsService.getSync().preferences.aiConsentGiven ?? false);
 
   const noKeyRequired = (p: LLMConfig['provider']) => p === 'local' || p === 'lmstudio';
 
@@ -162,6 +165,25 @@ export function SettingsScreen() {
     setTimeout(() => setTestResult((prev) => ({ ...prev, tts: null })), 5000);
   };
 
+  const handleToggleAiConsent = async () => {
+    const prefs = mockSettingsService.getSync().preferences;
+    const next = !aiConsent;
+    await mockSettingsService.set('preferences', { ...prefs, aiConsentGiven: next });
+    setAiConsent(next);
+    toast(next ? 'AI transmission enabled.' : 'AI transmission disabled.', 'success');
+  };
+
+  const handleDeleteApiKeys = async () => {
+    if (!confirm('Delete all stored API keys? This will disable AI and TTS features until you re-enter your keys.')) return;
+    const nextLlm = { ...llm, apiKey: '', isConfigured: noKeyRequired(llm.provider) };
+    const nextTts = { ...tts, apiKey: '', isConfigured: tts.provider === 'gptsovits' ? !!tts.baseUrl : false };
+    await mockSettingsService.set('llm', nextLlm);
+    await mockSettingsService.set('tts', nextTts);
+    setLlm(nextLlm);
+    setTts(nextTts);
+    toast('All API keys deleted.', 'success');
+  };
+
   const handleReset = async () => {
     if (confirm('Reset all settings to defaults?')) {
       await mockSettingsService.reset();
@@ -175,6 +197,7 @@ export function SettingsScreen() {
       setReviewNotif(s.review.notificationsEnabled);
       setReviewReminderTime(s.review.reminderTime);
       setTheme(s.preferences.theme);
+      applyTheme(s.preferences.theme);
     }
   };
 
@@ -258,11 +281,11 @@ export function SettingsScreen() {
           <Button size="sm" onClick={() => saveLlm()} variant="secondary">Save</Button>
           <Button
             size="sm"
-            variant="ghost"
+            variant="outline"
             onClick={handleTestLLM}
-            disabled={isTesting['llm']}
+            loading={isTesting['llm']}
           >
-            {isTesting['llm'] ? 'Testing...' : 'Test Connection'}
+            Test Connection
           </Button>
           {testResult['llm'] && (
             <span style={{
@@ -345,11 +368,11 @@ export function SettingsScreen() {
           <Button size="sm" onClick={() => saveTts()} variant="secondary">Save</Button>
           <Button
             size="sm"
-            variant="ghost"
+            variant="outline"
             onClick={handleTestTTS}
-            disabled={isTesting['tts']}
+            loading={isTesting['tts']}
           >
-            {isTesting['tts'] ? 'Testing...' : 'Test'}
+            Test
           </Button>
           {testResult['tts'] && (
             <span style={{
@@ -470,6 +493,7 @@ export function SettingsScreen() {
             onChange={async (v) => {
               const t = v as AppSettings['preferences']['theme'];
               setTheme(t);
+              applyTheme(t);
               const prefs = mockSettingsService.getSync().preferences;
               await mockSettingsService.set('preferences', { ...prefs, theme: t });
             }}
@@ -480,6 +504,26 @@ export function SettingsScreen() {
             ]}
           />
         </SettingRow>
+      </Card>
+
+      {/* Privacy & Data Section */}
+      <SectionHeader icon={<Shield size={20} />} title="Privacy & Data" />
+      <Card style={{ marginBottom: '8px' }}>
+        <p style={{ fontSize: '0.8rem', color: 'var(--muted-foreground)', marginBottom: '12px', lineHeight: 1.5 }}>
+          EchoLearn is local-first. All notes, flashcards, and sessions are stored only on this device.
+          No EchoLearn server ever receives your data.
+        </p>
+        <SettingRow
+          label="AI Data Transmission"
+          description="Allow questions to be sent to your configured AI provider"
+        >
+          <MaterialSwitch checked={aiConsent} onChange={() => void handleToggleAiConsent()} />
+        </SettingRow>
+        <div style={{ paddingTop: '12px' }}>
+          <Button variant="danger" size="sm" onClick={() => void handleDeleteApiKeys()}>
+            Delete All API Keys
+          </Button>
+        </div>
       </Card>
 
       {/* Reset */}

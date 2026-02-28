@@ -91,6 +91,7 @@ export const questionService = {
 
     const systemPrompt = [
       'You are a knowledgeable learning assistant. Answer questions clearly and thoroughly.',
+      'Do not generate harmful, illegal, sexually explicit, or deceptive content.',
       recentContext.length > 0 ? `Recent questions for context:\n${contextLines}` : '',
       'Respond ONLY with JSON: {"answer":"...","summary":"one sentence","keywords":["kw1","kw2","kw3"]}',
     ]

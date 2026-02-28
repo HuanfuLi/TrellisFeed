@@ -37,6 +37,7 @@ const defaultSettings: AppSettings = {
     theme: 'system',
     language: 'en',
     onboardingCompleted: false,
+    aiConsentGiven: false,
   },
 };
 

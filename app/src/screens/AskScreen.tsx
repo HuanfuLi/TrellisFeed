@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { History, SquarePen, Trash2 } from 'lucide-react';
+import { History, SquarePen, Trash2, Flag, X, Check } from 'lucide-react';
 import { ChatMessage } from '../components/ChatMessage';
 import { ChatInput } from '../components/ChatInput';
 import { useQuestions } from '../state/useQuestions';
@@ -8,6 +8,15 @@ import { sessionService } from '../services/session.service';
 import { flashcardService } from '../services/flashcard.service';
 import type { ChatSession, SessionMessage } from '../types';
 import { formatDate } from '../lib/date';
+import { questionService } from '../services/question.service';
+import { toast } from '../lib/toast';
+
+const SUGGESTED_PROMPTS = [
+  'What is spaced repetition and why does it work?',
+  'Explain the Feynman technique in simple terms',
+  'How do I build a consistent daily learning habit?',
+  "What's the most effective way to retain information long-term?",
+];
 
 // Transient streaming overlay — not persisted
 interface StreamingOverlay {
@@ -37,6 +46,7 @@ export function AskScreen() {
   const [streaming, setStreaming] = useState<StreamingOverlay | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [historySessions, setHistorySessions] = useState<ChatSession[]>([]);
+  const [confirmFlagId, setConfirmFlagId] = useState<string | null>(null);
 
   // Keep session ref in sync for use in callbacks without stale closure
   const sessionRef = useRef(session);
@@ -131,6 +141,29 @@ export function AskScreen() {
     setShowHistory(false);
   }, []);
 
+  const handleFlagConfirm = useCallback((messageId: string) => {
+    setSession((prev) => {
+      const msgs = prev.messages;
+      const idx = msgs.findIndex((m) => m.id === messageId);
+      const aiMsg = msgs[idx];
+      const toRemove = new Set([messageId]);
+      if (idx > 0 && msgs[idx - 1].type === 'user') {
+        toRemove.add(msgs[idx - 1].id);
+      }
+      if (aiMsg?.questionId) {
+        void questionService.delete(aiMsg.questionId);
+      }
+      const updated: ChatSession = {
+        ...prev,
+        messages: msgs.filter((m) => !toRemove.has(m.id)),
+      };
+      sessionService.save(updated);
+      return updated;
+    });
+    setConfirmFlagId(null);
+    toast('Response removed from your data.', 'success');
+  }, []);
+
   const handleDeleteSession = useCallback((id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     sessionService.delete(id);
@@ -197,14 +230,51 @@ export function AskScreen() {
 
       {/* Messages */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '16px', paddingBottom: '140px' }}>
-        {/* Welcome message when session is empty */}
+        {/* Welcome message + suggested prompts when session is empty */}
         {displayMessages.length === 0 && (
-          <ChatMessage
-            type="ai"
-            content="Hi! I'm your AI learning companion. Ask me anything to build your knowledge base."
-            relatedKnowledge={[]}
-            onKnowledgeClick={() => {}}
-          />
+          <>
+            <ChatMessage
+              type="ai"
+              content="Hi! I'm your AI learning companion. Ask me anything to build your knowledge base."
+              relatedKnowledge={[]}
+              onKnowledgeClick={() => {}}
+            />
+            <div style={{ padding: '4px 4px 0' }}>
+              <p style={{ fontSize: '0.78rem', color: 'var(--muted-foreground)', marginBottom: '10px', paddingLeft: '4px' }}>
+                Try asking:
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {SUGGESTED_PROMPTS.map((prompt) => (
+                  <button
+                    key={prompt}
+                    onClick={() => void handleSend(prompt)}
+                    style={{
+                      textAlign: 'left',
+                      padding: '11px 16px',
+                      borderRadius: '18px',
+                      border: '1.5px solid var(--border)',
+                      backgroundColor: 'var(--card)',
+                      color: 'var(--foreground)',
+                      fontSize: '0.875rem',
+                      cursor: 'pointer',
+                      lineHeight: 1.4,
+                      transition: 'border-color 0.15s, background-color 0.15s',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--primary-40)';
+                      e.currentTarget.style.backgroundColor = 'var(--primary-90)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--border)';
+                      e.currentTarget.style.backgroundColor = 'var(--card)';
+                    }}
+                  >
+                    {prompt}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </>
         )}
         {displayMessages.map((message) => (
           <div key={message.id}>
@@ -243,6 +313,38 @@ export function AskScreen() {
                   ))}
                   <style>{`@keyframes bounce { 0%, 80%, 100% { transform: translateY(0); } 40% { transform: translateY(-6px); } }`}</style>
                 </div>
+              </div>
+            )}
+            {/* Flag/report button — only on settled AI messages */}
+            {message.type === 'ai' && !message.isStreaming && (
+              <div style={{ display: 'flex', justifyContent: 'flex-start', paddingLeft: '8px', marginTop: '-8px', marginBottom: '12px' }}>
+                {confirmFlagId === message.id ? (
+                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)' }}>Remove this response?</span>
+                    <button
+                      onClick={() => setConfirmFlagId(null)}
+                      title="Cancel"
+                      style={{ padding: '3px 7px', borderRadius: '6px', border: '1px solid var(--border)', background: 'none', cursor: 'pointer', color: 'var(--muted-foreground)', display: 'flex', alignItems: 'center' }}
+                    >
+                      <X size={12} />
+                    </button>
+                    <button
+                      onClick={() => handleFlagConfirm(message.id)}
+                      title="Confirm remove"
+                      style={{ padding: '3px 7px', borderRadius: '6px', border: '1px solid #E53935', background: 'none', cursor: 'pointer', color: '#E53935', display: 'flex', alignItems: 'center' }}
+                    >
+                      <Check size={12} />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setConfirmFlagId(message.id)}
+                    title="Flag this response"
+                    style={{ padding: '3px 7px', borderRadius: '6px', border: 'none', background: 'none', cursor: 'pointer', color: 'var(--muted-foreground)', opacity: 0.45, display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.7rem' }}
+                  >
+                    <Flag size={12} />
+                  </button>
+                )}
               </div>
             )}
           </div>

@@ -31,7 +31,7 @@ export function Flashcard({ front, back, onRate, pinned, onTogglePin }: Flashcar
       <div
         style={{
           position: 'relative',
-          backgroundColor: 'white',
+          backgroundColor: 'var(--card)',
           padding: '32px',
           marginBottom: '24px',
           minHeight: '280px',

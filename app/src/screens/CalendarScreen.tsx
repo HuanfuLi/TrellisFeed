@@ -4,9 +4,11 @@ import { ChevronLeft, ChevronRight, Plus, BookOpen, Pin, Trash2, Check, X, Arrow
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { ProgressBar } from '../components/ui/ProgressBar';
+import { Confetti } from '../components/Confetti';
 import { useCalendar } from '../state/useCalendar';
 import { useReview } from '../state/useReview';
 import { today, formatDateLabel, addDays } from '../lib/date';
+import { toast } from '../lib/toast';
 import type { TimeBlock } from '../types';
 
 const BLOCK_COLORS = ['var(--node-mint)', 'var(--node-salmon)', 'var(--node-lilac)', 'var(--node-peach)', 'var(--node-sky)'];
@@ -21,6 +23,7 @@ export function CalendarScreen() {
   const [editingBlock, setEditingBlock] = useState<EditingBlock | null>(null);
   const [confirmDeleteBlockId, setConfirmDeleteBlockId] = useState<string | null>(null);
   const [confirmDeleteTodoId, setConfirmDeleteTodoId] = useState<string | null>(null);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   const {
     schedule, isLoading, loadDay,
@@ -38,7 +41,15 @@ export function CalendarScreen() {
     setEditingBlock(null);
     setConfirmDeleteBlockId(null);
     setConfirmDeleteTodoId(null);
+    setShowConfetti(false);
   }, [currentDate]);
+
+  // Auto-hide confetti after animation finishes
+  useEffect(() => {
+    if (!showConfetti) return;
+    const t = setTimeout(() => setShowConfetti(false), 4000);
+    return () => clearTimeout(t);
+  }, [showConfetti]);
 
   const allTodos = schedule?.blocks.flatMap((b) => b.todos) ?? [];
   const completed = allTodos.filter((td) => td.status === 'completed').length;
@@ -83,14 +94,15 @@ export function CalendarScreen() {
   const editInputStyle: React.CSSProperties = {
     padding: '3px 7px',
     borderRadius: '6px',
-    backgroundColor: 'rgba(255,255,255,0.7)',
-    color: '#2D2D2D',
-    border: '1.5px solid rgba(45,45,45,0.25)',
+    backgroundColor: 'var(--block-input-bg)',
+    color: 'var(--block-text)',
+    border: '1.5px solid var(--block-border)',
     fontSize: '0.875rem',
   };
 
   return (
     <div style={{ padding: '24px 16px 96px', maxWidth: '448px', margin: '0 auto' }}>
+      <Confetti active={showConfetti} />
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '20px' }}>
         <div>
@@ -224,7 +236,7 @@ export function CalendarScreen() {
                             onChange={(e) => setEditingBlock((prev) => prev ? { ...prev, startTime: e.target.value } : null)}
                             style={editInputStyle}
                           />
-                          <span style={{ fontSize: '0.75rem', color: 'rgba(45,45,45,0.7)' }}>–</span>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--block-text-muted)' }}>–</span>
                           <input
                             type="time"
                             value={editingBlock.endTime}
@@ -238,8 +250,8 @@ export function CalendarScreen() {
                             style={{
                               padding: '3px 8px',
                               borderRadius: '6px',
-                              backgroundColor: 'rgba(45,45,45,0.18)',
-                              color: '#2D2D2D',
+                              backgroundColor: 'var(--block-icon-active-bg)',
+                              color: 'var(--block-text)',
                               fontSize: '0.8rem',
                               fontWeight: 600,
                             }}
@@ -254,7 +266,7 @@ export function CalendarScreen() {
                               padding: '3px 6px',
                               borderRadius: '6px',
                               backgroundColor: 'transparent',
-                              color: 'rgba(45,45,45,0.5)',
+                              color: 'var(--block-text-subtle)',
                               fontSize: '0.8rem',
                             }}
                           >
@@ -269,10 +281,10 @@ export function CalendarScreen() {
                         title="Edit block name and time"
                         style={{ textAlign: 'left', background: 'none', padding: 0, cursor: 'text', width: '100%' }}
                       >
-                        <h4 style={{ color: '#2D2D2D', marginBottom: '2px' }}>
+                        <h4 style={{ color: 'var(--block-text)', marginBottom: '2px' }}>
                           {block.label || 'Untitled Block'}
                         </h4>
-                        <p style={{ fontSize: '0.75rem', color: 'rgba(45,45,45,0.65)' }}>
+                        <p style={{ fontSize: '0.75rem', color: 'var(--block-text-muted)' }}>
                           {block.startTime && block.endTime
                             ? `${block.startTime} – ${block.endTime}`
                             : 'Tap to set time'}
@@ -294,9 +306,9 @@ export function CalendarScreen() {
                         width: '28px',
                         height: '28px',
                         borderRadius: '50%',
-                        backgroundColor: block.pinned ? 'rgba(45,45,45,0.22)' : 'transparent',
-                        color: block.pinned ? '#2D2D2D' : 'rgba(45,45,45,0.4)',
-                        border: `1.5px solid ${block.pinned ? 'rgba(45,45,45,0.4)' : 'rgba(45,45,45,0.18)'}`,
+                        backgroundColor: block.pinned ? 'var(--block-icon-active-bg)' : 'transparent',
+                        color: block.pinned ? 'var(--block-text)' : 'var(--block-text-subtle)',
+                        border: `1.5px solid ${block.pinned ? 'var(--block-border-active)' : 'var(--block-border)'}`,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -315,8 +327,8 @@ export function CalendarScreen() {
                           style={{
                             width: '28px', height: '28px', borderRadius: '50%',
                             backgroundColor: 'transparent',
-                            color: 'rgba(45,45,45,0.5)',
-                            border: '1.5px solid rgba(45,45,45,0.18)',
+                            color: 'var(--block-text-subtle)',
+                            border: '1.5px solid var(--block-border)',
                             display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
                           }}
                         >
@@ -343,8 +355,8 @@ export function CalendarScreen() {
                         style={{
                           width: '28px', height: '28px', borderRadius: '50%',
                           backgroundColor: 'transparent',
-                          color: 'rgba(45,45,45,0.4)',
-                          border: '1.5px solid rgba(45,45,45,0.18)',
+                          color: 'var(--block-text-subtle)',
+                          border: '1.5px solid var(--block-border)',
                           display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
                         }}
                       >
@@ -360,14 +372,25 @@ export function CalendarScreen() {
                     <div key={todo.id} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       {/* Checkbox */}
                       <button
-                        onClick={() => todo.status !== 'postponed' && void toggleTodo(todo.id, todo.status)}
+                        onClick={() => {
+                          if (todo.status === 'postponed') return;
+                          // Trigger celebration when this is the last pending todo
+                          if (todo.status === 'pending') {
+                            const pendingNow = allTodos.filter((td) => td.status === 'pending').length;
+                            if (pendingNow === 1) {
+                              setShowConfetti(true);
+                              toast('All tasks done for today! 🎉', 'success');
+                            }
+                          }
+                          void toggleTodo(todo.id, todo.status);
+                        }}
                         disabled={todo.status === 'postponed'}
                         style={{
                           flexShrink: 0,
                           width: '22px',
                           height: '22px',
                           borderRadius: '6px',
-                          border: `2px solid ${todo.status === 'completed' ? 'var(--primary-40)' : 'rgba(45,45,45,0.4)'}`,
+                          border: `2px solid ${todo.status === 'completed' ? 'var(--primary-40)' : 'var(--block-border-active)'}`,
                           backgroundColor: todo.status === 'completed' ? 'var(--primary-40)' : 'transparent',
                           display: 'flex',
                           alignItems: 'center',
@@ -387,14 +410,14 @@ export function CalendarScreen() {
                         style={{
                           flex: 1,
                           fontSize: '0.9rem',
-                          color: '#2D2D2D',
+                          color: 'var(--block-text)',
                           textDecoration: todo.status === 'completed' ? 'line-through' : 'none',
                           opacity: todo.status === 'postponed' ? 0.5 : 1,
                         }}
                       >
                         {todo.content}
                         {todo.status === 'postponed' && (
-                          <span style={{ fontSize: '0.75rem', marginLeft: '6px', color: 'rgba(45,45,45,0.6)' }}>→ tomorrow</span>
+                          <span style={{ fontSize: '0.75rem', marginLeft: '6px', color: 'var(--block-text-muted)' }}>→ tomorrow</span>
                         )}
                       </span>
 
@@ -410,9 +433,9 @@ export function CalendarScreen() {
                               width: '24px',
                               height: '24px',
                               borderRadius: '50%',
-                              backgroundColor: todo.pinned ? 'rgba(45,45,45,0.2)' : 'transparent',
-                              color: todo.pinned ? '#2D2D2D' : 'rgba(45,45,45,0.35)',
-                              border: `1.5px solid ${todo.pinned ? 'rgba(45,45,45,0.35)' : 'rgba(45,45,45,0.15)'}`,
+                              backgroundColor: todo.pinned ? 'var(--block-icon-active-bg)' : 'transparent',
+                              color: todo.pinned ? 'var(--block-text)' : 'var(--block-text-subtle)',
+                              border: `1.5px solid ${todo.pinned ? 'var(--block-border-active)' : 'var(--block-border)'}`,
                               display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
                             }}
                           >
@@ -429,8 +452,8 @@ export function CalendarScreen() {
                               height: '24px',
                               borderRadius: '50%',
                               backgroundColor: 'transparent',
-                              color: 'rgba(45,45,45,0.35)',
-                              border: '1.5px solid rgba(45,45,45,0.15)',
+                              color: 'var(--block-text-subtle)',
+                              border: '1.5px solid var(--block-border)',
                               display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
                             }}
                           >
@@ -450,8 +473,8 @@ export function CalendarScreen() {
                             height: '24px',
                             borderRadius: '50%',
                             backgroundColor: 'transparent',
-                            color: 'rgba(45,45,45,0.35)',
-                            border: '1.5px solid rgba(45,45,45,0.15)',
+                            color: 'var(--block-text-subtle)',
+                            border: '1.5px solid var(--block-border)',
                             display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
                           }}
                         >
@@ -467,8 +490,8 @@ export function CalendarScreen() {
                             title="Cancel delete"
                             style={{
                               flexShrink: 0, width: '24px', height: '24px', borderRadius: '50%',
-                              backgroundColor: 'transparent', color: 'rgba(45,45,45,0.5)',
-                              border: '1.5px solid rgba(45,45,45,0.18)',
+                              backgroundColor: 'transparent', color: 'var(--block-text-subtle)',
+                              border: '1.5px solid var(--block-border)',
                               display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
                             }}
                           >
@@ -493,8 +516,8 @@ export function CalendarScreen() {
                           title="Delete task"
                           style={{
                             flexShrink: 0, width: '24px', height: '24px', borderRadius: '50%',
-                            backgroundColor: 'transparent', color: 'rgba(45,45,45,0.35)',
-                            border: '1.5px solid rgba(45,45,45,0.15)',
+                            backgroundColor: 'transparent', color: 'var(--block-text-subtle)',
+                            border: '1.5px solid var(--block-border)',
                             display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
                           }}
                         >
@@ -516,9 +539,9 @@ export function CalendarScreen() {
                       flex: 1,
                       padding: '8px 12px',
                       borderRadius: '12px',
-                      backgroundColor: 'rgba(255,255,255,0.6)',
+                      backgroundColor: 'var(--block-input-bg)',
                       fontSize: '0.875rem',
-                      color: '#2D2D2D',
+                      color: 'var(--block-text)',
                     }}
                   />
                   <button

@@ -3,6 +3,11 @@ import { createRoot } from 'react-dom/client';
 import './index.css';
 import App from './App.tsx';
 import { AppProvider } from './state/AppProvider.tsx';
+import { applyTheme } from './lib/theme';
+import { mockSettingsService } from './services/mock/settings.mock';
+
+// Apply theme before first paint to prevent flash of wrong theme
+applyTheme(mockSettingsService.getSync().preferences.theme);
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

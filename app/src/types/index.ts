@@ -136,6 +136,8 @@ export interface AppPreferences {
   theme: 'light' | 'dark' | 'system';
   language: string;
   onboardingCompleted: boolean;
+  /** Explicit user consent to transmit questions to the configured AI provider. Required by App Store / Play Store AI policies. */
+  aiConsentGiven?: boolean;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

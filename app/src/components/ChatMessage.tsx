@@ -1,3 +1,4 @@
+import { Markdown } from './Markdown';
 
 export type MessageType = 'user' | 'ai';
 
@@ -40,7 +41,7 @@ export function ChatMessage({ type, content, relatedKnowledge, onKnowledgeClick 
             color: 'var(--foreground)',
           }}
         >
-          <p>{content}</p>
+          <Markdown>{content}</Markdown>
           {relatedKnowledge && relatedKnowledge.length > 0 && (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '12px' }}>
               {relatedKnowledge.map((knowledge, index) => (

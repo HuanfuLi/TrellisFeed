@@ -54,7 +54,7 @@ export function HomeScreen() {
           style={{
             gridColumn: '1 / -1',
             padding: '24px',
-            background: 'linear-gradient(135deg, var(--primary-80), var(--primary-40))',
+            background: 'var(--summary-bg)',
             borderRadius: 'var(--radius-xl)',
             boxShadow: 'var(--shadow-2)',
           }}
@@ -86,7 +86,7 @@ export function HomeScreen() {
         >
           <Card
             style={{
-              backgroundColor: 'var(--node-salmon)',
+              backgroundColor: 'var(--bento-review-bg)',
               cursor: 'pointer',
               transition: 'transform 0.2s',
               height: '100%',
@@ -94,11 +94,11 @@ export function HomeScreen() {
             onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.02)')}
             onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
           >
-            <BookOpen size={28} color="#2D2D2D" style={{ marginBottom: '12px' }} />
-            <h4 style={{ marginBottom: '8px', color: '#2D2D2D' }}>Review</h4>
+            <BookOpen size={28} color="var(--bento-card-text)" style={{ marginBottom: '12px' }} />
+            <h4 style={{ marginBottom: '8px', color: 'var(--bento-card-text)' }}>Review</h4>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-              <p style={{ fontSize: '1.875rem', fontWeight: 600, color: '#2D2D2D' }}>{reviewCount}</p>
-              <p style={{ fontSize: '0.875rem', color: 'rgba(45,45,45,0.8)' }}>due</p>
+              <p style={{ fontSize: '1.875rem', fontWeight: 600, color: 'var(--bento-card-text)' }}>{reviewCount}</p>
+              <p style={{ fontSize: '0.875rem', color: 'var(--bento-card-text-muted)' }}>due</p>
             </div>
           </Card>
         </button>
@@ -110,7 +110,7 @@ export function HomeScreen() {
         >
           <Card
             style={{
-              backgroundColor: 'var(--node-mint)',
+              backgroundColor: 'var(--bento-tasks-bg)',
               cursor: 'pointer',
               transition: 'transform 0.2s',
               height: '100%',
@@ -118,11 +118,11 @@ export function HomeScreen() {
             onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.02)')}
             onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
           >
-            <CheckSquare size={28} color="#2D2D2D" style={{ marginBottom: '12px' }} />
-            <h4 style={{ marginBottom: '8px', color: '#2D2D2D' }}>Tasks</h4>
+            <CheckSquare size={28} color="var(--bento-card-text)" style={{ marginBottom: '12px' }} />
+            <h4 style={{ marginBottom: '8px', color: 'var(--bento-card-text)' }}>Tasks</h4>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-              <p style={{ fontSize: '1.875rem', fontWeight: 600, color: '#2D2D2D' }}>{pendingTodos}</p>
-              <p style={{ fontSize: '0.875rem', color: 'rgba(45,45,45,0.8)' }}>pending</p>
+              <p style={{ fontSize: '1.875rem', fontWeight: 600, color: 'var(--bento-card-text)' }}>{pendingTodos}</p>
+              <p style={{ fontSize: '0.875rem', color: 'var(--bento-card-text-muted)' }}>pending</p>
             </div>
           </Card>
         </button>
@@ -134,7 +134,7 @@ export function HomeScreen() {
         >
           <Card
             style={{
-              backgroundColor: 'var(--node-lilac)',
+              backgroundColor: 'var(--bento-podcast-bg)',
               cursor: 'pointer',
               transition: 'transform 0.2s',
             }}
@@ -143,9 +143,9 @@ export function HomeScreen() {
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
-                <Headphones size={28} color="#2D2D2D" style={{ marginBottom: '8px' }} />
-                <h4 style={{ color: '#2D2D2D', marginBottom: '4px' }}>Today's Podcast</h4>
-                <p style={{ fontSize: '0.875rem', color: 'rgba(45,45,45,0.8)' }}>
+                <Headphones size={28} color="var(--bento-card-text)" style={{ marginBottom: '8px' }} />
+                <h4 style={{ color: 'var(--bento-card-text)', marginBottom: '4px' }}>Today's Podcast</h4>
+                <p style={{ fontSize: '0.875rem', color: 'var(--bento-card-text-muted)' }}>
                   {todayPodcast
                     ? todayPodcast.status === 'ready'
                       ? `Ready · ${Math.round((todayPodcast.duration ?? 0) / 60)} min`

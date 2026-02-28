@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { createBrowserRouter, RouterProvider, Navigate, Outlet } from 'react-router-dom';
 import { BottomNavigation } from './components/BottomNavigation';
 import { ToastContainer } from './components/ui/Toast';
@@ -10,6 +11,7 @@ import { ReviewScreen } from './screens/ReviewScreen';
 import { PodcastScreen } from './screens/PodcastScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { mockSettingsService } from './services/mock/settings.mock';
+import { applyTheme } from './lib/theme';
 
 function RootLayout() {
   return (
@@ -53,5 +55,16 @@ const router = createBrowserRouter([
 ]);
 
 export default function App() {
+  // Keep theme in sync when the OS switches between light/dark while app is open
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const handler = () => {
+      const { theme } = mockSettingsService.getSync().preferences;
+      if (theme === 'system') applyTheme('system');
+    };
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
   return <RouterProvider router={router} />;
 }

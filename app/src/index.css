@@ -41,6 +41,28 @@
   --switch-background: #D0C9BF;
   --font-weight-normal: 400;
 
+  /* Bento card theming — colorful in light mode */
+  --bento-review-bg: var(--node-salmon);
+  --bento-tasks-bg: var(--node-mint);
+  --bento-podcast-bg: var(--node-lilac);
+  --bento-card-text: #2D2D2D;
+  --bento-card-text-muted: rgba(45, 45, 45, 0.8);
+
+  /* Summary card (Today's Summary in Home) */
+  --summary-bg: linear-gradient(135deg, var(--primary-80), var(--primary-40));
+
+  /* Podcast script preview overlay on the player card */
+  --script-preview-bg: rgba(255, 255, 255, 0.6);
+
+  /* Calendar block theming — dark text on colorful bg in light mode */
+  --block-text: #2D2D2D;
+  --block-text-muted: rgba(45, 45, 45, 0.65);
+  --block-text-subtle: rgba(45, 45, 45, 0.45);
+  --block-border: rgba(45, 45, 45, 0.18);
+  --block-border-active: rgba(45, 45, 45, 0.4);
+  --block-icon-active-bg: rgba(45, 45, 45, 0.22);
+  --block-input-bg: rgba(255, 255, 255, 0.65);
+
   --radius: 1.25rem;
   --radius-xl: 1.75rem;
   --radius-pill: 9999px;
@@ -53,17 +75,79 @@
 }
 
 .dark {
-  --background: #1C1B1F;
-  --foreground: #E6E1E5;
-  --card: #1C1B1F;
-  --muted: #4A4458;
-  --muted-foreground: #CAC4D0;
-  --border: rgba(255, 255, 255, 0.12);
-  --surface: #1C1B1F;
-  --surface-variant: #49454F;
-  --surface-container: #2B2930;
-  --secondary-container: #4A4458;
-  --primary-40: #BDDA9F;
+  /* Surfaces — true black and dark greys */
+  --background: #0A0A0A;
+  --surface: #111111;
+  --surface-variant: #1F1F1F;
+  --surface-container: #171717;
+  /* Higher than surface-variant so skeleton shimmer brightens (not darkens) */
+  --surface-container-high: #2A2A2A;
+
+  /* Cards — slightly elevated from surface */
+  --card: #181818;
+  --card-foreground: #FFFFFF;
+
+  /* Text — pure white */
+  --foreground: #FFFFFF;
+  --muted: #1E1E1E;
+  --muted-foreground: #A0A0A0;
+
+  /* Border */
+  --border: rgba(255, 255, 255, 0.10);
+
+  /* Primary — vibrant green that pops on dark surfaces */
+  --primary-10: #E8F5E9;
+  --primary-30: #66BB6A;
+  --primary-40: #4CAF50;
+  --primary-80: #2E7D32;
+  --primary-90: #1B5E20;
+
+  /* Secondary — neutral grey (replaces warm yellow) */
+  --secondary-40: #757575;
+  --secondary-80: #BDBDBD;
+  --secondary-90: #E0E0E0;
+  --secondary-container: #272727;
+
+  /* Accents — green + grey (replaces coral/lavender) */
+  --accent-coral: #4CAF50;
+  --accent-lavender: #78909C;
+
+  /* Bento cards — grey containers with white text in dark mode */
+  --bento-review-bg: var(--card);
+  --bento-tasks-bg: var(--card);
+  --bento-podcast-bg: var(--card);
+  --bento-card-text: #FFFFFF;
+  --bento-card-text-muted: #A0A0A0;
+
+  /* Summary card — dark card, no gradient */
+  --summary-bg: var(--card);
+
+  /* Podcast script preview — dark overlay so white text is readable */
+  --script-preview-bg: rgba(255, 255, 255, 0.07);
+
+  /* Calendar block theming — white text on dark bg in dark mode */
+  --block-text: #FFFFFF;
+  --block-text-muted: #A0A0A0;
+  --block-text-subtle: #606060;
+  --block-border: rgba(255, 255, 255, 0.15);
+  --block-border-active: rgba(255, 255, 255, 0.3);
+  --block-icon-active-bg: rgba(255, 255, 255, 0.12);
+  --block-input-bg: rgba(255, 255, 255, 0.08);
+
+  /* UI controls */
+  --switch-background: #333333;
+
+  /* Shadows — deeper on true black backgrounds */
+  --shadow-1: 0 1px 3px rgba(0, 0, 0, 0.6), 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-2: 0 3px 6px rgba(0, 0, 0, 0.6), 0 2px 4px rgba(0, 0, 0, 0.5);
+  --shadow-3: 0 10px 20px rgba(0, 0, 0, 0.7), 0 3px 6px rgba(0, 0, 0, 0.55);
+
+  /* Node colors — very dark tinted greys for block backgrounds; white text reads fine on these */
+  --node-mint: #1B2B1C;
+  --node-salmon: #1E2326;
+  --node-lilac: #1E2128;
+  --node-peach: #232320;
+  --node-sky: #182428;
 }
 
 @layer base {
@@ -134,4 +218,65 @@
     outline: none;
     font-family: inherit;
   }
+}
+
+/* ── Markdown prose ────────────────────────────────────────────────────────── */
+.md-prose {
+  line-height: 1.7;
+  color: inherit;
+}
+.md-prose p { margin: 0 0 0.75em; }
+.md-prose p:last-child { margin-bottom: 0; }
+.md-prose h1, .md-prose h2, .md-prose h3, .md-prose h4 {
+  font-weight: 600;
+  margin: 1em 0 0.4em;
+  line-height: 1.3;
+}
+.md-prose h1 { font-size: 1.25rem; }
+.md-prose h2 { font-size: 1.1rem; }
+.md-prose h3 { font-size: 1rem; }
+.md-prose h4 { font-size: 0.9375rem; }
+.md-prose strong { font-weight: 600; }
+.md-prose em { font-style: italic; }
+.md-prose ul, .md-prose ol {
+  padding-left: 1.4em;
+  margin: 0.4em 0 0.75em;
+}
+.md-prose ul { list-style: disc; }
+.md-prose ol { list-style: decimal; }
+.md-prose li { margin: 0.2em 0; }
+.md-prose li p { margin: 0; }
+.md-prose code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.875em;
+  background-color: var(--surface-variant);
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+}
+.md-prose pre {
+  background-color: var(--surface-variant);
+  border-radius: 8px;
+  padding: 12px 16px;
+  overflow-x: auto;
+  margin: 0.5em 0 0.75em;
+}
+.md-prose pre code {
+  background: none;
+  padding: 0;
+  font-size: 0.8125rem;
+}
+.md-prose blockquote {
+  border-left: 3px solid var(--primary-40);
+  padding-left: 1em;
+  margin: 0.5em 0;
+  color: var(--muted-foreground);
+}
+.md-prose hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 1em 0;
+}
+.md-prose a {
+  color: var(--primary-40);
+  text-decoration: underline;
 }

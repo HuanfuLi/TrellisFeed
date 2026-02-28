@@ -57,6 +57,14 @@ export function useQuestions(): UseQuestionsReturn {
       const settings = mockSettingsService.getSync();
       const llmConfig = settings.llm;
 
+      if (!settings.preferences.aiConsentGiven) {
+        const msg = 'AI features are disabled. Go to Settings → Privacy & Data and enable "AI Data Transmission" to use AI responses.';
+        onToken(msg);
+        setError({ code: 'NOT_CONFIGURED', message: msg, retryable: false });
+        setIsAsking(false);
+        return null;
+      }
+
       if (!llmConfig.isConfigured) {
         const msg = 'Add your API key in Settings to get AI responses.';
         onToken(msg);
@@ -74,6 +82,7 @@ export function useQuestions(): UseQuestionsReturn {
 
         const systemPrompt = [
           'You are a knowledgeable learning assistant. Answer questions clearly and thoroughly.',
+          'Do not generate harmful, illegal, sexually explicit, or deceptive content.',
           recentContext.length > 0 ? `Recent questions for context:\n${contextLines}` : '',
         ]
           .filter(Boolean)
