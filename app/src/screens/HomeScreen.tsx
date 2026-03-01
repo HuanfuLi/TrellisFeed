@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Brain, BookOpen, CheckSquare, Headphones } from 'lucide-react';
+import { Brain, BookOpen, CheckSquare, Headphones, Mic } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { useQuestions } from '../state/useQuestions';
@@ -39,6 +39,7 @@ export function HomeScreen() {
   }, []);
 
   return (
+    <>
     <div style={{ padding: '24px 16px 96px', maxWidth: '448px', margin: '0 auto' }}>
       {/* Header */}
       <div style={{ marginBottom: '24px' }}>
@@ -60,21 +61,21 @@ export function HomeScreen() {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '16px' }}>
-            <Brain size={32} color="white" />
+            <Brain size={32} color="var(--summary-text)" />
             <div style={{ textAlign: 'right' }}>
-              <p style={{ fontSize: '2.5rem', fontWeight: 600, color: 'white', lineHeight: 1 }}>{todayQuestions.length}</p>
-              <p style={{ fontSize: '0.875rem', color: 'rgba(255,255,255,0.8)' }}>questions today</p>
+              <p style={{ fontSize: '2.5rem', fontWeight: 600, color: 'var(--summary-text)', lineHeight: 1 }}>{todayQuestions.length}</p>
+              <p style={{ fontSize: '0.875rem', color: 'var(--summary-text-muted)' }}>questions today</p>
             </div>
           </div>
-          <h3 style={{ color: 'white', marginBottom: '12px' }}>Today's Summary</h3>
+          <h3 style={{ color: 'var(--summary-text)', marginBottom: '12px' }}>Today's Summary</h3>
           <div style={{ display: 'flex', gap: '12px' }}>
-            <div style={{ flex: 1, padding: '8px 12px', backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: '16px', backdropFilter: 'blur(8px)' }}>
-              <p style={{ fontSize: '1.5rem', fontWeight: 600, color: 'white' }}>{reviewCount}</p>
-              <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.8)' }}>Due for review</p>
+            <div style={{ flex: 1, padding: '8px 12px', backgroundColor: 'var(--summary-stat-bg)', borderRadius: '16px', backdropFilter: 'blur(8px)' }}>
+              <p style={{ fontSize: '1.5rem', fontWeight: 600, color: 'var(--summary-text)' }}>{reviewCount}</p>
+              <p style={{ fontSize: '0.75rem', color: 'var(--summary-text-muted)' }}>Due for review</p>
             </div>
-            <div style={{ flex: 1, padding: '8px 12px', backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: '16px', backdropFilter: 'blur(8px)' }}>
-              <p style={{ fontSize: '1.5rem', fontWeight: 600, color: 'white' }}>{pendingTodos}</p>
-              <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.8)' }}>Tasks pending</p>
+            <div style={{ flex: 1, padding: '8px 12px', backgroundColor: 'var(--summary-stat-bg)', borderRadius: '16px', backdropFilter: 'blur(8px)' }}>
+              <p style={{ fontSize: '1.5rem', fontWeight: 600, color: 'var(--summary-text)' }}>{pendingTodos}</p>
+              <p style={{ fontSize: '0.75rem', color: 'var(--summary-text-muted)' }}>Tasks pending</p>
             </div>
           </div>
         </div>
@@ -150,8 +151,8 @@ export function HomeScreen() {
                     ? todayPodcast.status === 'ready'
                       ? `Ready · ${Math.round((todayPodcast.duration ?? 0) / 60)} min`
                       : todayPodcast.status === 'generating'
-                      ? `Generating... ${todayPodcast.progress ?? 0}%`
-                      : 'Generation failed'
+                        ? `Generating... ${todayPodcast.progress ?? 0}%`
+                        : 'Generation failed'
                     : 'Not yet generated'}
                 </p>
               </div>
@@ -163,7 +164,7 @@ export function HomeScreen() {
         </button>
 
         {/* Recent Questions — full width */}
-        {recentQuestions.length > 0 && (
+        {recentQuestions.length > 0 ? (
           <div style={{ gridColumn: '1 / -1' }}>
             <Card style={{ backgroundColor: 'var(--surface-variant)' }}>
               <h4 style={{ marginBottom: '12px' }}>Recent Questions</h4>
@@ -180,18 +181,60 @@ export function HomeScreen() {
                       fontSize: '0.875rem',
                       color: 'var(--foreground)',
                       transition: 'background-color 0.2s',
+                      border: 'none',
+                      cursor: 'pointer',
                     }}
                     onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--surface-container-high)')}
                     onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'var(--card)')}
                   >
-                    {q.content}
+                    {q.title ?? q.content}
                   </button>
                 ))}
               </div>
             </Card>
           </div>
+        ) : (
+          <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '16px', backgroundColor: 'var(--surface-variant)', borderRadius: 'var(--radius-xl)' }}>
+            <p style={{ color: 'var(--muted-foreground)', fontSize: '0.9rem' }}>Ask your first question to start building your knowledge!</p>
+          </div>
         )}
+
       </div>
     </div>
+
+      {/* Floating Ask FAB — fixed above bottom nav */}
+      <button
+        onClick={() => navigate('/ask')}
+        style={{
+          position: 'fixed',
+          bottom: '96px',
+          right: '24px',
+          padding: '16px',
+          backgroundColor: 'var(--primary-40)',
+          color: 'white',
+          borderRadius: '50%',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
+          border: 'none',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 30,
+          transition: 'transform 0.2s, background-color 0.2s, box-shadow 0.2s',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'scale(1.05)';
+          e.currentTarget.style.backgroundColor = 'var(--primary-30)';
+          e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.3)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'scale(1)';
+          e.currentTarget.style.backgroundColor = 'var(--primary-40)';
+          e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.25)';
+        }}
+      >
+        <Mic size={24} />
+      </button>
+    </>
   );
 }

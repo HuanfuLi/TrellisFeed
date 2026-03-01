@@ -9,6 +9,7 @@ export interface Question {
   content: string;
   answer: string;
   summary: string;
+  title?: string;          // short AI-derived title (4-7 words), used in listings
   keywords: string[];
   relatedQuestionIds: string[];
   categoryIds: string[];

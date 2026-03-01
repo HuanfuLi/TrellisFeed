@@ -47,6 +47,8 @@ export function AskScreen() {
   const [showHistory, setShowHistory] = useState(false);
   const [historySessions, setHistorySessions] = useState<ChatSession[]>([]);
   const [confirmFlagId, setConfirmFlagId] = useState<string | null>(null);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editingContent, setEditingContent] = useState('');
 
   // Keep session ref in sync for use in callbacks without stale closure
   const sessionRef = useRef(session);
@@ -68,36 +70,23 @@ export function AskScreen() {
   // Build the display list: persisted messages + streaming overlay
   const displayMessages = streaming
     ? [
-        ...session.messages.map((m) => ({ ...m, isStreaming: false })),
-        { id: streaming.placeholderId, type: 'ai' as const, content: streaming.content, isStreaming: true },
-      ]
+      ...session.messages.map((m) => ({ ...m, isStreaming: false })),
+      { id: streaming.placeholderId, type: 'ai' as const, content: streaming.content, isStreaming: true },
+    ]
     : session.messages.map((m) => ({ ...m, isStreaming: false }));
 
-  const handleSend = useCallback(
-    async (content: string) => {
-      const userMsg: SessionMessage = { id: `u-${Date.now()}`, type: 'user', content };
-      const placeholderId = `ai-${Date.now() + 1}`;
-
-      // Add user message + start streaming overlay
-      setSession((prev) => {
-        const updated: ChatSession = {
-          ...prev,
-          title: prev.title || content.slice(0, 60),
-          messages: [...prev.messages, userMsg],
-        };
-        sessionService.save(updated);
-        return updated;
-      });
+  // Core AI reply generator — used by handleSend, handleEditSubmit, handleRegenerateResponse
+  const generateAiReply = useCallback(
+    async (userContent: string, placeholderId: string) => {
       setStreaming({ placeholderId, content: '' });
 
-      const question = await askStreaming(content, (accumulated) => {
+      const question = await askStreaming(userContent, (accumulated) => {
         setStreaming({ placeholderId, content: accumulated });
       });
 
-      // Commit AI reply to session
       const aiContent = question
         ? question.answer
-        : streaming?.content || 'Something went wrong. Please try again.';
+        : 'Something went wrong. Please try again.';
 
       const related = question
         ? questions.filter((q) => question.relatedQuestionIds.includes(q.id)).map((q) => q.summary)
@@ -114,6 +103,8 @@ export function AskScreen() {
       setSession((prev) => {
         const updated: ChatSession = {
           ...prev,
+          // Use AI-derived title on first exchange; keep existing title otherwise
+          title: prev.title || question?.title || userContent.slice(0, 60),
           messages: [...prev.messages, aiMsg],
         };
         sessionService.save(updated);
@@ -121,8 +112,84 @@ export function AskScreen() {
       });
       setStreaming(null);
     },
-    [askStreaming, questions, streaming],
+    [askStreaming, questions],
   );
+
+  const handleSend = useCallback(
+    async (content: string) => {
+      const userMsg: SessionMessage = { id: `u-${Date.now()}`, type: 'user', content };
+      const placeholderId = `ai-${Date.now() + 1}`;
+
+      setSession((prev) => {
+        const updated: ChatSession = {
+          ...prev,
+          messages: [...prev.messages, userMsg],
+        };
+        sessionService.save(updated);
+        return updated;
+      });
+
+      await generateAiReply(content, placeholderId);
+    },
+    [generateAiReply],
+  );
+
+  const handleEditSubmit = useCallback(async () => {
+    if (!editingMessageId || !editingContent.trim()) return;
+    const newContent = editingContent.trim();
+    const placeholderId = `ai-${Date.now()}`;
+
+    // Truncate messages at the edited user message (inclusive) and replace it
+    setSession((prev) => {
+      const idx = prev.messages.findIndex((m) => m.id === editingMessageId);
+      if (idx === -1) return prev;
+      const truncated = prev.messages.slice(0, idx);
+      const editedMsg: SessionMessage = { id: `u-${Date.now()}`, type: 'user', content: newContent };
+      const updated: ChatSession = { ...prev, messages: [...truncated, editedMsg] };
+      sessionService.save(updated);
+      return updated;
+    });
+
+    setEditingMessageId(null);
+    setEditingContent('');
+
+    await generateAiReply(newContent, placeholderId);
+  }, [editingMessageId, editingContent, generateAiReply]);
+
+  const handleRegenerateResponse = useCallback(async (aiMessageId: string) => {
+    // Find the preceding user message content, remove the AI message, regenerate
+    const msgs = sessionRef.current.messages;
+    const aiIdx = msgs.findIndex((m) => m.id === aiMessageId);
+    if (aiIdx === -1) return;
+    const userMsg = aiIdx > 0 ? msgs[aiIdx - 1] : null;
+    if (!userMsg || userMsg.type !== 'user') return;
+
+    const userContent = userMsg.content;
+    const placeholderId = `ai-${Date.now()}`;
+
+    setSession((prev) => {
+      const updated: ChatSession = {
+        ...prev,
+        messages: prev.messages.filter((m) => m.id !== aiMessageId),
+      };
+      sessionService.save(updated);
+      return updated;
+    });
+
+    await generateAiReply(userContent, placeholderId);
+  }, [generateAiReply]);
+
+  const handleDeleteResponse = useCallback((aiMessageId: string) => {
+    setSession((prev) => {
+      const updated: ChatSession = {
+        ...prev,
+        messages: prev.messages.filter((m) => m.id !== aiMessageId),
+      };
+      sessionService.save(updated);
+      return updated;
+    });
+    toast('Response deleted.', 'success');
+  }, []);
 
   const handleNewChat = useCallback(() => {
     const newSession = startNewSession(sessionRef.current);
@@ -237,13 +304,13 @@ export function AskScreen() {
               type="ai"
               content="Hi! I'm your AI learning companion. Ask me anything to build your knowledge base."
               relatedKnowledge={[]}
-              onKnowledgeClick={() => {}}
+              onKnowledgeClick={() => { }}
             />
             <div style={{ padding: '4px 4px 0' }}>
               <p style={{ fontSize: '0.78rem', color: 'var(--muted-foreground)', marginBottom: '10px', paddingLeft: '4px' }}>
                 Try asking:
               </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
                 {SUGGESTED_PROMPTS.map((prompt) => (
                   <button
                     key={prompt}
@@ -273,12 +340,55 @@ export function AskScreen() {
                   </button>
                 ))}
               </div>
+
+              {questions.length > 0 && (
+                <>
+                  <p style={{ fontSize: '0.78rem', color: 'var(--muted-foreground)', marginBottom: '10px', paddingLeft: '4px' }}>
+                    Recent Questions:
+                  </p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {questions.slice(0, 3).map((q) => (
+                      <button
+                        key={q.id}
+                        onClick={() => navigate(`/ask/${q.id}`)}
+                        style={{
+                          textAlign: 'left',
+                          padding: '11px 16px',
+                          borderRadius: '18px',
+                          border: '1.5px solid var(--border)',
+                          backgroundColor: 'var(--card)',
+                          color: 'var(--foreground)',
+                          fontSize: '0.875rem',
+                          cursor: 'pointer',
+                          lineHeight: 1.4,
+                          transition: 'border-color 0.15s, background-color 0.15s',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.borderColor = 'var(--primary-40)';
+                          e.currentTarget.style.backgroundColor = 'var(--surface-container-high)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.borderColor = 'var(--border)';
+                          e.currentTarget.style.backgroundColor = 'var(--card)';
+                        }}
+                      >
+                        <span style={{ fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '85%' }}>• {q.content}</span>
+                        <span style={{ fontSize: '1.2rem', color: 'var(--muted-foreground)' }}>→</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           </>
         )}
         {displayMessages.map((message) => (
           <div key={message.id}>
             <ChatMessage
+              messageId={message.id}
               type={message.type}
               content={message.content + (message.isStreaming && message.content ? '|' : '')}
               relatedKnowledge={message.relatedKnowledge}
@@ -286,6 +396,14 @@ export function AskScreen() {
                 const q = questions.find((q) => q.summary === k);
                 if (q) navigate(`/ask/${q.id}`);
               }}
+              isEditing={editingMessageId === message.id}
+              editContent={editingMessageId === message.id ? editingContent : undefined}
+              onEditChange={setEditingContent}
+              onEditSubmit={() => void handleEditSubmit()}
+              onEditCancel={() => { setEditingMessageId(null); setEditingContent(''); }}
+              onEdit={!message.isStreaming ? () => { setEditingMessageId(message.id); setEditingContent(message.content); } : undefined}
+              onRegenerate={!message.isStreaming ? () => void handleRegenerateResponse(message.id) : undefined}
+              onDelete={!message.isStreaming ? () => handleDeleteResponse(message.id) : undefined}
             />
             {message.isStreaming && !message.content && (
               <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '16px' }}>
@@ -352,7 +470,11 @@ export function AskScreen() {
         <div ref={messagesEndRef} />
       </div>
 
-      <ChatInput onSend={handleSend} placeholder="Ask anything..." />
+      <ChatInput
+        onSend={handleSend}
+        placeholder="Ask anything..."
+        disabled={!!streaming || editingMessageId !== null}
+      />
 
       {/* History panel */}
       {showHistory && (

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Brain, Volume2, Network, Radio, BookOpen, Palette, RotateCcw, CheckCircle, XCircle, Shield } from 'lucide-react';
+import { Brain, Volume2, Network, Radio, BookOpen, Palette, RotateCcw, CheckCircle, XCircle, Shield, Calendar, Download, Upload } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { mockSettingsService } from '../services/mock/settings.mock';
@@ -130,8 +130,8 @@ export function SettingsScreen() {
   const saveTts = (current: TTSConfig = tts) => {
     const isConfigured =
       current.provider === 'openai' ? !!current.apiKey :
-      current.provider === 'gptsovits' ? !!current.baseUrl :
-      false;
+        current.provider === 'gptsovits' ? !!current.baseUrl :
+          false;
     mockSettingsService.set('tts', { ...current, isConfigured });
   };
 
@@ -153,8 +153,8 @@ export function SettingsScreen() {
     setTestResult((prev) => ({ ...prev, tts: null }));
     const isConfigured =
       tts.provider === 'openai' ? !!tts.apiKey :
-      tts.provider === 'gptsovits' ? !!tts.baseUrl :
-      false;
+        tts.provider === 'gptsovits' ? !!tts.baseUrl :
+          false;
     const config = { ...tts, isConfigured };
     const result = await testTTSConnection(config);
     setIsTesting((prev) => ({ ...prev, tts: false }));
@@ -217,22 +217,22 @@ export function SettingsScreen() {
             onChange={(v) => {
               const p = v as LLMConfig['provider'];
               const defaults: Record<string, Partial<LLMConfig>> = {
-                openai:   { model: 'gpt-4o',              baseUrl: '',                         apiKey: '' },
-                claude:   { model: 'claude-sonnet-4-6',   baseUrl: '',                         apiKey: '' },
-                gemini:   { model: 'gemini-2.0-flash',    baseUrl: '',                         apiKey: '' },
-                local:    { model: 'llama3',               baseUrl: 'http://localhost:11434/v1', apiKey: '' },
-                lmstudio: { model: 'local-model',          baseUrl: 'http://localhost:1234',     apiKey: '' },
+                openai: { model: 'gpt-4o', baseUrl: '', apiKey: '' },
+                claude: { model: 'claude-sonnet-4-6', baseUrl: '', apiKey: '' },
+                gemini: { model: 'gemini-2.0-flash', baseUrl: '', apiKey: '' },
+                local: { model: 'llama3', baseUrl: 'http://localhost:11434/v1', apiKey: '' },
+                lmstudio: { model: 'local-model', baseUrl: 'http://localhost:1234', apiKey: '' },
               };
               const next = { ...llm, provider: p, ...defaults[p] } as LLMConfig;
               setLlm(next);
               saveLlm(next);
             }}
             options={[
-              { value: 'openai',   label: 'OpenAI' },
-              { value: 'claude',   label: 'Claude' },
-              { value: 'gemini',   label: 'Gemini' },
+              { value: 'openai', label: 'OpenAI' },
+              { value: 'claude', label: 'Claude' },
+              { value: 'gemini', label: 'Gemini' },
               { value: 'lmstudio', label: 'LM Studio' },
-              { value: 'local',    label: 'Local (Ollama)' },
+              { value: 'local', label: 'Local (Ollama)' },
             ]}
           />
         </SettingRow>
@@ -245,8 +245,8 @@ export function SettingsScreen() {
               onBlur={() => saveLlm()}
               placeholder={
                 llm.provider === 'claude' ? 'sk-ant-...' :
-                llm.provider === 'gemini' ? 'AIza...' :
-                'sk-...'
+                  llm.provider === 'gemini' ? 'AIza...' :
+                    'sk-...'
               }
             />
           </SettingRow>
@@ -270,10 +270,10 @@ export function SettingsScreen() {
             onChange={(v) => setLlm((prev) => ({ ...prev, model: v }))}
             onBlur={() => saveLlm()}
             placeholder={
-              llm.provider === 'gemini'   ? 'gemini-2.0-flash' :
-              llm.provider === 'claude'   ? 'claude-sonnet-4-6' :
-              llm.provider === 'lmstudio' ? 'local-model' :
-              'gpt-4o'
+              llm.provider === 'gemini' ? 'gemini-2.0-flash' :
+                llm.provider === 'claude' ? 'claude-sonnet-4-6' :
+                  llm.provider === 'lmstudio' ? 'local-model' :
+                    'gpt-4o'
             }
           />
         </SettingRow>
@@ -322,7 +322,7 @@ export function SettingsScreen() {
               saveTts(next);
             }}
             options={[
-              { value: 'openai',    label: 'OpenAI TTS' },
+              { value: 'openai', label: 'OpenAI TTS' },
               { value: 'gptsovits', label: 'GPT-SoVITS' },
             ]}
           />
@@ -357,10 +357,10 @@ export function SettingsScreen() {
               saveTts(next);
             }}
             options={[
-              { value: 'alloy',   label: 'Alloy' },
-              { value: 'nova',    label: 'Nova' },
+              { value: 'alloy', label: 'Alloy' },
+              { value: 'nova', label: 'Nova' },
               { value: 'shimmer', label: 'Shimmer' },
-              { value: 'echo',    label: 'Echo' },
+              { value: 'echo', label: 'Echo' },
             ]}
           />
         </SettingRow>
@@ -484,6 +484,14 @@ export function SettingsScreen() {
         </div>
       </Card>
 
+      {/* Calendar Settings */}
+      <SectionHeader icon={<Calendar size={20} />} title="Calendar" />
+      <Card style={{ marginBottom: '8px' }}>
+        <SettingRow label="Time Blocks Template" description="Configure default daily time blocks">
+          <Button size="sm" variant="secondary" onClick={() => toast('Template editor coming soon', 'info')}>Edit</Button>
+        </SettingRow>
+      </Card>
+
       {/* App Preferences */}
       <SectionHeader icon={<Palette size={20} />} title="Appearance" />
       <Card style={{ marginBottom: '8px' }}>
@@ -519,21 +527,34 @@ export function SettingsScreen() {
         >
           <MaterialSwitch checked={aiConsent} onChange={() => void handleToggleAiConsent()} />
         </SettingRow>
-        <div style={{ paddingTop: '12px' }}>
+        <div style={{ paddingTop: '12px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <Button variant="secondary" size="sm" onClick={() => toast('Exporting data...', 'info')} style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+            <Download size={16} /> Export Data
+          </Button>
+          <Button variant="secondary" size="sm" onClick={() => toast('Importing data...', 'info')} style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+            <Upload size={16} /> Import Data
+          </Button>
           <Button variant="danger" size="sm" onClick={() => void handleDeleteApiKeys()}>
-            Delete All API Keys
+            Delete API Keys
           </Button>
         </div>
       </Card>
 
-      {/* Reset */}
-      <div style={{ marginTop: '32px' }}>
-        <Button variant="danger" size="sm" onClick={handleReset} style={{ marginBottom: '16px', display: 'flex', gap: '6px', alignItems: 'center' }}>
-          <RotateCcw size={16} /> Reset to Defaults
-        </Button>
-        <p style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)', textAlign: 'center' }}>
+      {/* Reset & About */}
+      <div style={{ marginTop: '32px', textAlign: 'center' }}>
+        <p style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)', marginBottom: '8px' }}>
           EchoLearn v1.0.0
         </p>
+        <button
+          onClick={() => toast('Licenses modal coming soon', 'info')}
+          style={{ background: 'none', border: 'none', color: 'var(--primary-40)', cursor: 'pointer', fontSize: '0.875rem', marginBottom: '24px' }}
+        >
+          View Licenses &rarr;
+        </button>
+        <br />
+        <Button variant="danger" size="sm" onClick={handleReset} style={{ display: 'inline-flex', gap: '6px', alignItems: 'center', justifyContent: 'center' }}>
+          <RotateCcw size={16} /> Reset to Defaults
+        </Button>
       </div>
     </div>
   );

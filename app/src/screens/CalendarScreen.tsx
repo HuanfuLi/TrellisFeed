@@ -163,30 +163,7 @@ export function CalendarScreen() {
         </div>
       )}
 
-      {/* Review Banner */}
-      {reviewCount > 0 && (
-        <button
-          onClick={() => navigate('/review')}
-          style={{
-            width: '100%',
-            textAlign: 'left',
-            marginBottom: '16px',
-            padding: '16px',
-            background: 'linear-gradient(135deg, var(--primary-90), var(--secondary-container))',
-            borderRadius: 'var(--radius)',
-            border: '1px solid var(--primary-80)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <BookOpen size={20} color="var(--primary-40)" />
-            <span style={{ fontWeight: 500, color: 'var(--primary-30)' }}>Review due</span>
-          </div>
-          <Badge color="green">{reviewCount} cards</Badge>
-        </button>
-      )}
+
 
       {/* Time Blocks */}
       {isLoading ? (
@@ -564,6 +541,31 @@ export function CalendarScreen() {
             );
           })}
         </div>
+      )}
+
+      {/* Review Banner */}
+      {reviewCount > 0 && (
+        <button
+          onClick={() => navigate('/review')}
+          style={{
+            width: '100%',
+            textAlign: 'left',
+            marginTop: '16px',
+            padding: '16px',
+            background: 'linear-gradient(135deg, var(--primary-90), var(--secondary-container))',
+            borderRadius: 'var(--radius)',
+            border: '1px solid var(--primary-80)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <BookOpen size={20} color="var(--primary-40)" />
+            <span style={{ fontWeight: 500, color: 'var(--primary-30)' }}>Review due</span>
+          </div>
+          <Badge color="green">{reviewCount} cards</Badge>
+        </button>
       )}
     </div>
   );

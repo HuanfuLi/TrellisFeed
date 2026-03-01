@@ -1,7 +1,8 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar, Tag } from 'lucide-react';
+import { ArrowLeft, Calendar, Tag, Play } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
+import { Markdown } from '../components/Markdown';
 import { useQuestions } from '../state/useQuestions';
 import { formatDate } from '../lib/date';
 
@@ -47,37 +48,75 @@ export function QuestionDetailScreen() {
         <ArrowLeft size={20} /> Back
       </button>
 
-      {/* Question */}
-      <div style={{ marginBottom: '20px' }}>
-        <h2 style={{ marginBottom: '8px' }}>{question.content}</h2>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--muted-foreground)', fontSize: '0.875rem' }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <Calendar size={14} /> {formatDate(question.createdAt)}
-          </span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <Tag size={14} /> {question.reviewSchedule.reviewCount} reviews
-          </span>
-        </div>
+      {/* Meta */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--muted-foreground)', fontSize: '0.875rem', marginBottom: '16px' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <Calendar size={14} /> {formatDate(question.createdAt)}
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <Tag size={14} /> {question.reviewSchedule.reviewCount} reviews
+        </span>
       </div>
 
       {/* Keywords */}
       {question.keywords.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '16px' }}>
           {question.keywords.map((kw) => (
             <Badge key={kw} color="green">{kw}</Badge>
           ))}
         </div>
       )}
 
-      {/* Answer */}
+      {/* Question card */}
+      <Card style={{ marginBottom: '12px' }}>
+        <h4 style={{ marginBottom: '10px', color: 'var(--muted-foreground)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          Question
+        </h4>
+        <p style={{ lineHeight: 1.6 }}>{question.content}</p>
+      </Card>
+
+      {/* Answer card */}
       <Card style={{ marginBottom: '24px' }}>
         <h4 style={{ marginBottom: '12px', color: 'var(--muted-foreground)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
           Answer
         </h4>
-        <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit', fontSize: '1rem', lineHeight: 1.7, color: 'var(--foreground)', margin: 0 }}>
-          {question.answer}
-        </pre>
+        <Markdown>{question.answer}</Markdown>
       </Card>
+
+      {/* Review Schedule */}
+      <div style={{ marginBottom: '24px' }}>
+        <h4 style={{ marginBottom: '12px' }}>Review Schedule</h4>
+        <Card>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <p style={{ fontWeight: 500, fontSize: '0.9rem', marginBottom: '4px' }}>
+                Next review: {question.reviewSchedule.nextReviewDate}
+              </p>
+              <p style={{ fontSize: '0.8rem', color: 'var(--muted-foreground)' }}>
+                Times reviewed: {question.reviewSchedule.reviewCount}
+              </p>
+            </div>
+            <button
+              onClick={() => navigate('/review')}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: 'var(--primary-40)',
+                color: 'white',
+                borderRadius: 'var(--radius-pill)',
+                border: 'none',
+                cursor: 'pointer',
+                fontWeight: 500,
+                fontSize: '0.85rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              <Play size={14} fill="currentColor" /> Review Now
+            </button>
+          </div>
+        </Card>
+      </div>
 
       {/* Related Questions */}
       {related.length > 0 && (
@@ -92,7 +131,7 @@ export function QuestionDetailScreen() {
                 onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.01)')}
                 onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
               >
-                <p style={{ fontWeight: 500, marginBottom: '4px' }}>{q.content}</p>
+                <p style={{ fontWeight: 500, marginBottom: '4px' }}>{q.title ?? q.content}</p>
                 <p style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>{q.summary}</p>
               </Card>
             ))}

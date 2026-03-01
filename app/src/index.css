@@ -50,6 +50,9 @@
 
   /* Summary card (Today's Summary in Home) */
   --summary-bg: linear-gradient(135deg, var(--primary-80), var(--primary-40));
+  --summary-text: #1A1A1A;
+  --summary-text-muted: rgba(0, 0, 0, 0.6);
+  --summary-stat-bg: rgba(0, 0, 0, 0.08);
 
   /* Podcast script preview overlay on the player card */
   --script-preview-bg: rgba(255, 255, 255, 0.6);
@@ -121,6 +124,9 @@
 
   /* Summary card — dark card, no gradient */
   --summary-bg: var(--card);
+  --summary-text: #FFFFFF;
+  --summary-text-muted: rgba(255, 255, 255, 0.7);
+  --summary-stat-bg: rgba(255, 255, 255, 0.1);
 
   /* Podcast script preview — dark overlay so white text is readable */
   --script-preview-bg: rgba(255, 255, 255, 0.07);
@@ -224,6 +230,8 @@
 .md-prose {
   line-height: 1.7;
   color: inherit;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 .md-prose p { margin: 0 0 0.75em; }
 .md-prose p:last-child { margin-bottom: 0; }
@@ -279,4 +287,20 @@
 .md-prose a {
   color: var(--primary-40);
   text-decoration: underline;
+}
+
+/* ── Animations ─────────────────────────────── */
+@keyframes mic-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.15); opacity: 0.8; }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
 }

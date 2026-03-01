@@ -36,6 +36,22 @@ function saveStore(questions: Question[]): void {
   }
 }
 
+// Derive a short display title from the user's raw question text.
+// Strips leading question words and trailing "?", then title-cases + truncates.
+function deriveTitleFromQuestion(content: string): string {
+  const clean = content
+    .replace(/\?+$/, '')
+    .trim()
+    .replace(
+      /^(what(?:'s|\s+is|\s+are|\s+was|\s+were|\s+does|\s+do|\s+can|\s+should|\s+would)?|how(?:\s+is|\s+are|\s+does|\s+do|\s+can|\s+should|\s+would)?|why(?:\s+is|\s+are|\s+does|\s+do)?|when(?:\s+is|\s+are|\s+does|\s+do)?|where(?:\s+is|\s+are)?|who(?:\s+is|\s+are)?|which(?:\s+is|\s+are)?|explain|describe|define|tell\s+me(?:\s+about|\s+how|\s+what|\s+why)?|give\s+me|help\s+me\s+understand)\s+/i,
+      '',
+    )
+    .trim();
+  const result = clean || content;
+  const titled = result.charAt(0).toUpperCase() + result.slice(1);
+  return titled.length > 52 ? titled.slice(0, 49) + '…' : titled;
+}
+
 function extractSummary(answer: string): string {
   const dot = answer.indexOf('.');
   if (dot > 0 && dot < 120) return answer.slice(0, dot + 1);
@@ -170,6 +186,7 @@ export const questionService = {
       content,
       answer,
       summary,
+      title: deriveTitleFromQuestion(content),
       keywords,
       relatedQuestionIds,
       categoryIds: ['cat-general'],
