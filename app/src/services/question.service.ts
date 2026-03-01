@@ -38,7 +38,7 @@ function saveStore(questions: Question[]): void {
 
 // Derive a short display title from the user's raw question text.
 // Strips leading question words and trailing "?", then title-cases + truncates.
-function deriveTitleFromQuestion(content: string): string {
+export function deriveTitleFromQuestion(content: string): string {
   const clean = content
     .replace(/\?+$/, '')
     .trim()

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { History, SquarePen, Trash2, Flag, X, Check } from 'lucide-react';
 import { ChatMessage } from '../components/ChatMessage';
 import { ChatInput } from '../components/ChatInput';
@@ -8,7 +8,7 @@ import { sessionService } from '../services/session.service';
 import { flashcardService } from '../services/flashcard.service';
 import type { ChatSession, SessionMessage } from '../types';
 import { formatDate } from '../lib/date';
-import { questionService } from '../services/question.service';
+import { questionService, deriveTitleFromQuestion } from '../services/question.service';
 import { toast } from '../lib/toast';
 
 const SUGGESTED_PROMPTS = [
@@ -39,6 +39,7 @@ function startNewSession(current: ChatSession): ChatSession {
 
 export function AskScreen() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { askStreaming, questions } = useQuestions();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -101,12 +102,7 @@ export function AskScreen() {
       };
 
       setSession((prev) => {
-        const updated: ChatSession = {
-          ...prev,
-          // Use AI-derived title on first exchange; keep existing title otherwise
-          title: prev.title || question?.title || userContent.slice(0, 60),
-          messages: [...prev.messages, aiMsg],
-        };
+        const updated: ChatSession = { ...prev, messages: [...prev.messages, aiMsg] };
         sessionService.save(updated);
         return updated;
       });
@@ -120,9 +116,13 @@ export function AskScreen() {
       const userMsg: SessionMessage = { id: `u-${Date.now()}`, type: 'user', content };
       const placeholderId = `ai-${Date.now() + 1}`;
 
+      // Set the derived title immediately — don't wait for the AI round-trip.
+      // This ensures the title is always the cleaned-up question text, even if
+      // the AI call fails or question?.title is null for any reason.
       setSession((prev) => {
         const updated: ChatSession = {
           ...prev,
+          title: prev.title || deriveTitleFromQuestion(content),
           messages: [...prev.messages, userMsg],
         };
         sessionService.save(updated);
@@ -133,6 +133,24 @@ export function AskScreen() {
     },
     [generateAiReply],
   );
+
+  // Auto-send a prompt passed via navigation state (e.g. from Home screen STT FAB)
+  const didAutoSend = useRef(false);
+  useEffect(() => {
+    if (didAutoSend.current) return;
+    const prompt = (location.state as { prompt?: string } | null)?.prompt?.trim();
+    if (!prompt) return;
+    didAutoSend.current = true;
+    // Clear nav state so back-navigation doesn't re-trigger
+    window.history.replaceState({}, '');
+    // Always open a fresh session so the derived title is written to a clean slate
+    // (if we appended to an existing session whose title was already set,
+    // the `prev.title || question?.title` guard would skip the new title)
+    const fresh = startNewSession(sessionRef.current);
+    setSession(fresh);
+    void handleSend(prompt);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleEditSubmit = useCallback(async () => {
     if (!editingMessageId || !editingContent.trim()) return;

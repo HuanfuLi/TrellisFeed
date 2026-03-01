@@ -1,14 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Brain, BookOpen, CheckSquare, Headphones, Mic } from 'lucide-react';
+import { Brain, BookOpen, CheckSquare, Headphones, Mic, Loader2 } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { useQuestions } from '../state/useQuestions';
 import { useReview } from '../state/useReview';
 import { usePodcast } from '../state/usePodcast';
 import { mockCalendarService } from '../services/mock/calendar.mock';
+import { mockSettingsService } from '../services/mock/settings.mock';
+import { transcribeAudio } from '../providers/stt';
 import { eventBus } from '../lib/event-bus';
 import { today, getGreeting, formatDateLabel } from '../lib/date';
+import { toast } from '../lib/toast';
 
 export function HomeScreen() {
   const navigate = useNavigate();
@@ -22,6 +25,11 @@ export function HomeScreen() {
   const todayPodcast = getPodcastForDate(t);
 
   const [pendingTodos, setPendingTodos] = useState(0);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
   useEffect(() => {
     const refresh = async () => {
@@ -38,202 +46,311 @@ export function HomeScreen() {
     return () => { unsub1(); unsub2(); };
   }, []);
 
+  // Cleanup recorder if component unmounts mid-recording
+  useEffect(() => {
+    return () => {
+      if (mediaRecorderRef.current?.state === 'recording') {
+        mediaRecorderRef.current.stop();
+      }
+    };
+  }, []);
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
+      audioChunksRef.current = [];
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      recorder.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        setIsTranscribing(true);
+        try {
+          const settings = mockSettingsService.getSync();
+          const text = await transcribeAudio(blob, settings.llm);
+          navigate('/ask', { state: { prompt: text?.trim() || '' } });
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : '';
+          toast(
+            msg.includes('API key') || msg.includes('No API')
+              ? 'STT requires an OpenAI API key — check Settings.'
+              : 'Transcription failed. Check your API settings.',
+            'error',
+          );
+          setIsTranscribing(false);
+        }
+      };
+
+      recorder.start();
+      setIsRecording(true);
+    } catch {
+      toast('Microphone access denied.', 'error');
+    }
+  };
+
+  const stopRecording = () => {
+    mediaRecorderRef.current?.stop();
+    mediaRecorderRef.current = null;
+    setIsRecording(false);
+  };
+
+  const handleFabClick = () => {
+    if (isTranscribing) return;
+    if (isRecording) stopRecording();
+    else void startRecording();
+  };
+
+  const fabActive = isRecording || isTranscribing;
+
   return (
     <>
-    <div style={{ padding: '24px 16px 96px', maxWidth: '448px', margin: '0 auto' }}>
-      {/* Header */}
-      <div style={{ marginBottom: '24px' }}>
-        <h1 style={{ marginBottom: '4px' }}>{getGreeting()}</h1>
-        <p style={{ color: 'var(--muted-foreground)' }}>{formatDateLabel(t)}</p>
-      </div>
-
-      {/* Bento Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-
-        {/* Today's Summary — full width */}
-        <div
-          style={{
-            gridColumn: '1 / -1',
-            padding: '24px',
-            background: 'var(--summary-bg)',
-            borderRadius: 'var(--radius-xl)',
-            boxShadow: 'var(--shadow-2)',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '16px' }}>
-            <Brain size={32} color="var(--summary-text)" />
-            <div style={{ textAlign: 'right' }}>
-              <p style={{ fontSize: '2.5rem', fontWeight: 600, color: 'var(--summary-text)', lineHeight: 1 }}>{todayQuestions.length}</p>
-              <p style={{ fontSize: '0.875rem', color: 'var(--summary-text-muted)' }}>questions today</p>
-            </div>
-          </div>
-          <h3 style={{ color: 'var(--summary-text)', marginBottom: '12px' }}>Today's Summary</h3>
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <div style={{ flex: 1, padding: '8px 12px', backgroundColor: 'var(--summary-stat-bg)', borderRadius: '16px', backdropFilter: 'blur(8px)' }}>
-              <p style={{ fontSize: '1.5rem', fontWeight: 600, color: 'var(--summary-text)' }}>{reviewCount}</p>
-              <p style={{ fontSize: '0.75rem', color: 'var(--summary-text-muted)' }}>Due for review</p>
-            </div>
-            <div style={{ flex: 1, padding: '8px 12px', backgroundColor: 'var(--summary-stat-bg)', borderRadius: '16px', backdropFilter: 'blur(8px)' }}>
-              <p style={{ fontSize: '1.5rem', fontWeight: 600, color: 'var(--summary-text)' }}>{pendingTodos}</p>
-              <p style={{ fontSize: '0.75rem', color: 'var(--summary-text-muted)' }}>Tasks pending</p>
-            </div>
-          </div>
+      <div style={{ padding: '24px 16px 96px', maxWidth: '448px', margin: '0 auto' }}>
+        {/* Header */}
+        <div style={{ marginBottom: '24px' }}>
+          <h1 style={{ marginBottom: '4px' }}>{getGreeting()}</h1>
+          <p style={{ color: 'var(--muted-foreground)' }}>{formatDateLabel(t)}</p>
         </div>
 
-        {/* Review Card */}
-        <button
-          onClick={() => navigate('/review')}
-          style={{ textAlign: 'left', background: 'none', padding: 0 }}
-        >
-          <Card
-            style={{
-              backgroundColor: 'var(--bento-review-bg)',
-              cursor: 'pointer',
-              transition: 'transform 0.2s',
-              height: '100%',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.02)')}
-            onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-          >
-            <BookOpen size={28} color="var(--bento-card-text)" style={{ marginBottom: '12px' }} />
-            <h4 style={{ marginBottom: '8px', color: 'var(--bento-card-text)' }}>Review</h4>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-              <p style={{ fontSize: '1.875rem', fontWeight: 600, color: 'var(--bento-card-text)' }}>{reviewCount}</p>
-              <p style={{ fontSize: '0.875rem', color: 'var(--bento-card-text-muted)' }}>due</p>
-            </div>
-          </Card>
-        </button>
+        {/* Bento Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
 
-        {/* Tasks Card */}
-        <button
-          onClick={() => navigate('/calendar')}
-          style={{ textAlign: 'left', background: 'none', padding: 0 }}
-        >
-          <Card
+          {/* Today's Summary — full width */}
+          <div
             style={{
-              backgroundColor: 'var(--bento-tasks-bg)',
-              cursor: 'pointer',
-              transition: 'transform 0.2s',
-              height: '100%',
+              gridColumn: '1 / -1',
+              padding: '24px',
+              background: 'var(--summary-bg)',
+              borderRadius: 'var(--radius-xl)',
+              boxShadow: 'var(--shadow-2)',
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.02)')}
-            onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
           >
-            <CheckSquare size={28} color="var(--bento-card-text)" style={{ marginBottom: '12px' }} />
-            <h4 style={{ marginBottom: '8px', color: 'var(--bento-card-text)' }}>Tasks</h4>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-              <p style={{ fontSize: '1.875rem', fontWeight: 600, color: 'var(--bento-card-text)' }}>{pendingTodos}</p>
-              <p style={{ fontSize: '0.875rem', color: 'var(--bento-card-text-muted)' }}>pending</p>
-            </div>
-          </Card>
-        </button>
-
-        {/* Podcast Card — full width */}
-        <button
-          onClick={() => navigate('/podcast')}
-          style={{ gridColumn: '1 / -1', textAlign: 'left', background: 'none', padding: 0 }}
-        >
-          <Card
-            style={{
-              backgroundColor: 'var(--bento-podcast-bg)',
-              cursor: 'pointer',
-              transition: 'transform 0.2s',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.01)')}
-            onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div>
-                <Headphones size={28} color="var(--bento-card-text)" style={{ marginBottom: '8px' }} />
-                <h4 style={{ color: 'var(--bento-card-text)', marginBottom: '4px' }}>Today's Podcast</h4>
-                <p style={{ fontSize: '0.875rem', color: 'var(--bento-card-text-muted)' }}>
-                  {todayPodcast
-                    ? todayPodcast.status === 'ready'
-                      ? `Ready · ${Math.round((todayPodcast.duration ?? 0) / 60)} min`
-                      : todayPodcast.status === 'generating'
-                        ? `Generating... ${todayPodcast.progress ?? 0}%`
-                        : 'Generation failed'
-                    : 'Not yet generated'}
-                </p>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <Brain size={32} color="var(--summary-text)" />
+              <div style={{ textAlign: 'right' }}>
+                <p style={{ fontSize: '2.5rem', fontWeight: 600, color: 'var(--summary-text)', lineHeight: 1 }}>{todayQuestions.length}</p>
+                <p style={{ fontSize: '0.875rem', color: 'var(--summary-text-muted)' }}>questions today</p>
               </div>
-              <Badge color={todayPodcast?.status === 'ready' ? 'green' : 'gray'}>
-                {todayPodcast?.status ?? 'pending'}
-              </Badge>
             </div>
-          </Card>
-        </button>
+            <h3 style={{ color: 'var(--summary-text)', marginBottom: '12px' }}>Today's Summary</h3>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <div style={{ flex: 1, padding: '8px 12px', backgroundColor: 'var(--summary-stat-bg)', borderRadius: '16px', backdropFilter: 'blur(8px)' }}>
+                <p style={{ fontSize: '1.5rem', fontWeight: 600, color: 'var(--summary-text)' }}>{reviewCount}</p>
+                <p style={{ fontSize: '0.75rem', color: 'var(--summary-text-muted)' }}>Due for review</p>
+              </div>
+              <div style={{ flex: 1, padding: '8px 12px', backgroundColor: 'var(--summary-stat-bg)', borderRadius: '16px', backdropFilter: 'blur(8px)' }}>
+                <p style={{ fontSize: '1.5rem', fontWeight: 600, color: 'var(--summary-text)' }}>{pendingTodos}</p>
+                <p style={{ fontSize: '0.75rem', color: 'var(--summary-text-muted)' }}>Tasks pending</p>
+              </div>
+            </div>
+          </div>
 
-        {/* Recent Questions — full width */}
-        {recentQuestions.length > 0 ? (
-          <div style={{ gridColumn: '1 / -1' }}>
-            <Card style={{ backgroundColor: 'var(--surface-variant)' }}>
-              <h4 style={{ marginBottom: '12px' }}>Recent Questions</h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {recentQuestions.map((q) => (
-                  <button
-                    key={q.id}
-                    onClick={() => navigate(`/ask/${q.id}`)}
-                    style={{
-                      textAlign: 'left',
-                      padding: '10px 14px',
-                      borderRadius: 'var(--radius)',
-                      backgroundColor: 'var(--card)',
-                      fontSize: '0.875rem',
-                      color: 'var(--foreground)',
-                      transition: 'background-color 0.2s',
-                      border: 'none',
-                      cursor: 'pointer',
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--surface-container-high)')}
-                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'var(--card)')}
-                  >
-                    {q.title ?? q.content}
-                  </button>
-                ))}
+          {/* Review Card */}
+          <button
+            onClick={() => navigate('/review')}
+            style={{ textAlign: 'left', background: 'none', padding: 0 }}
+          >
+            <Card
+              style={{
+                backgroundColor: 'var(--bento-review-bg)',
+                cursor: 'pointer',
+                transition: 'transform 0.2s',
+                height: '100%',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.02)')}
+              onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+            >
+              <BookOpen size={28} color="var(--bento-card-text)" style={{ marginBottom: '12px' }} />
+              <h4 style={{ marginBottom: '8px', color: 'var(--bento-card-text)' }}>Review</h4>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                <p style={{ fontSize: '1.875rem', fontWeight: 600, color: 'var(--bento-card-text)' }}>{reviewCount}</p>
+                <p style={{ fontSize: '0.875rem', color: 'var(--bento-card-text-muted)' }}>due</p>
               </div>
             </Card>
-          </div>
-        ) : (
-          <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '16px', backgroundColor: 'var(--surface-variant)', borderRadius: 'var(--radius-xl)' }}>
-            <p style={{ color: 'var(--muted-foreground)', fontSize: '0.9rem' }}>Ask your first question to start building your knowledge!</p>
-          </div>
-        )}
+          </button>
 
+          {/* Tasks Card */}
+          <button
+            onClick={() => navigate('/calendar')}
+            style={{ textAlign: 'left', background: 'none', padding: 0 }}
+          >
+            <Card
+              style={{
+                backgroundColor: 'var(--bento-tasks-bg)',
+                cursor: 'pointer',
+                transition: 'transform 0.2s',
+                height: '100%',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.02)')}
+              onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+            >
+              <CheckSquare size={28} color="var(--bento-card-text)" style={{ marginBottom: '12px' }} />
+              <h4 style={{ marginBottom: '8px', color: 'var(--bento-card-text)' }}>Tasks</h4>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                <p style={{ fontSize: '1.875rem', fontWeight: 600, color: 'var(--bento-card-text)' }}>{pendingTodos}</p>
+                <p style={{ fontSize: '0.875rem', color: 'var(--bento-card-text-muted)' }}>pending</p>
+              </div>
+            </Card>
+          </button>
+
+          {/* Podcast Card — full width */}
+          <button
+            onClick={() => navigate('/podcast')}
+            style={{ gridColumn: '1 / -1', textAlign: 'left', background: 'none', padding: 0 }}
+          >
+            <Card
+              style={{
+                backgroundColor: 'var(--bento-podcast-bg)',
+                cursor: 'pointer',
+                transition: 'transform 0.2s',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.01)')}
+              onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <Headphones size={28} color="var(--bento-card-text)" style={{ marginBottom: '8px' }} />
+                  <h4 style={{ color: 'var(--bento-card-text)', marginBottom: '4px' }}>Today's Podcast</h4>
+                  <p style={{ fontSize: '0.875rem', color: 'var(--bento-card-text-muted)' }}>
+                    {todayPodcast
+                      ? todayPodcast.status === 'ready'
+                        ? `Ready · ${Math.round((todayPodcast.duration ?? 0) / 60)} min`
+                        : todayPodcast.status === 'generating'
+                          ? `Generating... ${todayPodcast.progress ?? 0}%`
+                          : 'Generation failed'
+                      : 'Not yet generated'}
+                  </p>
+                </div>
+                <Badge color={todayPodcast?.status === 'ready' ? 'green' : 'gray'}>
+                  {todayPodcast?.status ?? 'pending'}
+                </Badge>
+              </div>
+            </Card>
+          </button>
+
+          {/* Recent Questions — full width */}
+          {recentQuestions.length > 0 ? (
+            <div style={{ gridColumn: '1 / -1' }}>
+              <Card style={{ backgroundColor: 'var(--surface-variant)' }}>
+                <h4 style={{ marginBottom: '12px' }}>Recent Questions</h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {recentQuestions.map((q) => (
+                    <button
+                      key={q.id}
+                      onClick={() => navigate(`/ask/${q.id}`)}
+                      style={{
+                        textAlign: 'left',
+                        padding: '10px 14px',
+                        borderRadius: 'var(--radius)',
+                        backgroundColor: 'var(--card)',
+                        fontSize: '0.875rem',
+                        color: 'var(--foreground)',
+                        transition: 'background-color 0.2s',
+                        border: 'none',
+                        cursor: 'pointer',
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--surface-container-high)')}
+                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'var(--card)')}
+                    >
+                      {q.title ?? q.content}
+                    </button>
+                  ))}
+                </div>
+              </Card>
+            </div>
+          ) : (
+            <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '16px', backgroundColor: 'var(--surface-variant)', borderRadius: 'var(--radius-xl)' }}>
+              <p style={{ color: 'var(--muted-foreground)', fontSize: '0.9rem' }}>Ask your first question to start building your knowledge!</p>
+            </div>
+          )}
+
+        </div>
       </div>
-    </div>
 
-      {/* Floating Ask FAB — fixed above bottom nav */}
+      {/* Prompt bubble — shown while recording or transcribing */}
+      {fabActive && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: '172px',
+            right: '16px',
+            padding: '12px 20px',
+            backgroundColor: 'var(--surface-variant)',
+            borderRadius: '20px',
+            boxShadow: 'var(--shadow-2)',
+            zIndex: 30,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            fontSize: '0.95rem',
+            color: 'var(--foreground)',
+            animation: 'fade-in 0.2s ease',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {isTranscribing ? (
+            <>
+              <Loader2
+                size={16}
+                style={{ animation: 'spin 1s linear infinite', color: 'var(--primary-40)', flexShrink: 0 }}
+              />
+              Transcribing…
+            </>
+          ) : (
+            <>
+              <span
+                style={{
+                  width: '10px',
+                  height: '10px',
+                  borderRadius: '50%',
+                  backgroundColor: '#E53935',
+                  flexShrink: 0,
+                  animation: 'mic-pulse 1.4s ease-in-out infinite',
+                  display: 'inline-block',
+                }}
+              />
+              Start Asking…
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Floating Ask FAB */}
       <button
-        onClick={() => navigate('/ask')}
+        onClick={handleFabClick}
+        disabled={isTranscribing}
+        title={isRecording ? 'Tap to stop' : 'Ask a question'}
         style={{
           position: 'fixed',
           bottom: '96px',
           right: '24px',
-          padding: '16px',
-          backgroundColor: 'var(--primary-40)',
+          width: '56px',
+          height: '56px',
+          backgroundColor: fabActive ? 'var(--primary-30)' : 'var(--primary-40)',
           color: 'white',
           borderRadius: '50%',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
+          boxShadow: fabActive
+            ? '0 0 0 6px rgba(76,175,80,0.2), 0 4px 16px rgba(0,0,0,0.25)'
+            : '0 4px 16px rgba(0,0,0,0.25)',
           border: 'none',
-          cursor: 'pointer',
+          cursor: isTranscribing ? 'not-allowed' : 'pointer',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 30,
-          transition: 'transform 0.2s, background-color 0.2s, box-shadow 0.2s',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.transform = 'scale(1.05)';
-          e.currentTarget.style.backgroundColor = 'var(--primary-30)';
-          e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.3)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = 'scale(1)';
-          e.currentTarget.style.backgroundColor = 'var(--primary-40)';
-          e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.25)';
+          transform: fabActive ? 'scale(1.18)' : 'scale(1)',
+          transition: 'transform 0.25s cubic-bezier(0.34,1.56,0.64,1), background-color 0.2s, box-shadow 0.25s',
+          animation: isRecording ? 'mic-pulse 1.8s ease-in-out infinite' : 'none',
         }}
       >
-        <Mic size={24} />
+        {isTranscribing
+          ? <Loader2 size={24} style={{ animation: 'spin 1s linear infinite' }} />
+          : <Mic size={24} />
+        }
       </button>
     </>
   );
