@@ -1,6 +1,29 @@
 import type { DaySchedule, TimeBlock, TodoItem, TodoStatus, ServiceResult } from '../../types';
 import { today, addDays } from '../../lib/date';
 import { eventBus } from '../../lib/event-bus';
+import { flashcardService } from '../flashcard.service';
+
+// ── Persistence ────────────────────────────────────────────────────────────
+
+const SCHEDULE_STORE_KEY = 'echolearn_schedule_v1';
+
+function persistStore(): void {
+  try {
+    localStorage.setItem(SCHEDULE_STORE_KEY, JSON.stringify([...scheduleStore.entries()]));
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function loadPersistedStore(): Map<string, TimeBlock[]> | null {
+  try {
+    const raw = localStorage.getItem(SCHEDULE_STORE_KEY);
+    if (!raw) return null;
+    return new Map(JSON.parse(raw) as [string, TimeBlock[]][]);
+  } catch {
+    return null;
+  }
+}
 
 let blockIdCounter = 200;
 let todoIdCounter = 300;
@@ -70,7 +93,26 @@ const seedBlocks: TimeBlock[] = [
   },
 ];
 
-const scheduleStore: Map<string, TimeBlock[]> = new Map([[t, seedBlocks]]);
+// Bug #9: Load from localStorage; fall back to seed data on first run
+const _persistedStore = loadPersistedStore();
+const scheduleStore: Map<string, TimeBlock[]> = _persistedStore ?? new Map([[t, seedBlocks]]);
+
+// Advance ID counters past any stored IDs to avoid collisions after reload
+if (_persistedStore) {
+  for (const blocks of _persistedStore.values()) {
+    for (const block of blocks) {
+      const blockNum = parseInt(block.id.replace('blk-', ''), 10);
+      if (!isNaN(blockNum) && blockNum >= blockIdCounter) blockIdCounter = blockNum + 1;
+      for (const todo of block.todos) {
+        const todoNum = parseInt(todo.id.replace('td-', ''), 10);
+        if (!isNaN(todoNum) && todoNum >= todoIdCounter) todoIdCounter = todoNum + 1;
+      }
+    }
+  }
+} else {
+  // First run — persist the seed data
+  persistStore();
+}
 
 // ── Internal helpers ───────────────────────────────────────────────────────
 
@@ -139,8 +181,8 @@ function findBlock(blockId: string): TimeBlock | null {
 export const mockCalendarService = {
   async getDaySchedule(date: string): Promise<ServiceResult<DaySchedule>> {
     const blocks = getBlocksForDate(date);
-    const todayBlocks = getBlocksForDate(today());
-    const reviewItemCount = todayBlocks.length > 0 ? 5 : 0;
+    // Bug #3: use actual due flashcard count instead of hardcoded value
+    const reviewItemCount = flashcardService.getDue().length;
     return { success: true, data: { date, blocks: [...blocks], reviewItemCount } };
   },
 
@@ -156,6 +198,7 @@ export const mockCalendarService = {
       sortOrder: blocks.length,
     };
     blocks.push(block);
+    persistStore();
     eventBus.emit({ type: 'BLOCK_CREATED', payload: block });
     return { success: true, data: block };
   },
@@ -173,6 +216,7 @@ export const mockCalendarService = {
         if (updates.endTime !== undefined) template.endTime = updates.endTime;
       }
     }
+    persistStore();
     eventBus.emit({ type: 'BLOCK_UPDATED', payload: block });
     return { success: true, data: block };
   },
@@ -198,6 +242,7 @@ export const mockCalendarService = {
       if (idx !== -1) {
         blocks.splice(idx, 1);
         scheduleStore.set(date, blocks);
+        persistStore();
         return { success: true };
       }
     }
@@ -240,6 +285,7 @@ export const mockCalendarService = {
       }
     }
 
+    persistStore();
     eventBus.emit({ type: 'BLOCK_UPDATED', payload: block });
     return { success: true, data: block };
   },
@@ -291,6 +337,7 @@ export const mockCalendarService = {
       });
     }
 
+    persistStore();
     eventBus.emit({ type: 'TODO_STATUS_CHANGED', payload: todo });
     return { success: true, data: { todo, block } };
   },
@@ -307,6 +354,7 @@ export const mockCalendarService = {
       createdAt: Date.now(),
     };
     block.todos.push(todo);
+    persistStore();
     eventBus.emit({ type: 'TODO_CREATED', payload: todo });
     return { success: true, data: todo };
   },
@@ -317,6 +365,7 @@ export const mockCalendarService = {
 
     found.todo.status = status;
     if (status === 'completed') found.todo.completedAt = Date.now();
+    persistStore();
     eventBus.emit({ type: 'TODO_STATUS_CHANGED', payload: found.todo });
     return { success: true, data: found.todo };
   },
@@ -340,6 +389,7 @@ export const mockCalendarService = {
       postponedFrom: block.id,
     };
     targetBlock.todos.push(newTodo);
+    persistStore();
     eventBus.emit({ type: 'TODO_STATUS_CHANGED', payload: todo });
     eventBus.emit({ type: 'TODO_CREATED', payload: newTodo });
     return { success: true, data: newTodo };
@@ -365,6 +415,7 @@ export const mockCalendarService = {
     }
 
     todo.status = 'pending';
+    persistStore();
     eventBus.emit({ type: 'TODO_STATUS_CHANGED', payload: todo });
     return { success: true };
   },
@@ -392,6 +443,7 @@ export const mockCalendarService = {
         const idx = block.todos.findIndex((td) => td.id === todoId);
         if (idx !== -1) {
           block.todos.splice(idx, 1);
+          persistStore();
           return { success: true };
         }
       }

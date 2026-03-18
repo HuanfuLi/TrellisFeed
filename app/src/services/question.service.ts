@@ -3,8 +3,67 @@ import { today, addDays } from '../lib/date';
 import { eventBus } from '../lib/event-bus';
 import { mockSettingsService } from './mock/settings.mock';
 import { chatCompletion } from '../providers/llm';
+import { dbExecute, dbQuery } from './db.service';
 
 const STORAGE_KEY = 'echolearn_questions';
+
+// ─── SQLite write-through helpers ────────────────────────────────────────────
+
+let sqliteReady = false;
+
+async function ensureQuestionsTable() {
+  if (sqliteReady) return;
+  await dbExecute(
+    `CREATE TABLE IF NOT EXISTS questions (
+      id TEXT PRIMARY KEY,
+      data TEXT NOT NULL
+    )`,
+  );
+  sqliteReady = true;
+}
+
+/** Write a single question to SQLite (fire-and-forget; localStorage is primary). */
+function persistToSQLite(question: Question) {
+  void ensureQuestionsTable().then(() =>
+    dbExecute('INSERT OR REPLACE INTO questions (id, data) VALUES (?, ?)', [
+      question.id,
+      JSON.stringify(question),
+    ]),
+  );
+}
+
+/** Delete a question from SQLite. */
+function deleteFromSQLite(id: string) {
+  void ensureQuestionsTable().then(() =>
+    dbExecute('DELETE FROM questions WHERE id = ?', [id]),
+  );
+}
+
+/**
+ * On startup, if SQLite has questions not yet in localStorage, import them.
+ * This enables cross-session persistence on native when localStorage is cleared.
+ */
+export async function hydrateFromSQLite(): Promise<void> {
+  try {
+    await ensureQuestionsTable();
+    const rows = await dbQuery<{ id: string; data: string }>('SELECT * FROM questions');
+    if (rows.length === 0) return;
+
+    const existing = loadStore();
+    const existingIds = new Set(existing.map((q) => q.id));
+    const toAdd: Question[] = [];
+    for (const row of rows) {
+      if (!existingIds.has(row.id)) {
+        try { toAdd.push(JSON.parse(row.data) as Question); } catch { /* skip corrupt rows */ }
+      }
+    }
+    if (toAdd.length > 0) {
+      saveStore([...toAdd, ...existing]);
+    }
+  } catch {
+    // SQLite not available (web without capacitor) — silently skip
+  }
+}
 
 const STOP_WORDS = new Set([
   'the', 'a', 'an', 'is', 'it', 'in', 'on', 'at', 'to', 'for', 'of', 'and', 'or', 'but',
@@ -199,6 +258,7 @@ export const questionService = {
     };
 
     saveStore([question, ...store]);
+    persistToSQLite(question);
     eventBus.emit({ type: 'QUESTION_ASKED', payload: question });
     return question;
   },
@@ -235,6 +295,7 @@ export const questionService = {
 
   async delete(id: string): Promise<ServiceResult<void>> {
     saveStore(loadStore().filter((q) => q.id !== id));
+    deleteFromSQLite(id);
     eventBus.emit({ type: 'QUESTION_DELETED', payload: { id } });
     return { success: true };
   },
@@ -249,6 +310,16 @@ export const questionService = {
     if (idx !== -1) {
       store[idx] = { ...store[idx], reviewSchedule: schedule };
       saveStore(store);
+    }
+  },
+
+  updateRelatedIds(questionId: string, relatedQuestionIds: string[]): void {
+    const store = loadStore();
+    const idx = store.findIndex((q) => q.id === questionId);
+    if (idx !== -1) {
+      store[idx] = { ...store[idx], relatedQuestionIds };
+      saveStore(store);
+      persistToSQLite(store[idx]);
     }
   },
 };

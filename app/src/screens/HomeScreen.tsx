@@ -1,13 +1,15 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Brain, BookOpen, CheckSquare, Headphones, Mic, Loader2 } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
+import { ImmersiveInfoFlow, InfoFlowPreview, type InfoFlowItem } from '../components/InfoFlow';
 import { useQuestions } from '../state/useQuestions';
 import { useReview } from '../state/useReview';
 import { usePodcast } from '../state/usePodcast';
 import { mockCalendarService } from '../services/mock/calendar.mock';
 import { mockSettingsService } from '../services/mock/settings.mock';
+import { graphService } from '../services/graph.service';
 import { transcribeAudio } from '../providers/stt';
 import { eventBus } from '../lib/event-bus';
 import { today, getGreeting, formatDateLabel } from '../lib/date';
@@ -15,14 +17,70 @@ import { toast } from '../lib/toast';
 
 export function HomeScreen() {
   const navigate = useNavigate();
-  const { getByDate, getRecent } = useQuestions();
-  const { reviewCount } = useReview();
+  const { getByDate, questions } = useQuestions();
+  const { reviewCount, items: reviewItems, submitReview, isLoading: isReviewLoading } = useReview();
   const { getPodcastForDate } = usePodcast();
 
   const t = today();
   const todayQuestions = getByDate(t);
-  const recentQuestions = getRecent(3);
   const todayPodcast = getPodcastForDate(t);
+
+  // Build the Info Flow feed: interleave concept cards with connection cards
+  const infoFlowItems = useMemo<InfoFlowItem[]>(() => {
+    const items: InfoFlowItem[] = [];
+    const connCandidates = questions.filter((q) => q.relatedQuestionIds.length > 0);
+    const added = new Set<string>();
+
+    reviewItems.forEach((card, idx) => {
+      items.push({ kind: 'concept', card });
+
+      // After every 2nd concept card, inject a connection card if available
+      if ((idx + 1) % 2 === 0) {
+        const base = connCandidates[Math.floor(idx / 2) % connCandidates.length];
+        if (base) {
+          const targetId = base.relatedQuestionIds[0];
+          const target = questions.find((q) => q.id === targetId);
+          const connKey = `${base.id}-${targetId}`;
+          if (target && !added.has(connKey)) {
+            added.add(connKey);
+            items.push({ kind: 'connection', questionA: base, questionB: target });
+          }
+        }
+      }
+    });
+
+    // Also add any connection cards not yet shown
+    for (const q of connCandidates) {
+      for (const relId of q.relatedQuestionIds) {
+        const key = `${q.id}-${relId}`;
+        const rev = `${relId}-${q.id}`;
+        if (!added.has(key) && !added.has(rev)) {
+          const related = questions.find((r) => r.id === relId);
+          if (related) {
+            added.add(key);
+            items.push({ kind: 'connection', questionA: q, questionB: related });
+          }
+        }
+      }
+    }
+
+    return items.slice(0, 20);
+  }, [reviewItems, questions]);
+
+  const [flowOpen, setFlowOpen] = useState(false);
+  // Bug #8: snapshot items when opening so rating a card doesn't mutate the live prop,
+  // which would rebuild the IntersectionObserver and reset activeIndex mid-flow
+  const [flowItems, setFlowItems] = useState(infoFlowItems);
+
+  const handleOpenFlow = () => {
+    setFlowItems(infoFlowItems);
+    setFlowOpen(true);
+  };
+
+  const handleAhaConnection = (idA: string, idB: string) => {
+    void graphService.reinforceEdge(idA, idB);
+    toast('Aha! Connection strengthened.', 'success');
+  };
 
   const [pendingTodos, setPendingTodos] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
@@ -149,7 +207,7 @@ export function HomeScreen() {
             </div>
           </div>
 
-          {/* Review Card */}
+          {/* Flashcard Card */}
           <button
             onClick={() => navigate('/review')}
             style={{ textAlign: 'left', background: 'none', padding: 0 }}
@@ -165,7 +223,7 @@ export function HomeScreen() {
               onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
             >
               <BookOpen size={28} color="var(--bento-card-text)" style={{ marginBottom: '12px' }} />
-              <h4 style={{ marginBottom: '8px', color: 'var(--bento-card-text)' }}>Review</h4>
+              <h4 style={{ marginBottom: '8px', color: 'var(--bento-card-text)' }}>Flashcard</h4>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
                 <p style={{ fontSize: '1.875rem', fontWeight: 600, color: 'var(--bento-card-text)' }}>{reviewCount}</p>
                 <p style={{ fontSize: '0.875rem', color: 'var(--bento-card-text-muted)' }}>due</p>
@@ -232,44 +290,25 @@ export function HomeScreen() {
             </Card>
           </button>
 
-          {/* Recent Questions — full width */}
-          {recentQuestions.length > 0 ? (
+          {/* Info Flow preview — full width; hidden during initial load (Bug #4) */}
+          {!isReviewLoading && (
             <div style={{ gridColumn: '1 / -1' }}>
-              <Card style={{ backgroundColor: 'var(--surface-variant)' }}>
-                <h4 style={{ marginBottom: '12px' }}>Recent Questions</h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {recentQuestions.map((q) => (
-                    <button
-                      key={q.id}
-                      onClick={() => navigate(`/ask/${q.id}`)}
-                      style={{
-                        textAlign: 'left',
-                        padding: '10px 14px',
-                        borderRadius: 'var(--radius)',
-                        backgroundColor: 'var(--card)',
-                        fontSize: '0.875rem',
-                        color: 'var(--foreground)',
-                        transition: 'background-color 0.2s',
-                        border: 'none',
-                        cursor: 'pointer',
-                      }}
-                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--surface-container-high)')}
-                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'var(--card)')}
-                    >
-                      {q.title ?? q.content}
-                    </button>
-                  ))}
-                </div>
-              </Card>
-            </div>
-          ) : (
-            <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '16px', backgroundColor: 'var(--surface-variant)', borderRadius: 'var(--radius-xl)' }}>
-              <p style={{ color: 'var(--muted-foreground)', fontSize: '0.9rem' }}>Ask your first question to start building your knowledge!</p>
+              <InfoFlowPreview items={infoFlowItems} onOpen={handleOpenFlow} />
             </div>
           )}
 
         </div>
       </div>
+
+      {/* Immersive Info Flow overlay */}
+      {flowOpen && (
+        <ImmersiveInfoFlow
+          items={flowItems}
+          onRateConcept={async (id, rating) => { await submitReview(id, rating); }}
+          onAhaConnection={handleAhaConnection}
+          onClose={() => setFlowOpen(false)}
+        />
+      )}
 
       {/* Prompt bubble — shown while recording or transcribing */}
       {fabActive && (

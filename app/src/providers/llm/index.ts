@@ -1,3 +1,4 @@
+import { Capacitor, CapacitorHttp } from '@capacitor/core';
 import type { LLMConfig } from '../../types';
 
 interface ChatMessage {
@@ -26,36 +27,85 @@ export async function* chatStream(messages: ChatMessage[], config: LLMConfig): A
 // ─── OpenAI / Local / LM Studio (OpenAI-compatible) ─────────────────────────
 
 function openAIBaseUrl(config: LLMConfig): string {
-  if (config.baseUrl) return config.baseUrl.replace(/\/$/, '');
+  if (config.baseUrl) {
+    // Strip trailing slash and any trailing /v1 so we never produce /v1/v1/...
+    return config.baseUrl.replace(/\/+$/, '').replace(/\/v1$/, '');
+  }
   if (config.provider === 'lmstudio') return 'http://localhost:1234';
   return 'https://api.openai.com';
 }
 
+/** Headers for cloud OpenAI-compatible providers (apiKey required). */
+function openAIHeaders(config: LLMConfig): Record<string, string> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (config.apiKey) headers['Authorization'] = `Bearer ${config.apiKey}`;
+  return headers;
+}
+
+/**
+ * POST helper for local providers (LM Studio / Ollama).
+ *
+ * On native (Android / iOS) uses CapacitorHttp which makes a true native HTTP
+ * request — no CORS preflight, no browser security restrictions.
+ * On web falls back to fetch (requires LM Studio CORS to be enabled).
+ *
+ * Matches the exact format from the LM Studio curl example:
+ *   { model, messages, max_tokens, stream }
+ */
+async function localPost(
+  url: string,
+  body: object,
+): Promise<{ ok: boolean; status: number; text(): Promise<string>; json(): Promise<unknown> }> {
+  const headers = { 'Content-Type': 'application/json' };
+
+  if (Capacitor.isNativePlatform()) {
+    const res = await CapacitorHttp.post({ url, headers, data: body });
+    const raw = typeof res.data === 'string' ? res.data : JSON.stringify(res.data);
+    return {
+      ok: res.status >= 200 && res.status < 300,
+      status: res.status,
+      text: async () => raw,
+      json: async () => (typeof res.data === 'string' ? (JSON.parse(res.data) as unknown) : res.data),
+    };
+  }
+
+  // Web fallback — fetch (CORS must be enabled on the local server)
+  return fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
+}
+
 async function openAICompletion(messages: ChatMessage[], config: LLMConfig): Promise<string> {
-  const response = await fetch(`${openAIBaseUrl(config)}/v1/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${config.apiKey ?? 'none'}`,
-    },
-    body: JSON.stringify({ model: config.model, messages }),
-  });
+  const isLocal = config.provider === 'local' || config.provider === 'lmstudio';
+  const url = `${openAIBaseUrl(config)}/v1/chat/completions`;
+  const body = { model: config.model, messages, max_tokens: 4096, stream: false };
+
+  const response = isLocal
+    ? await localPost(url, body)
+    : await fetch(url, { method: 'POST', headers: openAIHeaders(config), body: JSON.stringify(body) });
+
   if (!response.ok) {
     const err = await response.text();
     throw new Error(`${config.provider} API error ${response.status}: ${err}`);
   }
-  const data = await response.json();
+  const data = await response.json() as { choices: { message: { content: string } }[] };
   return data.choices[0].message.content;
 }
 
 async function* openAIStream(messages: ChatMessage[], config: LLMConfig): AsyncGenerator<string> {
-  const response = await fetch(`${openAIBaseUrl(config)}/v1/chat/completions`, {
+  const isLocal = config.provider === 'local' || config.provider === 'lmstudio';
+  const url = `${openAIBaseUrl(config)}/v1/chat/completions`;
+
+  // CapacitorHttp does not support SSE streaming — for local providers on native,
+  // fall back to a non-streaming request and yield the full reply in one chunk.
+  if (isLocal && Capacitor.isNativePlatform()) {
+    const text = await openAICompletion(messages, config);
+    yield text;
+    return;
+  }
+
+  const response = await fetch(url, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${config.apiKey ?? 'none'}`,
-    },
-    body: JSON.stringify({ model: config.model, messages, stream: true }),
+    headers: isLocal ? { 'Content-Type': 'application/json' } : openAIHeaders(config),
+    body: JSON.stringify({ model: config.model, messages, max_tokens: 4096, stream: true }),
   });
   if (!response.ok) {
     const err = await response.text();

@@ -24,10 +24,22 @@ interface StreamingOverlay {
   content: string;
 }
 
+// Bug #6: Module-level counter ensures unique IDs even when two calls happen in the same ms
+let msgIdCounter = 0;
+function newMsgId(prefix: string): string {
+  return `${prefix}-${Date.now()}-${++msgIdCounter}`;
+}
+
+// Bug #2: Guard against concurrent processSession calls for the same session
+const processingSessionIds = new Set<string>();
+
 function startNewSession(current: ChatSession): ChatSession {
-  // Fire-and-forget flashcard processing if session has user messages and hasn't been processed
-  if (!current.processed && current.messages.some((m) => m.type === 'user')) {
+  // Fire-and-forget flashcard processing if session has user messages, hasn't been processed,
+  // and isn't already being processed by a concurrent call
+  if (!current.processed && current.messages.some((m) => m.type === 'user') && !processingSessionIds.has(current.id)) {
+    processingSessionIds.add(current.id);
     void flashcardService.processSession(current).then(() => {
+      processingSessionIds.delete(current.id);
       const refreshed = sessionService.getById(current.id);
       if (refreshed) {
         sessionService.save({ ...refreshed, processed: true });
@@ -113,8 +125,8 @@ export function AskScreen() {
 
   const handleSend = useCallback(
     async (content: string) => {
-      const userMsg: SessionMessage = { id: `u-${Date.now()}`, type: 'user', content };
-      const placeholderId = `ai-${Date.now() + 1}`;
+      const userMsg: SessionMessage = { id: newMsgId('u'), type: 'user', content };
+      const placeholderId = newMsgId('ai');
 
       // Set the derived title immediately — don't wait for the AI round-trip.
       // This ensures the title is always the cleaned-up question text, even if
@@ -155,14 +167,14 @@ export function AskScreen() {
   const handleEditSubmit = useCallback(async () => {
     if (!editingMessageId || !editingContent.trim()) return;
     const newContent = editingContent.trim();
-    const placeholderId = `ai-${Date.now()}`;
+    const placeholderId = newMsgId('ai');
 
     // Truncate messages at the edited user message (inclusive) and replace it
     setSession((prev) => {
       const idx = prev.messages.findIndex((m) => m.id === editingMessageId);
       if (idx === -1) return prev;
       const truncated = prev.messages.slice(0, idx);
-      const editedMsg: SessionMessage = { id: `u-${Date.now()}`, type: 'user', content: newContent };
+      const editedMsg: SessionMessage = { id: newMsgId('u'), type: 'user', content: newContent };
       const updated: ChatSession = { ...prev, messages: [...truncated, editedMsg] };
       sessionService.save(updated);
       return updated;
@@ -183,7 +195,7 @@ export function AskScreen() {
     if (!userMsg || userMsg.type !== 'user') return;
 
     const userContent = userMsg.content;
-    const placeholderId = `ai-${Date.now()}`;
+    const placeholderId = newMsgId('ai');
 
     setSession((prev) => {
       const updated: ChatSession = {
@@ -227,16 +239,16 @@ export function AskScreen() {
   }, []);
 
   const handleFlagConfirm = useCallback((messageId: string) => {
+    // Bug #1: read questionId from the ref BEFORE setSession — updaters must be pure
+    const aiMsg = sessionRef.current.messages.find((m) => m.id === messageId);
+    const questionId = aiMsg?.questionId;
+
     setSession((prev) => {
       const msgs = prev.messages;
       const idx = msgs.findIndex((m) => m.id === messageId);
-      const aiMsg = msgs[idx];
       const toRemove = new Set([messageId]);
       if (idx > 0 && msgs[idx - 1].type === 'user') {
         toRemove.add(msgs[idx - 1].id);
-      }
-      if (aiMsg?.questionId) {
-        void questionService.delete(aiMsg.questionId);
       }
       const updated: ChatSession = {
         ...prev,
@@ -245,6 +257,11 @@ export function AskScreen() {
       sessionService.save(updated);
       return updated;
     });
+
+    // Side effect after setState (safe from double-invocation in Strict Mode)
+    if (questionId) {
+      void questionService.delete(questionId);
+    }
     setConfirmFlagId(null);
     toast('Response removed from your data.', 'success');
   }, []);

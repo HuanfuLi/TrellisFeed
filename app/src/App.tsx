@@ -10,7 +10,9 @@ import { CalendarScreen } from './screens/CalendarScreen';
 import { ReviewScreen } from './screens/ReviewScreen';
 import { PodcastScreen } from './screens/PodcastScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
+import { GraphScreen } from './screens/GraphScreen';
 import { mockSettingsService } from './services/mock/settings.mock';
+import { hydrateFromSQLite } from './services/question.service';
 import { applyTheme } from './lib/theme';
 
 function RootLayout() {
@@ -46,6 +48,7 @@ const router = createBrowserRouter([
       { path: 'home', element: <HomeScreen /> },
       { path: 'ask', element: <AskScreen /> },
       { path: 'ask/:id', element: <QuestionDetailScreen /> },
+      { path: 'graph', element: <GraphScreen /> },
       { path: 'calendar', element: <CalendarScreen /> },
       { path: 'review', element: <ReviewScreen /> },
       { path: 'podcast', element: <PodcastScreen /> },
@@ -55,6 +58,9 @@ const router = createBrowserRouter([
 ]);
 
 export default function App() {
+  // Hydrate questions from SQLite on app start (no-op on web)
+  useEffect(() => { void hydrateFromSQLite(); }, []);
+
   // Keep theme in sync when the OS switches between light/dark while app is open
   useEffect(() => {
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
