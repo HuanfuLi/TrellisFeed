@@ -1,8 +1,9 @@
-import { chatCompletion } from '../providers/llm/index.ts';
+import { chatCompletion, chatStream } from '../providers/llm/index.ts';
 import type { DailyPost, PostNarrativeMode, PostOriginContext, PostSnapshot, Question } from '../types';
 import { today } from '../lib/date.ts';
 import { mockSettingsService } from './mock/settings.mock.ts';
 import { plannerService } from './planner.service.ts';
+import { graphService } from './graph.service.ts';
 
 const STORAGE_KEY = 'echolearn_daily_posts';
 const MAX_POSTS = 4;
@@ -21,10 +22,21 @@ interface DailyKnowledgeContext {
   plannerSignals: PlannerSignals;
 }
 
+export interface ConnectionCardData {
+  sourceId: string;
+  targetId: string;
+  conceptNounA: string;
+  conceptNounB: string;
+  bridgeInsight: string;
+  score: number;
+  connectionPostId?: string;
+}
+
 interface CachedDailyPosts {
   date: string;
   fingerprint: string;
   posts: DailyPost[];
+  connectionCards?: ConnectionCardData[];
 }
 
 function computePlannerFingerprint(): string {
@@ -39,7 +51,7 @@ function computePlannerFingerprint(): string {
   });
 }
 
-const VALID_SOURCE_TYPES = new Set<DailyPost['sourceType']>(['recent', 'related', 'resurfaced', 'starter', 'mixed']);
+const VALID_SOURCE_TYPES = new Set<DailyPost['sourceType']>(['recent', 'related', 'resurfaced', 'starter', 'mixed', 'connection']);
 
 export const STARTER_POSTS: DailyPost[] = [
   makeStarterPost(
@@ -146,6 +158,9 @@ function loadCache(): CachedDailyPosts | null {
       date: parsed.date,
       fingerprint: parsed.fingerprint,
       posts,
+      connectionCards: Array.isArray(parsed.connectionCards)
+        ? (parsed.connectionCards as ConnectionCardData[])
+        : undefined,
     };
   } catch {
     return null;
@@ -304,7 +319,11 @@ export function buildFallbackPosts(questions: Question[], date: string): DailyPo
   return posts.slice(0, MAX_POSTS);
 }
 
-function buildGenerationPrompt(date: string, context: DailyKnowledgeContext): string {
+function buildGenerationPrompt(
+  date: string,
+  context: DailyKnowledgeContext,
+  connectionCandidates: Array<{ source: Question; target: Question; score: number }> = [],
+): string {
   const serializeQuestion = (question: Question) => [
     `id: ${question.id}`,
     `title: ${titleFor(question)}`,
@@ -323,6 +342,20 @@ function buildGenerationPrompt(date: string, context: DailyKnowledgeContext): st
     ].join('\n'),
   );
 
+  const candidateLines = connectionCandidates.map(({ source, target, score }) =>
+    [
+      `sourceId: ${source.id}`,
+      `sourceTitle: ${titleFor(source)}`,
+      `sourceSummary: ${truncate(source.summary || source.answer, 160)}`,
+      `targetId: ${target.id}`,
+      `targetTitle: ${titleFor(target)}`,
+      `targetSummary: ${truncate(target.summary || target.answer, 160)}`,
+      `semanticScore: ${score.toFixed(3)}`,
+    ].join('\n'),
+  );
+
+  const hasConnectionCandidates = candidateLines.length > 0;
+
   return [
     `Create ${Math.min(MAX_POSTS, Math.max(2, context.recent.length + context.related.length))} daily learning posts for ${date}.`,
     'The posts should feel like intriguing short-form educational essays, not flashcards or summaries.',
@@ -330,9 +363,12 @@ function buildGenerationPrompt(date: string, context: DailyKnowledgeContext): st
     'Vary narrative style across posts using these modes: example-first, historical-story, contrast, analogy, false-intuition, mnemonic, mechanism-breakdown.',
     'At least one post should use an example, and if helpful one may use a gentle joke or mnemonic to improve recall.',
     'Every post must include: title, teaserHook, teaserPreview, bodyMarkdown, whyCare, takeaway, quickAskPrompts (3 strings), narrativeMode, contextLabel, sourceType, sourceQuestionIds, keywords.',
+    'sourceType must be exactly one of: "recent", "related", "resurfaced", "mixed". Use "recent" for posts from recent questions, "related" for posts bridging two questions, "resurfaced" for older questions brought back, "mixed" for posts drawing from multiple questions.',
     'Use only sourceQuestionIds that appear in the provided context.',
     'Ground the essay in the supplied knowledge. Do not invent unrelated facts. Keep the writing vivid and readable.',
-    'Return ONLY valid JSON array.',
+    hasConnectionCandidates
+      ? 'Return ONLY valid JSON object: {"posts": [...], "connectionCards": [...]}.'
+      : 'Return ONLY valid JSON array (posts only, no connectionCards needed).',
     '',
     'Recent questions:',
     ...context.recent.map(serializeQuestion),
@@ -351,18 +387,102 @@ function buildGenerationPrompt(date: string, context: DailyKnowledgeContext): st
           ...(context.plannerSignals.curiosityTopics.length > 0 ? [`Curiosity topics: ${context.plannerSignals.curiosityTopics.join(', ')}`] : []),
         ]
       : []),
+    ...(hasConnectionCandidates
+      ? [
+          '',
+          'Connection candidates (semantic pairs to evaluate for connection cards):',
+          'For each pair, produce a connectionCard object with:',
+          '  sourceId, targetId (from above)',
+          '  conceptNounA: 2-4 word noun phrase naming source concept (e.g. "Spaced Repetition", NOT a question)',
+          '  conceptNounB: 2-4 word noun phrase naming target concept',
+          '  bridgeInsight: one compelling hook sentence (≤20 words) articulating the connection, OR null if no meaningful link exists',
+          'Only include pairs where you can write a genuine, interesting bridgeInsight.',
+          ...candidateLines,
+        ]
+      : []),
   ].join('\n');
 }
 
-function parseGeneratedPosts(raw: string, questions: Question[], date: string): DailyPost[] {
-  const match = raw.match(/\[[\s\S]*\]/);
-  if (!match) return [];
-  const parsed = JSON.parse(match[0]) as Array<Record<string, unknown>>;
+function parseConnectionCards(
+  raw: unknown,
+  candidates: Array<{ source: Question; target: Question; score: number }>,
+): ConnectionCardData[] {
+  if (!Array.isArray(raw)) return [];
+  const scoreMap = new Map(candidates.map((c) => {
+    const key = c.source.id < c.target.id ? `${c.source.id}:${c.target.id}` : `${c.target.id}:${c.source.id}`;
+    return [key, c.score];
+  }));
+
+  return (raw as Array<Record<string, unknown>>)
+    .filter((item) =>
+      typeof item.sourceId === 'string' &&
+      typeof item.targetId === 'string' &&
+      typeof item.conceptNounA === 'string' &&
+      typeof item.conceptNounB === 'string' &&
+      typeof item.bridgeInsight === 'string' &&
+      item.bridgeInsight.length > 0,
+    )
+    .map((item) => {
+      const sId = item.sourceId as string;
+      const tId = item.targetId as string;
+      const key = sId < tId ? `${sId}:${tId}` : `${tId}:${sId}`;
+      return {
+        sourceId: sId,
+        targetId: tId,
+        conceptNounA: item.conceptNounA as string,
+        conceptNounB: item.conceptNounB as string,
+        bridgeInsight: item.bridgeInsight as string,
+        score: scoreMap.get(key) ?? 0,
+      };
+    });
+}
+
+interface ParsedGeneration {
+  posts: DailyPost[];
+  connectionCards: ConnectionCardData[];
+}
+
+function parseGeneratedPosts(
+  raw: string,
+  questions: Question[],
+  date: string,
+  candidates: Array<{ source: Question; target: Question; score: number }> = [],
+  indexOffset = 0,
+): ParsedGeneration {
+  // Try object format first: {"posts": [...], "connectionCards": [...]}
+  const objMatch = raw.match(/\{[\s\S]*\}/);
+  if (objMatch) {
+    try {
+      const parsed = JSON.parse(objMatch[0]) as { posts?: unknown; connectionCards?: unknown };
+      if (Array.isArray(parsed.posts)) {
+        return {
+          posts: extractPosts(parsed.posts as Array<Record<string, unknown>>, questions, date, indexOffset),
+          connectionCards: parseConnectionCards(parsed.connectionCards, candidates),
+        };
+      }
+    } catch {
+      // fall through to array parse
+    }
+  }
+
+  // Fall back to plain array format
+  const arrMatch = raw.match(/\[[\s\S]*\]/);
+  if (!arrMatch) return { posts: [], connectionCards: [] };
+  try {
+    const parsed = JSON.parse(arrMatch[0]) as Array<Record<string, unknown>>;
+    return { posts: extractPosts(parsed, questions, date, indexOffset), connectionCards: [] };
+  } catch {
+    return { posts: [], connectionCards: [] };
+  }
+}
+
+function extractPosts(parsed: Array<Record<string, unknown>>, questions: Question[], date: string, indexOffset = 0): DailyPost[] {
   const byId = new Map(questions.map((question) => [question.id, question]));
 
   return parsed
     .slice(0, MAX_POSTS)
     .map((item, index) => {
+      const idIndex = index + indexOffset;
       const sourceQuestionIds = Array.isArray(item.sourceQuestionIds)
         ? item.sourceQuestionIds.filter((value): value is string => typeof value === 'string' && byId.has(value)).slice(0, 4)
         : [];
@@ -374,7 +494,7 @@ function parseGeneratedPosts(raw: string, questions: Question[], date: string): 
       if (!teaserHook || !teaserPreview || !bodyMarkdown || !title) return null;
 
       const post: DailyPost = {
-        id: `post-${date}-${index}-${sourceQuestionIds.join('-') || 'general'}`,
+        id: `post-${date}-${idIndex}-${sourceQuestionIds.join('-') || 'general'}`,
         date,
         title,
         teaser: { hook: teaserHook, preview: teaserPreview },
@@ -386,7 +506,7 @@ function parseGeneratedPosts(raw: string, questions: Question[], date: string): 
           : [],
         narrativeMode: (typeof item.narrativeMode === 'string' ? item.narrativeMode : 'mechanism-breakdown') as PostNarrativeMode,
         contextLabel: typeof item.contextLabel === 'string' ? truncate(item.contextLabel, 90) : 'Daily post',
-        sourceType: (typeof item.sourceType === 'string' ? item.sourceType : 'mixed') as DailyPost['sourceType'],
+        sourceType: (VALID_SOURCE_TYPES.has(item.sourceType as DailyPost['sourceType']) ? item.sourceType : 'mixed') as DailyPost['sourceType'],
         sourceQuestionIds,
         sourceQuestionTitles,
         keywords: Array.isArray(item.keywords)
@@ -400,12 +520,14 @@ function parseGeneratedPosts(raw: string, questions: Question[], date: string): 
     .filter((post): post is DailyPost => post !== null);
 }
 
-async function generateDailyPostsWithLLM(questions: Question[], date: string): Promise<DailyPost[]> {
+async function generateDailyPostsWithLLM(questions: Question[], date: string): Promise<ParsedGeneration> {
   const settings = mockSettingsService.getSync();
-  if (!settings.preferences.aiConsentGiven || !settings.llm.isConfigured) return [];
+  if (!settings.preferences.aiConsentGiven || !settings.llm.isConfigured) return { posts: [], connectionCards: [] };
 
   const context = buildDailyKnowledgeContext(questions.slice(0, CONTEXT_LIMIT));
-  if (context.recent.length === 0 && context.resurfaced.length === 0 && context.related.length === 0) return [];
+  if (context.recent.length === 0 && context.resurfaced.length === 0 && context.related.length === 0) return { posts: [], connectionCards: [] };
+
+  const candidates = graphService.getSemanticCandidates(settings.embeddingDebug.similarityThreshold);
 
   const raw = await chatCompletion(
     [
@@ -418,12 +540,12 @@ async function generateDailyPostsWithLLM(questions: Question[], date: string): P
           'Return only valid JSON.',
         ].join('\n'),
       },
-      { role: 'user', content: buildGenerationPrompt(date, context) },
+      { role: 'user', content: buildGenerationPrompt(date, context, candidates) },
     ],
     settings.llm,
   );
 
-  return parseGeneratedPosts(raw, questions, date);
+  return parseGeneratedPosts(raw, questions, date, candidates);
 }
 
 function toPostSnapshot(post: DailyPost): PostSnapshot {
@@ -453,30 +575,37 @@ export const conceptFeedService = {
     const fingerprint = computeFingerprint(questions);
     const cached = loadCache();
     if (cached?.date === date && cached.fingerprint === fingerprint && cached.posts.length > 0) {
-      return cached.posts;
+      // Return feed posts only (exclude connection posts from main feed)
+      return cached.posts.filter((p) => p.sourceType !== 'connection');
     }
 
-    let newPosts: DailyPost[] = [];
+    let generated: ParsedGeneration = { posts: [], connectionCards: [] };
     try {
-      newPosts = await generateDailyPostsWithLLM(questions, date);
+      generated = await generateDailyPostsWithLLM(questions, date);
     } catch {
-      newPosts = [];
+      generated = { posts: [], connectionCards: [] };
     }
 
+    let newPosts = generated.posts;
     if (newPosts.length === 0) {
       newPosts = buildFallbackPosts(questions, date);
     }
 
-    // Preserve old posts so their IDs remain valid for PostDetailScreen even
-    // after the fingerprint changes (e.g. new question added or new day).
+    // Preserve connection posts (they live behind their own route and must remain
+    // accessible via getPostById). Stale feed posts from previous days are dropped
+    // so the Home feed never bloats with every post ever generated.
     const oldPosts = cached?.posts ?? [];
     const newIds = new Set(newPosts.map((p) => p.id));
-    const preserved = oldPosts.filter((p) => !newIds.has(p.id));
-    // New posts first, then any old posts the user may have already opened.
+    const preserved = oldPosts.filter((p) => !newIds.has(p.id) && p.sourceType === 'connection');
     const allPosts = [...newPosts, ...preserved];
 
-    saveCache({ date, fingerprint, posts: allPosts });
-    return allPosts;
+    saveCache({ date, fingerprint, posts: allPosts, connectionCards: generated.connectionCards });
+    return newPosts;
+  },
+
+  /** Return cached connection card data for the current session. */
+  getConnectionCards(): ConnectionCardData[] {
+    return loadCache()?.connectionCards ?? [];
   },
 
   /**
@@ -491,7 +620,7 @@ export const conceptFeedService = {
   },
 
   getCachedDailyPosts(): DailyPost[] {
-    return loadCache()?.posts ?? [];
+    return (loadCache()?.posts ?? []).filter((p) => p.sourceType !== 'connection');
   },
 
   /** Explicitly clear the post cache (e.g. after "Clear All Data"). */
@@ -536,7 +665,10 @@ export const conceptFeedService = {
             ],
             settings.llm,
           );
-          newPosts = parseGeneratedPosts(raw, questions, date)
+          // Use existingPosts.length as index offset so "more" post IDs never
+          // collide with initial post IDs even when the LLM reuses the same
+          // source question IDs.
+          newPosts = parseGeneratedPosts(raw, questions, date, [], existingPosts.length).posts
             .filter((p) => !existingIds.has(p.id));
         } catch {
           newPosts = [];
@@ -565,10 +697,108 @@ export const conceptFeedService = {
     if (newPosts.length > 0) {
       const allPosts = [...existingPosts, ...newPosts];
       const fingerprint = computeFingerprint(questions);
-      saveCache({ date, fingerprint, posts: allPosts });
+      saveCache({ date, fingerprint, posts: allPosts, connectionCards: cached?.connectionCards });
     }
 
     return newPosts;
+  },
+
+  /**
+   * Stream a comparison essay for two concepts. Yields markdown chunks as they arrive.
+   * Caller is responsible for assembling and caching the final post.
+   */
+  async *generateConnectionPost(
+    questionA: Question,
+    questionB: Question,
+    conceptNounA: string,
+    conceptNounB: string,
+  ): AsyncGenerator<string> {
+    const settings = mockSettingsService.getSync();
+    if (!settings.preferences.aiConsentGiven || !settings.llm.isConfigured) return;
+
+    const system = [
+      'You are a learning-focused educational writer.',
+      'Write a focused comparison essay about two concepts the user has been studying.',
+      'The essay should illuminate similarities, differences, and a practical takeaway.',
+      'Use clear headers (##) and keep total length 220–380 words.',
+      'Write in a vivid, readable style — not a list or flashcard.',
+    ].join('\n');
+
+    const prompt = [
+      `Write a comparison essay about these two concepts: "${conceptNounA}" and "${conceptNounB}".`,
+      '',
+      `Concept A — ${conceptNounA}:`,
+      `${truncate(questionA.summary || questionA.answer, 280)}`,
+      '',
+      `Concept B — ${conceptNounB}:`,
+      `${truncate(questionB.summary || questionB.answer, 280)}`,
+      '',
+      'Structure the essay with:',
+      '## What They Share',
+      '## Where They Differ',
+      '## The Takeaway',
+    ].join('\n');
+
+    yield* chatStream(
+      [{ role: 'system', content: system }, { role: 'user', content: prompt }],
+      settings.llm,
+    );
+  },
+
+  /** Save a completed connection essay as a DailyPost with sourceType: 'connection'. */
+  saveConnectionPost(questionA: Question, questionB: Question, conceptNounA: string, conceptNounB: string, bodyMarkdown: string): DailyPost {
+    const date = today();
+    const postId = `conn-${questionA.id}-${questionB.id}`;
+    const post: DailyPost = {
+      id: postId,
+      date,
+      title: `${conceptNounA} vs ${conceptNounB}`,
+      teaser: {
+        hook: `${conceptNounA} and ${conceptNounB}: what connects them and where they diverge`,
+        preview: `A comparison of two concepts you have been exploring — their shared logic and key differences.`,
+      },
+      bodyMarkdown,
+      whyCare: 'Seeing how two concepts relate and differ deepens understanding of both.',
+      takeaway: `${conceptNounA} and ${conceptNounB} are most useful understood together, not in isolation.`,
+      quickAskPrompts: [
+        `Give me an example where ${conceptNounA} and ${conceptNounB} work together`,
+        `What should I learn after understanding both of these?`,
+        `Which of these two concepts is more important in practice?`,
+      ],
+      narrativeMode: 'contrast',
+      contextLabel: 'Connection essay',
+      sourceType: 'connection',
+      sourceQuestionIds: [questionA.id, questionB.id],
+      sourceQuestionTitles: [titleFor(questionA), titleFor(questionB)],
+      keywords: Array.from(new Set([...questionA.keywords, ...questionB.keywords])).slice(0, 6),
+      generatedAt: Date.now(),
+      origin: 'ai',
+    };
+
+    // Append to cache without affecting feed assembly (connection posts are filtered out of feed)
+    const cached = loadCache();
+    const existing = cached?.posts ?? [];
+    const withoutOld = existing.filter((p) => p.id !== postId);
+    saveCache({
+      date: cached?.date ?? date,
+      fingerprint: cached?.fingerprint ?? '',
+      posts: [...withoutOld, post],
+      connectionCards: cached?.connectionCards,
+    });
+
+    return post;
+  },
+
+  /** Patch a connectionPostId onto a cached connection card after essay generation. */
+  setConnectionPostId(sourceId: string, targetId: string, postId: string): void {
+    const cached = loadCache();
+    if (!cached?.connectionCards) return;
+    const key = (a: string, b: string) => (a < b ? `${a}:${b}` : `${b}:${a}`);
+    const k = key(sourceId, targetId);
+    const updated = cached.connectionCards.map((c) =>
+      key(c.sourceId, c.targetId) === k ? { ...c, connectionPostId: postId } : c,
+    );
+    saveCache({ ...cached, connectionCards: updated });
   },
 
   buildPostOriginContext,

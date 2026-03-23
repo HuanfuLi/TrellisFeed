@@ -5,6 +5,7 @@ import type {
 import { chatCompletion } from '../providers/llm/index.ts';
 import { mockSettingsService } from './mock/settings.mock.ts';
 import { eventBus } from '../lib/event-bus.ts';
+import { dbExecute, dbQuery } from './db.service.ts';
 
 // ── Persistence ────────────────────────────────────────────────────────────
 
@@ -25,6 +26,85 @@ function saveJson<T>(key: string, data: T): void {
   try {
     localStorage.setItem(key, JSON.stringify(data));
   } catch { /* ignore storage errors */ }
+}
+
+// ── SQLite write-through helpers ───────────────────────────────────────────
+// DDL lives in db.service.ts (_runMigrations). These helpers only do DML.
+
+function persistChunkToSQLite(chunk: PlannerChunk): void {
+  void dbExecute('INSERT OR REPLACE INTO planner_chunks (id, data) VALUES (?, ?)', [chunk.id, JSON.stringify(chunk)]);
+}
+
+function deleteChunkFromSQLite(id: string): void {
+  void dbExecute('DELETE FROM planner_chunks WHERE id = ?', [id]);
+}
+
+function persistThreadToSQLite(thread: PlannerThread): void {
+  void dbExecute('INSERT OR REPLACE INTO planner_threads (id, data) VALUES (?, ?)', [thread.id, JSON.stringify(thread)]);
+}
+
+function deleteThreadFromSQLite(id: string): void {
+  void dbExecute('DELETE FROM planner_threads WHERE id = ?', [id]);
+}
+
+function persistCheckInToSQLite(checkIn: LearningCheckIn): void {
+  void dbExecute('INSERT OR REPLACE INTO planner_checkins (id, data) VALUES (?, ?)', [checkIn.id, JSON.stringify(checkIn)]);
+}
+
+let plannerHydrated = false;
+
+/**
+ * On startup, hydrate planner data from SQLite into localStorage.
+ * This ensures Planner data survives WebView localStorage clears on native.
+ */
+export async function hydratePlannerFromSQLite(): Promise<void> {
+  if (plannerHydrated) return;
+  plannerHydrated = true;
+  try {
+    const [chunkRows, threadRows, checkInRows] = await Promise.all([
+      dbQuery<{ id: string; data: string }>('SELECT * FROM planner_chunks'),
+      dbQuery<{ id: string; data: string }>('SELECT * FROM planner_threads'),
+      dbQuery<{ id: string; data: string }>('SELECT * FROM planner_checkins'),
+    ]);
+
+    if (chunkRows.length > 0) {
+      const existing = loadChunks();
+      const existingIds = new Set(existing.map((c) => c.id));
+      const toAdd: PlannerChunk[] = [];
+      for (const row of chunkRows) {
+        if (!existingIds.has(row.id)) {
+          try { toAdd.push(JSON.parse(row.data) as PlannerChunk); } catch { /* skip corrupt */ }
+        }
+      }
+      if (toAdd.length > 0) saveJson(CHUNKS_KEY, [...toAdd, ...existing]);
+    }
+
+    if (threadRows.length > 0) {
+      const existing = loadThreads();
+      const existingIds = new Set(existing.map((t) => t.id));
+      const toAdd: PlannerThread[] = [];
+      for (const row of threadRows) {
+        if (!existingIds.has(row.id)) {
+          try { toAdd.push(JSON.parse(row.data) as PlannerThread); } catch { /* skip corrupt */ }
+        }
+      }
+      if (toAdd.length > 0) saveJson(THREADS_KEY, [...toAdd, ...existing]);
+    }
+
+    if (checkInRows.length > 0) {
+      const existing = loadCheckIns();
+      const existingIds = new Set(existing.map((c) => c.id));
+      const toAdd: LearningCheckIn[] = [];
+      for (const row of checkInRows) {
+        if (!existingIds.has(row.id)) {
+          try { toAdd.push(JSON.parse(row.data) as LearningCheckIn); } catch { /* skip corrupt */ }
+        }
+      }
+      if (toAdd.length > 0) saveJson(CHECKINS_KEY, [...toAdd, ...existing]);
+    }
+  } catch {
+    // SQLite not available (web without Capacitor) — silently skip
+  }
 }
 
 // ── ID helpers ─────────────────────────────────────────────────────────────
@@ -295,6 +375,7 @@ export const plannerService = {
     const chunks = loadChunks();
     chunks.push(newChunk);
     saveChunks(chunks);
+    persistChunkToSQLite(newChunk);
     eventBus.emit({ type: 'PLANNER_UPDATED', payload: { reason: 'chunk' } });
     return newChunk;
   },
@@ -306,6 +387,7 @@ export const plannerService = {
     chunk.status = status;
     chunk.updatedAt = Date.now();
     saveChunks(chunks);
+    persistChunkToSQLite(chunk);
     eventBus.emit({ type: 'PLANNER_UPDATED', payload: { reason: 'chunk' } });
     return { ...chunk };
   },
@@ -316,6 +398,7 @@ export const plannerService = {
     if (idx === -1) return false;
     chunks.splice(idx, 1);
     saveChunks(chunks);
+    deleteChunkFromSQLite(chunkId);
     eventBus.emit({ type: 'PLANNER_UPDATED', payload: { reason: 'chunk' } });
     return true;
   },
@@ -333,6 +416,7 @@ export const plannerService = {
     const threads = loadThreads();
     threads.push(newThread);
     saveThreads(threads);
+    persistThreadToSQLite(newThread);
     eventBus.emit({ type: 'PLANNER_UPDATED', payload: { reason: 'thread' } });
     return newThread;
   },
@@ -344,6 +428,7 @@ export const plannerService = {
     thread.saved = !thread.saved;
     thread.lastActivityAt = Date.now();
     saveThreads(threads);
+    persistThreadToSQLite(thread);
     eventBus.emit({ type: 'PLANNER_UPDATED', payload: { reason: 'thread' } });
     return { ...thread };
   },
@@ -354,6 +439,7 @@ export const plannerService = {
     if (idx === -1) return false;
     threads.splice(idx, 1);
     saveThreads(threads);
+    deleteThreadFromSQLite(threadId);
     eventBus.emit({ type: 'PLANNER_UPDATED', payload: { reason: 'thread' } });
     return true;
   },
@@ -468,6 +554,11 @@ export const plannerService = {
     }
 
     saveThreads(threads);
+    // Write all mutated threads to SQLite
+    for (const id of [...new Set(affectedThreadIds)]) {
+      const t = threads.find((thread) => thread.id === id);
+      if (t) persistThreadToSQLite(t);
+    }
 
     // Persist check-in
     const checkIn: LearningCheckIn = {
@@ -481,6 +572,7 @@ export const plannerService = {
     const checkIns = loadCheckIns();
     checkIns.push(checkIn);
     saveCheckIns(checkIns);
+    persistCheckInToSQLite(checkIn);
     eventBus.emit({ type: 'PLANNER_UPDATED', payload: { reason: 'checkin' } });
 
     return checkIn;

@@ -8,10 +8,15 @@ import type {
   Question,
   StructuralSignalType,
 } from '../types';
+import { cosine } from '../providers/embedding';
 
 const ROOT_FALLBACK = 'Knowledge';
 const BRANCH_FALLBACK = 'General concepts';
 const CLUSTER_FALLBACK = 'Open questions';
+
+// Labels that were stored as fallbacks in early data — treat them as unset
+// so keyword-derived labels are used at display/context time instead.
+const VAGUE_LABELS = new Set([ROOT_FALLBACK, BRANCH_FALLBACK, CLUSTER_FALLBACK]);
 
 function titleFor(question: Question): string {
   return question.title?.trim() || question.content.trim();
@@ -35,9 +40,13 @@ function toKeywords(text: string): string[] {
 function buildFallbackPlacement(question: Question): Pick<KnowledgeNode, 'rootLabel' | 'branchLabel' | 'clusterLabel' | 'nodeSummary' | 'placementReason'> {
   const primary = question.keywords[0] || toKeywords(titleFor(question))[0] || 'learning';
   const secondary = question.keywords[1] || primary;
-  const rootLabel = question.rootLabel?.trim() || ROOT_FALLBACK;
-  const branchLabel = question.branchLabel?.trim() || `${primary.charAt(0).toUpperCase()}${primary.slice(1)} concepts`;
-  const clusterLabel = question.clusterLabel?.trim() || `${secondary.charAt(0).toUpperCase()}${secondary.slice(1)} cluster`;
+  // Treat vague fallback labels stored in early data as unset — derive from keywords instead.
+  const storedRoot = question.rootLabel?.trim();
+  const storedBranch = question.branchLabel?.trim();
+  const storedCluster = question.clusterLabel?.trim();
+  const rootLabel = (storedRoot && !VAGUE_LABELS.has(storedRoot)) ? storedRoot : ROOT_FALLBACK;
+  const branchLabel = (storedBranch && !VAGUE_LABELS.has(storedBranch)) ? storedBranch : `${primary.charAt(0).toUpperCase()}${primary.slice(1)} concepts`;
+  const clusterLabel = (storedCluster && !VAGUE_LABELS.has(storedCluster)) ? storedCluster : `${secondary.charAt(0).toUpperCase()}${secondary.slice(1)} cluster`;
   return {
     rootLabel,
     branchLabel,
@@ -161,10 +170,25 @@ function summarizeGroup(label: string, nodes: KnowledgeNode[], idPrefix: string)
   };
 }
 
-export function buildCandidateContextPack(query: string, questions: Question[], limit = 5): CandidateContextPack {
+export function buildCandidateContextPack(query: string, questions: Question[], limit = 5, queryEmbedding?: number[]): CandidateContextPack {
   const nodes = projectQuestionsToKnowledgeNodes(questions);
+  // Build a fast lookup from question ID → stored embedding vector for cosine re-ranking.
+  const vectorById = new Map<string, number[]>();
+  if (queryEmbedding && queryEmbedding.length > 0) {
+    for (const q of questions) {
+      if (q.embeddingVector && q.embeddingVector.length > 0) vectorById.set(q.id, q.embeddingVector);
+    }
+  }
   const ranked = nodes
-    .map((node) => ({ node, score: candidateScore(query, node) }))
+    .map((node) => {
+      const kwScore = candidateScore(query, node);
+      const nodeVec = vectorById.get(node.id);
+      // Blend 40% keyword + 60% cosine when both vectors are available.
+      const score = nodeVec
+        ? kwScore * 0.4 + cosine(queryEmbedding!, nodeVec) * 0.6
+        : kwScore;
+      return { node, score };
+    })
     .filter(({ score }) => score > 0.03)
     .sort((a, b) => b.score - a.score)
     .slice(0, limit);
@@ -239,12 +263,13 @@ export function decideIngestionOutcome(
 
   const top = pack.candidates[0];
   if (!top) {
+    // No existing nodes — use LLM labels if provided, otherwise fall back
     return {
       outcome: 'new',
-      rootLabel: ROOT_FALLBACK,
-      branchLabel: BRANCH_FALLBACK,
-      clusterLabel: CLUSTER_FALLBACK,
-      placementReason: 'No close existing concept matched this ask.',
+      rootLabel: llmDecision?.rootLabel?.trim() || ROOT_FALLBACK,
+      branchLabel: llmDecision?.branchLabel?.trim() || BRANCH_FALLBACK,
+      clusterLabel: llmDecision?.clusterLabel?.trim() || CLUSTER_FALLBACK,
+      placementReason: llmDecision?.placementReason || 'No close existing concept matched this ask.',
     };
   }
 
@@ -253,9 +278,9 @@ export function decideIngestionOutcome(
     return {
       outcome: 'merge',
       targetNodeId: top.id,
-      rootLabel: top.rootLabel,
-      branchLabel: top.branchLabel,
-      clusterLabel: top.clusterLabel,
+      rootLabel: llmDecision?.rootLabel?.trim() || top.rootLabel,
+      branchLabel: llmDecision?.branchLabel?.trim() || top.branchLabel,
+      clusterLabel: llmDecision?.clusterLabel?.trim() || top.clusterLabel,
       placementReason: `Merged into ${top.title} because the ask strongly overlaps with that concept.`,
     };
   }
@@ -264,19 +289,20 @@ export function decideIngestionOutcome(
     return {
       outcome: 'refine',
       targetNodeId: top.id,
-      rootLabel: top.rootLabel,
-      branchLabel: top.branchLabel,
-      clusterLabel: top.clusterLabel,
+      rootLabel: llmDecision?.rootLabel?.trim() || top.rootLabel,
+      branchLabel: llmDecision?.branchLabel?.trim() || top.branchLabel,
+      clusterLabel: llmDecision?.clusterLabel?.trim() || top.clusterLabel,
       placementReason: `Placed under ${top.title} as a more specific follow-up to an existing concept.`,
     };
   }
 
+  // New concept, not close enough to any candidate — prefer LLM labels over inheriting vague fallbacks
   return {
     outcome: 'new',
-    rootLabel: top.rootLabel || ROOT_FALLBACK,
-    branchLabel: top.branchLabel || BRANCH_FALLBACK,
-    clusterLabel: top.clusterLabel || CLUSTER_FALLBACK,
-    placementReason: `Created as a new concept near ${top.branchLabel || top.title}, but distinct from current candidates.`,
+    rootLabel: llmDecision?.rootLabel?.trim() || top.rootLabel || ROOT_FALLBACK,
+    branchLabel: llmDecision?.branchLabel?.trim() || top.branchLabel || BRANCH_FALLBACK,
+    clusterLabel: llmDecision?.clusterLabel?.trim() || top.clusterLabel || CLUSTER_FALLBACK,
+    placementReason: llmDecision?.placementReason || `Created as a new concept near ${top.branchLabel || top.title}, but distinct from current candidates.`,
   };
 }
 

@@ -214,14 +214,44 @@ export const flashcardService = {
       const parsed = JSON.parse(match[0]) as { front: string; back: string }[];
       if (!Array.isArray(parsed) || parsed.length === 0) return [];
 
-      const cards: FlashCard[] = parsed.map((item) => ({
-        id: newId(),
-        sessionId: session.id,
-        front: String(item.front ?? '').slice(0, 120),
-        back: String(item.back ?? '').slice(0, 200),
-        createdAt: Date.now(),
-        reviewSchedule: defaultSchedule(),
-      }));
+      const allQuestions = questionService.getAll();
+
+      const cards: FlashCard[] = parsed.map((item) => {
+        const front = String(item.front ?? '').slice(0, 120);
+        const back = String(item.back ?? '').slice(0, 200);
+
+        // Find a matching question to inherit hierarchy labels (nodeId, rootLabel, etc.)
+        // so the Review Map can place this card in the knowledge tree.
+        const cardText = `${front} ${back}`.toLowerCase();
+        const cardWords = new Set(cardText.split(/\W+/).filter((w) => w.length > 3));
+        let bestMatch: typeof allQuestions[number] | undefined;
+        let bestOverlap = 0;
+        for (const q of allQuestions) {
+          const overlap = q.keywords.filter((k) => cardWords.has(k.toLowerCase())).length;
+          if (overlap > bestOverlap) {
+            bestOverlap = overlap;
+            bestMatch = q;
+          }
+        }
+
+        return {
+          id: newId(),
+          sessionId: session.id,
+          front,
+          back,
+          createdAt: Date.now(),
+          reviewSchedule: defaultSchedule(),
+          ...(bestMatch && bestOverlap > 0
+            ? {
+                nodeId: bestMatch.id,
+                nodeTitle: bestMatch.title,
+                rootLabel: bestMatch.rootLabel,
+                branchLabel: bestMatch.branchLabel,
+                clusterLabel: bestMatch.clusterLabel,
+              }
+            : {}),
+        };
+      });
 
       this.save(cards);
       eventBus.emit({ type: 'FLASHCARDS_CREATED', payload: { sessionId: session.id, count: cards.length } });

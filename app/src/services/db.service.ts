@@ -41,6 +41,18 @@ class SQLiteBackend implements DBBackend {
         edge_key TEXT PRIMARY KEY,
         weight INTEGER NOT NULL DEFAULT 0
       )`,
+      `CREATE TABLE IF NOT EXISTS planner_chunks (
+        id TEXT PRIMARY KEY,
+        data TEXT NOT NULL
+      )`,
+      `CREATE TABLE IF NOT EXISTS planner_threads (
+        id TEXT PRIMARY KEY,
+        data TEXT NOT NULL
+      )`,
+      `CREATE TABLE IF NOT EXISTS planner_checkins (
+        id TEXT PRIMARY KEY,
+        data TEXT NOT NULL
+      )`,
     ];
     for (const sql of ddl) {
       await this.execute(sql);
@@ -188,6 +200,9 @@ export async function clearAllTables(): Promise<void> {
   try {
     await dbExecute('DELETE FROM questions');
     await dbExecute('DELETE FROM edge_weights');
+    await dbExecute('DELETE FROM planner_chunks');
+    await dbExecute('DELETE FROM planner_threads');
+    await dbExecute('DELETE FROM planner_checkins');
   } catch {
     // DB may not be available (e.g. tables not yet created) — silently ignore
   }

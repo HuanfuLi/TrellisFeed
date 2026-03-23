@@ -1,10 +1,19 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import type { BlindboxItem, DailyPost, Question } from '../types';
 
 export type InfoFlowItem =
   | { kind: 'concept'; post: DailyPost }
-  | { kind: 'connection'; questionA: Question; questionB: Question }
+  | {
+      kind: 'connection';
+      questionA: Question;
+      questionB: Question;
+      conceptNounA: string;
+      conceptNounB: string;
+      bridgeInsight: string;
+      cosineSimilarity: number;
+      connectionPostId?: string;
+    }
   | { kind: 'milestone'; item: BlindboxItem };
 
 const CONCEPT_BADGE_META: Record<DailyPost['sourceType'], { label: string; color: string }> = {
@@ -159,47 +168,38 @@ function pickConnectionColors(idA: string, idB: string) {
 }
 
 interface ConnectionCardProps {
+  conceptNounA: string;
+  conceptNounB: string;
+  bridgeInsight: string;
+  cosineSimilarity: number;
+  showScore: boolean;
   questionA: Question;
   questionB: Question;
-  onAha: (idA: string, idB: string) => void;
+  onOpenConnection: (idA: string, idB: string) => void;
 }
 
-function ConnectionCard({ questionA, questionB, onAha }: ConnectionCardProps) {
-  const [ahaBurst, setAhaBurst] = useState(false);
-  const [ahaCount, setAhaCount] = useState(0);
-  const lastTapRef = useRef(0);
-
-  const handleTap = useCallback(() => {
-    const now = Date.now();
-    if (now - lastTapRef.current < 350) {
-      if (!ahaBurst) {
-        setAhaBurst(true);
-        setAhaCount((count) => count + 1);
-        onAha(questionA.id, questionB.id);
-        setTimeout(() => setAhaBurst(false), 2000);
-      }
-    }
-    lastTapRef.current = now;
-  }, [ahaBurst, onAha, questionA.id, questionB.id]);
-
-  const sharedKeywords = questionA.keywords.filter((keyword) => questionB.keywords.includes(keyword));
+function ConnectionCard({ conceptNounA, conceptNounB, bridgeInsight, cosineSimilarity, showScore, questionA, questionB, onOpenConnection }: ConnectionCardProps) {
   const colors = pickConnectionColors(questionA.id, questionB.id);
 
   return (
-    <div
-      onClick={handleTap}
+    <button
+      onClick={() => onOpenConnection(questionA.id, questionB.id)}
       style={{
         height: '100%',
+        width: '100%',
         display: 'flex',
         flexDirection: 'column',
         padding: '24px 20px',
         boxSizing: 'border-box',
         cursor: 'pointer',
         userSelect: 'none',
-        position: 'relative',
+        background: 'none',
+        border: 'none',
+        textAlign: 'left',
       }}
     >
-      <div style={{ marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+      {/* Header row */}
+      <div style={{ marginBottom: '18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
         <span
           style={{
             fontSize: '0.68rem',
@@ -214,109 +214,70 @@ function ConnectionCard({ questionA, questionB, onAha }: ConnectionCardProps) {
         >
           Connect
         </span>
-        <span style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>Double-tap to keep this spark</span>
-        {ahaCount > 0 && (
-          <span
-            style={{
-              fontSize: '0.7rem',
-              fontWeight: 700,
-              color: 'var(--primary-40)',
-              animation: 'fade-in 0.2s ease',
-            }}
-          >
-            ×{ahaCount}
-          </span>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {showScore && (
+            <span style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)', fontVariantNumeric: 'tabular-nums' }}>
+              {cosineSimilarity.toFixed(2)}
+            </span>
+          )}
+          <span style={{ fontSize: '0.75rem', color: 'var(--primary-40)', fontWeight: 600 }}>Read essay →</span>
+        </div>
       </div>
 
-      {ahaBurst && (
+      {/* Bridge insight — primary hook */}
+      <p
+        style={{
+          fontSize: '1.2rem',
+          fontWeight: 700,
+          lineHeight: 1.35,
+          color: 'var(--foreground)',
+          marginBottom: '20px',
+          textWrap: 'balance',
+        }}
+      >
+        {bridgeInsight}
+      </p>
+
+      {/* Concept noun blocks */}
+      <div style={{ display: 'flex', gap: '10px', flex: 1 }}>
         <div
           style={{
-            position: 'absolute',
-            inset: 0,
+            flex: 1,
+            padding: '16px',
+            borderRadius: 'var(--radius-xl)',
+            backgroundColor: colors.a.bg,
             display: 'flex',
-            alignItems: 'center',
+            flexDirection: 'column',
             justifyContent: 'center',
-            pointerEvents: 'none',
-            zIndex: 20,
-            animation: 'aha-pop 2s ease forwards',
           }}
         >
-          <div style={{ animation: 'glow-ring 2s ease forwards' }}>
-            <span style={{ fontSize: '3.5rem', filter: 'drop-shadow(0 0 16px rgba(76,175,80,0.8))' }}>🧠</span>
-          </div>
+          <p style={{ fontSize: '0.6rem', fontWeight: 700, color: 'rgba(255,255,255,0.7)', marginBottom: '6px', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+            Concept
+          </p>
+          <p style={{ fontSize: '1rem', fontWeight: 800, color: '#ffffff', lineHeight: 1.25 }}>
+            {conceptNounA}
+          </p>
         </div>
-      )}
-
-      <div
-        style={{
-          flex: 1,
-          padding: '20px',
-          borderRadius: 'var(--radius-xl)',
-          backgroundColor: colors.a.bg,
-          marginBottom: '10px',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          boxShadow: ahaBurst ? `0 0 24px 6px ${colors.a.glow}` : 'none',
-          transition: 'box-shadow 0.4s',
-        }}
-      >
-        <p style={{ fontSize: '0.65rem', fontWeight: 700, color: 'rgba(255,255,255,0.8)', marginBottom: '6px', letterSpacing: '0.08em' }}>
-          CONCEPT A
-        </p>
-        <p style={{ fontSize: '1rem', fontWeight: 700, color: '#ffffff', lineHeight: 1.4 }}>
-          {questionA.title ?? questionA.content}
-        </p>
-      </div>
-
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '0 24px 10px', color: 'var(--muted-foreground)', fontSize: '0.8rem' }}>
-        <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
-        <span>opens into</span>
-        <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
-      </div>
-
-      <div
-        style={{
-          flex: 1,
-          padding: '20px',
-          borderRadius: 'var(--radius-xl)',
-          backgroundColor: colors.b.bg,
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          boxShadow: ahaBurst ? `0 0 24px 6px ${colors.b.glow}` : 'none',
-          transition: 'box-shadow 0.4s',
-        }}
-      >
-        <p style={{ fontSize: '0.65rem', fontWeight: 700, color: 'rgba(255,255,255,0.8)', marginBottom: '6px', letterSpacing: '0.08em' }}>
-          CONCEPT B
-        </p>
-        <p style={{ fontSize: '1rem', fontWeight: 700, color: '#ffffff', lineHeight: 1.4 }}>
-          {questionB.title ?? questionB.content}
-        </p>
-      </div>
-
-      {sharedKeywords.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '12px' }}>
-          {sharedKeywords.map((keyword) => (
-            <span
-              key={keyword}
-              style={{
-                fontSize: '0.7rem',
-                padding: '2px 10px',
-                borderRadius: '100px',
-                background: 'var(--surface-variant)',
-                color: 'var(--muted-foreground)',
-                border: '1px solid var(--border)',
-              }}
-            >
-              {keyword}
-            </span>
-          ))}
+        <div
+          style={{
+            flex: 1,
+            padding: '16px',
+            borderRadius: 'var(--radius-xl)',
+            backgroundColor: colors.b.bg,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+          }}
+        >
+          <p style={{ fontSize: '0.6rem', fontWeight: 700, color: 'rgba(255,255,255,0.7)', marginBottom: '6px', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+            Concept
+          </p>
+          <p style={{ fontSize: '1rem', fontWeight: 800, color: '#ffffff', lineHeight: 1.25 }}>
+            {conceptNounB}
+          </p>
         </div>
-      )}
-    </div>
+      </div>
+    </button>
   );
 }
 
@@ -360,12 +321,12 @@ function MilestoneCard({ item, isActive }: { item: BlindboxItem; isActive: boole
 
 interface ImmersiveInfoFlowProps {
   items: InfoFlowItem[];
-  onAhaConnection: (idA: string, idB: string) => void;
+  onOpenConnection: (idA: string, idB: string) => void;
   onClose: () => void;
   onOpenPost: (postId: string, post: DailyPost) => void;
 }
 
-export function ImmersiveInfoFlow({ items, onAhaConnection, onClose, onOpenPost }: ImmersiveInfoFlowProps) {
+export function ImmersiveInfoFlow({ items, onOpenConnection, onClose, onOpenPost }: ImmersiveInfoFlowProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -519,7 +480,16 @@ export function ImmersiveInfoFlow({ items, onAhaConnection, onClose, onOpenPost 
               {item.kind === 'concept' ? (
                 <ConceptCard post={item.post} isActive={index === activeIndex} onOpen={onOpenPost} />
               ) : item.kind === 'connection' ? (
-                <ConnectionCard questionA={item.questionA} questionB={item.questionB} onAha={onAhaConnection} />
+                <ConnectionCard
+                  questionA={item.questionA}
+                  questionB={item.questionB}
+                  conceptNounA={item.conceptNounA}
+                  conceptNounB={item.conceptNounB}
+                  bridgeInsight={item.bridgeInsight}
+                  cosineSimilarity={item.cosineSimilarity}
+                  showScore={false}
+                  onOpenConnection={onOpenConnection}
+                />
               ) : (
                 <MilestoneCard item={item.item} isActive={index === activeIndex} />
               )}
@@ -539,13 +509,14 @@ export function ImmersiveInfoFlow({ items, onAhaConnection, onClose, onOpenPost 
 
 interface InlineInfoFlowProps {
   items: InfoFlowItem[];
-  onAhaConnection: (idA: string, idB: string) => void;
+  onOpenConnection: (idA: string, idB: string) => void;
+  showConnectionScores?: boolean;
   onOpenPost: (postId: string, post: DailyPost) => void;
   onLoadMore?: () => void;
   isLoadingMore?: boolean;
 }
 
-export function InlineInfoFlow({ items, onAhaConnection, onOpenPost, onLoadMore, isLoadingMore }: InlineInfoFlowProps) {
+export function InlineInfoFlow({ items, onOpenConnection, showConnectionScores = false, onOpenPost, onLoadMore, isLoadingMore }: InlineInfoFlowProps) {
   const conceptCount = items.filter((item) => item.kind === 'concept').length;
   const connectionCount = items.filter((item) => item.kind === 'connection').length;
 
@@ -617,7 +588,16 @@ export function InlineInfoFlow({ items, onAhaConnection, onOpenPost, onLoadMore,
               {item.kind === 'concept' ? (
                 <ConceptCard post={item.post} isActive={true} onOpen={onOpenPost} />
               ) : item.kind === 'connection' ? (
-                <ConnectionCard questionA={item.questionA} questionB={item.questionB} onAha={onAhaConnection} />
+                <ConnectionCard
+                  questionA={item.questionA}
+                  questionB={item.questionB}
+                  conceptNounA={item.conceptNounA}
+                  conceptNounB={item.conceptNounB}
+                  bridgeInsight={item.bridgeInsight}
+                  cosineSimilarity={item.cosineSimilarity}
+                  showScore={showConnectionScores}
+                  onOpenConnection={onOpenConnection}
+                />
               ) : (
                 <MilestoneCard item={item.item} isActive={true} />
               )}

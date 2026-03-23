@@ -1,6 +1,7 @@
 import type { Question, ServiceResult } from '../types';
 import { questionService } from './question.service';
 import { dbExecute, dbQuery } from './db.service';
+import { cosine } from '../providers/embedding';
 
 // ─── Similarity helpers ───────────────────────────────────────────────────────
 
@@ -121,6 +122,58 @@ export const graphService = {
     return questionService.getAll().filter((q) =>
       parentId === null ? !q.parentId : q.parentId === parentId,
     );
+  },
+
+  /**
+   * Return up to 6 question pairs ranked by cosine similarity when both questions
+   * have embedding vectors. Falls back to keyword-Jaccard related pairs when
+   * vectors are absent. Result is capped at 6 and sorted by score descending.
+   */
+  getSemanticCandidates(threshold: number): Array<{ source: Question; target: Question; score: number }> {
+    const all = questionService.getAll();
+    const withVectors = all.filter((q) => q.embeddingVector && q.embeddingVector.length > 0);
+
+    // If we have enough questions with vectors, use cosine similarity
+    if (withVectors.length >= 2) {
+      const candidates: Array<{ source: Question; target: Question; score: number }> = [];
+      const seen = new Set<string>();
+      for (let i = 0; i < withVectors.length; i++) {
+        for (let j = i + 1; j < withVectors.length; j++) {
+          const a = withVectors[i];
+          const b = withVectors[j];
+          const key = a.id < b.id ? `${a.id}:${b.id}` : `${b.id}:${a.id}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          const score = cosine(a.embeddingVector!, b.embeddingVector!);
+          if (score >= threshold) {
+            candidates.push({ source: a, target: b, score });
+          }
+        }
+      }
+      // Only return cosine results if any pairs exceeded the threshold;
+      // otherwise fall through to keyword Jaccard so the feed always has candidates.
+      if (candidates.length > 0) {
+        return candidates.sort((a, b) => b.score - a.score).slice(0, 6);
+      }
+    }
+
+    // Fallback: use keyword-Jaccard related pairs from existing relatedQuestionIds
+    const byId = new Map(all.map((q) => [q.id, q]));
+    const fallback: Array<{ source: Question; target: Question; score: number }> = [];
+    const seen = new Set<string>();
+    for (const source of all.slice(0, 8)) {
+      for (const targetId of source.relatedQuestionIds.slice(0, 2)) {
+        const target = byId.get(targetId);
+        if (!target) continue;
+        const key = source.id < target.id ? `${source.id}:${target.id}` : `${target.id}:${source.id}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        fallback.push({ source, target, score: keywordSimilarity(source, target) });
+        if (fallback.length >= 6) break;
+      }
+      if (fallback.length >= 6) break;
+    }
+    return fallback.sort((a, b) => b.score - a.score);
   },
 
   /** Move a node to a new parent in the hierarchy. Pass `null` to make it a root node. */

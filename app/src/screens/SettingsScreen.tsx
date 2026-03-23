@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { Brain, Volume2, Network, Radio, BookOpen, Palette, RotateCcw, CheckCircle, XCircle, Shield, Calendar, Download, Upload, Trash2 } from 'lucide-react';
+import { Brain, Volume2, Network, Radio, BookOpen, Palette, RotateCcw, CheckCircle, XCircle, Shield, Calendar, Download, Upload, Trash2, Sparkles } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { mockSettingsService } from '../services/mock/settings.mock';
 import { testLLMConnection } from '../providers/llm';
 import { testTTSConnection } from '../providers/tts';
-import type { LLMConfig, TTSConfig, AppSettings } from '../types';
+import type { LLMConfig, TTSConfig, EmbeddingConfig, EmbeddingDebugConfig, AppSettings } from '../types';
 import { toast } from '../lib/toast';
 import { applyTheme } from '../lib/theme';
 import { clearAllTables } from '../services/db.service';
@@ -114,6 +114,8 @@ export function SettingsScreen() {
 
   const [llm, setLlm] = useState<LLMConfig>(() => mockSettingsService.getSync().llm);
   const [tts, setTts] = useState<TTSConfig>(() => mockSettingsService.getSync().tts);
+  const [embedding, setEmbedding] = useState<EmbeddingConfig>(() => mockSettingsService.getSync().embedding);
+  const [embeddingDebug, setEmbeddingDebug] = useState<EmbeddingDebugConfig>(() => mockSettingsService.getSync().embeddingDebug);
   const [ztNetworkId, setZtNetworkId] = useState(() => mockSettingsService.getSync().zerotier.networkId ?? '');
   const [podcastSleepTime, setPodcastSleepTime] = useState(() => mockSettingsService.getSync().podcast.sleepTime);
   const [podcastAdvance, setPodcastAdvance] = useState(() => String(mockSettingsService.getSync().podcast.advanceMinutes));
@@ -138,6 +140,17 @@ export function SettingsScreen() {
   // to the LLM key when both provider is OpenAI (they share the same credentials).
   const effectiveTtsApiKey = tts.apiKey || (tts.provider === 'openai' ? (llm.apiKey ?? '') : '');
 
+  const saveEmbedding = (current: EmbeddingConfig = embedding) => {
+    const isConfigured =
+      current.provider === 'local' ? !!current.baseUrl :
+        !!current.apiKey;
+    mockSettingsService.set('embedding', { ...current, isConfigured });
+  };
+
+  const saveEmbeddingDebug = (current: EmbeddingDebugConfig = embeddingDebug) => {
+    mockSettingsService.set('embeddingDebug', current);
+  };
+
   const saveTts = (current: TTSConfig = tts) => {
     const fallbackKey = current.provider === 'openai' ? (llm.apiKey ?? '') : '';
     const effectiveKey = current.apiKey || fallbackKey;
@@ -159,6 +172,32 @@ export function SettingsScreen() {
       llm: result.ok ? `✓ ${result.latencyMs}ms` : `✗ ${result.error ?? 'Failed'}`,
     }));
     setTimeout(() => setTestResult((prev) => ({ ...prev, llm: null })), 5000);
+  };
+
+  const handleTestEmbedding = async () => {
+    setIsTesting((prev) => ({ ...prev, embedding: true }));
+    setTestResult((prev) => ({ ...prev, embedding: null }));
+    const config: EmbeddingConfig = {
+      ...embedding,
+      isConfigured: embedding.provider === 'local' ? !!embedding.baseUrl : !!embedding.apiKey,
+    };
+    const start = Date.now();
+    try {
+      const vec = await import('../providers/embedding').then((m) => m.embedText('test', config));
+      const latencyMs = Date.now() - start;
+      setTestResult((prev) => ({
+        ...prev,
+        embedding: Array.isArray(vec) && vec.length > 0 ? `✓ ${latencyMs}ms (${vec.length}d)` : '✗ Empty vector returned',
+      }));
+    } catch (err) {
+      setTestResult((prev) => ({
+        ...prev,
+        embedding: `✗ ${err instanceof Error ? err.message : 'Failed'}`,
+      }));
+    } finally {
+      setIsTesting((prev) => ({ ...prev, embedding: false }));
+      setTimeout(() => setTestResult((prev) => ({ ...prev, embedding: null })), 5000);
+    }
   };
 
   const handleTestTTS = async () => {
@@ -219,6 +258,8 @@ export function SettingsScreen() {
       const s = mockSettingsService.getSync();
       setLlm(s.llm);
       setTts(s.tts);
+      setEmbedding(s.embedding);
+      setEmbeddingDebug(s.embeddingDebug);
       setZtNetworkId(s.zerotier.networkId ?? '');
       setPodcastSleepTime(s.podcast.sleepTime);
       setPodcastAdvance(String(s.podcast.advanceMinutes));
@@ -307,7 +348,7 @@ export function SettingsScreen() {
           />
         </SettingRow>
         <div style={{ display: 'flex', gap: '8px', paddingTop: '12px', alignItems: 'center' }}>
-          <Button size="sm" onClick={() => saveLlm()} variant="secondary">Save</Button>
+          <Button size="sm" onClick={() => { saveLlm(); toast('LLM settings saved.', 'success'); }} variant="secondary">Save</Button>
           <Button
             size="sm"
             variant="outline"
@@ -330,6 +371,141 @@ export function SettingsScreen() {
               {testResult['llm']}
             </span>
           )}
+        </div>
+      </Card>
+
+      {/* Embedding Model Section */}
+      <SectionHeader icon={<Sparkles size={20} />} title="Embedding Model" />
+      <Card style={{ marginBottom: '8px' }}>
+        <p style={{ fontSize: '0.8rem', color: 'var(--muted-foreground)', marginBottom: '12px', lineHeight: 1.5 }}>
+          Used for semantic similarity between concepts. Powers connection card quality.
+          Separate from the LLM — Anthropic has no embedding model.
+        </p>
+        <SettingRow label="Provider">
+          <SelectInput
+            value={embedding.provider}
+            onChange={(v) => {
+              const p = v as EmbeddingConfig['provider'];
+              const defaults: Record<string, Partial<EmbeddingConfig>> = {
+                openai: { model: 'text-embedding-3-small', baseUrl: '', apiKey: '' },
+                google: { model: 'text-embedding-004', baseUrl: '', apiKey: '' },
+                local:  { model: 'nomic-embed-text', baseUrl: 'http://localhost:11434', apiKey: '' },
+              };
+              const next = { ...embedding, provider: p, ...defaults[p] } as EmbeddingConfig;
+              setEmbedding(next);
+              saveEmbedding(next);
+            }}
+            options={[
+              { value: 'openai', label: 'OpenAI' },
+              { value: 'google', label: 'Google' },
+              { value: 'local',  label: 'Local (Ollama / LM Studio)' },
+            ]}
+          />
+        </SettingRow>
+        {embedding.provider !== 'local' && (
+          <SettingRow label="API Key">
+            <TextInput
+              type="password"
+              value={embedding.apiKey ?? ''}
+              onChange={(v) => setEmbedding((prev) => ({ ...prev, apiKey: v }))}
+              onBlur={() => saveEmbedding()}
+              placeholder={embedding.provider === 'google' ? 'AIza...' : 'sk-...'}
+            />
+          </SettingRow>
+        )}
+        {embedding.provider === 'local' && (
+          <SettingRow label="Base URL" description="Ollama or LM Studio server URL">
+            <TextInput
+              value={embedding.baseUrl ?? ''}
+              onChange={(v) => setEmbedding((prev) => ({ ...prev, baseUrl: v }))}
+              onBlur={() => saveEmbedding()}
+              placeholder="http://localhost:11434"
+            />
+          </SettingRow>
+        )}
+        <SettingRow label="Model ID">
+          <TextInput
+            value={embedding.model}
+            onChange={(v) => setEmbedding((prev) => ({ ...prev, model: v }))}
+            onBlur={() => saveEmbedding()}
+            placeholder={
+              embedding.provider === 'google' ? 'text-embedding-004' :
+                embedding.provider === 'local' ? 'nomic-embed-text' :
+                  'text-embedding-3-small'
+            }
+          />
+        </SettingRow>
+        <SettingRow label="Dimensions" description="Optional: reduce output size (OpenAI only)">
+          <TextInput
+            value={String(embedding.dimensions ?? '')}
+            onChange={(v) => setEmbedding((prev) => ({ ...prev, dimensions: v ? parseInt(v) || undefined : undefined }))}
+            onBlur={() => saveEmbedding()}
+            placeholder="256"
+          />
+        </SettingRow>
+        <div style={{ display: 'flex', gap: '8px', paddingTop: '12px', alignItems: 'center' }}>
+          <Button size="sm" variant="secondary" onClick={() => { saveEmbedding(); toast('Embedding settings saved.', 'success'); }}>Save</Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleTestEmbedding}
+            loading={isTesting['embedding']}
+          >
+            Test Connection
+          </Button>
+          {testResult['embedding'] && (
+            <span style={{
+              fontSize: '0.8rem',
+              color: testResult['embedding'].startsWith('✓') ? 'var(--primary-40)' : '#E53935',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+            }}>
+              {testResult['embedding'].startsWith('✓')
+                ? <CheckCircle size={16} />
+                : <XCircle size={16} />}
+              {testResult['embedding']}
+            </span>
+          )}
+        </div>
+
+        {/* Developer debug subsection */}
+        <div style={{
+          marginTop: '20px',
+          paddingTop: '16px',
+          borderTop: '1px solid var(--border)',
+        }}>
+          <p style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--muted-foreground)', marginBottom: '12px' }}>
+            Debug
+          </p>
+          <SettingRow
+            label="Similarity Threshold"
+            description={`${embeddingDebug.similarityThreshold.toFixed(2)} — minimum cosine score for connection cards`}
+          >
+            <input
+              type="range"
+              min={0.40}
+              max={0.95}
+              step={0.05}
+              value={embeddingDebug.similarityThreshold}
+              onChange={(e) => {
+                const next = { ...embeddingDebug, similarityThreshold: parseFloat(e.target.value) };
+                setEmbeddingDebug(next);
+                saveEmbeddingDebug(next);
+              }}
+              style={{ width: '120px', accentColor: 'var(--primary-40)', cursor: 'pointer' }}
+            />
+          </SettingRow>
+          <SettingRow label="Show Similarity Scores" description="Display cosine score on connection cards">
+            <MaterialSwitch
+              checked={embeddingDebug.showScores}
+              onChange={() => {
+                const next = { ...embeddingDebug, showScores: !embeddingDebug.showScores };
+                setEmbeddingDebug(next);
+                saveEmbeddingDebug(next);
+              }}
+            />
+          </SettingRow>
         </div>
       </Card>
 
@@ -397,7 +573,7 @@ export function SettingsScreen() {
           />
         </SettingRow>
         <div style={{ display: 'flex', gap: '8px', paddingTop: '12px', alignItems: 'center' }}>
-          <Button size="sm" onClick={() => saveTts()} variant="secondary">Save</Button>
+          <Button size="sm" onClick={() => { saveTts(); toast('TTS settings saved.', 'success'); }} variant="secondary">Save</Button>
           <Button
             size="sm"
             variant="outline"
@@ -443,6 +619,7 @@ export function SettingsScreen() {
                 size="sm"
                 onClick={async () => {
                   await mockSettingsService.set('zerotier', { networkId: ztNetworkId, isConnected: false });
+                  toast('ZeroTier settings saved.', 'success');
                 }}
                 variant="secondary"
               >
@@ -475,6 +652,7 @@ export function SettingsScreen() {
                 advanceMinutes: parseInt(podcastAdvance) || 60,
                 autoGenerate: mockSettingsService.getSync().podcast.autoGenerate,
               });
+              toast('Podcast settings saved.', 'success');
             }}
           >
             Save
@@ -509,6 +687,7 @@ export function SettingsScreen() {
                 notificationsEnabled: reviewNotif,
                 reminderTime: reviewReminderTime,
               });
+              toast('Review settings saved.', 'success');
             }}
           >
             Save

@@ -4,14 +4,13 @@ import { BookOpen, CheckSquare, Headphones, Mic, Loader2 } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { InlineInfoFlow, type InfoFlowItem } from '../components/InfoFlow';
-import type { BlindboxItem, DailyPost } from '../types';
+import type { BlindboxItem, DailyPost, Question } from '../types';
 import { useQuestions } from '../state/useQuestions';
 import { useReview } from '../state/useReview';
 import { usePodcast } from '../state/usePodcast';
 import { plannerService } from '../services/planner.service';
 import { mockSettingsService } from '../services/mock/settings.mock';
 import { conceptFeedService } from '../services/concept-feed.service';
-import { graphService } from '../services/graph.service';
 import { transcribeAudio } from '../providers/stt';
 import { eventBus } from '../lib/event-bus';
 import { today, getGreeting, formatDateLabel } from '../lib/date';
@@ -60,10 +59,15 @@ export function HomeScreen() {
     });
     refreshPlannerSummary();
 
-    const unsubPlanner = eventBus.subscribe('PLANNER_UPDATED', () => {
+    const unsubPlanner = eventBus.subscribe('PLANNER_UPDATED', (event) => {
       refreshPlannerSummary();
-      conceptFeedService.clearCache();
-      refreshFeed();
+      // Only invalidate the feed for thread/checkin changes — those meaningfully
+      // affect the planner fingerprint used in feed generation. Chunk status
+      // toggles (e.g. checking off an item) do not warrant a full LLM re-fetch.
+      if (event.payload.reason !== 'chunk') {
+        conceptFeedService.clearCache();
+        refreshFeed();
+      }
     });
 
     return () => {
@@ -89,41 +93,62 @@ export function HomeScreen() {
     }
   };
 
-  // Build the Home curiosity feed from recent, related, and resurfaced concepts.
+  // Build the Home curiosity feed from daily posts + LLM-generated connection cards.
   const infoFlowItems = useMemo<InfoFlowItem[]>(() => {
     const items: InfoFlowItem[] = [];
-    const connCandidates = questions.filter((q) => q.relatedQuestionIds.length > 0);
-    const added = new Set<string>();
+    const connectionCards = conceptFeedService.getConnectionCards();
+    const byId = new Map<string, Question>(questions.map((q) => [q.id, q]));
+    const addedConns = new Set<string>();
 
     dailyPosts.forEach((post, idx) => {
       items.push({ kind: 'concept', post });
 
       // After every 2nd concept post, inject a connection card if available.
       if ((idx + 1) % 2 === 0) {
-        const base = connCandidates[Math.floor(idx / 2) % connCandidates.length];
-        if (base) {
-          const targetId = base.relatedQuestionIds[0];
-          const target = questions.find((q) => q.id === targetId);
-          const connKey = `${base.id}-${targetId}`;
-          if (target && !added.has(connKey)) {
-            added.add(connKey);
-            items.push({ kind: 'connection', questionA: base, questionB: target });
+        const card = connectionCards[Math.floor(idx / 2) % connectionCards.length];
+        if (card) {
+          const key = card.sourceId < card.targetId
+            ? `${card.sourceId}:${card.targetId}`
+            : `${card.targetId}:${card.sourceId}`;
+          const qA = byId.get(card.sourceId);
+          const qB = byId.get(card.targetId);
+          if (qA && qB && !addedConns.has(key)) {
+            addedConns.add(key);
+            items.push({
+              kind: 'connection',
+              questionA: qA,
+              questionB: qB,
+              conceptNounA: card.conceptNounA,
+              conceptNounB: card.conceptNounB,
+              bridgeInsight: card.bridgeInsight,
+              cosineSimilarity: card.score,
+              connectionPostId: card.connectionPostId,
+            });
           }
         }
       }
     });
 
-    // Also add any connection cards not yet shown
-    for (const q of connCandidates) {
-      for (const relId of q.relatedQuestionIds) {
-        const key = `${q.id}-${relId}`;
-        const rev = `${relId}-${q.id}`;
-        if (!added.has(key) && !added.has(rev)) {
-          const related = questions.find((r) => r.id === relId);
-          if (related) {
-            added.add(key);
-            items.push({ kind: 'connection', questionA: q, questionB: related });
-          }
+    // Inject remaining connection cards not yet shown
+    for (const card of connectionCards) {
+      const key = card.sourceId < card.targetId
+        ? `${card.sourceId}:${card.targetId}`
+        : `${card.targetId}:${card.sourceId}`;
+      if (!addedConns.has(key)) {
+        const qA = byId.get(card.sourceId);
+        const qB = byId.get(card.targetId);
+        if (qA && qB) {
+          addedConns.add(key);
+          items.push({
+            kind: 'connection',
+            questionA: qA,
+            questionB: qB,
+            conceptNounA: card.conceptNounA,
+            conceptNounB: card.conceptNounB,
+            bridgeInsight: card.bridgeInsight,
+            cosineSimilarity: card.score,
+            connectionPostId: card.connectionPostId,
+          });
         }
       }
     }
@@ -142,9 +167,29 @@ export function HomeScreen() {
     return withMilestones;
   }, [dailyPosts, questions]);
 
-  const handleAhaConnection = (idA: string, idB: string) => {
-    void graphService.reinforceEdge(idA, idB);
-    toast('Aha! Connection strengthened.', 'success');
+  const handleOpenConnection = (idA: string, idB: string) => {
+    const cards = conceptFeedService.getConnectionCards();
+    const card = cards.find((c) =>
+      (c.sourceId === idA && c.targetId === idB) || (c.sourceId === idB && c.targetId === idA),
+    );
+    const qA = questions.find((q) => q.id === idA);
+    const qB = questions.find((q) => q.id === idB);
+    if (!qA || !qB) return;
+
+    // Always navigate to PostDetailScreen. If the essay was previously generated its
+    // cached post ID is used; otherwise we navigate to the canonical conn-* ID and let
+    // PostDetailScreen stream the essay using the connectionMeta passed via state.
+    const postId = card?.connectionPostId ?? `conn-${idA}-${idB}`;
+    navigate(`/posts/${postId}`, {
+      state: {
+        connectionMeta: {
+          questionA: qA,
+          questionB: qB,
+          conceptNounA: card?.conceptNounA ?? qA.title ?? qA.content,
+          conceptNounB: card?.conceptNounB ?? qB.title ?? qB.content,
+        },
+      },
+    });
   };
 
   const [activeChunkCount, setActiveChunkCount] = useState(0);
@@ -351,7 +396,8 @@ export function HomeScreen() {
           <div style={{ gridColumn: '1 / -1' }}>
             <InlineInfoFlow
               items={infoFlowItems}
-              onAhaConnection={handleAhaConnection}
+              onOpenConnection={handleOpenConnection}
+              showConnectionScores={mockSettingsService.getSync().embeddingDebug.showScores}
               onOpenPost={(postId, post) => {
                 navigate(`/posts/${postId}`, { state: { post } });
               }}

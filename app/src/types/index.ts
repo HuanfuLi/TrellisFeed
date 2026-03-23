@@ -28,6 +28,7 @@ export interface Question {
   lastReviewedAt?: number;
   pinned?: boolean;
   coCreationSignals?: Partial<Record<StructuralSignalType, number>> & { lastSignalAt?: number };
+  embeddingVector?: number[];
 }
 
 /** A milestone or trivia card injected into the Info Flow every ~5 items. */
@@ -195,10 +196,26 @@ export type PodcastStatus = 'pending' | 'generating' | 'ready' | 'failed';
 export interface AppSettings {
   llm: LLMConfig;
   tts: TTSConfig;
+  embedding: EmbeddingConfig;
+  embeddingDebug: EmbeddingDebugConfig;
   zerotier: ZeroTierConfig;
   podcast: PodcastSettings;
   review: ReviewSettings;
   preferences: AppPreferences;
+}
+
+export interface EmbeddingConfig {
+  provider: 'openai' | 'google' | 'local';
+  apiKey?: string;
+  model: string;
+  baseUrl?: string;
+  dimensions?: number;
+  isConfigured: boolean;
+}
+
+export interface EmbeddingDebugConfig {
+  similarityThreshold: number;
+  showScores: boolean;
 }
 
 export interface LLMConfig {
@@ -398,7 +415,7 @@ export interface PostSnapshot {
   quickAskPrompts: string[];
   narrativeMode: PostNarrativeMode;
   contextLabel: string;
-  sourceType: 'recent' | 'related' | 'resurfaced' | 'starter' | 'mixed';
+  sourceType: 'recent' | 'related' | 'resurfaced' | 'starter' | 'mixed' | 'connection';
   sourceQuestionIds: string[];
   sourceQuestionTitles: string[];
   keywords: string[];

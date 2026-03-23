@@ -10,6 +10,18 @@ const defaultSettings: AppSettings = {
     model: 'gpt-4o',
     isConfigured: false,
   },
+  embedding: {
+    provider: 'openai',
+    apiKey: '',
+    model: 'text-embedding-3-small',
+    baseUrl: '',
+    dimensions: 256,
+    isConfigured: false,
+  },
+  embeddingDebug: {
+    similarityThreshold: 0.65,
+    showScores: false,
+  },
   tts: {
     provider: 'openai',
     apiKey: '',
