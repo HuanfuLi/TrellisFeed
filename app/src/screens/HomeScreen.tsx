@@ -13,8 +13,9 @@ import { mockSettingsService } from '../services/mock/settings.mock';
 import { conceptFeedService } from '../services/concept-feed.service';
 import { transcribeAudio } from '../providers/stt';
 import { eventBus } from '../lib/event-bus';
-import { today, getGreeting, formatDateLabel } from '../lib/date';
+import { today, getGreeting } from '../lib/date';
 import { toast } from '../lib/toast';
+import { Header, HEADER_HEIGHT } from '../components/ui/Header';
 
 const MILESTONE_POOL: BlindboxItem[] = [
   { id: 'm-0', type: 'milestone', emoji: '🔥', headline: 'Momentum looks like curiosity', body: 'The more often you open ideas from different angles, the easier it becomes to stay in motion without forcing yourself.' },
@@ -291,12 +292,8 @@ export function HomeScreen() {
 
   return (
     <>
-      <div style={{ padding: '24px 16px 96px', maxWidth: '448px', margin: '0 auto' }}>
-        {/* Header */}
-        <div style={{ marginBottom: '24px' }}>
-          <h1 style={{ marginBottom: '4px' }}>{getGreeting()}</h1>
-          <p style={{ color: 'var(--muted-foreground)' }}>{formatDateLabel(t)}</p>
-        </div>
+      <Header title={getGreeting()} />
+      <div style={{ padding: `${HEADER_HEIGHT + 8}px 16px 96px`, maxWidth: '448px', margin: '0 auto' }}>
 
         {/* Bento Grid */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
@@ -346,7 +343,7 @@ export function HomeScreen() {
               <h4 style={{ marginBottom: '8px', color: 'var(--bento-card-text)' }}>Planner</h4>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
                 <p style={{ fontSize: '1.875rem', fontWeight: 600, color: 'var(--bento-card-text)' }}>{activeChunkCount}</p>
-                <p style={{ fontSize: '0.875rem', color: 'var(--bento-card-text-muted)' }}>{activeChunkCount === 1 ? 'active' : 'active'}</p>
+                <p style={{ fontSize: '0.875rem', color: 'var(--bento-card-text-muted)' }}>{activeChunkCount === 1 ? 'active chunk' : 'active chunks'}</p>
               </div>
               {threadCount > 0 && (
                 <p style={{ fontSize: '0.78rem', color: 'var(--bento-card-text-muted)', marginTop: '2px' }}>
@@ -414,7 +411,7 @@ export function HomeScreen() {
         <div
           style={{
             position: 'fixed',
-            bottom: 'calc(172px + env(safe-area-inset-bottom, 0px))',
+            bottom: 'calc(172px + var(--safe-area-bottom))',
             right: '16px',
             padding: '12px 20px',
             backgroundColor: 'var(--surface-variant)',
@@ -464,7 +461,7 @@ export function HomeScreen() {
         title={isRecording ? 'Tap to stop' : 'Ask a question'}
         style={{
           position: 'fixed',
-          bottom: 'calc(96px + env(safe-area-inset-bottom, 0px))',
+          bottom: 'calc(96px + var(--safe-area-bottom))',
           right: '24px',
           width: '56px',
           height: '56px',

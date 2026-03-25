@@ -54,41 +54,6 @@ export interface Category {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// CALENDAR & TODO DOMAIN (legacy — kept for data isolation, not actively used)
-// ═══════════════════════════════════════════════════════════════════════════
-
-export interface DaySchedule {
-  date: string;
-  blocks: TimeBlock[];
-  reviewItemCount: number;
-}
-
-export interface TimeBlock {
-  id: string;
-  date: string;
-  startTime: string;
-  endTime: string;
-  label: string;
-  todos: TodoItem[];
-  sortOrder: number;
-  pinned?: boolean;
-  templateId?: string;
-}
-
-export interface TodoItem {
-  id: string;
-  blockId: string;
-  content: string;
-  status: TodoStatus;
-  createdAt: number;
-  completedAt?: number;
-  postponedFrom?: string;
-  pinned?: boolean;
-}
-
-export type TodoStatus = 'pending' | 'completed' | 'postponed';
-
-// ═══════════════════════════════════════════════════════════════════════════
 // PLANNER DOMAIN
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -487,10 +452,6 @@ export type AppEvent =
   | { type: 'REVIEW_SUBMITTED'; payload: { questionId: string; rating: number } }
   | { type: 'REVIEW_DUE_COUNT_CHANGED'; payload: { count: number } }
   | { type: 'PLANNER_UPDATED'; payload: { reason: 'chunk' | 'thread' | 'checkin' } }
-  | { type: 'TODO_CREATED'; payload: TodoItem }
-  | { type: 'TODO_STATUS_CHANGED'; payload: TodoItem }
-  | { type: 'BLOCK_CREATED'; payload: TimeBlock }
-  | { type: 'BLOCK_UPDATED'; payload: TimeBlock }
   | { type: 'PODCAST_GENERATION_STARTED'; payload: { podcastId: string; date: string } }
   | { type: 'PODCAST_GENERATION_PROGRESS'; payload: { podcastId: string; progress: number } }
   | { type: 'PODCAST_GENERATION_COMPLETED'; payload: DailyPodcast }

@@ -165,7 +165,7 @@ export function ConnectionPostScreen() {
         zIndex: 10,
         backgroundColor: 'var(--surface)',
         borderBottom: '1px solid var(--border)',
-        padding: 'calc(12px + env(safe-area-inset-top, 0px)) 16px 12px',
+        padding: 'calc(12px + var(--safe-area-top)) 16px 12px',
         display: 'flex',
         alignItems: 'center',
         gap: '12px',
@@ -252,7 +252,7 @@ export function ConnectionPostScreen() {
             boxShadow: 'var(--shadow-1)',
             marginBottom: '20px',
           }}>
-            <Markdown content={bodyText} />
+            <Markdown>{bodyText}</Markdown>
             {isGenerating && (
               <span style={{ display: 'inline-block', width: '2px', height: '1em', backgroundColor: 'var(--primary-40)', animation: 'blink 1s step-end infinite', verticalAlign: 'text-bottom', marginLeft: '2px' }} />
             )}

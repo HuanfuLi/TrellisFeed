@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import type { BlindboxItem, DailyPost, Question } from '../types';
 
@@ -22,6 +22,7 @@ const CONCEPT_BADGE_META: Record<DailyPost['sourceType'], { label: string; color
   resurfaced: { label: 'Rediscovered', color: '#6A1B9A' },
   starter: { label: 'Starter', color: '#2E7D32' },
   mixed: { label: 'Mixed', color: '#AD1457' },
+  connection: { label: 'Connection', color: '#00695C' },
 };
 
 const FALLBACK_BADGE = { label: 'Daily', color: '#558B2F' };
@@ -333,7 +334,7 @@ export function ImmersiveInfoFlow({ items, onOpenConnection, onClose, onOpenPost
   useEffect(() => {
     const container = scrollRef.current;
     if (!container) return;
-    const cards = Array.from(container.querySelectorAll('[data-flow-card]'));
+    const cards = Array.from(container.querySelectorAll<Element>('[data-flow-card]'));
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -399,7 +400,7 @@ export function ImmersiveInfoFlow({ items, onOpenConnection, onClose, onOpenPost
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: 'calc(12px + env(safe-area-inset-top, 0px)) 16px 12px',
+          padding: 'calc(12px + var(--safe-area-top)) 16px 12px',
           background: 'linear-gradient(to bottom, var(--surface) 60%, transparent)',
           pointerEvents: 'none',
         }}

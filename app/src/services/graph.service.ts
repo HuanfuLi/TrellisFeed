@@ -1,7 +1,7 @@
-import type { Question, ServiceResult } from '../types';
-import { questionService } from './question.service';
-import { dbExecute, dbQuery } from './db.service';
-import { cosine } from '../providers/embedding';
+import type { Question, ServiceResult } from '../types/index.ts';
+import { questionService } from './question.service.ts';
+import { dbExecute, dbQuery } from './db.service.ts';
+import { cosine } from '../providers/embedding/index.ts';
 
 // ─── Similarity helpers ───────────────────────────────────────────────────────
 
@@ -144,6 +144,9 @@ export const graphService = {
           const key = a.id < b.id ? `${a.id}:${b.id}` : `${b.id}:${a.id}`;
           if (seen.has(key)) continue;
           seen.add(key);
+          // Jaccard pre-filter: skip pairs with no keyword overlap at all.
+          // Avoids spending cosine compute on completely unrelated questions.
+          if (keywordSimilarity(a, b) === 0) continue;
           const score = cosine(a.embeddingVector!, b.embeddingVector!);
           if (score >= threshold) {
             candidates.push({ source: a, target: b, score });

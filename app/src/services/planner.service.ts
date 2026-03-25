@@ -32,23 +32,28 @@ function saveJson<T>(key: string, data: T): void {
 // DDL lives in db.service.ts (_runMigrations). These helpers only do DML.
 
 function persistChunkToSQLite(chunk: PlannerChunk): void {
-  void dbExecute('INSERT OR REPLACE INTO planner_chunks (id, data) VALUES (?, ?)', [chunk.id, JSON.stringify(chunk)]);
+  dbExecute('INSERT OR REPLACE INTO planner_chunks (id, data) VALUES (?, ?)', [chunk.id, JSON.stringify(chunk)])
+    .catch((err: unknown) => console.warn('[planner] SQLite chunk persist failed:', err));
 }
 
 function deleteChunkFromSQLite(id: string): void {
-  void dbExecute('DELETE FROM planner_chunks WHERE id = ?', [id]);
+  dbExecute('DELETE FROM planner_chunks WHERE id = ?', [id])
+    .catch((err: unknown) => console.warn('[planner] SQLite chunk delete failed:', err));
 }
 
 function persistThreadToSQLite(thread: PlannerThread): void {
-  void dbExecute('INSERT OR REPLACE INTO planner_threads (id, data) VALUES (?, ?)', [thread.id, JSON.stringify(thread)]);
+  dbExecute('INSERT OR REPLACE INTO planner_threads (id, data) VALUES (?, ?)', [thread.id, JSON.stringify(thread)])
+    .catch((err: unknown) => console.warn('[planner] SQLite thread persist failed:', err));
 }
 
 function deleteThreadFromSQLite(id: string): void {
-  void dbExecute('DELETE FROM planner_threads WHERE id = ?', [id]);
+  dbExecute('DELETE FROM planner_threads WHERE id = ?', [id])
+    .catch((err: unknown) => console.warn('[planner] SQLite thread delete failed:', err));
 }
 
 function persistCheckInToSQLite(checkIn: LearningCheckIn): void {
-  void dbExecute('INSERT OR REPLACE INTO planner_checkins (id, data) VALUES (?, ?)', [checkIn.id, JSON.stringify(checkIn)]);
+  dbExecute('INSERT OR REPLACE INTO planner_checkins (id, data) VALUES (?, ?)', [checkIn.id, JSON.stringify(checkIn)])
+    .catch((err: unknown) => console.warn('[planner] SQLite check-in persist failed:', err));
 }
 
 let plannerHydrated = false;

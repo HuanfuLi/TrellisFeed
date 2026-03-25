@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 
 declare module 'mind-elixir/style' {
-  const content: any;
+  const content: string;
   export default content;
 }

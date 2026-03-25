@@ -29,15 +29,15 @@ function RootLayout() {
           top: 0,
           left: 0,
           right: 0,
-          height: 'env(safe-area-inset-top, 0px)',
+          height: 'var(--safe-area-top)',
           backgroundColor: 'var(--surface)',
           zIndex: 200,
         }}
       />
       {/* paddingTop clears the status bar; paddingBottom clears the bottom nav + home indicator */}
       <div style={{
-        paddingTop: 'env(safe-area-inset-top, 0px)',
-        paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px))',
+        paddingTop: 'var(--safe-area-top)',
+        paddingBottom: 'calc(80px + var(--safe-area-bottom))',
       }}>
         <Outlet />
       </div>

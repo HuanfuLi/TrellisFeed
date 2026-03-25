@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Brain, Volume2, Network, Radio, BookOpen, Palette, RotateCcw, CheckCircle, XCircle, Shield, Calendar, Download, Upload, Trash2, Sparkles } from 'lucide-react';
+import { Brain, Volume2, Network, Radio, BookOpen, Palette, RotateCcw, CheckCircle, XCircle, Shield, Download, Upload, Trash2, Sparkles, Loader2 } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { mockSettingsService } from '../services/mock/settings.mock';
@@ -7,9 +7,12 @@ import { testLLMConnection } from '../providers/llm';
 import { testTTSConnection } from '../providers/tts';
 import type { LLMConfig, TTSConfig, EmbeddingConfig, EmbeddingDebugConfig, AppSettings } from '../types';
 import { toast } from '../lib/toast';
+import { Header, HEADER_HEIGHT } from '../components/ui/Header';
 import { applyTheme } from '../lib/theme';
 import { clearAllTables } from '../services/db.service';
 import { conceptFeedService } from '../services/concept-feed.service';
+import { plannerService } from '../services/planner.service';
+import { questionService } from '../services/question.service';
 
 function SectionHeader({ icon, title }: { icon: React.ReactNode; title: string }) {
   return (
@@ -124,6 +127,7 @@ export function SettingsScreen() {
   const [reviewReminderTime, setReviewReminderTime] = useState(() => mockSettingsService.getSync().review.reminderTime);
   const [theme, setTheme] = useState<AppSettings['preferences']['theme']>(() => mockSettingsService.getSync().preferences.theme);
   const [aiConsent, setAiConsent] = useState(() => mockSettingsService.getSync().preferences.aiConsentGiven ?? false);
+  const [isGeneratingPlanner, setIsGeneratingPlanner] = useState(false);
 
   const noKeyRequired = (p: LLMConfig['provider']) => p === 'local' || p === 'lmstudio';
 
@@ -272,11 +276,8 @@ export function SettingsScreen() {
   };
 
   return (
-    <div style={{ padding: '24px 16px 96px', maxWidth: '448px', margin: '0 auto' }}>
-      <div style={{ marginBottom: '8px' }}>
-        <h1 style={{ marginBottom: '4px' }}>Settings</h1>
-        <p style={{ color: 'var(--muted-foreground)' }}>Configure your EchoLearn experience</p>
-      </div>
+    <div style={{ padding: `${HEADER_HEIGHT + 8}px 16px 96px`, maxWidth: '448px', margin: '0 auto' }}>
+      <Header title="Settings" />
 
       {/* LLM Section */}
       <SectionHeader icon={<Brain size={20} />} title="Language Model" />
@@ -695,14 +696,6 @@ export function SettingsScreen() {
         </div>
       </Card>
 
-      {/* Planner Settings */}
-      <SectionHeader icon={<Calendar size={20} />} title="Planner" />
-      <Card style={{ marginBottom: '8px' }}>
-        <SettingRow label="Time Blocks Template" description="Configure default daily time blocks">
-          <Button size="sm" variant="secondary" onClick={() => toast('Template editor coming soon', 'info')}>Edit</Button>
-        </SettingRow>
-      </Card>
-
       {/* App Preferences */}
       <SectionHeader icon={<Palette size={20} />} title="Appearance" />
       <Card style={{ marginBottom: '8px' }}>
@@ -757,14 +750,50 @@ export function SettingsScreen() {
         <p style={{ fontSize: '0.8rem', color: 'var(--muted-foreground)', marginBottom: '16px', lineHeight: 1.5 }}>
           Debug tools for development. Destructive actions cannot be undone.
         </p>
-        <Button
-          variant="danger"
-          size="sm"
-          onClick={handleClearAllData}
-          style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}
-        >
-          <Trash2 size={16} /> Clear All Data
-        </Button>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={isGeneratingPlanner}
+            onClick={async () => {
+              const questions = questionService.getAll();
+              if (questions.length === 0) {
+                toast('No questions yet — ask some questions first.', 'info');
+                return;
+              }
+              setIsGeneratingPlanner(true);
+              try {
+                const summaryLines = questions
+                  .slice(0, 20)
+                  .map((q) => q.summary || q.content)
+                  .join('. ');
+                const checkInText = `I want to revisit and deepen my understanding of: ${summaryLines}. I'm curious about connections between these topics and want to explore areas that feel fuzzy.`;
+                const result = await plannerService.submitCheckIn(checkInText);
+                const count = result.generatedChunkIds.length;
+                toast(`Planner generated: ${count} chunk${count !== 1 ? 's' : ''} created.`, 'success');
+              } catch {
+                toast('Failed to generate planner.', 'error');
+              } finally {
+                setIsGeneratingPlanner(false);
+              }
+            }}
+            style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}
+          >
+            {isGeneratingPlanner
+              ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+              : <Sparkles size={16} />
+            }
+            {isGeneratingPlanner ? 'Generating...' : 'Generate Planner'}
+          </Button>
+          <Button
+            variant="danger"
+            size="sm"
+            onClick={handleClearAllData}
+            style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}
+          >
+            <Trash2 size={16} /> Clear All Data
+          </Button>
+        </div>
       </Card>
 
       {/* Reset & About */}

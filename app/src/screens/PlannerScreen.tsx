@@ -9,6 +9,7 @@ import { Badge } from '../components/ui/Badge';
 import { usePlanner } from '../state/usePlanner';
 import { useReview } from '../state/useReview';
 import { toast } from '../lib/toast';
+import { Header, HEADER_HEIGHT } from '../components/ui/Header';
 import { Capacitor } from '@capacitor/core';
 import type { PlannerChunk, ChunkStatus, PlannerThread, LearningCheckIn } from '../types';
 
@@ -362,14 +363,8 @@ export function PlannerScreen() {
   };
 
   return (
-    <div style={{ padding: '24px 16px 96px', maxWidth: '448px', margin: '0 auto' }}>
-      {/* Header */}
-      <div style={{ marginBottom: '20px' }}>
-        <h1 style={{ marginBottom: '4px' }}>Planner</h1>
-        <p style={{ color: 'var(--muted-foreground)', fontSize: '0.88rem' }}>
-          Your learning workspace
-        </p>
-      </div>
+    <div style={{ padding: `${HEADER_HEIGHT + 8}px 16px 96px`, maxWidth: '448px', margin: '0 auto' }}>
+      <Header title="Planner" />
 
       {/* Review Banner */}
       {reviewCount > 0 && (

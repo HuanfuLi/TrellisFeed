@@ -118,7 +118,7 @@ export function PostDetailScreen() {
 
     setPost(null);
     setLoadingPost(false);
-  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps — passedPost and connectionMeta are stable per navigation
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps -- passedPost and connectionMeta are stable per navigation
 
   // Track initial Q&A message count so we only auto-scroll on NEW messages, not on mount
   const initialMsgCount = useRef<number | null>(null);

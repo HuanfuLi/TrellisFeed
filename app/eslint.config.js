@@ -6,7 +6,8 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  // Ignore compiled/native build artifacts that are not project source.
+  globalIgnores(['dist', 'android/**', 'ios/**']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
@@ -17,6 +18,14 @@ export default defineConfig([
     ],
     rules: {
       'react-hooks/set-state-in-effect': 'off',
+      // Allow _ -prefixed vars and unused rest-sibling destructure targets
+      // (e.g. `const { foo, ...rest } = obj` where foo is intentionally omitted).
+      '@typescript-eslint/no-unused-vars': ['error', {
+        varsIgnorePattern: '^_',
+        argsIgnorePattern: '^_',
+        destructuredArrayIgnorePattern: '^_',
+        ignoreRestSiblings: true,
+      }],
     },
     languageOptions: {
       ecmaVersion: 2020,

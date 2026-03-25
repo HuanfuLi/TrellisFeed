@@ -7,6 +7,7 @@ import { RefreshCw, GitBranch, Plus, X, ChevronRight } from 'lucide-react';
 import type { Question } from '../types';
 import { graphService } from '../services/graph.service';
 import { toast } from '../lib/toast';
+import { Header, HEADER_HEIGHT } from '../components/ui/Header';
 import { buildReflectionTree } from '../services/canonical-knowledge.service';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -597,25 +598,35 @@ export function GraphScreen() {
   );
 
   return (
-    <div style={{ padding: '24px 16px 16px', maxWidth: '448px', margin: '0 auto', display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 80px)', gap: '16px' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div>
-        <h2 style={{ fontWeight: 700, fontSize: '1.4rem', marginBottom: '2px' }}>Knowledge Graph</h2>
-          <p style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>
-            {nodes.length} nodes · {edges.length} connections · reflection & repair
-          </p>
-        </div>
-        {unlinked.length > 0 && view === 'map' && (
-          <button
-            onClick={() => setView('inbox')}
-            style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '100px', backgroundColor: 'var(--primary-40)', color: 'white', fontWeight: 600, fontSize: '0.8rem', border: 'none', cursor: 'pointer', boxShadow: 'var(--shadow-1)' }}
-          >
-            <Plus size={14} />
-            {unlinked.length} Repair
-          </button>
-        )}
-      </div>
+    <div style={{ padding: `${HEADER_HEIGHT + 8}px 16px 16px`, maxWidth: '448px', margin: '0 auto', display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 80px)', gap: '16px' }}>
+      <Header
+        title="Knowledge Graph"
+        right={
+          unlinked.length > 0 && view === 'map' ? (
+            <button
+              onClick={() => setView('inbox')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '8px 14px',
+                borderRadius: '100px',
+                backgroundColor: 'var(--primary-40)',
+                color: 'white',
+                fontWeight: 600,
+                fontSize: '0.8rem',
+                border: 'none',
+                cursor: 'pointer',
+                boxShadow: 'var(--shadow-1)',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <Plus size={14} />
+              Repair {unlinked.length}
+            </button>
+          ) : undefined
+        }
+      />
 
       {view === 'map' ? (
         <>

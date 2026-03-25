@@ -549,7 +549,7 @@ async function generateDailyPostsWithLLM(questions: Question[], date: string): P
 }
 
 function toPostSnapshot(post: DailyPost): PostSnapshot {
-  const { generatedAt: _generatedAt, origin: _origin, ...snapshot } = post;
+  const { generatedAt, origin, ...snapshot } = post;
   return snapshot;
 }
 

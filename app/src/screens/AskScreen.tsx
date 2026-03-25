@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { History, SquarePen, Trash2, Flag, X, Check } from 'lucide-react';
+import { Menu, SquarePen, Trash2, Flag, X, Check, Search } from 'lucide-react';
 import { ChatMessage } from '../components/ChatMessage';
 import { ChatInput } from '../components/ChatInput';
 import { useQuestions } from '../state/useQuestions';
@@ -13,6 +13,7 @@ import { postContextQaService } from '../services/post-context-qa.service';
 import { chatCompletion } from '../providers/llm';
 import { mockSettingsService } from '../services/mock/settings.mock';
 import { toast } from '../lib/toast';
+import { Header, HEADER_HEIGHT } from '../components/ui/Header';
 
 const SUGGESTED_PROMPTS = [
   'What is spaced repetition and why does it work?',
@@ -97,6 +98,7 @@ export function AskScreen() {
   const [confirmFlagId, setConfirmFlagId] = useState<string | null>(null);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState('');
+  const [historySearch, setHistorySearch] = useState('');
 
   // Keep session ref in sync for use in callbacks without stale closure
   const sessionRef = useRef(session);
@@ -383,58 +385,56 @@ export function AskScreen() {
 
   return (
     <div style={{ height: '100dvh', display: 'flex', flexDirection: 'column', maxWidth: '448px', margin: '0 auto', position: 'relative' }}>
-      {/* Header */}
-      <div style={{ padding: '24px 16px 16px', backgroundColor: 'var(--surface)' }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-          <div>
-            <h1 style={{ marginBottom: '2px' }}>Ask</h1>
-            <p style={{ color: 'var(--muted-foreground)', fontSize: '0.875rem' }}>Your AI learning companion</p>
-          </div>
-          <div style={{ display: 'flex', gap: '8px', paddingTop: '4px' }}>
-            <button
-              onClick={() => setShowHistory(true)}
-              title="History"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                padding: '6px 10px',
-                borderRadius: 'var(--radius-xl)',
-                backgroundColor: 'var(--surface-variant)',
-                color: 'var(--muted-foreground)',
-                fontSize: '0.8rem',
-                border: 'none',
-                cursor: 'pointer',
-              }}
-            >
-              <History size={15} />
-              History
-            </button>
-            <button
-              onClick={handleNewChat}
-              title="New Chat"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                padding: '6px 10px',
-                borderRadius: 'var(--radius-xl)',
-                backgroundColor: 'var(--primary-40)',
-                color: '#fff',
-                fontSize: '0.8rem',
-                border: 'none',
-                cursor: 'pointer',
-              }}
-            >
-              <SquarePen size={15} />
-              New Chat
-            </button>
-          </div>
-        </div>
-      </div>
+      {/* Fixed Header */}
+      <Header
+        title={session.title || 'Ask'}
+        centered
+        left={
+          <button
+            onClick={() => { setShowHistory(true); setHistorySearch(''); }}
+            title="History"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '36px',
+              height: '36px',
+              borderRadius: '50%',
+              backgroundColor: 'transparent',
+              color: 'var(--foreground)',
+              border: 'none',
+              cursor: 'pointer',
+            }}
+          >
+            <Menu size={22} />
+          </button>
+        }
+        right={
+          <button
+            onClick={handleNewChat}
+            title="New Chat"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '36px',
+              height: '36px',
+              borderRadius: '50%',
+              backgroundColor: 'transparent',
+              color: 'var(--primary-40)',
+              border: 'none',
+              cursor: 'pointer',
+            }}
+          >
+            <SquarePen size={20} />
+          </button>
+        }
+      />
+      {/* Spacer for fixed header */}
+      <div style={{ height: `${HEADER_HEIGHT}px`, flexShrink: 0 }} />
 
       {/* Messages */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '16px', paddingBottom: 'calc(140px + env(safe-area-inset-bottom, 0px))' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '16px', paddingBottom: 'calc(140px + var(--safe-area-bottom))' }}>
         {session.origin?.type === 'post' && (
           <div
             style={{
@@ -634,7 +634,7 @@ export function AskScreen() {
         disabled={!!streaming || editingMessageId !== null}
       />
 
-      {/* History panel */}
+      {/* History drawer — slides in from left */}
       {showHistory && (
         <>
           {/* Backdrop */}
@@ -645,116 +645,183 @@ export function AskScreen() {
               inset: 0,
               backgroundColor: 'rgba(0,0,0,0.4)',
               zIndex: 40,
+              animation: 'fade-in 0.2s ease',
             }}
           />
-          {/* Panel */}
+          {/* Drawer */}
           <div
             style={{
               position: 'fixed',
               top: 0,
-              right: 0,
+              left: 0,
               width: '80%',
-              maxWidth: '360px',
+              maxWidth: '320px',
               height: '100%',
               backgroundColor: 'var(--surface)',
               boxShadow: 'var(--shadow-3)',
               zIndex: 50,
               display: 'flex',
               flexDirection: 'column',
+              animation: 'slide-in-left 0.25s ease',
             }}
           >
+            {/* Drawer header */}
             <div
               style={{
-                padding: '24px 16px 16px',
-                borderBottom: '1px solid var(--surface-variant)',
+                padding: 'calc(var(--safe-area-top) + 16px) 16px 12px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
               }}
             >
-              <h2 style={{ fontSize: '1.1rem' }}>Chat History</h2>
+              <h2 style={{ fontSize: '1.1rem', fontWeight: 700 }}>History</h2>
               <button
-                onClick={handleNewChat}
+                onClick={() => setShowHistory(false)}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '4px',
-                  padding: '6px 10px',
-                  borderRadius: 'var(--radius-xl)',
+                  justifyContent: 'center',
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: 'var(--muted-foreground)',
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Search bar */}
+            <div style={{ padding: '0 16px 8px' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '8px 12px',
+                  borderRadius: '12px',
+                  backgroundColor: 'var(--surface-variant)',
+                  border: '1px solid var(--border)',
+                }}
+              >
+                <Search size={16} style={{ color: 'var(--muted-foreground)', flexShrink: 0 }} />
+                <input
+                  type="text"
+                  placeholder="Search chats..."
+                  value={historySearch}
+                  onChange={(e) => setHistorySearch(e.target.value)}
+                  style={{
+                    flex: 1,
+                    border: 'none',
+                    background: 'none',
+                    outline: 'none',
+                    fontSize: '0.875rem',
+                    color: 'var(--foreground)',
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* New Chat button */}
+            <div style={{ padding: '4px 16px 8px' }}>
+              <button
+                onClick={handleNewChat}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  padding: '10px',
+                  borderRadius: '12px',
                   backgroundColor: 'var(--primary-40)',
                   color: '#fff',
-                  fontSize: '0.8rem',
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
                   border: 'none',
                   cursor: 'pointer',
                 }}
               >
-                <SquarePen size={14} />
+                <SquarePen size={16} />
                 New Chat
               </button>
             </div>
 
-            <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
+            {/* Session list */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '4px 0' }}>
               {historySessions.length === 0 ? (
                 <p style={{ padding: '16px', color: 'var(--muted-foreground)', fontSize: '0.875rem', textAlign: 'center' }}>
                   No chat history yet.
                 </p>
               ) : (
-                historySessions.map((s) => (
-                  <div
-                    key={s.id}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      borderBottom: '1px solid var(--surface-variant)',
-                      backgroundColor: s.id === session.id ? 'var(--surface-variant)' : 'transparent',
-                    }}
-                  >
-                    <button
-                      onClick={() => handleSelectSession(s.id)}
+                historySessions
+                  .filter((s) => {
+                    if (!historySearch.trim()) return true;
+                    const q = historySearch.toLowerCase();
+                    return (
+                      (s.title?.toLowerCase().includes(q)) ||
+                      s.messages.some((m) => m.content.toLowerCase().includes(q))
+                    );
+                  })
+                  .map((s) => (
+                    <div
+                      key={s.id}
                       style={{
-                        flex: 1,
-                        textAlign: 'left',
-                        padding: '12px 16px',
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        minWidth: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        borderBottom: '1px solid var(--surface-variant)',
+                        backgroundColor: s.id === session.id ? 'var(--surface-variant)' : 'transparent',
                       }}
                     >
-                      <p
+                      <button
+                        onClick={() => handleSelectSession(s.id)}
                         style={{
-                          fontSize: '0.875rem',
-                          fontWeight: 500,
-                          marginBottom: '4px',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
+                          flex: 1,
+                          textAlign: 'left',
+                          padding: '12px 16px',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          minWidth: 0,
                         }}
                       >
-                        {s.title || 'New conversation'}
-                      </p>
-                      <p style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>
-                        {formatDate(s.updatedAt)} · {s.messages.length} message{s.messages.length !== 1 ? 's' : ''}
-                        {s.origin?.type === 'post' ? ' · post thread' : ''}
-                      </p>
-                    </button>
-                    <button
-                      onClick={(e) => handleDeleteSession(s.id, e)}
-                      title="Delete conversation"
-                      style={{
-                        flexShrink: 0,
-                        padding: '12px',
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        color: 'var(--muted-foreground)',
-                        opacity: 0.6,
-                      }}
-                    >
-                      <Trash2 size={15} />
-                    </button>
-                  </div>
-                ))
+                        <p
+                          style={{
+                            fontSize: '0.875rem',
+                            fontWeight: 500,
+                            marginBottom: '4px',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {s.title || 'New conversation'}
+                        </p>
+                        <p style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>
+                          {formatDate(s.updatedAt)} · {s.messages.length} message{s.messages.length !== 1 ? 's' : ''}
+                          {s.origin?.type === 'post' ? ' · post thread' : ''}
+                        </p>
+                      </button>
+                      <button
+                        onClick={(e) => handleDeleteSession(s.id, e)}
+                        title="Delete conversation"
+                        style={{
+                          flexShrink: 0,
+                          padding: '12px',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          color: 'var(--muted-foreground)',
+                          opacity: 0.6,
+                        }}
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  ))
               )}
             </div>
           </div>

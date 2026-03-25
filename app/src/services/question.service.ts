@@ -1,17 +1,17 @@
-import type { Question, ServiceResult, AskResult } from '../types';
-import { today, addDays } from '../lib/date';
-import { eventBus } from '../lib/event-bus';
-import { toast } from '../lib/toast';
-import { mockSettingsService } from './mock/settings.mock';
-import { chatCompletion } from '../providers/llm';
-import { embedText, cosine } from '../providers/embedding';
-import { dbExecute, dbQuery } from './db.service';
+import type { Question, ServiceResult, AskResult } from '../types/index.ts';
+import { today } from '../lib/date.ts';
+import { eventBus } from '../lib/event-bus.ts';
+import { toast } from '../lib/toast.ts';
+import { mockSettingsService } from './mock/settings.mock.ts';
+import { chatCompletion } from '../providers/llm/index.ts';
+import { embedText, cosine } from '../providers/embedding/index.ts';
+import { dbExecute, dbQuery } from './db.service.ts';
 import {
   buildCanonicalQuestionPatch,
   buildCandidateContextPack,
   decideIngestionOutcome,
   formatCandidateContextPack,
-} from './canonical-knowledge.service';
+} from './canonical-knowledge.service.ts';
 
 const STORAGE_KEY = 'echolearn_questions';
 
@@ -179,7 +179,11 @@ export const questionService = {
     const embCfgEarly = mockSettingsService.getSync().embedding;
     let queryEmbedding: number[] | undefined;
     if (embCfgEarly.isConfigured) {
-      try { queryEmbedding = await embedText(content, embCfgEarly); } catch { /* proceed without */ }
+      try {
+        queryEmbedding = await embedText(content, embCfgEarly);
+      } catch (err) {
+        console.warn('[EchoLearn] pre-call embedding failed — context ranking will use keywords only:', err instanceof Error ? err.message : err);
+      }
     }
 
     const recentContext = store.slice(0, 3);
@@ -339,7 +343,9 @@ export const questionService = {
                 questionService.patchQuestion(mergedQuestion.id, { relatedQuestionIds: merged });
               }
             })
-            .catch(() => { /* silent */ });
+            .catch((err: unknown) => {
+            console.warn('[EchoLearn] embedding failed for merged question %s — semantic features will fall back to keywords:', mergedQuestion.id, err instanceof Error ? err.message : err);
+          });
         }
 
         return mergedQuestion;
@@ -409,7 +415,9 @@ export const questionService = {
             questionService.patchQuestion(question.id, { relatedQuestionIds: merged });
           }
         })
-        .catch(() => { /* silent — embedding is optional */ });
+        .catch((err: unknown) => {
+          console.warn('[EchoLearn] embedding failed for question %s — semantic features will fall back to keywords:', question.id, err instanceof Error ? err.message : err);
+        });
     }
 
     return question;

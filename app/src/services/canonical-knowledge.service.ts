@@ -7,8 +7,8 @@ import type {
   KnowledgeNode,
   Question,
   StructuralSignalType,
-} from '../types';
-import { cosine } from '../providers/embedding';
+} from '../types/index.ts';
+import { cosine } from '../providers/embedding/index.ts';
 
 const ROOT_FALLBACK = 'Knowledge';
 const BRANCH_FALLBACK = 'General concepts';
