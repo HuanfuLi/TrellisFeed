@@ -1,9 +1,8 @@
 # EchoLearn Roadmap
 
-## Milestone 1: Learning Loop Foundation
-- [x] Phase 1: Core Domain & ASK
-- [x] Phase 2: Home Feed & Knowledge Graph
-- [x] Phase 3: Review & Spaced Repetition
-- [x] Phase 4: Planner & Learning Chunks
-- [x] Phase 5: Fixed Banners & UI Polish
-- [x] Phase 6: Question Quality Evaluation (3/3 plans complete)
+- [Milestone 1: Learning Loop Foundation (v1.0)](.planning/milestones/v1.0-ROADMAP.md) - Shipped 2026-03-25.
+
+## Next Milestone: Milestone 2: Collaborative Knowledge & Advanced Orchestration
+- [ ] Phase 7: Collaborative Workspaces
+- [ ] Phase 8: Advanced Learning Path Orchestration
+- [ ] Phase 9: Multi-Device Sync
