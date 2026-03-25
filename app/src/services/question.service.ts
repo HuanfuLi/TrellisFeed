@@ -12,7 +12,7 @@ import {
   decideIngestionOutcome,
   formatCandidateContextPack,
 } from './canonical-knowledge.service.ts';
-import { evaluateQuestion as filterQuestion } from './question-filter.service.ts';
+import { evaluateQuestion as filterQuestion, type QuestionFilterContext } from './question-filter.service.ts';
 
 const STORAGE_KEY = 'echolearn_questions';
 
@@ -158,7 +158,7 @@ function findRelated(keywords: string[], store: Question[], embedding?: number[]
 }
 
 export const questionService = {
-  async ask(content: string): Promise<ServiceResult<AskResult>> {
+  async ask(content: string, sessionContext?: QuestionFilterContext): Promise<ServiceResult<AskResult>> {
     const settings = mockSettingsService.getSync();
     const llmConfig = settings.llm;
 
@@ -256,7 +256,7 @@ export const questionService = {
       const question = this.buildAndSave(content, answer, store, { summary, keywords, storyHook, knowledgeDecision, preComputedEmbedding: queryEmbedding });
 
       // Evaluate question for off-topic/meta status
-      const flagged = await filterQuestion(question);
+      const flagged = await filterQuestion(question, sessionContext);
 
       // Persist the flagged status back to store and SQLite
       const freshStore = loadStore();
