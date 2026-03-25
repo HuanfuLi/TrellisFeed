@@ -1,29 +1,26 @@
 ---
 phase: 06-question-quality-evaluation
-verified: 2026-03-25T14:00:00Z
-status: human_needed
+verified: 2026-03-25T14:30:00Z
+status: completed
 score: 10/10 must-haves verified
 re_verification: true
   previous_status: human_needed
   previous_score: 10/10
   gaps_closed:
     - "PATTERN_LIBRARY expanded from 5 to 7 categories (small talk, sarcasm added; meta-questions and acknowledgements improved)"
-    - "What's your name? now flagged (contraction-aware meta pattern)"
-    - "How are you? now flagged (dedicated small talk pattern)"
-    - "Alright / Got it now flagged (word-boundary acknowledgement pattern)"
-    - "Yeah right / For real? now flagged (sarcasm/skepticism pattern)"
+    - "Human UAT completed for all 10 test cases covering visual appearance, override flow, and knowledge graph exclusion"
   gaps_remaining: []
   regressions: []
 human_verification:
   - test: "Off-topic badge visual appearance"
     expected: "A small badge reading 'Off-topic' appears below the AI response when the question is flagged; no badge for substantive questions"
-    why_human: "Badge styling and visual placement cannot be verified programmatically — requires viewing the rendered UI"
+    result: PASS - Verified in UAT Test 1 & 3.
   - test: "Override flow interaction"
     expected: "Clicking the badge expands an inline prompt 'This looks off-topic. Save anyway?' with 'Yes, save anyway' and 'Discard' buttons. Clicking 'Yes, save anyway' shows a toast and badge disappears. Clicking 'Discard' closes the prompt and badge persists."
-    why_human: "React state transitions and toast visibility require running the app"
+    result: PASS - Verified in UAT Test 4, 5, 6.
   - test: "Knowledge graph exclusion end-to-end"
     expected: "A flagged-but-not-overridden greeting does not appear in the knowledge graph, review queue, flashcards, or podcast content"
-    why_human: "Verifying end-to-end exclusion across downstream features requires navigating the live app"
+    result: PASS - Verified in UAT Test 7 & 8.
 ---
 
 # Phase 6: Question Quality Evaluation Verification Report
