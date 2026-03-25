@@ -12,6 +12,7 @@ import {
   decideIngestionOutcome,
   formatCandidateContextPack,
 } from './canonical-knowledge.service.ts';
+import { evaluateQuestion as filterQuestion } from './question-filter.service.ts';
 
 const STORAGE_KEY = 'echolearn_questions';
 
@@ -253,13 +254,26 @@ export const questionService = {
       }
 
       const question = this.buildAndSave(content, answer, store, { summary, keywords, storyHook, knowledgeDecision, preComputedEmbedding: queryEmbedding });
-      const relatedQuestions = store.filter((q) =>
-        question.relatedQuestionIds.includes(q.id),
+
+      // Evaluate question for off-topic/meta status
+      const flagged = await filterQuestion(question);
+
+      // Persist the flagged status back to store and SQLite
+      const freshStore = loadStore();
+      const idx = freshStore.findIndex((q) => q.id === question.id);
+      if (idx !== -1) {
+        freshStore[idx] = flagged;
+        saveStore(freshStore);
+        persistToSQLite(flagged);
+      }
+
+      const relatedQuestions = freshStore.filter((q) =>
+        flagged.relatedQuestionIds.includes(q.id),
       );
 
       return {
         success: true,
-        data: { question, relatedQuestions, newConnections: question.relatedQuestionIds.length },
+        data: { question: flagged, relatedQuestions, newConnections: flagged.relatedQuestionIds.length },
       };
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);

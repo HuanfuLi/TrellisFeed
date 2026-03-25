@@ -176,12 +176,19 @@ export function AskScreen() {
             question = questionService.buildAndSave(userContent, lastContent);
           }
         } else {
+          // Extract the immediate prior Q&A pair for follow-up context (avoids false-positive flagging)
+          const msgs = current.messages;
+          const lastAiIdx = msgs.map((m, i) => ({ m, i })).filter(({ m }) => m.type === 'ai').pop()?.i ?? -1;
+          const sessionContext = lastAiIdx > 0 && msgs[lastAiIdx - 1]?.type === 'user'
+            ? { priorQuestion: msgs[lastAiIdx - 1].content, priorAnswer: msgs[lastAiIdx].content }
+            : undefined;
+
           question = await askStreaming(userContent, (accumulated) => {
             lastContent = accumulated;
             if (!controller.signal.aborted) {
               setStreaming({ placeholderId, content: accumulated });
             }
-          });
+          }, sessionContext);
         }
 
         if (controller.signal.aborted) return;
