@@ -8,6 +8,9 @@ import { sessionService } from '../services/session.service';
 import { flashcardService } from '../services/flashcard.service';
 import type { ChatSession, SessionMessage } from '../types';
 import { formatDate } from '../lib/date';
+// NOTE: AskScreen uses questionService.askStreaming() (via useQuestions) exclusively for Q&A.
+// The non-streaming ask() method is available as a fallback but is not invoked from this screen.
+// Session context is passed to askStreaming() for accurate follow-up filtering (see generateAiReply).
 import { questionService } from '../services/question.service';
 import { postContextQaService } from '../services/post-context-qa.service';
 import { chatCompletion } from '../providers/llm';
