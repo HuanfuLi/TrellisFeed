@@ -15,6 +15,9 @@ const PATTERN_LIBRARY: PatternEntry[] = [
   // Greetings and casual openers
   { pattern: /^(hello|hi|hey|good morning|good afternoon|good evening|greetings|hey there)/i, confidence: 0.9 },
 
+  // Social small talk (never learning questions)
+  { pattern: /\b(how are you|how's it going|what's new|what's up|sup|how ya doin|how have you been|nice to meet|good to see|lovely day|how about you)\b/i, confidence: 0.9 },
+
   // Meta-questions about the system
   { pattern: /^(what (can|should|will) you|who (are|is) you|how (do|does|can) (you|this) work|tell me (about|who|what) (you|yourself)|what (is|are) (your|the) (name|capabilities|purpose)|describe yourself|are you|can you (actually )?help)/i, confidence: 0.95 },
 
