@@ -72,4 +72,4 @@ The application follows a **layered, service-oriented architecture**:
 - `.planning/`: Contains project roadmaps, architecture docs, and current phase progress.
 
 ## Current Status (March 2026)
-EchoLearn is currently in the late stages of **Milestone 1: Learning Loop Foundation**. Most core services (ASK, Graph, Review, Planner) are implemented, with current focus shifted toward UI polish and mobile-specific enhancements (Phase 5).
+EchoLearn has successfully completed **Milestone 1: Learning Loop Foundation**. All core services (ASK, Graph, Review, Planner, Podcast) are functional and verified. The latest enhancement (Phase 6) introduced a hybrid Question Quality Evaluation layer that flags off-topic and meta-questions while preserving knowledge graph integrity. The system is now ready for Milestone 2: Collaborative Knowledge & Advanced Orchestration.
