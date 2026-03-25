@@ -29,6 +29,7 @@ export interface Question {
   pinned?: boolean;
   coCreationSignals?: Partial<Record<StructuralSignalType, number>> & { lastSignalAt?: number };
   embeddingVector?: number[];
+  flagged?: boolean;  // true if detected as off-topic/meta-question; user can override
 }
 
 /** A milestone or trivia card injected into the Info Flow every ~5 items. */
