@@ -15,8 +15,14 @@ const PATTERN_LIBRARY: PatternEntry[] = [
   // Greetings and casual openers
   { pattern: /^(hello|hi|hey|good morning|good afternoon|good evening|greetings|hey there)/i, confidence: 0.9 },
 
+  // Social small talk (never learning questions)
+  { pattern: /\b(how are you|how's it going|what's new|what's up|sup|how ya doin|how have you been|nice to meet|good to see|lovely day|how about you)\b/i, confidence: 0.9 },
+
   // Meta-questions about the system
-  { pattern: /^(what can you do|who are you|how do you work|tell me about yourself|what is echolearn|describe yourself|what are your capabilities)/i, confidence: 0.95 },
+  { pattern: /^(what (can|should|will) you|who (are|is) you|how (do|does|can) (you|this) work|tell me (about|who|what) (you|yourself)|what('?s| is| are) (your|the) (name|capabilities|purpose)|describe yourself|are you|can you (actually )?help)/i, confidence: 0.95 },
+
+  // Sarcasm, skepticism, and dismissive meta-commentary
+  { pattern: /\b(really\?|seriously\?|for real|come on|right\?|sure sure|yeah right|whatever|yikes|oh please|uh huh sure)/i, confidence: 0.85 },
 
   // Requests for jokes, entertainment, non-learning content
   { pattern: /^(tell me a joke|make me laugh|give me a riddle|say something funny|tell me a story|write a poem)/i, confidence: 0.95 },
@@ -24,8 +30,8 @@ const PATTERN_LIBRARY: PatternEntry[] = [
   // Incomplete test messages
   { pattern: /^(test|asdf|xyz|lol|haha|lmao|xd)/i, confidence: 0.85 },
 
-  // Very short trivial acknowledgements (exact match only)
-  { pattern: /^(ok|okay|yeah|yes|no|sure|thanks|thank you|np|yep|nope)$/i, confidence: 0.8 },
+  // Trivial acknowledgements and backchannels (word boundary — also catches punctuation variants)
+  { pattern: /\b(ok|okay|alright|got it|i see|cool|right|yeah|yes|no|sure|thanks|thank you|np|yep|nope|uh huh|uh uh|mhm|mm|exactly|indeed|fine|whatever|absolutely|certainly|definitely|sounds good|for sure|totally|100)\b/i, confidence: 0.8 },
 ];
 
 // ─── Exported types ───────────────────────────────────────────────────────────
