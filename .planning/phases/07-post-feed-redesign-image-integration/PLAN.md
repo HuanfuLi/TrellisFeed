@@ -2,12 +2,134 @@
 
 **Post Feed Redesign & Image Integration**
 
+## ⚠️ CRITICAL GAP ANALYSIS
+
+### Current State (What's Wrong)
+The current implementation has a **critical mock fallback** that prevents real image generation:
+
+1. **NanoBananaProvider Issue:**
+   - Currently: Falls back to mock SVG table generation when no API key configured
+   - Problem: Generates SVG "tables" instead of real AI images
+   - Result: User never sees actual AI-generated images, only mock placeholder tables
+
+2. **Emoji Implementation Issue:**
+   - Currently: Emojis placed in fixed UI badge/corner
+   - Problem: Emojis NOT integrated into the actual image content
+   - Expected: Emojis should be part of the image prompt sent to API so AI includes them naturally in generated image
+
+3. **API Key Configuration Gap:**
+   - Currently: No mechanism to prompt user for API key in Settings
+   - Currently: No validation that API key is working before trying to generate
+   - Problem: Users don't know they need to configure API key
+   - Solution: Settings screen must have API key input fields with test/validate button
+
+### What Must Be Fixed (No Mock Allowed)
+
+**REQUIREMENT 1: Real API-Only Generation**
+- ❌ REJECT: Any SVG/mock generation as fallback
+- ✅ REQUIRE: Fail gracefully with clear error message if no API key
+- ✅ REQUIRE: Only use real Nano Banana API (or Gemini if configured)
+- ✅ REQUIRE: User explicitly knows API key is required
+
+**REQUIREMENT 2: Emoji in Generated Images**
+- ❌ REJECT: Fixed emoji badges in corners
+- ✅ REQUIRE: Emojis embedded in image prompt
+- ✅ REQUIRE: Nano Banana AI includes emojis naturally in generated image
+- ✅ REQUIRE: Multiple emojis (up to 2) per post when relevant
+
+**REQUIREMENT 3: API Key Management**
+- ✅ REQUIRE: Settings screen UI for Nano Banana API key input
+- ✅ REQUIRE: Settings screen UI for Gemini API key input
+- ✅ REQUIRE: Encrypted storage (Capacitor Preferences, not localStorage)
+- ✅ REQUIRE: Validation button to test API keys before saving
+- ✅ REQUIRE: Clear error messages if API keys invalid/expired
+
+### Implementation Changes Required
+
+#### Change 1: Remove Mock Fallback from NanoBananaProvider
+```typescript
+// WRONG (current):
+if (!this.isConfigured()) {
+  return this._mockResult(prompt, style);  // ❌ DELETE THIS
+}
+
+// CORRECT:
+if (!this.isConfigured()) {
+  return {
+    success: false,
+    error: {
+      code: 'API_KEY_NOT_CONFIGURED',
+      message: 'Nano Banana API key not configured. Add in Settings.',
+      retryable: false
+    }
+  };
+}
+```
+
+#### Change 2: Enforce Real API Calls Only
+- Remove `buildMockSvg()` function entirely
+- Remove `_mockResult()` method entirely
+- Keep only `_callWithRetry()` and `_callApi()`
+- If API fails, return error (don't fall back to mock)
+
+#### Change 3: Update FeedPostImage Component
+- Show helpful error state when API key missing:
+  ```
+  "🔑 API key needed to generate images.
+   Go to Settings → Image Generation → Add Nano Banana key"
+  ```
+- Show loading skeleton while generating
+- Show error with Settings link if generation fails
+
+#### Change 4: Add Settings UI for API Keys
+- In SettingsScreen.tsx, add "Image Generation" section
+- Input fields for:
+  - Nano Banana API key
+  - Gemini API key
+- Buttons:
+  - "Test Nano Banana Connection"
+  - "Test Gemini Connection"
+- Save to encrypted Capacitor Preferences
+- Load on app startup
+
+#### Change 5: Update Image Prompt to Include Emojis
+- buildImagePrompt() must include emojis in prompt text
+- Emojis should be part of description sent to API
+- Example: `"Create image with 🧠 and 🔗 in prominent text areas"`
+- AI will naturally incorporate emojis into generated image
+
+### Deliverables This Phase (Real Implementation)
+
+| Item | Status | Notes |
+|------|--------|-------|
+| Remove mock from NanoBananaProvider | TODO | Delete `buildMockSvg()`, `_mockResult()` |
+| Enforce real API only | TODO | Return proper errors if key missing |
+| Settings UI for API keys | TODO | SettingsScreen additions |
+| Encrypted preferences storage | TODO | Capacitor.Preferences for secure storage |
+| API key validation/testing | TODO | Test buttons in Settings |
+| Emoji-aware prompts | TODO | Emojis in API prompt text |
+| Error states in FeedPostImage | TODO | Show Settings link when needed |
+| E2E testing with real API | TODO | Test with actual Nano Banana key |
+
+### Success Criteria (No Mock)
+
+- [ ] No SVG mock generation anywhere in codebase
+- [ ] Nano Banana API called successfully with valid key
+- [ ] Images generated contain emoji text as requested
+- [ ] Graceful error messages when API key missing/invalid
+- [ ] Settings screen allows API key configuration
+- [ ] API keys stored securely (not in localStorage)
+- [ ] Feed shows real AI images (not tables/mocks)
+- [ ] Emojis are part of generated image (not separate badge)
+
+---
+
 ## Overview
 
-This phase transforms the Home Feed from a text-centric layout to an image-forward, Rednote-style design. We'll integrate AI image generation (Nano Banana + Gemini) with robust error handling and local caching.
+This phase transforms the Home Feed from a text-centric layout to an image-forward, Rednote-style design. We'll integrate REAL AI image generation (Nano Banana + Gemini) with robust error handling and local caching.
 
 **Estimated scope:** 5-7 working days  
-**Primary focus:** Image generation pipeline, component redesign, caching layer
+**Primary focus:** Real API integration, Settings UI, error handling, component redesign
 
 ---
 
@@ -23,24 +145,32 @@ This phase transforms the Home Feed from a text-centric layout to an image-forwa
   - `retrieveCachedImage(postId: string, style: string): Promise<GeneratedImage | null>`
   - `clearImageCache(): Promise<void>`
 - Add to dependency injection / service registry
-- **Acceptance:** Service exports all methods, no console errors on import
+- **CRITICAL:** NO mock fallback - return error if API key missing
+- **Acceptance:** Service exports all methods, no console errors, fails cleanly without API key
 
-#### T1.2: Nano Banana API Client
+#### T1.2: Nano Banana API Client (REAL API ONLY)
 - Create `src/providers/nanoBanana.provider.ts`
-- Implement API authentication (API key from user settings)
+- **DO NOT INCLUDE MOCK:** Delete any `buildMockSvg()` or mock SVG generation
+- Implement API authentication (API key from encrypted Capacitor Preferences)
 - Implement image generation with retry logic (3 attempts max)
-- Handle rate limiting gracefully (return error, don't crash)
-- Return structured response: `{ imageUrl | imageBase64, style, prompt }`
-- Add unit tests for success/failure paths
-- **Acceptance:** API client successfully generates image with valid key, handles errors without crashing
+  - Endpoint: `https://api.nanobanana.ai/v1/generate` (or correct endpoint)
+  - Method: POST with Bearer token auth
+  - Body: `{ prompt, style, width: 640, height: 400, output_format: 'url' }`
+- Handle rate limiting gracefully (429 responses with backoff)
+- Handle missing API key: return `{ success: false, error: { code: 'API_KEY_NOT_CONFIGURED', ... } }`
+- Return structured response when successful: `{ imageUrl | imageBase64, style, prompt, provider: 'nanoBanana' }`
+- Add unit tests for success/failure paths (using mock API responses for testing)
+- **Acceptance:** Real Nano Banana API called successfully with valid key, proper errors when key missing
 
-#### T1.3: Gemini API Client
+#### T1.3: Gemini API Client (REAL API ONLY)
 - Create `src/providers/gemini.provider.ts`
-- Implement Google Gemini API integration (official SDK or REST)
+- **DO NOT INCLUDE MOCK:** Only real API calls
+- Implement Google Gemini API integration using official SDK or REST endpoint
 - Mirror Nano Banana interface for consistency
 - Implement as fallback provider (try Gemini if Nano Banana fails)
+- Handle missing API key gracefully
 - Add unit tests
-- **Acceptance:** Gemini client successfully generates images, integrates as fallback
+- **Acceptance:** Gemini client successfully calls real API, fallback logic works
 
 #### T1.4: Image Caching Layer
 - Extend `src/services/storage.service.ts` with image caching methods
@@ -51,81 +181,118 @@ This phase transforms the Home Feed from a text-centric layout to an image-forwa
 - Add cache stats: `getCacheStats(): { size, itemCount, oldestItem }`
 - **Acceptance:** Images persist across app restarts, cache size stays below limit
 
-### Wave 2: UI Components & Layout (Days 2-3)
+#### T1.5: Encrypted API Key Storage (NEW TASK)
+- Use Capacitor.Preferences for secure storage (not localStorage)
+- Store: `nanoBanana.apiKey` and `gemini.apiKey`
+- Retrieve in ImageGenerationService startup
+- Never log or expose API keys
+- **Acceptance:** API keys stored securely, loaded on app startup
 
-#### T2.1: FeedPostImage Component
-- Create `src/components/Screens/FeedPostImage.tsx`
+### Wave 2: UI Components & Settings (Days 2-3)
+
+#### T2.1: Settings UI for API Keys (CRITICAL - NEW TASK)
+- Update `src/screens/SettingsScreen.tsx`
+- Add "Image Generation" section with:
+  - Input field for Nano Banana API key (password field, masked)
+  - Input field for Gemini API key (password field, masked)
+  - "Test Nano Banana Connection" button (makes test API call)
+  - "Test Gemini Connection" button (makes test API call)
+  - Status indicators: ✓ (working), ✗ (failed), - (not configured)
+  - Help text: "Get your API key from https://nanobanana.ai"
+- On save: Store to Capacitor.Preferences encrypted
+- On load: Retrieve from encrypted preferences
+- Show test result: "✓ Connection successful" or "✗ Invalid key"
+- **Acceptance:** User can enter API keys, test connection, save securely
+
+#### T2.2: FeedPostImage Component Error States
+- Create/update `src/components/FeedPostImage.tsx`
 - Design component with:
-  - Large image (200px+ height, responsive)
-  - Emoji + title overlay (white text, semi-transparent background behind text)
   - Loading skeleton while image generates
-  - Error state with retry button
+  - Success state: Show generated image
+  - Error state 1: "API key not configured" with Settings link button
+  - Error state 2: "Image generation failed: {error message}" with Retry button
+  - Error state 3: "Rate limited - retrying in Xs..."
   - Optimized for mobile (safe area aware)
 - Use Tailwind CSS 4 + Framer Motion for smooth transitions
-- **Acceptance:** Component renders correctly on mobile (375px, 600px+ widths), loading/error states visible
+- **Acceptance:** Component renders correctly, error states have Settings/Retry links
 
-#### T2.2: Post Formatting Service
-- Create `src/services/postFormatting.service.ts`
+#### T2.3: Post Formatting Service (Emoji-Aware)
+- Create/update `src/services/postFormatting.service.ts`
 - Implement `generateOverlayText(post): { emoji, title }` logic
-  - Extract category emoji (e.g., 🧠 for learning, 📚 for books)
+  - Extract up to 2 category emojis (e.g., 🧠 for learning, 📚 for books)
+  - Emojis should be INCLUDED IN PROMPT TEXT for API
   - Shorten title to 50 chars with ellipsis
-  - Combine into overlay: `{emoji} {title}`
+  - Combine into prompt: `"Create image with ${emoji1} and ${emoji2} in text"`
 - Add style inference: `inferImageStyle(post): 'infograph' | 'illustration' | 'photo'`
   - Use post category or content length
   - Alternate styles across posts in feed
-- **Acceptance:** Overlay text is readable, styles rotate visibly across feed
-
-#### T2.3: Update FeedPost Component
-- Modify `src/components/Screens/FeedPost.tsx`
-- Replace text-only preview with `FeedPostImage` component
-- Wire up image generation on post load:
-  - Check cache first
-  - Trigger generation async
-  - Show loading state while generating
-  - Handle errors gracefully
-- Maintain backward compatibility (fallback to text if image fails)
-- **Acceptance:** Feed posts display images, no visual regressions
+- **CRITICAL:** Emojis go IN the prompt, NOT as separate badge
+- **Acceptance:** Emoji text is readable in prompt, styles rotate visibly
 
 #### T2.4: FeedScreen Integration
-- Update `src/screens/FeedScreen.tsx`
-- Pass new image props through FeedPost → FeedPostImage
-- Add error boundary around image generation failures
+- Update `src/screens/HomeScreen.tsx` or `src/components/InfoFlow.tsx`
+- Pass image generation method through FeedPost → FeedPostImage
+- Wire up image generation on post load:
+  - Call ImageGenerationService.generateImage()
+  - Show loading skeleton while generating
+  - Trigger generation async (don't block UI)
+  - Handle errors gracefully
+  - Maintain backward compatibility (graceful degradation if image fails)
 - Test with 20+ posts in scroll (performance check)
-- **Acceptance:** Feed scrolls smoothly with images, no jank or crashes
+- **Acceptance:** Feed posts display images, no visual regressions, 60 fps scroll
 
-### Wave 3: API Integration & Error Handling (Days 3-4)
+### Wave 3: Real API Integration & Error Handling (Days 3-4)
 
-#### T3.1: Nano Banana Integration
-- Add `NANO_BANANA_API_KEY` to user settings (Settings screen)
-- Connect `NanoBananaProvider` to `ImageGenerationService`
-- Implement request/response validation
-- Add logging for debugging (but no sensitive data)
-- Test with real API (or mock if quota limited)
-- **Acceptance:** Images generate successfully with valid API key, errors handled gracefully
+#### T3.1: Nano Banana Real API Integration
+- Implement actual HTTP calls to Nano Banana API endpoint
+- **NO MOCK:** Remove any SVG generation fallback
+- API endpoint: Contact Nano Banana for correct endpoint/pricing
+- Request format:
+  ```json
+  {
+    "prompt": "Create image with 🧠 Memory & 🔗 Connections - showing neural pathways...",
+    "style": "infograph",
+    "width": 640,
+    "height": 400,
+    "output_format": "url"
+  }
+  ```
+- Response parsing: Extract `image_url` or `image_base64`
+- Error handling:
+  - 401/403: API key invalid → return error with code 'API_KEY_INVALID'
+  - 429: Rate limited → implement exponential backoff (1s → 2s → 4s)
+  - 400: Bad request → return error with message
+  - Network error → return error with code 'NETWORK_ERROR'
+- Retry logic: Up to 3 attempts with exponential backoff
+- **Acceptance:** Real API calls succeed with valid key, errors handled without crashes
 
-#### T3.2: Gemini Fallback Integration
-- Add `GEMINI_API_KEY` to user settings
-- Connect `GeminiProvider` as secondary in `ImageGenerationService`
-- Implement fallback logic: if Nano Banana fails, try Gemini
-- Add timeout handling (max 15s per request)
-- **Acceptance:** Gemini generates images when Nano Banana fails/unavailable
+#### T3.2: Gemini Real API Integration
+- Implement actual calls to Google Gemini API
+- **NO MOCK:** Only real API calls
+- Use official Gemini SDK or REST endpoint
+- Handle API key authentication properly
+- Implement as fallback: Try Nano Banana first, then Gemini
+- Error handling mirrors Nano Banana
+- **Acceptance:** Gemini generates images on fallback
 
 #### T3.3: Error Handling & User Feedback
 - Implement error states in `FeedPostImage`:
-  - "Loading image..." (skeleton)
-  - "Image generation failed. [Retry]" (error state)
-  - "API key not configured" (if needed keys missing)
+  - "🔑 API key not configured" (with Settings link)
+  - "⚠️ Image generation failed: {error message}" (with Retry button)
+  - "⏳ Rate limited. Retrying in 5 seconds..."
+  - "❌ API error: Check your key in Settings"
 - Add toast notification for API errors
 - Implement retry logic (exponential backoff)
-- Log errors for debugging (non-sensitive)
-- **Acceptance:** All error states visible, retry works, user never sees blank posts
+- Log errors for debugging (never log API keys)
+- **Acceptance:** All error states visible, retry works, no crashes
 
 #### T3.4: Rate Limiting & Quota Management
 - Monitor API usage (requests per minute, daily quota)
-- Show warning if approaching limits
-- Gracefully handle 429/quota errors
-- Add cache stats display in Settings
-- **Acceptance:** No crashes from rate limiting, user aware of quota status
+- Show status in Settings: "Used 5/100 images today"
+- Detect 429 responses and implement backoff
+- Prevent requests if quota nearly exhausted
+- Show warning: "Approaching daily limit"
+- **Acceptance:** No crashes from rate limiting, user aware of quota
 
 ### Wave 4: Caching & Performance (Days 4-5)
 
