@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
-import type { BlindboxItem, DailyPost, Question } from '../types';
+import type { BlindboxItem, DailyPost, GeneratedImage, Question } from '../types';
+import { FeedPostImage } from './FeedPostImage';
+import { imageGenerationService } from '../services/imageGeneration.service';
+import { generateOverlayText, inferImageStyle, buildImagePrompt } from '../services/postFormatting.service';
 
 export type InfoFlowItem =
   | { kind: 'concept'; post: DailyPost }
@@ -29,12 +32,63 @@ const FALLBACK_BADGE = { label: 'Daily', color: '#558B2F' };
 
 interface ConceptCardProps {
   post: DailyPost;
+  /** 0-based feed index — used to rotate image styles across the feed. */
+  feedIndex?: number;
   isActive: boolean;
   onOpen: (postId: string, post: DailyPost) => void;
 }
 
-function ConceptCard({ post, isActive, onOpen }: ConceptCardProps) {
+function ConceptCard({ post, feedIndex = 0, isActive, onOpen }: ConceptCardProps) {
   const badge = CONCEPT_BADGE_META[post.sourceType] ?? FALLBACK_BADGE;
+
+  // ── Image generation state ──────────────────────────────────────────────────
+  const [image, setImage] = useState<GeneratedImage | null>(null);
+  const [imageLoading, setImageLoading] = useState(true);
+  const [imageError, setImageError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const style = inferImageStyle(post, feedIndex);
+    const prompt = buildImagePrompt(post);
+
+    setImageLoading(true);
+    setImageError(null);
+
+    void imageGenerationService.generateImage(post.id, prompt, style).then((result) => {
+      if (cancelled) return;
+      if (result.success && result.data) {
+        setImage(result.data);
+        setImageError(null);
+      } else {
+        setImageError(result.error?.message ?? 'Image generation failed');
+      }
+      setImageLoading(false);
+    });
+
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [post.id, feedIndex]);
+
+  const handleRetryImage = () => {
+    const style = inferImageStyle(post, feedIndex);
+    const prompt = buildImagePrompt(post);
+    setImage(null);
+    setImageLoading(true);
+    setImageError(null);
+    void imageGenerationService.generateImage(post.id, prompt, style).then((result) => {
+      if (result.success && result.data) {
+        setImage(result.data);
+        setImageError(null);
+      } else {
+        setImageError(result.error?.message ?? 'Image generation failed');
+      }
+      setImageLoading(false);
+    });
+  };
+
+  const { emoji: overlayEmoji, title: overlayTitle } = generateOverlayText(post);
+  // ── End image state ─────────────────────────────────────────────────────────
 
   return (
     <div
@@ -74,8 +128,8 @@ function ConceptCard({ post, isActive, onOpen }: ConceptCardProps) {
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
-          gap: '24px',
-          padding: '28px 20px 24px',
+          gap: '20px',
+          padding: '0 0 20px',
           borderRadius: 'var(--radius-xl)',
           background: 'linear-gradient(180deg, color-mix(in srgb, var(--primary-80) 20%, var(--surface-container-high)), var(--surface-container-high))',
           border: '1.5px solid color-mix(in srgb, var(--primary-40) 22%, var(--border))',
@@ -83,28 +137,41 @@ function ConceptCard({ post, isActive, onOpen }: ConceptCardProps) {
           transition: 'transform 0.18s ease, background 0.25s ease',
           textAlign: 'left',
           animation: isActive ? 'card-slide-in 0.35s ease' : 'none',
+          overflow: 'hidden',
         }}
       >
-        <div>
+        {/* Image-forward header — replaces text-only hook */}
+        <FeedPostImage
+          imageData={image}
+          isLoading={imageLoading}
+          error={imageError}
+          onRetry={handleRetryImage}
+          overlayEmoji={overlayEmoji}
+          overlayTitle={overlayTitle}
+          minHeight={200}
+        />
+
+        <div style={{ padding: '0 20px' }}>
           <p
             style={{
-              fontSize: '1.45rem',
+              fontSize: '1.2rem',
               fontWeight: 800,
-              lineHeight: 1.2,
+              lineHeight: 1.25,
               color: 'var(--foreground)',
-              marginBottom: '14px',
+              marginBottom: '10px',
               textWrap: 'balance',
             }}
           >
             {post.teaser.hook}
           </p>
-          <p style={{ fontSize: '0.98rem', color: 'var(--foreground)', lineHeight: 1.68, opacity: 0.92 }}>
+          <p style={{ fontSize: '0.9rem', color: 'var(--foreground)', lineHeight: 1.6, opacity: 0.88 }}>
             {post.teaser.preview}
           </p>
         </div>
 
         <div
           style={{
+            margin: '0 20px',
             padding: '14px 16px',
             borderRadius: '18px',
             backgroundColor: 'color-mix(in srgb, var(--surface) 65%, white)',
@@ -119,7 +186,7 @@ function ConceptCard({ post, isActive, onOpen }: ConceptCardProps) {
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+        <div style={{ padding: '0 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
             {post.keywords.slice(0, 3).map((keyword) => (
               <span
@@ -479,7 +546,7 @@ export function ImmersiveInfoFlow({ items, onOpenConnection, onClose, onOpenPost
               }}
             >
               {item.kind === 'concept' ? (
-                <ConceptCard post={item.post} isActive={index === activeIndex} onOpen={onOpenPost} />
+                <ConceptCard post={item.post} feedIndex={index} isActive={index === activeIndex} onOpen={onOpenPost} />
               ) : item.kind === 'connection' ? (
                 <ConnectionCard
                   questionA={item.questionA}
@@ -587,7 +654,7 @@ export function InlineInfoFlow({ items, onOpenConnection, showConnectionScores =
               }}
             >
               {item.kind === 'concept' ? (
-                <ConceptCard post={item.post} isActive={true} onOpen={onOpenPost} />
+                <ConceptCard post={item.post} feedIndex={index} isActive={true} onOpen={onOpenPost} />
               ) : item.kind === 'connection' ? (
                 <ConnectionCard
                   questionA={item.questionA}

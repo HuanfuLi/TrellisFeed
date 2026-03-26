@@ -18,6 +18,7 @@ import { PostDetailScreen } from './screens/PostDetailScreen';
 import { mockSettingsService } from './services/mock/settings.mock';
 import { hydrateFromSQLite } from './services/question.service';
 import { hydratePlannerFromSQLite } from './services/planner.service';
+import { bootstrapImageGeneration } from './services/imageGeneration.bootstrap';
 import { applyTheme } from './lib/theme';
 import { PageTransition } from './components/PageTransition';
 import { startVoiceRecording, stopVoiceRecording, MicPermissionDeniedError } from './lib/voice-recorder';
@@ -185,6 +186,8 @@ export default function App() {
   useEffect(() => {
     void hydrateFromSQLite();
     void hydratePlannerFromSQLite();
+    // Bootstrap image generation providers with keys from user settings.
+    bootstrapImageGeneration();
   }, []);
 
   // Keep theme in sync when the OS switches between light/dark while app is open

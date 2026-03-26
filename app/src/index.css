@@ -333,6 +333,12 @@
   to   { transform: translateY(0);    opacity: 1;   }
 }
 
+/* Skeleton shimmer sweep for image loading state */
+@keyframes shimmer {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
 /* Card entering the viewport */
 @keyframes card-slide-in {
   from { opacity: 0; transform: translateY(16px) scale(0.97); }
