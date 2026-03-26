@@ -159,11 +159,16 @@ export type PodcastStatus = 'pending' | 'generating' | 'ready' | 'failed';
 // SETTINGS DOMAIN
 // ═══════════════════════════════════════════════════════════════════════════
 
+/** Which provider takes priority when generating images. */
+export type ImageProviderPrimary = 'nanoBanana' | 'gemini' | 'auto';
+
 export interface ImageGenerationSettings {
   nanoBananaApiKey: string;
   geminiApiKey: string;
   maxCacheSizeMb: number;
   cacheTtlDays: number;
+  /** Provider order preference. 'auto' tries both based on key availability. */
+  primaryProvider: ImageProviderPrimary;
 }
 
 export interface AppSettings {

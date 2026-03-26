@@ -56,6 +56,7 @@ const defaultSettings: AppSettings = {
     geminiApiKey: '',
     maxCacheSizeMb: 50,
     cacheTtlDays: 30,
+    primaryProvider: 'auto' as const,
   },
 };
 

@@ -5,7 +5,7 @@ import { Button } from '../components/ui/Button';
 import { mockSettingsService } from '../services/mock/settings.mock';
 import { testLLMConnection } from '../providers/llm';
 import { testTTSConnection } from '../providers/tts';
-import type { LLMConfig, TTSConfig, EmbeddingConfig, EmbeddingDebugConfig, AppSettings, ImageGenerationSettings } from '../types';
+import type { LLMConfig, TTSConfig, EmbeddingConfig, EmbeddingDebugConfig, AppSettings, ImageGenerationSettings, ImageProviderPrimary } from '../types';
 import { imageGenerationService } from '../services/imageGeneration.service';
 import { bootstrapImageGeneration } from '../services/imageGeneration.bootstrap';
 import { toast } from '../lib/toast';
@@ -671,6 +671,21 @@ export function SettingsScreen() {
         <p style={{ fontSize: '0.8rem', color: 'var(--muted-foreground)', marginBottom: '12px', lineHeight: 1.5 }}>
           AI-generated images for feed posts. Add API keys to enable real generation; mock placeholders are used when keys are absent.
         </p>
+        <SettingRow label="Primary Provider" description="Which provider to use first when generating images">
+          <SelectInput
+            value={imageGen.primaryProvider ?? 'auto'}
+            onChange={(v) => {
+              const next = { ...imageGen, primaryProvider: v as ImageProviderPrimary };
+              setImageGen(next);
+              void saveImageGen(next);
+            }}
+            options={[
+              { value: 'auto', label: 'Auto (use available keys)' },
+              { value: 'nanoBanana', label: 'Nano Banana (primary)' },
+              { value: 'gemini', label: 'Gemini' },
+            ]}
+          />
+        </SettingRow>
         <SettingRow label="Nano Banana API Key" description="Primary image provider (nanobanana.ai)">
           <TextInput
             type="password"
