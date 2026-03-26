@@ -126,7 +126,7 @@ function ImageError({
       </p>
       {onRetry && (
         <button
-          onClick={onRetry}
+          onClick={(e) => { e.stopPropagation(); onRetry(); }}
           style={{
             marginTop: '4px',
             padding: '8px 20px',
