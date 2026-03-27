@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
-status: Executing Phase 10
-stopped_at: Completed 10-02-PLAN.md (Gap Closure — useDailyRefresh Wiring + Settings Persistence)
-last_updated: "2026-03-27T20:55:00Z"
+status: Phase 10 Complete
+stopped_at: Completed 10-03-PLAN.md (UAT Gap Closure — Unified Suggested Moves Section)
+last_updated: "2026-03-27T21:30:00Z"
 progress:
   total_phases: 5
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 3
-  completed_plans: 2
+  completed_plans: 3
 ---
 
 # Project State: Milestone 1.1
@@ -55,10 +55,16 @@ Phase 9 - Image Regeneration & Error Handling (next to start)
 - [Phase 10-02] useDailyRefresh called without return capture in PlannerScreen to satisfy noUnusedLocals TypeScript config
 - [Phase 10-02] savePlannerRefreshEnabled/Time wrappers persist settings immediately to localStorage on every change
 
+## Latest Decisions (Phase 10-03)
+
+- [Phase 10-03] totalSuggestions hoisted to component level (not IIFE) so CTA can reference it outside the section block
+- [Phase 10-03] handleSkipAll wraps skipAll() + toast so UAT Test 6 Skip All toast is verifiable
+- [Phase 10-03] Refresh button always rendered (no autoMoves.length guard) so UAT Test 7 Refresh is always accessible
+
 ## Last Session
 
-Completed Phase 10 plan 02 (10-02-PLAN.md) — Gap Closure (useDailyRefresh Wiring + Settings Persistence)
-**Stopped At:** Completed 10-02-PLAN.md (Gap Closure — useDailyRefresh Wiring + Settings Persistence)
+Completed Phase 10 plan 03 (10-03-PLAN.md) — UAT Gap Closure (Unified Suggested Moves Section)
+**Stopped At:** Completed 10-03-PLAN.md (UAT Gap Closure — Unified Suggested Moves Section)
 **Date:** 2026-03-27
 
 ### Phase 9: SKIPPED
