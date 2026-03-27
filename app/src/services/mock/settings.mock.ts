@@ -51,6 +51,13 @@ const defaultSettings: AppSettings = {
     onboardingCompleted: false,
     aiConsentGiven: false,
   },
+  imageGeneration: {
+    nanoBananaApiKey: '',
+    geminiApiKey: '',
+    maxCacheSizeMb: 50,
+    cacheTtlDays: 30,
+    primaryProvider: 'auto' as const,
+  },
 };
 
 function deepMerge(defaults: AppSettings, stored: Partial<AppSettings>): AppSettings {

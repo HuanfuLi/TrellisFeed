@@ -410,6 +410,52 @@ export interface SessionOrigin {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// IMAGE GENERATION DOMAIN
+// ═══════════════════════════════════════════════════════════════════════════
+
+export type ImageStyle = 'infograph' | 'illustration' | 'photo';
+export type ImageProvider = 'nanoBanana' | 'gemini' | 'mock';
+
+export interface GeneratedImage {
+  id: string;
+  postId: string;
+  prompt: string;
+  style: ImageStyle;
+  imageUrl?: string;       // Remote URL (if from provider)
+  imageBase64?: string;    // Local cache (base64 data URI)
+  provider: ImageProvider;
+  generatedAt: number;
+  cachedAt?: number;
+  error?: string;
+}
+
+export interface ImageCacheMetadata {
+  postId: string;
+  style: ImageStyle;
+  provider: ImageProvider;
+  generatedAt: number;
+  cachedAt: number;
+  expiresAt: number;
+  sizeBytes: number;
+}
+
+export interface CacheStats {
+  totalSizeBytes: number;
+  itemCount: number;
+  oldestItemAt: number | null;
+  newestItemAt: number | null;
+}
+
+export interface ImageGenerationConfig {
+  nanoBananaApiKey?: string;
+  geminiApiKey?: string;
+  maxCacheSizeBytes: number;
+  cacheTtlMs: number;
+  requestTimeoutMs: number;
+  maxRetries: number;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // SHARED RESPONSE TYPE
 // ═══════════════════════════════════════════════════════════════════════════
 
