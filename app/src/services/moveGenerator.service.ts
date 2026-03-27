@@ -1,125 +1,130 @@
 /**
- * Phase 10: Move Generator Service
- * Converts scored concepts to PlannedMove objects with appropriate move types and linked resources.
+ * Move Generation Logic
+ *
+ * Transforms ranked concept nodes into typed PlannedMove objects.
+ * Each concept gets one move type based on its learning status:
+ *
+ *   review    — concept has flashcards due for review
+ *   deepdive  — concept has related posts to explore
+ *   connection — concept has related nodes to connect
+ *   podcast   — weak area; AI podcast would reinforce it
  */
 
-import type { TrajectorySignal, PlannedMove, MoveType } from '../types/planner';
-import { questionService } from './question.service';
+import type { Question, TrajectorySignal, PlannedMove, PlannedMoveType } from '../types';
 import { flashcardService } from './flashcard.service';
-import { suggestionScorer } from './suggestionScorer.service';
+import { today } from '../lib/date';
 
-// ─── Description map ──────────────────────────────────────────────────────
+// ── Move type determination ────────────────────────────────────────────────
 
-const REASON_MAP: Record<MoveType, string> = {
-  review: 'Revisit this weak area to strengthen your recall.',
-  deepdive: 'This topic keeps coming up — explore it in depth.',
-  connection: 'This concept has multiple connections — map them out.',
-  podcast: 'Listen to a podcast segment to reinforce this topic.',
+function decideMoveType(concept: Question, signals: TrajectorySignal): PlannedMoveType {
+  // If it's a weak area, suggest a podcast to deepen understanding.
+  if (signals.weakAreas.includes(concept.id)) return 'podcast';
+
+  // If flashcard is due or concept hasn't been reviewed recently, suggest review.
+  const allCards = flashcardService.getAll();
+  const conceptCards = allCards.filter((c) => c.nodeId === concept.id);
+  const hasDueCard = conceptCards.some((c) => c.reviewSchedule.nextReviewDate <= today());
+  if (hasDueCard) return 'review';
+
+  // If concept has related nodes, suggest exploring connections.
+  if (concept.relatedQuestionIds.length > 0) return 'connection';
+
+  // Otherwise suggest a deep dive via the feed post.
+  return 'deepdive';
+}
+
+// ── Reason generation ──────────────────────────────────────────────────────
+
+function buildReason(
+  moveType: PlannedMoveType,
+  concept: Question,
+  score: number,
+): string {
+  const daysSinceReview = concept.lastReviewedAt
+    ? Math.round((Date.now() - concept.lastReviewedAt) / (24 * 60 * 60 * 1000))
+    : null;
+
+  switch (moveType) {
+    case 'review':
+      return daysSinceReview !== null && daysSinceReview > 0
+        ? `Time to review: ${daysSinceReview} day${daysSinceReview !== 1 ? 's' : ''} ago`
+        : 'Flashcard due for review';
+    case 'deepdive':
+      return score >= 70
+        ? 'High relevance to your current learning path'
+        : 'Explore this concept further';
+    case 'connection':
+      return `${concept.relatedQuestionIds.length} related concept${concept.relatedQuestionIds.length !== 1 ? 's' : ''} to connect`;
+    case 'podcast':
+      return 'This area needs reinforcement — listen to solidify';
+  }
+}
+
+// ── Time estimates ─────────────────────────────────────────────────────────
+
+const MOVE_TIME_MS: Record<PlannedMoveType, number> = {
+  review: 5 * 60 * 1000,       // 5 min
+  deepdive: 10 * 60 * 1000,    // 10 min
+  connection: 7 * 60 * 1000,   // 7 min
+  podcast: 15 * 60 * 1000,     // 15 min
 };
 
-// ─── ID counter ───────────────────────────────────────────────────────────
+// ── Linked resource ────────────────────────────────────────────────────────
+
+function buildLinkedResource(
+  moveType: PlannedMoveType,
+  concept: Question,
+): PlannedMove['linkedResource'] {
+  switch (moveType) {
+    case 'review':
+      return { type: 'review', id: concept.id };
+    case 'deepdive':
+      return { type: 'post', id: concept.id };
+    case 'connection':
+      return { type: 'question', id: concept.id };
+    case 'podcast':
+      return { type: 'question', id: concept.id };
+  }
+}
+
+// ── ID generation ──────────────────────────────────────────────────────────
 
 let idCounter = 0;
+function newMoveId(): string {
+  return `move-${Date.now()}-${++idCounter}`;
+}
 
-// ─── Service ──────────────────────────────────────────────────────────────
+// ── Public API ─────────────────────────────────────────────────────────────
 
-export const moveGenerator = {
-  /**
-   * Generate PlannedMove objects from a list of scored concept IDs.
-   * Each move has a type, goal, linked resource, and relevance score.
-   */
-  generateMoves(conceptIds: string[], signals: TrajectorySignal): PlannedMove[] {
-    const moves: PlannedMove[] = [];
-    const now = Date.now();
+/**
+ * Generate PlannedMove objects from a ranked list of concept nodes.
+ *
+ * @param rankedConcepts  - Output from `rankConcepts()`.
+ * @param signals         - User trajectory (needed for reason text).
+ * @returns               Array of PlannedMove ready for storage.
+ */
+export function generateMoves(
+  rankedConcepts: Array<{ concept: Question; score: number }>,
+  signals: TrajectorySignal,
+): PlannedMove[] {
+  const now = Date.now();
 
-    for (let index = 0; index < conceptIds.length; index++) {
-      const conceptId = conceptIds[index];
-      const concept = questionService.getAll().find(q => q.id === conceptId);
-      if (!concept) continue; // skip missing concepts
+  return rankedConcepts.map(({ concept, score }) => {
+    const moveType = decideMoveType(concept, signals);
+    const reason = buildReason(moveType, concept, score);
 
-      const score = suggestionScorer.scoreMove(conceptId, signals);
-
-      // ── Determine move type ─────────────────────────────────────────
-      let moveType: MoveType = 'review'; // default
-
-      if (signals.weakAreas.includes(conceptId) && score > 70) {
-        moveType = 'review'; // critical review for weak areas
-      } else if ((concept.relatedQuestionIds?.length ?? 0) > 2) {
-        moveType = 'connection'; // explore connections
-      } else if (signals.questionFrequency > 3) {
-        moveType = 'deepdive'; // deep dive into active topic
-      }
-
-      // ── Determine linked resource ───────────────────────────────────
-      let linkedResource: PlannedMove['linkedResource'] | undefined;
-
-      if (moveType === 'review') {
-        const cardId = this._findReviewCardFor(conceptId);
-        if (cardId) {
-          linkedResource = { type: 'review', id: cardId };
-        }
-      } else if (moveType === 'connection') {
-        const relatedId = concept.relatedQuestionIds?.[0];
-        if (relatedId) {
-          linkedResource = { type: 'question', id: relatedId };
-        }
-      } else if (moveType === 'deepdive') {
-        const postId = this._findRelatedPost(conceptId);
-        linkedResource = postId
-          ? { type: 'post', id: postId }
-          : { type: 'question', id: conceptId };
-      }
-
-      // ── Build PlannedMove object ────────────────────────────────────
-      const icon = this._getMoveIcon(moveType);
-      const title = concept.title ?? concept.content.slice(0, 50);
-
-      const move: PlannedMove = {
-        id: `move-${conceptId}-${now}-${++idCounter}`,
-        type: 'retrieve',
-        goal: `${icon} ${title}`,
-        description: REASON_MAP[moveType],
-        linkedConceptIds: [conceptId],
-        status: 'suggested',
-        createdAt: now,
-        updatedAt: now,
-        moveType,
-        relevanceScore: score,
-        linkedResource,
-        isAutoGenerated: true,
-      };
-
-      moves.push(move);
-    }
-
-    return moves;
-  },
-
-  /** Return emoji icon for a move type. */
-  _getMoveIcon(moveType: string): string {
-    const icons: Record<string, string> = {
-      review: '📚',
-      deepdive: '🔗',
-      connection: '🎯',
-      podcast: '🎙️',
+    return {
+      id: newMoveId(),
+      title: concept.title ?? concept.summary ?? concept.content.slice(0, 60),
+      conceptId: concept.id,
+      keywords: concept.keywords.slice(0, 4),
+      moveType,
+      relevanceScore: score,
+      reason,
+      targetTime: MOVE_TIME_MS[moveType],
+      linkedResource: buildLinkedResource(moveType, concept),
+      isAutoGenerated: true,
+      createdAt: now,
     };
-    return icons[moveType] ?? '📝';
-  },
-
-  /** Find the flashcard ID for a given concept ID. Returns null if not found. */
-  _findReviewCardFor(conceptId: string): string | null {
-    const allCards = flashcardService.getAll();
-    // Best effort: find a card whose session might relate to this concept
-    const card = allCards.find(c =>
-      c.sessionId.includes(conceptId) || conceptId.includes(c.sessionId),
-    );
-    return card ? card.id : null;
-  },
-
-  /** Find a related post ID for a given concept ID via conceptFeedService. Returns null if not found. */
-  _findRelatedPost(_conceptId: string): string | null {
-    // Future: query conceptFeedService for posts linked to this concept
-    // For MVP: return null (post link is optional)
-    return null;
-  },
-};
+  });
+}

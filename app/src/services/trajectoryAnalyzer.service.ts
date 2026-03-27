@@ -1,149 +1,161 @@
 /**
- * Phase 10: Trajectory Analyzer Service
- * Aggregates learning signals from review/question/engagement data.
- * Signals are cached for 6 hours to avoid expensive recalculation.
+ * Trajectory Signal Aggregation
+ *
+ * Collects learning signals from review history, question activity, feed
+ * engagement, and knowledge graph to produce a TrajectorySignal snapshot.
+ * Signals are cached for 6 hours to avoid redundant recalculation.
  */
 
-import type { TrajectorySignal } from '../types/planner';
+import type { TrajectorySignal } from '../types';
 import { questionService } from './question.service';
 import { flashcardService } from './flashcard.service';
 
-// ─── Cache types ──────────────────────────────────────────────────────────
+// ── Cache ──────────────────────────────────────────────────────────────────
 
-interface TrajectoryCache {
-  signal: TrajectorySignal;
-  timestamp: number;
+const SIGNAL_CACHE_KEY = 'echolearn_trajectory_signals';
+const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
+
+interface CachedSignals {
+  signals: TrajectorySignal;
+  computedAt: number;
 }
 
-// ─── Service ──────────────────────────────────────────────────────────────
+function loadCache(): CachedSignals | null {
+  try {
+    const raw = localStorage.getItem(SIGNAL_CACHE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as CachedSignals;
+  } catch {
+    return null;
+  }
+}
 
-export const trajectoryAnalyzer = {
-  _cacheKey: 'echolearn_trajectory_signals',
-  _cacheTTL: 6 * 3600 * 1000, // 6 hours in milliseconds
+function saveCache(signals: TrajectorySignal): void {
+  try {
+    const cached: CachedSignals = { signals, computedAt: Date.now() };
+    localStorage.setItem(SIGNAL_CACHE_KEY, JSON.stringify(cached));
+  } catch { /* ignore storage errors */ }
+}
 
+function isCacheValid(cached: CachedSignals): boolean {
+  return Date.now() - cached.computedAt < CACHE_TTL_MS;
+}
+
+// ── Feed engagement tracking ───────────────────────────────────────────────
+
+const FEED_VIEWS_KEY = 'echolearn_feed_views';
+
+interface FeedViewEntry {
+  questionId: string;
+  viewedAt: number;
+}
+
+function loadFeedViews(): FeedViewEntry[] {
+  try {
+    const raw = localStorage.getItem(FEED_VIEWS_KEY);
+    return raw ? (JSON.parse(raw) as FeedViewEntry[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Record a feed post view for trajectory tracking. */
+export function recordFeedView(questionId: string): void {
+  try {
+    const views = loadFeedViews();
+    // Keep only last 7 days and cap at 200 entries
+    const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const pruned = views.filter((v) => v.viewedAt > cutoff).slice(-199);
+    pruned.push({ questionId, viewedAt: Date.now() });
+    localStorage.setItem(FEED_VIEWS_KEY, JSON.stringify(pruned));
+    // Invalidate cache
+    localStorage.removeItem(SIGNAL_CACHE_KEY);
+  } catch { /* ignore */ }
+}
+
+// ── Signal computation ─────────────────────────────────────────────────────
+
+function computeReviewPerformance(cards: ReturnType<typeof flashcardService.getAll>): number {
+  // easeFactor ranges 1.3 – 3.0; default is 2.5. We scale to 0-100.
+  // Higher easeFactor = better performance.
+  if (cards.length === 0) return 50; // neutral fallback
+
+  const reviewed = cards.filter((c) => c.reviewSchedule.reviewCount > 0);
+  if (reviewed.length === 0) return 50;
+
+  const avgEF = reviewed.reduce((sum, c) => sum + c.reviewSchedule.easeFactor, 0) / reviewed.length;
+  // Map 1.3..3.0 → 0..100
+  return Math.round(((avgEF - 1.3) / (3.0 - 1.3)) * 100);
+}
+
+function computeTimeSinceLastReview(questions: ReturnType<typeof questionService.getAll>): number {
+  const timestamps = questions
+    .map((q) => q.lastReviewedAt ?? 0)
+    .filter((t) => t > 0);
+
+  if (timestamps.length === 0) return Infinity;
+  return Date.now() - Math.max(...timestamps);
+}
+
+function computeConceptCoverage(questions: ReturnType<typeof questionService.getAll>): number {
+  if (questions.length === 0) return 0;
+  const reviewed = questions.filter((q) => q.lastReviewedAt && q.lastReviewedAt > 0);
+  return Math.round((reviewed.length / questions.length) * 100);
+}
+
+function computeWeakAreas(
+  questions: ReturnType<typeof questionService.getAll>,
+  cards: ReturnType<typeof flashcardService.getAll>,
+): string[] {
+  // Weak areas = questions linked to flashcards with easeFactor < 1.8 (struggled)
+  const weakCardNodeIds = new Set(
+    cards
+      .filter((c) => c.reviewSchedule.easeFactor < 1.8 && c.nodeId)
+      .map((c) => c.nodeId as string),
+  );
+
+  return questions
+    .filter((q) => weakCardNodeIds.has(q.id))
+    .map((q) => q.id)
+    .slice(0, 5);
+}
+
+// ── Public API ─────────────────────────────────────────────────────────────
+
+export const trajectoryAnalyzerService = {
   /**
-   * Aggregate learning signals from all data sources.
-   * Returns cached signals if within TTL, otherwise recalculates.
+   * Compute trajectory signals from current user data.
+   * Returns cached result if computed within the last 6 hours.
    */
-  aggregateSignals(): TrajectorySignal {
-    const cached = this._getCache();
-    if (cached) return cached;
-
-    const allQuestions = questionService.getAll();
-    const allCards = flashcardService.getAll();
-    const weekAgo = Date.now() - 7 * 86400000;
-
-    // ── Review performance ─────────────────────────────────────────────
-    // Avg correctness on all cards with at least 1 review (easeFactor >= 2.5 = correct)
-    const dueCards = allCards.filter(c => c.reviewSchedule.reviewCount > 0 ||
-      new Date(c.reviewSchedule.nextReviewDate).getTime() <= Date.now());
-    let reviewPerformance = 50; // neutral fallback
-    if (dueCards.length > 0) {
-      const correct = dueCards.filter(c => c.reviewSchedule.easeFactor >= 2.5).length;
-      reviewPerformance = Math.round((correct / dueCards.length) * 100);
+  aggregateSignals(forceRefresh = false): TrajectorySignal {
+    if (!forceRefresh) {
+      const cached = loadCache();
+      if (cached && isCacheValid(cached)) return cached.signals;
     }
 
-    // ── Question frequency ─────────────────────────────────────────────
-    const questionFrequency = allQuestions.filter(q => q.createdAt >= weekAgo).length;
+    const questions = questionService.getAll();
+    const cards = flashcardService.getAll();
+    const feedViews = loadFeedViews();
+    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
 
-    // ── Time since last review ─────────────────────────────────────────
-    // Max time elapsed since any card's next review date was passed
-    let timeSinceLastReview = 30 * 86400000; // 30 days fallback
-    if (allCards.length > 0) {
-      const nextReviewTimes = allCards.map(c => new Date(c.reviewSchedule.nextReviewDate).getTime());
-      const oldestNextReview = Math.min(...nextReviewTimes);
-      timeSinceLastReview = Math.max(0, Date.now() - oldestNextReview);
-    }
+    const questionFrequency = questions.filter((q) => q.createdAt > sevenDaysAgo).length;
+    const feedEngagement = feedViews.filter((v) => v.viewedAt > sevenDaysAgo).length;
 
-    // ── Feed engagement ────────────────────────────────────────────────
-    // Placeholder — extended via event tracking in future iterations
-    const feedEngagement = this._getFeedEngagement();
-
-    // ── Concept coverage ───────────────────────────────────────────────
-    // % of questions with at least 1 flashcard review
-    let conceptCoverage = 0;
-    if (allQuestions.length > 0) {
-      // Map flashcards back to question IDs via sessionId or questionId field
-      const reviewedIds = new Set<string>();
-      for (const card of allCards) {
-        if (card.reviewSchedule.reviewCount > 0) {
-          // Flashcards are linked to sessions; use sessionId for weak linking
-          // For question-level tracking, we use the canonical projection data
-          reviewedIds.add(card.sessionId);
-        }
-      }
-      // Use the count of unique sessions with reviewed cards as proxy for coverage
-      // A better signal: count questions whose keywords appear in reviewed sessions
-      // For now: reviewedIds.size / allQuestions.length (conservative estimate)
-      const coverageCount = Math.min(reviewedIds.size, allQuestions.length);
-      conceptCoverage = Math.round((coverageCount / allQuestions.length) * 100);
-    }
-
-    // ── Weak areas ─────────────────────────────────────────────────────
-    // Question IDs where their associated flashcards have easeFactor < 2.5 (D-03)
-    // Since flashcards don't directly store questionId, we identify via sessions
-    // and use easeFactor < 2.5 as the weak signal
-    // Weak areas: session IDs of cards with poor performance (easeFactor < 2.5)
-    // These are used as proxy concept IDs until direct question→card linking is available
-    const preciseWeakAreas: string[] = [];
-    for (const card of allCards) {
-      if (card.reviewSchedule.easeFactor < 2.5 && card.reviewSchedule.reviewCount > 0) {
-        // Try to find question with matching keywords via sessionId
-        // For now, use a simple check — refined when question-card linking improves
-        if (!preciseWeakAreas.includes(card.sessionId)) {
-          preciseWeakAreas.push(card.sessionId);
-        }
-      }
-    }
-
-    // ── Completed reviews ──────────────────────────────────────────────
-    const completedReviews = allCards.filter(c => c.reviewSchedule.reviewCount > 0).length;
-
-    const signal: TrajectorySignal = {
-      reviewPerformance,
+    const signals: TrajectorySignal = {
+      reviewPerformance: computeReviewPerformance(cards),
       questionFrequency,
-      timeSinceLastReview,
+      timeSinceLastReview: computeTimeSinceLastReview(questions),
       feedEngagement,
-      conceptCoverage,
-      weakAreas: preciseWeakAreas.slice(0, 5),
-      completedReviews,
+      conceptCoverage: computeConceptCoverage(questions),
+      weakAreas: computeWeakAreas(questions, cards),
     };
 
-    this._setCache(signal);
-    return signal;
+    saveCache(signals);
+    return signals;
   },
 
-  /** Retrieve cached signals if still within TTL. Returns null if stale or missing. */
-  _getCache(): TrajectorySignal | null {
-    try {
-      const raw = localStorage.getItem(this._cacheKey);
-      if (!raw) return null;
-      const cached = JSON.parse(raw) as TrajectoryCache;
-      if (Date.now() - cached.timestamp > this._cacheTTL) return null;
-      return cached.signal;
-    } catch {
-      return null;
-    }
-  },
-
-  /** Store signals with current timestamp. */
-  _setCache(signal: TrajectorySignal): void {
-    try {
-      const entry: TrajectoryCache = { signal, timestamp: Date.now() };
-      localStorage.setItem(this._cacheKey, JSON.stringify(entry));
-    } catch { /* ignore storage errors */ }
-  },
-
-  /** Invalidate the signal cache (forces recalculation on next call). */
+  /** Invalidate the signal cache (call after significant user activity). */
   invalidateCache(): void {
-    try {
-      localStorage.removeItem(this._cacheKey);
-    } catch { /* ignore */ }
-  },
-
-  /** Placeholder for feed engagement tracking. Returns 0 until event system is extended. */
-  _getFeedEngagement(): number {
-    // Future: count POST_VIEWED events in last 7 days from eventBus history
-    return 0;
+    localStorage.removeItem(SIGNAL_CACHE_KEY);
   },
 };

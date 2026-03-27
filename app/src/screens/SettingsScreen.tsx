@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Brain, Volume2, Network, Radio, BookOpen, Palette, RotateCcw, CheckCircle, XCircle, Shield, Download, Upload, Trash2, Sparkles, Loader2, Image } from 'lucide-react';
+import { Brain, Volume2, Network, Radio, BookOpen, Palette, RotateCcw, CheckCircle, XCircle, Shield, Download, Upload, Trash2, Sparkles, Loader2, Image, CalendarClock } from 'lucide-react';
+import { plannerAutoGenService } from '../services/plannerAutoGen.service';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { mockSettingsService } from '../services/mock/settings.mock';
@@ -130,6 +131,9 @@ export function SettingsScreen() {
   const [reviewLimit, setReviewLimit] = useState(() => String(mockSettingsService.getSync().review.dailyLimit));
   const [reviewNotif, setReviewNotif] = useState(() => mockSettingsService.getSync().review.notificationsEnabled);
   const [reviewReminderTime, setReviewReminderTime] = useState(() => mockSettingsService.getSync().review.reminderTime);
+  const [plannerRefreshEnabled, setPlannerRefreshEnabled] = useState(true);
+  const [plannerRefreshTime, setPlannerRefreshTime] = useState('08:00');
+  const [isRefreshingPlanner, setIsRefreshingPlanner] = useState(false);
   const [theme, setTheme] = useState<AppSettings['preferences']['theme']>(() => mockSettingsService.getSync().preferences.theme);
   const [aiConsent, setAiConsent] = useState(() => mockSettingsService.getSync().preferences.aiConsentGiven ?? false);
   const [isGeneratingPlanner, setIsGeneratingPlanner] = useState(false);
@@ -881,6 +885,42 @@ export function SettingsScreen() {
             }}
           >
             Save
+          </Button>
+        </div>
+      </Card>
+
+      {/* Planner Auto-Suggestions */}
+      <SectionHeader icon={<CalendarClock size={20} />} title="Planner" />
+      <Card style={{ marginBottom: '8px' }}>
+        <SettingRow label="Daily Auto-Refresh" description="Refresh suggestions once per day">
+          <MaterialSwitch
+            checked={plannerRefreshEnabled}
+            onChange={() => setPlannerRefreshEnabled((v) => !v)}
+          />
+        </SettingRow>
+        {plannerRefreshEnabled && (
+          <SettingRow label="Preferred Refresh Time" description="Default: 8:00 AM; also triggers after podcast">
+            <TextInput type="time" value={plannerRefreshTime} onChange={setPlannerRefreshTime} placeholder="08:00" />
+          </SettingRow>
+        )}
+        <div style={{ paddingTop: '12px', display: 'flex', gap: '8px' }}>
+          <Button
+            size="sm"
+            variant="secondary"
+            loading={isRefreshingPlanner}
+            onClick={async () => {
+              setIsRefreshingPlanner(true);
+              try {
+                await plannerAutoGenService.generateAndStoreSuggestions(true);
+                toast('Planner suggestions refreshed!', 'success');
+              } catch {
+                toast('Refresh failed', 'error');
+              } finally {
+                setIsRefreshingPlanner(false);
+              }
+            }}
+          >
+            Refresh Now
           </Button>
         </div>
       </Card>
