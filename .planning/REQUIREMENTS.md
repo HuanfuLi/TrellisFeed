@@ -25,7 +25,7 @@
 - [x] **PLANNER-03**: Suggestions regenerate daily (after podcast time) automatically
 - [ ] **PLANNER-04**: User can retry/regenerate suggestions with "Retry" button if unsatisfied
 - [x] **PLANNER-05**: Suggestion algorithm considers trajectory: review performance, question frequency, engagement patterns
-- [ ] **PLANNER-06**: Suggestions link directly to Posts, Questions, or Review sessions (rich "Moves")
+- [x] **PLANNER-06**: Suggestions link directly to Posts, Questions, or Review sessions (rich "Moves")
 
 ### Milestone Card Variety (CARDS)
 - [ ] **CARDS-01**: System provides 3+ distinct visual designs for milestone cards

@@ -125,8 +125,8 @@
 
 **Goal:** Implement navigation portals for suggested moves to enable users to navigate directly to related review content (flashcards, posts, or questions) when tapping suggested moves.
 
-**Plans:** 1 plan
-- [ ] 12-01-PLAN.md — moveNavigator utility + screen integration + navigation flows
+**Plans:** 1/1 plans complete
+- [x] 12-01-PLAN.md — moveNavigator utility + screen integration + navigation flows
 
 **Requirements:**
 - PLANNER-06: Rich "Moves" linking
