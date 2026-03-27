@@ -27,21 +27,31 @@
 
 ---
 
-## Phase 8: Post Detail & Infinite Scroll
+## Phase 8: Post Detail & Infinite Scroll ✓ COMPLETE
 
 **Goal:** Implement post detail page with image carousel and scroll-release feed loading mechanism.
 
+**Status:** COMPLETE — 08-01-PLAN.md (2026-03-27)
+
 **Requirements:**
-- FEED-04: Scroll-release to load more posts
-- FEED-05: Post detail page with image carousel
-- FEED-06: Multiple images display in carousel
+- FEED-04: Scroll-release to load more posts ✓
+- FEED-05: Post detail page with image carousel ✓
+- FEED-06: Multiple images display in carousel ✓
+
+**Delivered:**
+- PostCarousel component (Framer Motion swipe, lazy load, counter badge)
+- useInfiniteScroll hook (scroll detection, debounce, concurrent-load guard)
+- infiniteScrollService (batch fetch + deduplication)
+- PullUpHint affordance component
+- HomeScreen updated with scroll-triggered pagination
+- PostDetailScreen updated with carousel above essay
 
 **Success Criteria:**
-1. Scroll to bottom of feed and release shows explicit "Load More" affordance (swipe-up or pull gesture)
-2. Post detail page displays first image above title in carousel format
-3. User can swipe through generated images for each post
-4. Carousel transitions are smooth and performant (60 fps)
-5. No duplicate posts load when triggering scroll-release multiple times
+1. Scroll to bottom of feed and release shows explicit "Load More" affordance (swipe-up or pull gesture) ✓
+2. Post detail page displays first image above title in carousel format ✓
+3. User can swipe through generated images for each post ✓
+4. Carousel transitions are smooth and performant (60 fps) ✓
+5. No duplicate posts load when triggering scroll-release multiple times ✓
 
 ---
 

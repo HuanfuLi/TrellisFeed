@@ -8,9 +8,9 @@
 - [x] **FEED-01**: User can view posts with image-forward design (large image with emoji/text overlay)
 - [x] **FEED-02**: AI generates multiple image styles per post (infograph, illustration, photo-style)
 - [x] **FEED-03**: Posts display catchy titles/questions/stories as hook text over images
-- [ ] **FEED-04**: User can scroll through feed and scroll-release to load more posts (explicit action trigger)
-- [ ] **FEED-05**: User can navigate to post detail page showing image carousel/gallery at top
-- [ ] **FEED-06**: Post detail displays multiple generated images in carousel before essay content
+- [x] **FEED-04**: User can scroll through feed and scroll-release to load more posts (explicit action trigger)
+- [x] **FEED-05**: User can navigate to post detail page showing image carousel/gallery at top
+- [x] **FEED-06**: Post detail displays multiple generated images in carousel before essay content
 
 ### Image Generation Integration (IMAGE)
 - [x] **IMAGE-01**: System integrates Nano Banana API for AI image generation
