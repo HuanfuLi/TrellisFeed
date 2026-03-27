@@ -1,9 +1,12 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BookOpen, CheckSquare, Headphones } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { InlineInfoFlow, type InfoFlowItem } from '../components/InfoFlow';
+import { PullUpHint } from '../components/PullUpHint';
+import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
+import { infiniteScrollService } from '../services/infiniteScroll.service';
 import type { BlindboxItem, DailyPost, Question } from '../types';
 import { useQuestions } from '../state/useQuestions';
 import { useReview } from '../state/useReview';
@@ -30,7 +33,12 @@ export function HomeScreen() {
   const { reviewCount } = useReview();
   const { getPodcastForDate } = usePodcast();
   const [dailyPosts, setDailyPosts] = useState<DailyPost[]>(() => conceptFeedService.getCachedDailyPosts());
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isAtBottom, setIsAtBottom] = useState(false);
+
+  // Stable ref so the onLoadMore callback can access latest questions
+  // without re-creating the callback (which would reset scroll listeners).
+  const questionsRef = useRef<Question[]>(questions);
+  questionsRef.current = questions;
 
   const t = today();
   const todayPodcast = getPodcastForDate(t);
@@ -76,22 +84,44 @@ export function HomeScreen() {
     };
   }, [questions, questionsLoading]);
 
-  const handleLoadMore = async () => {
-    if (isLoadingMore) return;
-    setIsLoadingMore(true);
+  // Infinite scroll load handler — uses questionsRef for stable callback
+  const handleLoadMore = useCallback(async () => {
     try {
-      const morePosts = await conceptFeedService.generateMorePosts(questions);
-      if (morePosts.length > 0) {
-        setDailyPosts((prev) => [...prev, ...morePosts]);
+      const newPosts = await infiniteScrollService.loadNextBatch(questionsRef.current, 10);
+      if (newPosts.length > 0) {
+        setDailyPosts((prev) => [...prev, ...newPosts]);
       } else {
         toast('No more posts to generate right now', 'info');
       }
     } catch {
-      toast('Failed to generate more posts', 'error');
-    } finally {
-      setIsLoadingMore(false);
+      console.error('[HomeScreen] Infinite scroll load failed');
+      // User can retry by scrolling to bottom again
     }
-  };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- questionsRef is stable
+
+  const { containerRef, isLoading: isLoadingMore, setCanLoadMore } = useInfiniteScroll({
+    onLoadMore: handleLoadMore,
+    threshold: 0,
+    debounceMs: 300,
+  });
+
+  // Initialize infiniteScrollService on mount; reset on unmount
+  useEffect(() => {
+    infiniteScrollService.initialize();
+    return () => { infiniteScrollService.reset(); };
+  }, []);
+
+  // Track scroll position for PullUpHint visibility
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const handleScroll = () => {
+      const dist = el.scrollHeight - (el.scrollTop + el.clientHeight);
+      setIsAtBottom(dist <= 1);
+    };
+    el.addEventListener('scroll', handleScroll, { passive: true });
+    return () => el.removeEventListener('scroll', handleScroll);
+  }, [containerRef]);
 
   // Build the Home curiosity feed from daily posts + LLM-generated connection cards.
   const infoFlowItems = useMemo<InfoFlowItem[]>(() => {
@@ -195,10 +225,22 @@ export function HomeScreen() {
   const [activeChunkCount, setActiveChunkCount] = useState(0);
   const [threadCount, setThreadCount] = useState(0);
 
+  // Suppress unused variable warning for setCanLoadMore (used if we want to
+  // disable pagination when all posts exhausted)
+  void setCanLoadMore;
+
   return (
     <>
       <Header title={getGreeting()} />
-      <div style={{ padding: `${HEADER_HEIGHT + 8}px 16px 96px`, maxWidth: '448px', margin: '0 auto' }}>
+      <div
+        ref={containerRef}
+        style={{
+          overflowY: 'auto',
+          height: '100dvh',
+          WebkitOverflowScrolling: 'touch',
+        }}
+      >
+      <div style={{ padding: `${HEADER_HEIGHT + 8}px 16px 0`, maxWidth: '448px', margin: '0 auto' }}>
 
         {/* Bento Grid */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
@@ -303,12 +345,15 @@ export function HomeScreen() {
               onOpenPost={(postId, post) => {
                 navigate(`/posts/${postId}`, { state: { post } });
               }}
-              onLoadMore={() => void handleLoadMore()}
-              isLoadingMore={isLoadingMore}
             />
           </div>
 
         </div>
+
+        {/* Pull-up affordance — always reserves 80px, shows hint when at bottom */}
+        <PullUpHint isAtBottom={isAtBottom} isLoading={isLoadingMore} />
+
+      </div>
       </div>
 
     </>
