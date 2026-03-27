@@ -16,14 +16,20 @@ files_modified:
   - app/src/hooks/usePlanner.ts
   - app/src/hooks/useRetryCounter.ts
   - app/src/screens/PlannerScreen.tsx
+    - path: app/src/utils/moveNavigator.ts
+      provides: "Navigation routing for suggested moves (PLANNER-06: Rich Moves linking)"
+      exports: ["navigateToMove", "getMoveDestination"]
+      min_lines: 50
   - app/src/types/planner.ts
   - app/src/utils/cardDesignSelector.ts
   - app/src/utils/retryCounter.ts
+  - app/src/utils/moveNavigator.ts
   - app/src/utils/retryCounter.test.ts
   - app/src/utils/cardDesignSelector.test.ts
   - app/src/utils/randomDistribution.test.ts
+  - app/src/utils/moveNavigator.test.ts
 autonomous: false
-requirements: ["PLANNER-04", "CARDS-01", "CARDS-02", "CARDS-03"]
+requirements: ["PLANNER-04", "PLANNER-06", "CARDS-01", "CARDS-02", "CARDS-03"]
 user_setup: []
 must_haves:
   truths:
@@ -37,6 +43,9 @@ must_haves:
     - "Retry button and card touch targets are ≥48x48px (AAA standard)"
     - "Screen readers announce card design, progress, and status"
     - "Card designs render correctly on 375px-600px+ screens"
+    - "User can tap a suggested move to navigate to related content (PLANNER-06)"
+    - "Suggested move types navigate correctly: review→flashcards, post→post detail, question→question view"
+    - "Navigation preserves suggested move context (conceptId, moveType)"
   artifacts:
     - path: app/src/components/MilestoneCard/GradientIconCard.tsx
       provides: "Gradient+Icon design variant with progress bar"
@@ -91,6 +100,10 @@ must_haves:
       to: app/src/utils/cardDesignSelector.ts
       via: "Get design for card index"
       pattern: "selectRandomDesign(index)"
+    - from: app/src/components/SuggestedMovesSection.tsx
+      to: app/src/utils/moveNavigator.ts
+      via: "Navigate to move content on press (PLANNER-06: Rich Moves linking)"
+      pattern: "onPress → navigateToMove(move, navigation)"
     - from: "Component rendering"
       to: "WCAG AAA validation"
       via: "All text contrast ≥7:1, touch targets ≥48x48px"
@@ -99,13 +112,14 @@ must_haves:
 ---
 
 <objective>
-**Phase 11: Planner Retry & Milestone Card Variety**
+**Phase 11: Planner Retry & Milestone Card Variety + Rich Move Navigation**
 
-Add user control to regenerate Planner suggestions (unlimited with warning after 5 attempts) and expand milestone card visuals to prevent monotony. Three card design variants (Gradient+Icon, Outline+Monochrome, Solid+Badge) render with random selection per card, fully WCAG AAA compliant.
+Add user control to regenerate Planner suggestions (unlimited with warning after 5 attempts), expand milestone card visuals to prevent monotony, and enable navigation from suggested moves to related content (posts, flashcards, questions). Three card design variants (Gradient+Icon, Outline+Monochrome, Solid+Badge) render with random selection per card, fully WCAG AAA compliant. Suggested moves link to relevant learning portals (PLANNER-06: Rich Moves linking).
 
 **Purpose:**
 - Empower users to regenerate suggestions if unsatisfied, respecting Phase 10's 24h cooldown
 - Combat visual fatigue through 3 distinct, accessible card designs
+- Enable portal navigation from suggested moves to review content (PLANNER-06)
 - Maintain accessibility at highest standard (AAA) across all designs
 - Preserve user autonomy (no hard limits, educated with warning)
 
@@ -113,23 +127,26 @@ Add user control to regenerate Planner suggestions (unlimited with warning after
 - Retry button in Suggested Moves section with warning modal
 - 3 card design components with full Tailwind styling
 - Design selection and random rotation logic
+- Portal navigation system (moveNavigator utility) for move types → content screens
 - Accessibility audit and WCAG AAA compliance verification
-- Full unit + accessibility test coverage
+- Full unit + accessibility + integration test coverage
 
-**Confidence:** HIGH (builds directly on Phase 10 foundation; designs specified; proven patterns)
+**Confidence:** HIGH (builds directly on Phase 10 foundation; designs specified; proven patterns; navigation patterns exist)
 
 **Effort Estimate:**
 - Wave 1 (Retry logic): 4-5 hours
 - Wave 2 (Card components): 6-7 hours
 - Wave 3 (Rotation + integration): 3-4 hours
-- Wave 4 (Accessibility): 4-5 hours
-- Wave 5 (Testing + UAT): 3-4 hours
-- **Total: 20-25 hours**
+- Wave 4 (Navigation routing + PLANNER-06): 2-3 hours
+- Wave 5 (Accessibility): 4-5 hours
+- Wave 6 (Testing + UAT): 3-4 hours
+- **Total: 22-28 hours**
 
-**Risk Level:** MEDIUM
+**Risk Level:** LOW-MEDIUM
 - Accessibility AAA requires careful color testing across 3 designs
 - Random distribution needs verification to avoid clustering
 - Warning modal UX needs validation (don't-show-again toggle considerations)
+- Navigation routing must handle all linkedResource types correctly
 </objective>
 
 <execution_context>
