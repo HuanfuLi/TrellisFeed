@@ -7,9 +7,11 @@ import {
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { usePlanner } from '../state/usePlanner';
+import { usePlannerAutoGen } from '../state/usePlannerAutoGen';
 import { useReview } from '../state/useReview';
 import { toast } from '../lib/toast';
 import { Header, HEADER_HEIGHT } from '../components/ui/Header';
+import { MoveCard } from '../components/MoveCard';
 import { Capacitor } from '@capacitor/core';
 import type { PlannerChunk, ChunkStatus, PlannerThread, LearningCheckIn } from '../types';
 
@@ -319,7 +321,9 @@ export function PlannerScreen() {
     isLoading,
     updateChunkStatus, deleteChunk, toggleThreadSaved, deleteThread, submitCheckIn,
   } = usePlanner();
+  const { moves: autoMoves, isRefreshing, accept: acceptMove, dismiss: dismissMove, skipAll, refresh: refreshMoves } = usePlannerAutoGen();
   const { reviewCount } = useReview();
+  const [showAutoMoves, setShowAutoMoves] = useState(true);
 
   const [checkInInput, setCheckInInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -486,6 +490,83 @@ export function PlannerScreen() {
       {showCheckInHistory && recentCheckIns.map((ci) => (
         <CheckInOutcome key={ci.id} checkIn={ci} />
       ))}
+
+      {/* ── Auto-Suggested Moves ──────────────────────────────────────── */}
+      {autoMoves.length > 0 && (
+        <>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', marginTop: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h2 style={{ fontSize: '1rem', fontWeight: 600 }}>Suggested Moves</h2>
+              <Badge color="gray">{autoMoves.length}</Badge>
+            </div>
+            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+              <button
+                onClick={() => void refreshMoves()}
+                disabled={isRefreshing}
+                title="Refresh suggestions"
+                className="active-squish"
+                style={{
+                  width: '28px', height: '28px', borderRadius: '50%',
+                  backgroundColor: 'var(--surface-variant)',
+                  color: 'var(--muted-foreground)',
+                  border: '1px solid var(--border)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  opacity: isRefreshing ? 0.5 : 1,
+                }}
+              >
+                {isRefreshing
+                  ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />
+                  : <RefreshCw size={13} />}
+              </button>
+              <button
+                onClick={() => setShowAutoMoves(!showAutoMoves)}
+                style={{
+                  background: 'none', display: 'flex', alignItems: 'center',
+                  gap: '3px', color: 'var(--muted-foreground)', fontSize: '0.78rem',
+                  padding: '4px',
+                }}
+              >
+                {showAutoMoves ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+              </button>
+            </div>
+          </div>
+
+          {showAutoMoves && (
+            <>
+              {autoMoves.map((move) => (
+                <MoveCard
+                  key={move.id}
+                  move={move}
+                  onAccept={acceptMove}
+                  onDismiss={dismissMove}
+                />
+              ))}
+              <button
+                onClick={skipAll}
+                style={{
+                  background: 'none', padding: '6px 0 4px', display: 'flex',
+                  alignItems: 'center', gap: '4px', color: 'var(--muted-foreground)',
+                  fontSize: '0.78rem', marginBottom: '4px',
+                }}
+              >
+                Skip all suggestions
+              </button>
+            </>
+          )}
+        </>
+      )}
+
+      {/* Empty planner state with suggestion CTA */}
+      {continueChunks.length === 0 && suggestedChunks.length === 0 && autoMoves.length > 0 && (
+        <Card style={{ padding: '14px 16px', marginBottom: '16px', backgroundColor: 'color-mix(in srgb, var(--primary-40) 8%, var(--surface))' }}>
+          <p style={{ fontSize: '0.85rem', lineHeight: 1.5, color: 'var(--foreground)', marginBottom: '6px' }}>
+            No planned moves yet. We've suggested some ideas above.
+          </p>
+          <p style={{ fontSize: '0.8rem', color: 'var(--muted-foreground)' }}>
+            Try one of these suggestions to get started!
+          </p>
+        </Card>
+      )}
 
       {/* ── Continue ──────────────────────────────────────────────────── */}
       <SectionHeader title="Continue" count={continueChunks.length} />
