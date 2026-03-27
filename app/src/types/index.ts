@@ -577,4 +577,5 @@ export type AppEvent =
   | { type: 'NETWORK_STATUS_CHANGED'; payload: { isOnline: boolean } }
   | { type: 'SESSION_CREATED'; payload: ChatSession }
   | { type: 'SESSION_UPDATED'; payload: { id: string } }
-  | { type: 'FLASHCARDS_CREATED'; payload: { sessionId: string; count: number } };
+  | { type: 'FLASHCARDS_CREATED'; payload: { sessionId: string; count: number } }
+  | { type: 'AUTO_GEN_UPDATED'; payload: { moves: unknown[]; count: number } };

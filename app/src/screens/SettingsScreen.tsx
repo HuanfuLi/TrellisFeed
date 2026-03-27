@@ -422,7 +422,7 @@ export function SettingsScreen() {
             onClick={handleTestLLM}
             loading={isTesting['llm']}
           >
-            Test Connection
+            Test
           </Button>
           {testResult['llm'] && (
             <span style={{
@@ -456,7 +456,7 @@ export function SettingsScreen() {
               const defaults: Record<string, Partial<EmbeddingConfig>> = {
                 openai: { model: 'text-embedding-3-small', baseUrl: '', apiKey: '' },
                 google: { model: 'text-embedding-004', baseUrl: '', apiKey: '' },
-                local:  { model: 'nomic-embed-text', baseUrl: 'http://localhost:11434', apiKey: '' },
+                local: { model: 'nomic-embed-text', baseUrl: 'http://localhost:11434', apiKey: '' },
               };
               const next = { ...embedding, provider: p, ...defaults[p] } as EmbeddingConfig;
               setEmbedding(next);
@@ -465,7 +465,7 @@ export function SettingsScreen() {
             options={[
               { value: 'openai', label: 'OpenAI' },
               { value: 'google', label: 'Google' },
-              { value: 'local',  label: 'Local (Ollama / LM Studio)' },
+              { value: 'local', label: 'Local (Ollama / LM Studio)' },
             ]}
           />
         </SettingRow>
@@ -518,7 +518,7 @@ export function SettingsScreen() {
             onClick={handleTestEmbedding}
             loading={isTesting['embedding']}
           >
-            Test Connection
+            Test
           </Button>
           {testResult['embedding'] && (
             <span style={{
@@ -792,7 +792,7 @@ export function SettingsScreen() {
             style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}
           >
             {isTesting['imageGen'] ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : null}
-            Test Connection
+            Test
           </Button>
           <Button
             size="sm"
@@ -802,7 +802,7 @@ export function SettingsScreen() {
             style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}
           >
             {isClearingCache ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : null}
-            Clear Image Cache
+            Clear Cache
           </Button>
         </div>
         {testResult['imageGen'] && (
