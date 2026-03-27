@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
-status: Phase 12 Planned
-stopped_at: Completed Phase 12 planning (Portal Navigation & Rich Moves Linking)
-last_updated: "2026-03-27T22:20:00Z"
+status: Phase 12 Executing — Plan 1 Complete
+stopped_at: Completed 12-01-PLAN.md (Portal Navigation & Rich Moves Linking)
+last_updated: "2026-03-27T22:35:00Z"
 progress:
   total_phases: 6
-  completed_phases: 2
-  total_plans: 4
-  completed_plans: 4
+  completed_phases: 3
+  total_plans: 5
+  completed_plans: 5
 ---
 
 # Project State: Milestone 1.1
@@ -33,7 +33,7 @@ Phase 9 - Image Regeneration & Error Handling (next to start)
 - **Phase 9:** Image Regeneration & Error Handling (SKIPPED)
 - **Phase 10:** Planner Auto-Suggestions Engine (COMPLETE)
 - **Phase 11:** Planner Retry & Milestone Card Variety (COMPLETE)
-- **Phase 12:** Portal Navigation & Rich Moves Linking (12-PLAN.md, 12-CONTEXT.md — READY TO EXECUTE)
+- **Phase 12:** Portal Navigation & Rich Moves Linking (12-01-PLAN.md — COMPLETE)
 
 ## Latest Decisions
 
@@ -61,11 +61,15 @@ Phase 9 - Image Regeneration & Error Handling (next to start)
 - [Phase 10-03] totalSuggestions hoisted to component level (not IIFE) so CTA can reference it outside the section block
 - [Phase 10-03] handleSkipAll wraps skipAll() + toast so UAT Test 6 Skip All toast is verifiable
 - [Phase 10-03] Refresh button always rendered (no autoMoves.length guard) so UAT Test 7 Refresh is always accessible
+- [Phase 12-01] Centralized move routing in moveNavigator.ts utility (not inline in components)
+- [Phase 12-01] MoveNavigationState passed via location.state (React Router 7 pattern)
+- [Phase 12-01] ReviewScreen filters items by linkedResource.id (nodeId match) when from move navigation
+- [Phase 12-01] PostDetailScreen back button navigates to -1 when moveState present (returns to Planner)
 
 ## Last Session
 
-Completed Phase 12 planning (Phase 12 — Portal Navigation & Rich Moves Linking)
-**Stopped At:** Completed Phase 12 planning (12-PLAN.md, CONTEXT.md ready)
+Completed Phase 12 Plan 01 (12-01-PLAN.md) — Portal Navigation & Rich Moves Linking
+**Stopped At:** Completed 12-01-PLAN.md (Portal Navigation & Rich Moves Linking)
 **Date:** 2026-03-27
 
 ### Phase 12: NEW

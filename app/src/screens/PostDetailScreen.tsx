@@ -11,6 +11,7 @@ import { Markdown } from '../components/Markdown';
 import { ChatMessage } from '../components/ChatMessage';
 import { PostCarousel } from '../components/PostCarousel';
 import { toast } from '../lib/toast';
+import { parseMoveNavigationState } from '../lib/moveNavigator';
 
 interface ConnectionMeta {
   questionA: Question;
@@ -32,6 +33,16 @@ export function PostDetailScreen() {
 
   const locationState = location.state as { post?: DailyPost; connectionMeta?: ConnectionMeta } | null;
   const passedPost = locationState?.post ?? null;
+
+  // Extract move navigation context (when navigated from a suggested move)
+  const moveState = parseMoveNavigationState(location.state);
+  // Verify linkedResource matches URL param for consistency
+  if (moveState?.linkedResource?.type === 'post' && moveState.linkedResource.id !== id) {
+    console.warn(
+      '[PostDetailScreen] Move linkedResource ID does not match URL param:',
+      moveState.linkedResource.id, '!=', id
+    );
+  }
   // connectionMeta is stable per navigation — read once via ref so the generation
   // effect does not re-fire when the parent re-renders.
   const connectionMetaRef = useRef<ConnectionMeta | null>(locationState?.connectionMeta ?? null);
@@ -301,9 +312,20 @@ export function PostDetailScreen() {
 
   return (
     <div style={{ padding: '16px 16px 104px', maxWidth: '448px', margin: '0 auto' }}>
-      <button onClick={() => navigate('/home')} style={{ background: 'none', padding: '4px 2px', color: 'var(--primary-40)', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', fontSize: '0.95rem' }}>
+      {/* Move breadcrumb — shown when navigated from a suggested move */}
+      {moveState && (
+        <div style={{
+          fontSize: '0.75rem',
+          color: 'var(--muted-foreground)',
+          marginBottom: '8px',
+          paddingLeft: '4px',
+        }}>
+          Suggested move: {moveState.move.title}
+        </div>
+      )}
+      <button onClick={() => navigate(-1)} style={{ background: 'none', padding: '4px 2px', color: 'var(--primary-40)', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', fontSize: '0.95rem' }}>
         <ArrowLeft size={18} />
-        Back to Home
+        {moveState ? 'Back' : 'Back to Home'}
       </button>
 
       {/* Concept pills — shown for connection posts */}

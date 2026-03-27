@@ -1,15 +1,27 @@
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Calendar, Tag, Play } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Markdown } from '../components/Markdown';
 import { useQuestions } from '../state/useQuestions';
 import { formatDate } from '../lib/date';
+import { parseMoveNavigationState } from '../lib/moveNavigator';
 
 export function QuestionDetailScreen() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { getById, questions } = useQuestions();
+
+  // Extract move navigation context (when navigated from a suggested move)
+  const moveState = parseMoveNavigationState(location.state);
+  // Verify linkedResource matches URL param for consistency
+  if (moveState?.linkedResource?.type === 'question' && moveState.linkedResource.id !== id) {
+    console.warn(
+      '[QuestionDetailScreen] Move linkedResource ID does not match URL param:',
+      moveState.linkedResource.id, '!=', id
+    );
+  }
 
   const question = id ? getById(id) : undefined;
 
@@ -31,6 +43,16 @@ export function QuestionDetailScreen() {
 
   return (
     <div style={{ padding: '24px 16px 96px', maxWidth: '448px', margin: '0 auto' }}>
+      {/* Move breadcrumb — shown when navigated from a suggested move */}
+      {moveState && (
+        <div style={{
+          fontSize: '0.75rem',
+          color: 'var(--muted-foreground)',
+          marginBottom: '12px',
+        }}>
+          Suggested move: {moveState.move.title}
+        </div>
+      )}
       {/* Back */}
       <button
         onClick={() => navigate(-1)}

@@ -11,8 +11,10 @@
  */
 
 import { BookOpen, Zap, Link2, Mic } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import type { PlannedMove, PlannedMoveType } from '../types';
 import { Card } from './ui/Card';
+import { navigateToMove } from '../lib/moveNavigator';
 
 // ── Move type display config ───────────────────────────────────────────────
 
@@ -85,10 +87,28 @@ interface MoveCardProps {
   move: PlannedMove;
   onAccept: (id: string) => void;
   onDismiss: (id: string) => void;
+  onNavigate?: (success: boolean) => void;
 }
 
-export function MoveCard({ move, onAccept, onDismiss }: MoveCardProps) {
+export function MoveCard({ move, onAccept, onDismiss, onNavigate }: MoveCardProps) {
   const config = MOVE_TYPE_CONFIG[move.moveType];
+  const navigate = useNavigate();
+
+  const handleAddClick = () => {
+    // Call existing onAccept for planner state update
+    onAccept(move.id);
+
+    // Attempt navigation after state is queued
+    // Use setTimeout to allow state update to flush first
+    setTimeout(() => {
+      void navigateToMove(move, navigate, {
+        fromScreen: 'planner',
+        replace: false,
+      }).then((success) => {
+        onNavigate?.(success);
+      });
+    }, 50);
+  };
 
   return (
     <Card style={{
@@ -140,7 +160,7 @@ export function MoveCard({ move, onAccept, onDismiss }: MoveCardProps) {
         {/* Actions */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flexShrink: 0 }}>
           <button
-            onClick={() => onAccept(move.id)}
+            onClick={handleAddClick}
             title="Add to Planner"
             className="active-squish"
             style={{

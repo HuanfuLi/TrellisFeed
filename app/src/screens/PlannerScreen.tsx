@@ -549,6 +549,11 @@ export function PlannerScreen() {
                 move={move}
                 onAccept={acceptMove}
                 onDismiss={dismissMove}
+                onNavigate={(success) => {
+                  if (!success) {
+                    toast('Navigation failed — check move configuration', 'error');
+                  }
+                }}
               />
             ))}
             {suggestedChunks.map((chunk) => (

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { parseMoveNavigationState } from '../lib/moveNavigator';
 import { ArrowLeft, Pin, BookOpen, Trash2, Check, X, GitBranch } from 'lucide-react';
 import { Flashcard } from '../components/Flashcard';
 import { Confetti } from '../components/Confetti';
@@ -244,7 +245,20 @@ function ReviewMiniMap({ map }: { map: DailyReviewMap }) {
 
 export function ReviewScreen() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { items, allCards, isLoading, submitReview, skipReview, togglePin, deleteCard } = useReview();
+
+  // Extract move navigation context (when navigated from a suggested move)
+  const moveState = parseMoveNavigationState(location.state);
+  const linkedResource = moveState?.linkedResource;
+
+  // When coming from a move with conceptId, filter cards to show only that concept
+  const filteredItems = linkedResource?.type === 'review' && linkedResource.id
+    ? items.filter((card) => card.nodeId === linkedResource.id)
+    : null;
+
+  // Use filtered items for review session if navigated from move and there are matches
+  const reviewItems = filteredItems && filteredItems.length > 0 ? filteredItems : items;
 
   const [reviewed, setReviewed] = useState(0);
   const [totalRatings, setTotalRatings] = useState(0);
@@ -269,16 +283,16 @@ export function ReviewScreen() {
   }, [showConfetti]);
 
   useEffect(() => {
-    if (items.length > 0 && sessionCards.length === 0 && reviewed === 0) {
-      setSessionCards(items);
+    if (reviewItems.length > 0 && sessionCards.length === 0 && reviewed === 0) {
+      setSessionCards(reviewItems);
     }
-  }, [items, reviewed, sessionCards.length]);
+  }, [reviewItems, reviewed, sessionCards.length]);
 
-  const total = items.length + reviewed;
+  const total = reviewItems.length + reviewed;
   const progress = total > 0 ? (reviewed / total) * 100 : 0;
-  const currentItem = items[0];
+  const currentItem = reviewItems[0];
   const reviewMap = buildDailyReviewMap(
-    sessionCards.length > 0 ? sessionCards : items,
+    sessionCards.length > 0 ? sessionCards : reviewItems,
     questionService.getAll(),
     revealedNodeIds,
     currentItem?.nodeId,
@@ -315,7 +329,7 @@ export function ReviewScreen() {
     setTotalRatings((prev) => prev + rating);
     const nextReviewed = reviewed + 1;
     setReviewed(nextReviewed);
-    if (nextReviewed >= total || items.length <= 1) {
+    if (nextReviewed >= total || reviewItems.length <= 1) {
       setDone(true);
     }
   };
@@ -326,7 +340,7 @@ export function ReviewScreen() {
     if (currentItem.nodeId) {
       setRevealedNodeIds((prev) => (prev.includes(currentItem.nodeId!) ? prev : [...prev, currentItem.nodeId!]));
     }
-    if (items.length <= 1) {
+    if (reviewItems.length <= 1) {
       setDone(true);
     }
   };
@@ -442,7 +456,7 @@ export function ReviewScreen() {
   }
 
   // ── All Done ────────────────────────────────────────────────────────────────
-  if (done || items.length === 0) {
+  if (done || reviewItems.length === 0) {
     const avgRating = reviewed > 0 ? (totalRatings / reviewed).toFixed(1) : '—';
     return (
       <div style={{ padding: '24px 16px 96px', maxWidth: '448px', margin: '0 auto' }}>
@@ -534,6 +548,17 @@ export function ReviewScreen() {
     <div style={{ padding: '24px 0 96px', maxWidth: '448px', margin: '0 auto' }}>
       {/* Header */}
       <div style={{ padding: '0 16px', marginBottom: '24px' }}>
+        {/* Move breadcrumb — shown when navigated from a suggested move */}
+        {moveState && (
+          <div style={{
+            fontSize: '0.75rem',
+            color: 'var(--muted-foreground)',
+            marginBottom: '8px',
+            paddingLeft: '4px',
+          }}>
+            Suggested move: {moveState.move.title}
+          </div>
+        )}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
           <button
             onClick={() => navigate(-1)}
