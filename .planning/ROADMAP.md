@@ -72,9 +72,15 @@
 
 ---
 
-## Phase 10: Planner Auto-Suggestions Engine
+## Phase 10: Planner Auto-Suggestions Engine ✓ COMPLETE
 
 **Goal:** Implement auto-generation of Planner suggestions when Knowledge Graph is populated and Planner is empty, with daily refresh.
+
+**Status:** COMPLETE — 10-01-PLAN.md + 10-02-PLAN.md (2026-03-27)
+
+**Plans delivered:**
+- 10-01: Core engine (trajectory analysis, scoring, move generation, PlannerScreen UI, daily refresh hook, settings UI)
+- 10-02: Gap closure (useDailyRefresh wired into PlannerScreen, plannerRefreshEnabled/Time persisted to localStorage)
 
 **Requirements:**
 - PLANNER-01: Trigger auto-generation (5+ nodes AND empty)

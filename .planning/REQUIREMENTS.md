@@ -20,11 +20,11 @@
 - [ ] **IMAGE-05**: Image generation failures are handled gracefully (error states, retry options)
 
 ### Planner Auto-Suggestions (PLANNER)
-- [ ] **PLANNER-01**: When Knowledge Graph has 5+ nodes AND Planner is empty, system auto-generates "Suggested Moves"
-- [ ] **PLANNER-02**: Auto-generated suggestions appear on Planner screen without user intervention
-- [ ] **PLANNER-03**: Suggestions regenerate daily (after podcast time) automatically
+- [x] **PLANNER-01**: When Knowledge Graph has 5+ nodes AND Planner is empty, system auto-generates "Suggested Moves"
+- [x] **PLANNER-02**: Auto-generated suggestions appear on Planner screen without user intervention
+- [x] **PLANNER-03**: Suggestions regenerate daily (after podcast time) automatically
 - [ ] **PLANNER-04**: User can retry/regenerate suggestions with "Retry" button if unsatisfied
-- [ ] **PLANNER-05**: Suggestion algorithm considers trajectory: review performance, question frequency, engagement patterns
+- [x] **PLANNER-05**: Suggestion algorithm considers trajectory: review performance, question frequency, engagement patterns
 - [ ] **PLANNER-06**: Suggestions link directly to Posts, Questions, or Review sessions (rich "Moves")
 
 ### Milestone Card Variety (CARDS)
