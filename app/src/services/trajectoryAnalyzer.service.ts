@@ -83,17 +83,8 @@ export const trajectoryAnalyzer = {
     // Question IDs where their associated flashcards have easeFactor < 2.5 (D-03)
     // Since flashcards don't directly store questionId, we identify via sessions
     // and use easeFactor < 2.5 as the weak signal
-    const weakSessionIds = new Set<string>(
-      allCards
-        .filter(c => c.reviewSchedule.easeFactor < 2.5 && c.reviewSchedule.reviewCount > 0)
-        .map(c => c.sessionId),
-    );
-    // Map weak session IDs to question IDs (weak approximation for MVP)
-    const weakAreas = allQuestions
-      .filter(q => weakSessionIds.size > 0) // only if weak sessions exist
-      .slice(0, 5) // cap at 5 weak areas
-      .map(q => q.id);
-    // More precise: if we had card.questionId, we'd use that directly
+    // Weak areas: session IDs of cards with poor performance (easeFactor < 2.5)
+    // These are used as proxy concept IDs until direct question→card linking is available
     const preciseWeakAreas: string[] = [];
     for (const card of allCards) {
       if (card.reviewSchedule.easeFactor < 2.5 && card.reviewSchedule.reviewCount > 0) {
