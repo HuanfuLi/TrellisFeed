@@ -141,7 +141,6 @@ export function SettingsScreen() {
   const [isRefreshingPlanner, setIsRefreshingPlanner] = useState(false);
   const [theme, setTheme] = useState<AppSettings['preferences']['theme']>(() => mockSettingsService.getSync().preferences.theme);
   const [aiConsent, setAiConsent] = useState(() => mockSettingsService.getSync().preferences.aiConsentGiven ?? false);
-  const [isGeneratingPlanner, setIsGeneratingPlanner] = useState(false);
 
   // Image generation settings
   const [imageGen, setImageGen] = useState<ImageGenerationSettings>(() => mockSettingsService.getSync().imageGeneration);
@@ -921,20 +920,34 @@ export function SettingsScreen() {
           <Button
             size="sm"
             variant="secondary"
-            loading={isRefreshingPlanner}
+            disabled={isRefreshingPlanner}
             onClick={async () => {
               setIsRefreshingPlanner(true);
               try {
+                const questions = questionService.getAll();
+                if (questions.length > 0) {
+                  const summaryLines = questions
+                    .slice(0, 20)
+                    .map((q) => q.summary || q.content)
+                    .join('. ');
+                  const checkInText = `I want to revisit and deepen my understanding of: ${summaryLines}. I'm curious about connections between these topics and want to explore areas that feel fuzzy.`;
+                  await plannerService.submitCheckIn(checkInText);
+                }
                 await plannerAutoGenService.generateAndStoreSuggestions(true);
-                toast('Planner suggestions refreshed!', 'success');
+                toast('Planner refreshed!', 'success');
               } catch {
                 toast('Refresh failed', 'error');
               } finally {
                 setIsRefreshingPlanner(false);
               }
             }}
+            style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}
           >
-            Refresh Now
+            {isRefreshingPlanner
+              ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+              : <Sparkles size={16} />
+            }
+            {isRefreshingPlanner ? 'Generating...' : 'Generate Planner'}
           </Button>
         </div>
       </Card>
@@ -994,40 +1007,6 @@ export function SettingsScreen() {
           Debug tools for development. Destructive actions cannot be undone.
         </p>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          <Button
-            size="sm"
-            variant="secondary"
-            disabled={isGeneratingPlanner}
-            onClick={async () => {
-              const questions = questionService.getAll();
-              if (questions.length === 0) {
-                toast('No questions yet — ask some questions first.', 'info');
-                return;
-              }
-              setIsGeneratingPlanner(true);
-              try {
-                const summaryLines = questions
-                  .slice(0, 20)
-                  .map((q) => q.summary || q.content)
-                  .join('. ');
-                const checkInText = `I want to revisit and deepen my understanding of: ${summaryLines}. I'm curious about connections between these topics and want to explore areas that feel fuzzy.`;
-                const result = await plannerService.submitCheckIn(checkInText);
-                const count = result.generatedChunkIds.length;
-                toast(`Planner generated: ${count} chunk${count !== 1 ? 's' : ''} created.`, 'success');
-              } catch {
-                toast('Failed to generate planner.', 'error');
-              } finally {
-                setIsGeneratingPlanner(false);
-              }
-            }}
-            style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}
-          >
-            {isGeneratingPlanner
-              ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
-              : <Sparkles size={16} />
-            }
-            {isGeneratingPlanner ? 'Generating...' : 'Generate Planner'}
-          </Button>
           <Button
             variant="danger"
             size="sm"
