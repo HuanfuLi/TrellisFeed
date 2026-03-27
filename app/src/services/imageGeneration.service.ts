@@ -2,12 +2,16 @@
  * ImageGenerationService
  *
  * Orchestrates AI image generation with multi-provider fallback,
- * localStorage caching, and LRU eviction.
+ * IndexedDB caching (binary data), and LRU eviction.
  *
- * Provider priority: NanoBanana (primary) → Gemini (fallback) → Mock (dev/offline)
+ * Image binary data goes to IndexedDB — not localStorage — to avoid the ~5 MB
+ * localStorage quota on iOS Safari. (localStorage is only used for lightweight
+ * metadata: TTL, size, provider, etc.)
+ *
+ * Provider priority: NanoBanana (primary) → Gemini (fallback)
  *
  * Cache key format: `img-cache-{postId}-{style}`
- * Metadata key:     `img-cache-meta`
+ * Metadata key (localStorage): `img-cache-meta`
  */
 
 import type {
@@ -24,8 +28,70 @@ import type { IImageProvider } from '../providers/imageProvider.interface';
 
 const CACHE_KEY_PREFIX = 'img-cache-';
 const CACHE_META_KEY = 'img-cache-meta';
-const DEFAULT_MAX_CACHE_BYTES = 50 * 1024 * 1024; // 50 MB
+const DEFAULT_MAX_CACHE_BYTES = 200 * 1024 * 1024; // 200 MB (IndexedDB can handle this)
 const DEFAULT_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+
+// ─── IndexedDB helpers ────────────────────────────────────────────────────────
+// Image binary data (base64 strings) is stored in IndexedDB, not localStorage,
+// to avoid the ~5 MB localStorage cap on iOS Safari.
+
+const IDB_NAME = 'echolearn_images';
+const IDB_STORE = 'images';
+const IDB_VERSION = 1;
+
+function openImageDb(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(IDB_NAME, IDB_VERSION);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(IDB_STORE)) {
+        db.createObjectStore(IDB_STORE);
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function idbSet(key: string, value: string): Promise<void> {
+  const db = await openImageDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).put(value, key);
+    tx.oncomplete = () => { db.close(); resolve(); };
+    tx.onerror = () => { db.close(); reject(tx.error); };
+  });
+}
+
+async function idbGet(key: string): Promise<string | null> {
+  const db = await openImageDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, 'readonly');
+    const req = tx.objectStore(IDB_STORE).get(key);
+    req.onsuccess = () => { db.close(); resolve((req.result as string | undefined) ?? null); };
+    req.onerror = () => { db.close(); reject(req.error); };
+  });
+}
+
+async function idbDelete(key: string): Promise<void> {
+  const db = await openImageDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).delete(key);
+    tx.oncomplete = () => { db.close(); resolve(); };
+    tx.onerror = () => { db.close(); reject(tx.error); };
+  });
+}
+
+async function idbClear(): Promise<void> {
+  const db = await openImageDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).clear();
+    tx.oncomplete = () => { db.close(); resolve(); };
+    tx.onerror = () => { db.close(); reject(tx.error); };
+  });
+}
 
 // ─── Service ──────────────────────────────────────────────────────────────────
 
@@ -112,12 +178,15 @@ class ImageGenerationService {
   }
 
   /**
-   * Persist a set of generated images to the localStorage cache.
-   * Runs LRU eviction if the cache exceeds the configured size limit.
+   * Persist a set of generated images to the IndexedDB cache.
+   * Metadata (TTL, size, provider) stays in localStorage — it's tiny.
+   * Binary image data goes to IndexedDB to avoid the ~5 MB localStorage cap.
    */
   async cacheImage(postId: string, images: GeneratedImage[]): Promise<void> {
     const meta = this._loadMeta();
     const now = Date.now();
+
+    await this._evictExpiredAndOverLimit(meta);
 
     for (const image of images) {
       const cacheKey = this._cacheKey(postId, image.style);
@@ -125,16 +194,10 @@ class ImageGenerationService {
       const sizeBytes = new Blob([payload]).size;
 
       try {
-        localStorage.setItem(cacheKey, payload);
-      } catch {
-        // Storage full — evict and retry.
-        this._evictLRU(sizeBytes, meta);
-        try {
-          localStorage.setItem(cacheKey, payload);
-        } catch {
-          console.warn('[ImageGenerationService] Cache write failed after eviction');
-          continue;
-        }
+        await idbSet(cacheKey, payload);
+      } catch (err) {
+        console.error('[ImageGenerationService] IndexedDB write failed — image will not be cached:', err);
+        continue;
       }
 
       meta[cacheKey] = {
@@ -149,18 +212,6 @@ class ImageGenerationService {
     }
 
     this._saveMeta(meta);
-    this._evictExpiredAndOverLimit(meta);
-
-    // Warn at 80% capacity so the UI can surface a notification if needed.
-    const stats = this.getCacheStats();
-    const usageRatio = stats.totalSizeBytes / this.config.maxCacheSizeBytes;
-    if (usageRatio >= 0.8) {
-      console.warn(
-        `[ImageGenerationService] Cache at ${Math.round(usageRatio * 100)}% capacity ` +
-        `(${(stats.totalSizeBytes / (1024 * 1024)).toFixed(1)} MB / ` +
-        `${(this.config.maxCacheSizeBytes / (1024 * 1024)).toFixed(0)} MB)`,
-      );
-    }
   }
 
   /**
@@ -174,23 +225,21 @@ class ImageGenerationService {
 
     if (!entry) return null;
     if (Date.now() > entry.expiresAt) {
-      // Expired — remove it.
-      this._removeCacheEntry(cacheKey, meta);
-      return null;
-    }
-
-    const raw = localStorage.getItem(cacheKey);
-    if (!raw) {
-      // Data missing despite valid metadata — clean up metadata.
-      delete meta[cacheKey];
-      this._saveMeta(meta);
+      await this._removeCacheEntry(cacheKey, meta);
       return null;
     }
 
     try {
+      const raw = await idbGet(cacheKey);
+      if (!raw) {
+        // Data missing despite valid metadata — clean up metadata.
+        delete meta[cacheKey];
+        this._saveMeta(meta);
+        return null;
+      }
       return JSON.parse(raw) as GeneratedImage;
     } catch {
-      this._removeCacheEntry(cacheKey, meta);
+      await this._removeCacheEntry(cacheKey, meta);
       return null;
     }
   }
@@ -199,11 +248,12 @@ class ImageGenerationService {
    * Delete all cached images and reset metadata.
    */
   async clearImageCache(): Promise<void> {
-    const meta = this._loadMeta();
-    for (const key of Object.keys(meta)) {
-      localStorage.removeItem(key);
-    }
     localStorage.removeItem(CACHE_META_KEY);
+    try {
+      await idbClear();
+    } catch (err) {
+      console.warn('[ImageGenerationService] IndexedDB clear failed:', err);
+    }
   }
 
   /**
@@ -252,54 +302,44 @@ class ImageGenerationService {
     }
   }
 
-  private _removeCacheEntry(cacheKey: string, meta: Record<string, ImageCacheMetadata>): void {
-    localStorage.removeItem(cacheKey);
+  private async _removeCacheEntry(cacheKey: string, meta: Record<string, ImageCacheMetadata>): Promise<void> {
     delete meta[cacheKey];
     this._saveMeta(meta);
-  }
-
-  /**
-   * Evict least-recently-cached entries until `neededBytes` of space is freed.
-   */
-  private _evictLRU(neededBytes: number, meta: Record<string, ImageCacheMetadata>): void {
-    const sorted = Object.entries(meta).sort(([, a], [, b]) => a.cachedAt - b.cachedAt);
-    let freed = 0;
-    for (const [key, entry] of sorted) {
-      if (freed >= neededBytes) break;
-      freed += entry.sizeBytes;
-      localStorage.removeItem(key);
-      delete meta[key];
-    }
-    this._saveMeta(meta);
+    try { await idbDelete(cacheKey); } catch { /* non-fatal */ }
   }
 
   /**
    * Remove expired entries and enforce the total size limit via LRU.
+   * Fire-and-forget IndexedDB deletes — metadata is the source of truth.
    */
-  private _evictExpiredAndOverLimit(meta: Record<string, ImageCacheMetadata>): void {
+  private async _evictExpiredAndOverLimit(meta: Record<string, ImageCacheMetadata>): Promise<void> {
     const now = Date.now();
+    const toDelete: string[] = [];
 
-    // Remove expired.
+    // Collect expired keys.
     for (const [key, entry] of Object.entries(meta)) {
       if (now > entry.expiresAt) {
-        localStorage.removeItem(key);
+        toDelete.push(key);
         delete meta[key];
       }
     }
 
-    // Enforce size limit.
+    // Enforce size limit via LRU (oldest cachedAt first).
     let totalBytes = Object.values(meta).reduce((sum, e) => sum + e.sizeBytes, 0);
     if (totalBytes > this.config.maxCacheSizeBytes) {
       const sorted = Object.entries(meta).sort(([, a], [, b]) => a.cachedAt - b.cachedAt);
       for (const [key, entry] of sorted) {
         if (totalBytes <= this.config.maxCacheSizeBytes) break;
         totalBytes -= entry.sizeBytes;
-        localStorage.removeItem(key);
+        toDelete.push(key);
         delete meta[key];
       }
     }
 
-    this._saveMeta(meta);
+    if (toDelete.length > 0) {
+      this._saveMeta(meta);
+      await Promise.allSettled(toDelete.map(idbDelete));
+    }
   }
 }
 

@@ -95,22 +95,22 @@ const STYLE_ROTATION: ImageStyle[] = ['infograph', 'illustration', 'photo'];
 
 /**
  * Infer the best image style for a post.
- * Rotates deterministically based on feed index to ensure visual variety.
+ * Derived from post.id hash so the style is stable regardless of feed position.
+ * (Position-based rotation caused cache misses when connection/milestone cards
+ * shifted a post's index between renders.)
  *
- * @param post    The post to style.
- * @param index   0-based position in the feed.
+ * @param post  The post to style.
  */
-export function inferImageStyle(post: DailyPost, index: number): ImageStyle {
-  // Use index for rotation to guarantee variety across the feed.
-  const base = STYLE_ROTATION[index % STYLE_ROTATION.length];
-
+export function inferImageStyle(post: DailyPost): ImageStyle {
   // Override: connection posts and long-form content suit 'illustration'.
   if (post.sourceType === 'connection') return 'illustration';
 
   // Override: starter / seed posts suit 'infograph' (clean, structural).
   if (post.sourceType === 'starter') return 'infograph';
 
-  return base;
+  // Hash post.id for deterministic rotation that is stable across re-renders.
+  const hash = Array.from(post.id).reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
+  return STYLE_ROTATION[hash % STYLE_ROTATION.length];
 }
 
 /**

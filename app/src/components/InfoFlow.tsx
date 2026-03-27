@@ -49,7 +49,7 @@ function ConceptCard({ post, feedIndex = 0, isActive, onOpen }: ConceptCardProps
   useEffect(() => {
     let cancelled = false;
 
-    const style = inferImageStyle(post, feedIndex);
+    const style = inferImageStyle(post);
     const prompt = buildImagePrompt(post);
 
     setImageLoading(true);
@@ -68,10 +68,10 @@ function ConceptCard({ post, feedIndex = 0, isActive, onOpen }: ConceptCardProps
 
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [post.id, feedIndex]);
+  }, [post.id]);
 
   const handleRetryImage = () => {
-    const style = inferImageStyle(post, feedIndex);
+    const style = inferImageStyle(post);
     const prompt = buildImagePrompt(post);
     setImage(null);
     setImageLoading(true);
