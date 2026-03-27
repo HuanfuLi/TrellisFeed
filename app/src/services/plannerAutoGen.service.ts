@@ -171,7 +171,7 @@ export const plannerAutoGenService = {
       goal: move.title,
       description: move.reason,
       linkedConceptIds: [move.conceptId],
-      status: 'suggested',
+      status: 'in_progress',
     });
 
     // Remove the move after accepting.
