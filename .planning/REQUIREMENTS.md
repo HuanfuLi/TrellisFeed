@@ -27,6 +27,10 @@
 - [x] **PLANNER-05**: Suggestion algorithm considers trajectory: review performance, question frequency, engagement patterns
 - [x] **PLANNER-06**: Suggestions link directly to Posts, Questions, or Review sessions (rich "Moves")
 
+### Navigation (NAV)
+- [x] **NAV-01**: Move taps navigate to the screen matching the linkedResource type (review→ReviewScreen, post→PostDetailScreen, question→QuestionDetailScreen)
+- [x] **NAV-02**: Navigation preserves history stack so back button returns to the originating screen (Planner or Explore)
+
 ### Milestone Card Variety (CARDS)
 - [ ] **CARDS-01**: System provides 3+ distinct visual designs for milestone cards
 - [ ] **CARDS-02**: Cards alternate or shuffle designs to prevent visual fatigue
@@ -44,6 +48,9 @@
 
 ### Planner Intelligence (6 requirements)
 - PLANNER-01 through PLANNER-06: Auto-generation, daily refresh, retry pattern, trajectory-aware
+
+### Navigation (2 requirements)
+- NAV-01 through NAV-02: Move-type routing to correct target screens, history stack preservation
 
 ### Visual Variety (3 requirements)
 - CARDS-01 through CARDS-03: Multiple card designs, rotation strategy
