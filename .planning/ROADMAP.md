@@ -168,6 +168,38 @@
 
 ---
 
+## Phase 14: Knowledge Graph Classification & Anchor Nodes
+
+**Goal:** Fix mindmap branch/cluster name quality by separating classification into a dedicated second LLM call, and introduce concept anchor nodes so the mindmap displays clean concept names instead of raw questions.
+
+**Status:** Planning complete (2026-03-29) — Ready for execution
+
+**Requirements:**
+- GRAPH-01: Dedicated second LLM classification call (post-filterQuestion gate)
+- GRAPH-02: Second call receives question + existing tree structure (branches/clusters)
+- GRAPH-03: `decideIngestionOutcome` stripped to outcome + targetNodeId only
+- GRAPH-04: Concept anchor nodes (LLM-created, clean noun names)
+- GRAPH-05: Q&A attachment via parentId + append-only anchor nodeSummary
+- GRAPH-06: Mindmap renders anchors only with Mind-Elixir expand/retract
+
+**Plans:** 3 plans
+- [ ] 14-01-PLAN.md — Strip knowledgeDecision from first call, strip IngestionDecision labels, add anchor type fields
+- [ ] 14-02-PLAN.md — Second classification LLM call, anchor creation, Q&A attachment logic
+- [ ] 14-03-PLAN.md — Mindmap renders anchor nodes only with Mind-Elixir expand/retract
+
+**Success Criteria:**
+1. Branch and cluster names in the mindmap reflect actual academic domains (e.g., "Psychology", "Machine Learning") — not generic fallbacks like "Your concepts" or "Concept cluster"
+2. First LLM call JSON schema contains no `knowledgeDecision` field
+3. `decideIngestionOutcome` returns only `{ outcome, targetNodeId? }` — zero label fields
+4. Second LLM call fires only when `filterQuestion` confirms `flagged !== true`
+5. Second call context includes current branch/cluster tree, not candidate node labels
+6. Anchor nodes (isAnchorNode: true) created with clean concept names; Q&As attach via parentId
+7. Mindmap leaf nodes are anchor nodes only; Q&As visible via expand/retract
+8. Anchor nodeSummary grows as `[qa-id] ≤80-word summary` entries appended on each Q&A attachment
+9. No regression in existing ask flow, spaced repetition, or flashcard generation
+
+---
+
 ## Requirement Traceability
 
 | Phase | Requirements | Count |
@@ -179,6 +211,7 @@
 | Phase 11 | PLANNER-04, CARDS-01, CARDS-02, CARDS-03 | 4 |
 | Phase 12 | PLANNER-06, NAV-01, NAV-02 | 3 |
 | Phase 13 | PLANNER-07, PLANNER-08, PLANNER-09, PLANNER-10 | 4 |
+| Phase 14 | GRAPH-01, GRAPH-02, GRAPH-03, GRAPH-04, GRAPH-05, GRAPH-06 | 6 |
 | **Total** | **26 requirements** | **26** |
 
 ✓ All requirements mapped. 100% coverage.
