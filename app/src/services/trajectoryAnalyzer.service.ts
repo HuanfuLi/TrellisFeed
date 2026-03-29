@@ -107,17 +107,47 @@ function computeWeakAreas(
   questions: ReturnType<typeof questionService.getAll>,
   cards: ReturnType<typeof flashcardService.getAll>,
 ): string[] {
-  // Weak areas = questions linked to flashcards with easeFactor < 1.8 (struggled)
+  const weakIds = new Set<string>();
+
+  // Signal 1: Low ease factor (easeFactor < 2.0 — expanded from 1.8 for 40-50% coverage)
   const weakCardNodeIds = new Set(
     cards
-      .filter((c) => c.reviewSchedule.easeFactor < 1.8 && c.nodeId)
+      .filter((c) => c.reviewSchedule.easeFactor < 2.0 && c.nodeId)
       .map((c) => c.nodeId as string),
   );
+  for (const id of weakCardNodeIds) weakIds.add(id);
 
-  return questions
-    .filter((q) => weakCardNodeIds.has(q.id))
-    .map((q) => q.id)
-    .slice(0, 5);
+  // Signal 2: Overdue with declining ease (easeFactor < 2.5 AND overdue)
+  const now = Date.now();
+  for (const q of questions) {
+    if (q.lastReviewedAt && q.reviewSchedule) {
+      const daysSinceReview = (now - q.lastReviewedAt) / 86400000;
+      const nextDue = new Date(q.reviewSchedule.nextReviewDate).getTime();
+      const isOverdue = now > nextDue;
+      const isDeclining = q.reviewSchedule.easeFactor < 2.5;
+      if (isOverdue && isDeclining && daysSinceReview > 3) {
+        weakIds.add(q.id);
+      }
+    }
+  }
+
+  // Signal 3: Never reviewed (no review history = potential weak area)
+  for (const q of questions) {
+    if (!q.lastReviewedAt && q.reviewSchedule && q.reviewSchedule.reviewCount === 0) {
+      weakIds.add(q.id);
+    }
+  }
+
+  const weakAreaIds = questions
+    .filter((q) => weakIds.has(q.id))
+    .map((q) => q.id);
+
+  if (questions.length > 0) {
+    const pct = ((weakAreaIds.length / questions.length) * 100).toFixed(1);
+    console.debug(`[Planner] Weak areas: ${pct}% (${weakAreaIds.length}/${questions.length})`);
+  }
+
+  return weakAreaIds;
 }
 
 // ── Public API ─────────────────────────────────────────────────────────────

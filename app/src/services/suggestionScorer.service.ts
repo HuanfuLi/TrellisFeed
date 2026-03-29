@@ -57,8 +57,8 @@ export function scoreMove(concept: Question, signals: TrajectorySignal): number 
   // Component 4: Concept coverage gap (low coverage → higher priority).
   const coverageScore = clamp(100 - signals.conceptCoverage);
 
-  // Boost for concepts in weak areas.
-  const isWeakArea = signals.weakAreas.includes(concept.id) ? 15 : 0;
+  // Boost for concepts in weak areas (+30 to strongly differentiate priorities).
+  const isWeakArea = signals.weakAreas.includes(concept.id) ? 30 : 0;
 
   const rawScore = (
     WEIGHTS.reviewPerformance * perfScore
