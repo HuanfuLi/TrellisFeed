@@ -345,10 +345,10 @@ export function PostDetailScreen() {
             }}
           >
             {essayStreaming ? (
-              <>
-                <Markdown>{essayStreaming.replace(/^#\s+[^\n]*\n*/, '')}</Markdown>
+              <div style={{ whiteSpace: 'pre-wrap', fontSize: '0.98rem', lineHeight: 1.7, wordBreak: 'break-word' }}>
+                {essayStreaming}
                 <span style={{ display: 'inline-block', width: '2px', height: '1em', backgroundColor: 'var(--primary-40)', animation: 'blink 1s step-end infinite', verticalAlign: 'text-bottom', marginLeft: '2px' }} />
-              </>
+              </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {[80, 60, 72, 50].map((w, i) => (
