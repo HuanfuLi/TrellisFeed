@@ -197,7 +197,7 @@ function heuristicExtractSignals(content: string): CheckInSignals {
       if (topic) fallback.confidence.push(topic);
     }
 
-    if (/\b(fuzzy|confused|unclear|lost|don't get|do not get|not sure|slippery)\b/i.test(lower)) {
+    if (/\b(fuzzy|confused|confusing|unclear|lost|don't get|do not get|not sure|slippery|struggling|struggle|stuck|can't get|not getting|hard to|difficulty)\b/i.test(lower)) {
       let topic = extractedTopic || recentTopic;
       const relationshipTarget = clause.match(/\brelationship with\s+([^,.!?;]+)/i)?.[1];
       if (relationshipTarget && recentTopic) {
@@ -217,7 +217,7 @@ function heuristicExtractSignals(content: string): CheckInSignals {
       }
     }
 
-    if (/\b(curious|interested|want to learn more|want to explore|wondering about)\b/i.test(lower)) {
+    if (/\b(curious|interested|want to learn|want to know|want to explore|wondering about|learn about|find out|understand how)\b/i.test(lower)) {
       const topic = extractedTopic || recentTopic;
       if (topic) fallback.curiosity.push(topic);
     }
