@@ -346,7 +346,7 @@ export function PostDetailScreen() {
           >
             {essayStreaming ? (
               <>
-                <Markdown>{essayStreaming}</Markdown>
+                <Markdown>{essayStreaming.replace(/^#\s+[^\n]*\n*/, '')}</Markdown>
                 <span style={{ display: 'inline-block', width: '2px', height: '1em', backgroundColor: 'var(--primary-40)', animation: 'blink 1s step-end infinite', verticalAlign: 'text-bottom', marginLeft: '2px' }} />
               </>
             ) : (
