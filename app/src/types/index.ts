@@ -30,6 +30,9 @@ export interface Question {
   coCreationSignals?: Partial<Record<StructuralSignalType, number>> & { lastSignalAt?: number };
   embeddingVector?: number[];
   flagged?: boolean;  // true if detected as off-topic/meta-question; user can override
+  isAnchorNode?: boolean;  // true for concept anchor nodes; undefined/false for Q&A leaf nodes
+  qaCount?: number;        // number of Q&A nodes attached to this anchor (incremented on attachment)
+  shortSummary?: string;   // <=80 words, used as anchor summary entry when Q&A attaches
 }
 
 /** A milestone or trivia card injected into the Info Flow every ~5 items. */
@@ -372,10 +375,16 @@ export interface CandidateContextPack {
 export interface IngestionDecision {
   outcome: 'merge' | 'refine' | 'new';
   targetNodeId?: string;
-  rootLabel?: string;
-  branchLabel?: string;
-  clusterLabel?: string;
-  placementReason?: string;
+}
+
+export interface ClassificationResult {
+  briefAnswer: string;
+  keyword: string;
+  rootLabel: string;
+  branchLabel: string;
+  clusterLabel: string;
+  anchorName: string;
+  anchorId?: string;
 }
 
 export interface ReviewMapLeaf {
