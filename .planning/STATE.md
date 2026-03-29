@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
-status: Executing Phase 12
-stopped_at: Completed 12-02-PLAN.md (Gap Closure — Deepdive Routing Fix & NAV Requirements)
-last_updated: "2026-03-28T11:13:01.995Z"
+status: Executing Phase 13
+stopped_at: Completed 13-01-PLAN.md (Planner Redesign — Thread Removal, Signal Extraction, Weak Area Detection, Priority Badges)
+last_updated: "2026-03-28T12:00:00.000Z"
 progress:
-  total_phases: 6
-  completed_phases: 2
-  total_plans: 6
-  completed_plans: 5
+  total_phases: 7
+  completed_phases: 3
+  total_plans: 7
+  completed_plans: 6
 ---
 
 # Project State: Milestone 1.1
@@ -34,6 +34,7 @@ Phase 9 - Image Regeneration & Error Handling (next to start)
 - **Phase 10:** Planner Auto-Suggestions Engine (COMPLETE)
 - **Phase 11:** Planner Retry & Milestone Card Variety (COMPLETE)
 - **Phase 12:** Portal Navigation & Rich Moves Linking (12-01-PLAN.md — COMPLETE, 12-02-PLAN.md — COMPLETE)
+- **Phase 13:** Planner Redesign (13-01-PLAN.md — COMPLETE)
 
 ## Latest Decisions
 
@@ -70,9 +71,18 @@ Phase 9 - Image Regeneration & Error Handling (next to start)
 
 ## Last Session
 
-Completed Phase 12 Plan 02 (12-02-PLAN.md) — Gap Closure: Deepdive Routing Fix & NAV Requirements
-**Stopped At:** Completed 12-02-PLAN.md (Gap Closure — Deepdive Routing Fix & NAV Requirements)
+Completed Phase 13 Plan 01 (13-01-PLAN.md) — Planner Redesign: Thread Removal, Signal Extraction Fix, Weak Area Detection, Priority Badges
+**Stopped At:** Completed 13-01-PLAN.md (Planner Redesign — Thread Removal, Signal Extraction, Weak Area Detection, Priority Badges)
 **Date:** 2026-03-28
+
+## Latest Decisions (Phase 13-01)
+
+- [Phase 13-01] PlannerThread interface deleted — chunks are the single source of truth for all learning actions
+- [Phase 13-01] Signal-aware chunk creation: confusion→repair, curiosity→connect, connection→connect, revisit→retrieve
+- [Phase 13-01] sourceSignal + sourceText fields added to PlannerChunk for full provenance tracking
+- [Phase 13-01] Weak area boost increased from +15 to +30; detection expanded to 3 signals (easeFactor<2.0, overdue+declining, never-reviewed)
+- [Phase 13-01] Top 5 suggestions shown by default with Show All toggle in PlannerScreen
+- [Phase 13-01] Priority badges (WEAK AREA/OVERDUE/ACTIVE/EXPLORE) derived from relevanceScore thresholds 75/60/45
 
 ### Phase 12: NEW
 
