@@ -8,9 +8,7 @@ import { embedText, cosine } from '../providers/embedding/index.ts';
 import { dbExecute, dbQuery } from './db.service.ts';
 import {
   buildCanonicalQuestionPatch,
-  buildCandidateContextPack,
   decideIngestionOutcome,
-  formatCandidateContextPack,
 } from './canonical-knowledge.service.ts';
 import { evaluateQuestion as filterQuestion, type QuestionFilterContext } from './question-filter.service.ts';
 
@@ -191,15 +189,13 @@ export const questionService = {
     const contextLines = recentContext
       .map((q) => `Q: ${q.content}\nA: ${q.summary}`)
       .join('\n');
-    const candidatePack = buildCandidateContextPack(content, store, 5, queryEmbedding);
 
     const systemPrompt = [
       'You are a knowledgeable learning assistant. Answer questions clearly and thoroughly.',
       'Do not generate harmful, illegal, sexually explicit, or deceptive content.',
       recentContext.length > 0 ? `Recent questions for context:\n${contextLines}` : '',
-      `Knowledge graph candidate context:\n${formatCandidateContextPack(candidatePack)}`,
       'Respond ONLY with JSON:',
-      '{"answer":"...","summary":"one sentence","keywords":["kw1","kw2","kw3"],"storyHook":"An intriguing hook (≤15 words) to spark curiosity about this topic.","knowledgeDecision":{"outcome":"merge|refine|new","targetNodeId":"optional existing node id","rootLabel":"broad academic domain, 1-3 words, e.g. Cognitive Science / Computer Science / Physics","branchLabel":"sub-discipline or topic area, 2-4 words, e.g. Memory and Learning / Sorting Algorithms","clusterLabel":"the specific concept being asked about, 1-4 words, e.g. Spaced Repetition / Quicksort / Entropy","placementReason":"why this belongs there"}}',
+      '{"answer":"...","summary":"one sentence","keywords":["kw1","kw2","kw3"],"storyHook":"An intriguing hook (<=15 words) to spark curiosity about this topic.","shortSummary":"A concise <=80 word summary of the core concept explained in the answer."}',
     ]
       .filter(Boolean)
       .join('\n');
@@ -217,14 +213,7 @@ export const questionService = {
       let summary: string;
       let keywords: string[];
       let storyHook: string | undefined;
-      let knowledgeDecision: {
-        outcome?: 'merge' | 'refine' | 'new';
-        targetNodeId?: string;
-        rootLabel?: string;
-        branchLabel?: string;
-        clusterLabel?: string;
-        placementReason?: string;
-      } | undefined;
+      let shortSummary: string | undefined;
 
       try {
         const jsonMatch = raw.match(/\{[\s\S]*\}/);
@@ -233,27 +222,20 @@ export const questionService = {
           summary?: string;
           keywords?: string[];
           storyHook?: string;
-          knowledgeDecision?: {
-            outcome?: 'merge' | 'refine' | 'new';
-            targetNodeId?: string;
-            rootLabel?: string;
-            branchLabel?: string;
-            clusterLabel?: string;
-            placementReason?: string;
-          };
+          shortSummary?: string;
         };
         answer = parsed.answer ?? raw;
         summary = parsed.summary ?? extractSummary(answer);
         keywords = Array.isArray(parsed.keywords) ? parsed.keywords : extractKeywords(answer);
         storyHook = typeof parsed.storyHook === 'string' && parsed.storyHook ? parsed.storyHook : undefined;
-        knowledgeDecision = parsed.knowledgeDecision;
+        shortSummary = typeof parsed.shortSummary === 'string' && parsed.shortSummary ? parsed.shortSummary : undefined;
       } catch {
         answer = raw;
         summary = extractSummary(raw);
         keywords = extractKeywords(raw);
       }
 
-      const question = this.buildAndSave(content, answer, store, { summary, keywords, storyHook, knowledgeDecision, preComputedEmbedding: queryEmbedding });
+      const question = this.buildAndSave(content, answer, store, { summary, keywords, storyHook, shortSummary, preComputedEmbedding: queryEmbedding });
 
       // Evaluate question for off-topic/meta status
       const flagged = await filterQuestion(question, sessionContext);
@@ -299,14 +281,7 @@ export const questionService = {
       summary?: string;
       keywords?: string[];
       storyHook?: string;
-      knowledgeDecision?: {
-        outcome?: 'merge' | 'refine' | 'new';
-        targetNodeId?: string;
-        rootLabel?: string;
-        branchLabel?: string;
-        clusterLabel?: string;
-        placementReason?: string;
-      };
+      shortSummary?: string;
       /** Pre-computed embedding for the query content (from ask() pre-call). When present,
        *  stored directly on the question — no async fire-and-forget needed for the initial save. */
       preComputedEmbedding?: number[];
@@ -315,7 +290,7 @@ export const questionService = {
     const store = existingQuestions ?? loadStore();
     const summary = meta?.summary ?? extractSummary(answer);
     const keywords = meta?.keywords ?? extractKeywords(answer);
-    const decision = decideIngestionOutcome(content, store, meta?.knowledgeDecision);
+    const decision = decideIngestionOutcome(content, store);
 
     if (decision.outcome === 'merge' && decision.targetNodeId) {
       const target = store.find((candidate) => candidate.id === decision.targetNodeId);
@@ -380,6 +355,7 @@ export const questionService = {
       summary,
       title: deriveTitleFromQuestion(content),
       ...(meta?.storyHook ? { storyHook: meta.storyHook } : {}),
+      ...(meta?.shortSummary ? { shortSummary: meta.shortSummary } : {}),
       keywords,
       relatedQuestionIds,
       categoryIds: ['cat-general'],
@@ -392,11 +368,7 @@ export const questionService = {
       aliases: [],
       sourcePrompts: [content],
       sourceQuestionIds: [],
-      rootLabel: decision.rootLabel,
-      branchLabel: decision.branchLabel,
-      clusterLabel: decision.clusterLabel,
       nodeSummary: summary,
-      placementReason: decision.placementReason,
       ...(decision.outcome === 'refine' && decision.targetNodeId ? { parentId: decision.targetNodeId } : {}),
       // Store the content-only embedding now if available; a richer content+answer vector
       // will be persisted once the full text embedding completes below.
