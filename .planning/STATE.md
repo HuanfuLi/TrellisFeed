@@ -83,6 +83,13 @@ Completed Phase 15 Plan 03 (15-03-PLAN.md) — Cluster Detail System
 - [Phase 15-03] Priority chain in ReviewScreen: anchorFilteredItems ?? clusterFilteredItems ?? moveFilteredItems
 - [Phase 15-03] AnchorDetailScreen cluster breadcrumb is tappable only when clusterNodeId exists; legacy anchors stay static span
 
+## Latest Decisions (Phase 15-02)
+
+- [Phase 15-02] buildMindElixirData uses cluster.clusterEntity?.id as NodeObj id (falls back to synthetic ID for clusters without stored entity)
+- [Phase 15-02] Bottom panel onClick checks isClusterNode first before isAnchorNode — navigates to /cluster/:id
+- [Phase 15-02] Cluster bottom panel shows child anchor names as summary instead of raw cluster label
+- [Phase 15-02] childAnchorCount computed inline via IIFE to avoid hoisting to component scope
+
 ## Latest Decisions (Phase 15-01)
 
 - [Phase 15-01] Cluster nodes stored as Question entities with isClusterNode=true, mirroring isAnchorNode pattern
