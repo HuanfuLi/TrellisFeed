@@ -89,6 +89,30 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
 
   // ── End image state ─────────────────────────────────────────────────────────
 
+  // Wait for image generation to complete before showing the full card
+  if (imageLoading) {
+    return (
+      <div
+        className="flow-card-inner"
+        style={{
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '16px',
+          padding: '24px 20px',
+          boxSizing: 'border-box',
+          background:
+            'radial-gradient(circle at top right, color-mix(in srgb, var(--primary-80) 55%, transparent), transparent 40%), var(--card)',
+        }}
+      >
+        <span style={{ display: 'inline-block', width: '28px', height: '28px', border: '3px solid var(--primary-40)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+        <p style={{ color: 'var(--muted-foreground)', fontSize: '0.9rem', fontWeight: 500 }}>Preparing post...</p>
+      </div>
+    );
+  }
+
   return (
     <div
       className="flow-card-inner"
@@ -139,14 +163,15 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
           overflow: 'hidden',
         }}
       >
-        {/* Image-forward header — replaces text-only hook */}
-        <FeedPostImage
-          imageData={image}
-          isLoading={imageLoading}
-          error={imageError}
-          onRetry={handleRetryImage}
-          aspectPadding="100%"
-        />
+        {/* Image-forward header — show image or nothing (error handled in detail page) */}
+        {image && (
+          <FeedPostImage
+            imageData={image}
+            isLoading={false}
+            error={null}
+            aspectPadding="100%"
+          />
+        )}
 
         <div style={{ padding: '0 20px' }}>
           <p

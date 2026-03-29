@@ -12,6 +12,7 @@ import { ChatMessage } from '../components/ChatMessage';
 import { PostCarousel } from '../components/PostCarousel';
 import { toast } from '../lib/toast';
 import { parseMoveNavigationState } from '../lib/moveNavigator';
+import { inferImageStyle, buildImagePrompt } from '../services/postFormatting.service';
 
 interface ConnectionMeta {
   questionA: Question;
@@ -62,6 +63,7 @@ export function PostDetailScreen() {
   // Carousel images state
   const [carouselImages, setCarouselImages] = useState<GeneratedImage[]>([]);
   const [isLoadingCarousel, setIsLoadingCarousel] = useState(false);
+  const [isRetryingImage, setIsRetryingImage] = useState(false);
 
   // Essay generation state (connection posts only)
   const [essayStreaming, setEssayStreaming] = useState('');
@@ -266,6 +268,25 @@ export function PostDetailScreen() {
     }
   };
 
+  const handleRetryImage = async () => {
+    if (!post) return;
+    setIsRetryingImage(true);
+    try {
+      const style = inferImageStyle(post);
+      const prompt = buildImagePrompt(post);
+      const result = await imageGenerationService.generateImage(post.id, prompt, style);
+      if (result.success && result.data) {
+        setCarouselImages([result.data]);
+      } else {
+        toast(result.error?.message ?? 'Image generation failed', 'error');
+      }
+    } catch {
+      toast('Image generation failed', 'error');
+    } finally {
+      setIsRetryingImage(false);
+    }
+  };
+
   if (loadingPost) {
     return (
       <div style={{ padding: '24px 16px', maxWidth: '448px', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -397,12 +418,47 @@ export function PostDetailScreen() {
         </div>
       )}
 
-      {/* Carousel — shown when images are cached (0 images = graceful omission) */}
-      <PostCarousel
-        images={carouselImages}
-        isLoading={isLoadingCarousel}
-        onIndexChange={(index) => { /* Future: analytics or preload */ void index; }}
-      />
+      {/* Carousel — shown when images exist, retry button when failed */}
+      {carouselImages.length > 0 ? (
+        <PostCarousel
+          images={carouselImages}
+          isLoading={isLoadingCarousel}
+          onIndexChange={(index) => { /* Future: analytics or preload */ void index; }}
+        />
+      ) : !isLoadingCarousel && post && (
+        <button
+          onClick={() => void handleRetryImage()}
+          disabled={isRetryingImage}
+          style={{
+            width: '100%',
+            padding: '14px',
+            marginBottom: '14px',
+            borderRadius: 'var(--radius-xl)',
+            border: '1.5px dashed var(--border)',
+            backgroundColor: 'var(--surface-variant)',
+            color: isRetryingImage ? 'var(--muted-foreground)' : 'var(--primary-40)',
+            fontSize: '0.875rem',
+            fontWeight: 600,
+            cursor: isRetryingImage ? 'not-allowed' : 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+          }}
+        >
+          {isRetryingImage ? (
+            <>
+              <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+              Generating image...
+            </>
+          ) : (
+            <>
+              <RefreshCw size={14} />
+              Generate image
+            </>
+          )}
+        </button>
+      )}
 
       <article
         style={{
