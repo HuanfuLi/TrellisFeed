@@ -33,6 +33,8 @@ export interface Question {
   isAnchorNode?: boolean;  // true for concept anchor nodes; undefined/false for Q&A leaf nodes
   qaCount?: number;        // number of Q&A nodes attached to this anchor (incremented on attachment)
   shortSummary?: string;   // <=80 words, used as anchor summary entry when Q&A attaches
+  isClusterNode?: boolean; // true for cluster-level container nodes
+  clusterNodeId?: string;  // on anchor and Q&A nodes — points to parent cluster entity ID
 }
 
 /** A milestone or trivia card injected into the Info Flow every ~5 items. */
