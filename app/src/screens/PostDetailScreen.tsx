@@ -332,7 +332,18 @@ export function PostDetailScreen() {
             </button>
           </div>
         ) : (
-          <div style={{ backgroundColor: 'var(--card)', borderRadius: 'var(--radius-xl)', border: '1px solid var(--border)', padding: '24px 20px', boxShadow: 'var(--shadow-1)' }}>
+          <article
+            style={{
+              borderRadius: '22px',
+              padding: '20px 16px',
+              background: 'linear-gradient(180deg, color-mix(in srgb, var(--primary-90) 70%, white), var(--card))',
+              boxShadow: 'var(--shadow-2)',
+              border: '1px solid color-mix(in srgb, var(--primary-40) 18%, var(--border))',
+              marginBottom: '14px',
+              userSelect: 'text',
+              WebkitTouchCallout: 'default',
+            }}
+          >
             {essayStreaming ? (
               <>
                 <Markdown>{essayStreaming}</Markdown>
@@ -345,7 +356,7 @@ export function PostDetailScreen() {
                 ))}
               </div>
             )}
-          </div>
+          </article>
         )}
       </div>
     );
