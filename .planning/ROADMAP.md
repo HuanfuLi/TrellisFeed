@@ -200,6 +200,29 @@
 
 ---
 
+## Phase 15: Cluster Detail System
+
+**Goal:** Extend the anchor detail system (bottom panel, detail page, review buttons) to cluster-level nodes, so users can view aggregated Q&As and summaries from all child anchors, review flashcards across an entire cluster, and generate post essays from cluster-wide knowledge.
+
+**Requirements:**
+- CLUSTER-01: Cluster nodes stored as Question entities with isClusterNode flag
+- CLUSTER-02: Bottom detail panel on cluster node tap in mindmap graph
+- CLUSTER-03: Cluster detail page aggregating Q&As and summaries from all child anchors
+- CLUSTER-04: Review Flashcards button gathering cards from all child anchors' Q&As
+- CLUSTER-05: Learn as Post button generating essay from cluster-wide nodeSummary entries
+- CLUSTER-06: Breadcrumb cluster label navigates to cluster detail page
+
+**Success Criteria:**
+1. Cluster nodes exist as stored entities with `isClusterNode: true` and metadata
+2. Tapping a cluster node in the mindmap shows a bottom detail panel with cluster name, total Q&A count, and "View details" CTA
+3. Cluster detail page at `/cluster/:id` displays all Q&As and summaries from every child anchor
+4. "Review Flashcards" button on cluster detail filters and launches review for all Q&As across child anchors
+5. "Learn as Post" button generates an essay using only `nodeSummary` entries from child anchors
+6. Cluster label in anchor detail breadcrumb is tappable and navigates to cluster detail page
+7. No regression in existing anchor detail, graph rendering, or ask flow
+
+---
+
 ## Requirement Traceability
 
 | Phase | Requirements | Count |
@@ -212,7 +235,8 @@
 | Phase 12 | PLANNER-06, NAV-01, NAV-02 | 3 |
 | Phase 13 | PLANNER-07, PLANNER-08, PLANNER-09, PLANNER-10 | 4 |
 | Phase 14 | GRAPH-01, GRAPH-02, GRAPH-03, GRAPH-04, GRAPH-05, GRAPH-06 | 6 |
-| **Total** | **26 requirements** | **26** |
+| Phase 15 | CLUSTER-01, CLUSTER-02, CLUSTER-03, CLUSTER-04, CLUSTER-05, CLUSTER-06 | 6 |
+| **Total** | **32 requirements** | **32** |
 
 ✓ All requirements mapped. 100% coverage.
 
