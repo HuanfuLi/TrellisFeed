@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
-status: Executing Phase 14
-stopped_at: Phase 15 context gathered
-last_updated: "2026-03-29T22:28:10.063Z"
+status: Executing Phase 15
+stopped_at: Completed 15-01-PLAN.md (Cluster Node Storage Foundation)
+last_updated: "2026-03-29T22:41:38.746Z"
 progress:
   total_phases: 9
   completed_phases: 4
-  total_plans: 11
-  completed_plans: 11
+  total_plans: 14
+  completed_plans: 12
 ---
 
 # Project State: Milestone 1.1
@@ -72,9 +72,18 @@ Phase 9 - Image Regeneration & Error Handling (next to start)
 
 ## Last Session
 
-Completed Phase 14 Plan 02 (14-02-PLAN.md) — Second Classification Call & Anchor Creation
-**Stopped At:** Phase 15 context gathered
+Completed Phase 15 Plan 01 (15-01-PLAN.md) — Cluster Node Storage Foundation
+**Stopped At:** Completed 15-01-PLAN.md (Cluster Node Storage Foundation)
 **Date:** 2026-03-29
+
+## Latest Decisions (Phase 15-01)
+
+- [Phase 15-01] Cluster nodes stored as Question entities with isClusterNode=true, mirroring isAnchorNode pattern
+- [Phase 15-01] clusterNodeId field added to anchor/Q&A nodes pointing to parent cluster entity ID
+- [Phase 15-01] freshQuestions local variable refreshed after cluster creation so anchor resolution sees new cluster
+- [Phase 15-01] Cluster entity creation occurs before anchor creation in classifyAndAnchor
+- [Phase 15-01] Cluster qaCount aggregated from child anchors filtered by clusterNodeId after anchor update
+- [Phase 15-01] buildAnchorReflectionTree skips isClusterNode nodes in both loops; returns clusterEntity per group
 
 ## Latest Decisions (Phase 14-04)
 
