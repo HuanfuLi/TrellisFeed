@@ -332,31 +332,10 @@ export function PostDetailScreen() {
             </button>
           </div>
         ) : (
-          <article
-            style={{
-              borderRadius: '22px',
-              padding: '20px 16px',
-              background: 'linear-gradient(180deg, color-mix(in srgb, var(--primary-90) 70%, white), var(--card))',
-              boxShadow: 'var(--shadow-2)',
-              border: '1px solid color-mix(in srgb, var(--primary-40) 18%, var(--border))',
-              marginBottom: '14px',
-              userSelect: 'text',
-              WebkitTouchCallout: 'default',
-            }}
-          >
-            {essayStreaming ? (
-              <div style={{ whiteSpace: 'pre-wrap', fontSize: '0.98rem', lineHeight: 1.7, wordBreak: 'break-word' }}>
-                {essayStreaming}
-                <span style={{ display: 'inline-block', width: '2px', height: '1em', backgroundColor: 'var(--primary-40)', animation: 'blink 1s step-end infinite', verticalAlign: 'text-bottom', marginLeft: '2px' }} />
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {[80, 60, 72, 50].map((w, i) => (
-                  <div key={i} style={{ height: '16px', borderRadius: '8px', backgroundColor: 'var(--surface-variant)', width: `${w}%`, animation: 'skeleton-pulse 1.5s ease-in-out infinite' }} />
-                ))}
-              </div>
-            )}
-          </article>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px', padding: '60px 20px' }}>
+            <Loader2 size={28} style={{ animation: 'spin 1s linear infinite', color: 'var(--primary-40)' }} />
+            <p style={{ color: 'var(--muted-foreground)', fontSize: '0.95rem' }}>Generating Post...</p>
+          </div>
         )}
       </div>
     );
