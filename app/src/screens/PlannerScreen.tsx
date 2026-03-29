@@ -83,6 +83,11 @@ function ChunkCard({
               {chunk.description}
             </p>
           )}
+          {chunk.priorityReason && (
+            <p style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', marginTop: '6px', fontStyle: 'italic' }}>
+              {chunk.priorityReason}
+            </p>
+          )}
         </div>
 
         <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>

@@ -441,6 +441,12 @@ export const plannerService = {
     ): PlannerChunk | null {
       if (existingGoals.has(goal.toLowerCase())) return null;
       existingGoals.add(goal.toLowerCase());
+      const priorityReasonMap: Record<NonNullable<PlannerChunk['sourceSignal']>, string> = {
+        confusion: 'From check-in: you flagged this as unclear',
+        curiosity: 'From check-in: you expressed curiosity about this',
+        revisit: 'From check-in: you want to revisit this',
+        connection: 'From check-in: you noticed a connection here',
+      };
       const chunk: PlannerChunk = {
         id: newId('chunk'),
         type,
@@ -448,6 +454,7 @@ export const plannerService = {
         linkedConceptIds,
         sourceSignal,
         sourceText: content,
+        priorityReason: sourceSignal ? priorityReasonMap[sourceSignal] : undefined,
         status: 'suggested',
         createdAt: now,
         updatedAt: now,
