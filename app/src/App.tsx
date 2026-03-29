@@ -15,6 +15,8 @@ import { PodcastScreen } from './screens/PodcastScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { GraphScreen } from './screens/GraphScreen';
 import { PostDetailScreen } from './screens/PostDetailScreen';
+import { AnchorDetailScreen } from './screens/AnchorDetailScreen';
+import { ClusterDetailScreen } from './screens/ClusterDetailScreen';
 import { mockSettingsService } from './services/mock/settings.mock';
 import { hydrateFromSQLite } from './services/question.service';
 import { hydratePlannerFromSQLite } from './services/planner.service';
@@ -172,6 +174,8 @@ const router = createBrowserRouter([
       { path: 'posts/:id', element: <PageTransition><PostDetailScreen /></PageTransition> },
       { path: 'ask', element: <PageTransition><AskScreen /></PageTransition> },
       { path: 'ask/:id', element: <PageTransition><QuestionDetailScreen /></PageTransition> },
+      { path: 'anchor/:id', element: <PageTransition><AnchorDetailScreen /></PageTransition> },
+      { path: 'cluster/:id', element: <PageTransition><ClusterDetailScreen /></PageTransition> },
       { path: 'graph', element: <PageTransition><GraphScreen /></PageTransition> },
       { path: 'planner', element: <PageTransition><PlannerScreen /></PageTransition> },
       { path: 'review', element: <PageTransition><ReviewScreen /></PageTransition> },
