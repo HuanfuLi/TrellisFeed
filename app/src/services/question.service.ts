@@ -8,6 +8,7 @@ import { embedText, cosine } from '../providers/embedding/index.ts';
 import { dbExecute, dbQuery } from './db.service.ts';
 import {
   buildCanonicalQuestionPatch,
+  classifyAndAnchor,
   decideIngestionOutcome,
 } from './canonical-knowledge.service.ts';
 import { evaluateQuestion as filterQuestion, type QuestionFilterContext } from './question-filter.service.ts';
@@ -247,6 +248,16 @@ export const questionService = {
         freshStore[idx] = flagged;
         saveStore(freshStore);
         persistToSQLite(flagged);
+      }
+
+      // ── Second classification call (Phase 14) ──────────────────────────────
+      // Fire ONLY when Q&A enters the mindmap (not flagged).
+      if (flagged.flagged !== true) {
+        // Fire-and-forget: classification + anchor attachment runs asynchronously.
+        // The Q&A is already saved; labels will be patched on once the call completes.
+        void classifyAndAnchor(flagged, loadStore(), llmConfig).catch((err: unknown) => {
+          console.warn('[EchoLearn] classifyAndAnchor failed:', err instanceof Error ? err.message : err);
+        });
       }
 
       const relatedQuestions = freshStore.filter((q) =>
