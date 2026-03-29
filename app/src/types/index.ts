@@ -127,29 +127,15 @@ export interface PlannerChunk {
   description?: string;
   /** IDs of related knowledge questions/nodes. */
   linkedConceptIds: string[];
-  /** Thread this chunk was spawned from, if any. */
-  threadId?: string;
+  /** Which signal type created this chunk (confusion/curiosity/revisit/connection). */
+  sourceSignal?: 'confusion' | 'curiosity' | 'revisit' | 'connection';
+  /** Original check-in text that created this chunk. */
+  sourceText?: string;
+  /** Why this chunk was suggested (set by scoring service). */
+  priorityReason?: string;
   status: ChunkStatus;
   createdAt: number;
   updatedAt: number;
-}
-
-/** A persistent learning topic or unresolved area the user may return to. */
-export interface PlannerThread {
-  id: string;
-  /** Short topic label (e.g. "TCP vs UDP differences"). */
-  title: string;
-  /** Optional longer description of the thread. */
-  description?: string;
-  /** Keywords for matching check-in signals to existing threads. */
-  keywords: string[];
-  /** IDs of related knowledge questions/nodes. */
-  linkedConceptIds: string[];
-  /** Whether the user explicitly saved this thread. */
-  saved: boolean;
-  /** Last time this thread was created or updated by a check-in. */
-  lastActivityAt: number;
-  createdAt: number;
 }
 
 /** Structured signals extracted from a single Learning Check-In. */
@@ -173,8 +159,6 @@ export interface LearningCheckIn {
   content: string;
   /** Extracted structured signals. */
   signals: CheckInSignals;
-  /** IDs of threads created or updated as a result. */
-  affectedThreadIds: string[];
   /** IDs of chunks suggested as a result. */
   generatedChunkIds: string[];
   createdAt: number;
@@ -183,7 +167,6 @@ export interface LearningCheckIn {
 /** Top-level planner data shape for persistence and state hooks. */
 export interface PlannerData {
   chunks: PlannerChunk[];
-  threads: PlannerThread[];
   checkIns: LearningCheckIn[];
 }
 
@@ -542,10 +525,13 @@ export interface ServiceError {
 export type ErrorCode =
   | 'NETWORK_ERROR'
   | 'API_KEY_INVALID'
+  | 'API_KEY_NOT_CONFIGURED'
   | 'API_QUOTA_EXCEEDED'
   | 'API_RATE_LIMITED'
   | 'DATABASE_ERROR'
+  | 'INVALID_REQUEST'
   | 'NOT_FOUND'
+  | 'RETRIES_EXHAUSTED'
   | 'VALIDATION_ERROR'
   | 'NOT_CONFIGURED'
   | 'UNKNOWN_ERROR';

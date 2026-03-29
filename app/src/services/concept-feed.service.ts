@@ -40,10 +40,8 @@ interface CachedDailyPosts {
 }
 
 function computePlannerFingerprint(): string {
-  const savedThreads = plannerService.getSavedThreads().map((thread) => `${thread.id}:${thread.lastActivityAt}`);
   const recentSignals = plannerService.getRecentSignals();
   return JSON.stringify({
-    threads: savedThreads,
     confusion: recentSignals.confusion,
     curiosity: recentSignals.curiosity,
     connections: recentSignals.connections,
@@ -225,10 +223,9 @@ export function buildDailyKnowledgeContext(questions: Question[]): DailyKnowledg
   }
 
   // Gather planner signals for feed ranking
-  const savedThreads = plannerService.getSavedThreads();
   const recentSignals = plannerService.getRecentSignals();
   const plannerSignals: PlannerSignals = {
-    activeThreads: savedThreads.slice(0, 6).map((t) => t.title),
+    activeThreads: recentSignals.curiosity.slice(0, 6),
     confusionAreas: recentSignals.confusion.slice(0, 4),
     curiosityTopics: recentSignals.curiosity.slice(0, 4),
   };

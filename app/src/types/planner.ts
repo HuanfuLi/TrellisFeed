@@ -54,7 +54,6 @@ export interface PlannedMove {
   goal: string;
   description?: string;
   linkedConceptIds: string[];
-  threadId?: string;
   status: 'suggested' | 'in_progress' | 'saved_for_later' | 'done';
   createdAt: number;
   updatedAt: number;

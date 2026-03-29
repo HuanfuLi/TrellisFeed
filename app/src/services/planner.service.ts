@@ -1,5 +1,5 @@
 import type {
-  PlannerChunk, PlannerThread, LearningCheckIn, PlannerData,
+  PlannerChunk, LearningCheckIn, PlannerData,
   ChunkStatus, CheckInSignals,
 } from '../types';
 import { chatCompletion } from '../providers/llm/index.ts';
@@ -12,7 +12,6 @@ import { questionService } from './question.service.ts';
 // ── Persistence ────────────────────────────────────────────────────────────
 
 const CHUNKS_KEY = 'echolearn_planner_chunks';
-const THREADS_KEY = 'echolearn_planner_threads';
 const CHECKINS_KEY = 'echolearn_planner_checkins';
 
 function loadJson<T>(key: string, fallback: T): T {
@@ -50,18 +49,6 @@ function deleteChunkFromSQLite(id: string): void {
     .catch((err: unknown) => console.warn('[planner] SQLite chunk delete failed:', err));
 }
 
-function persistThreadToSQLite(thread: PlannerThread): void {
-  if (!isNative) return;
-  dbExecute('INSERT OR REPLACE INTO planner_threads (id, data) VALUES (?, ?)', [thread.id, JSON.stringify(thread)])
-    .catch((err: unknown) => console.warn('[planner] SQLite thread persist failed:', err));
-}
-
-function deleteThreadFromSQLite(id: string): void {
-  if (!isNative) return;
-  dbExecute('DELETE FROM planner_threads WHERE id = ?', [id])
-    .catch((err: unknown) => console.warn('[planner] SQLite thread delete failed:', err));
-}
-
 function persistCheckInToSQLite(checkIn: LearningCheckIn): void {
   if (!isNative) return;
   dbExecute('INSERT OR REPLACE INTO planner_checkins (id, data) VALUES (?, ?)', [checkIn.id, JSON.stringify(checkIn)])
@@ -78,9 +65,8 @@ export async function hydratePlannerFromSQLite(): Promise<void> {
   if (plannerHydrated) return;
   plannerHydrated = true;
   try {
-    const [chunkRows, threadRows, checkInRows] = await Promise.all([
+    const [chunkRows, checkInRows] = await Promise.all([
       dbQuery<{ id: string; data: string }>('SELECT * FROM planner_chunks'),
-      dbQuery<{ id: string; data: string }>('SELECT * FROM planner_threads'),
       dbQuery<{ id: string; data: string }>('SELECT * FROM planner_checkins'),
     ]);
 
@@ -94,18 +80,6 @@ export async function hydratePlannerFromSQLite(): Promise<void> {
         }
       }
       if (toAdd.length > 0) saveJson(CHUNKS_KEY, [...toAdd, ...existing]);
-    }
-
-    if (threadRows.length > 0) {
-      const existing = loadThreads();
-      const existingIds = new Set(existing.map((t) => t.id));
-      const toAdd: PlannerThread[] = [];
-      for (const row of threadRows) {
-        if (!existingIds.has(row.id)) {
-          try { toAdd.push(JSON.parse(row.data) as PlannerThread); } catch { /* skip corrupt */ }
-        }
-      }
-      if (toAdd.length > 0) saveJson(THREADS_KEY, [...toAdd, ...existing]);
     }
 
     if (checkInRows.length > 0) {
@@ -139,16 +113,6 @@ function loadChunks(): PlannerChunk[] {
 
 function saveChunks(chunks: PlannerChunk[]): void {
   saveJson(CHUNKS_KEY, chunks);
-}
-
-// ── Thread helpers ─────────────────────────────────────────────────────────
-
-function loadThreads(): PlannerThread[] {
-  return loadJson<PlannerThread[]>(THREADS_KEY, []);
-}
-
-function saveThreads(threads: PlannerThread[]): void {
-  saveJson(THREADS_KEY, threads);
 }
 
 // ── Check-in helpers ───────────────────────────────────────────────────────
@@ -362,16 +326,6 @@ function findLinkedConceptIds(signal: string): string[] {
     .map((m) => m.id);
 }
 
-// ── Thread matching ────────────────────────────────────────────────────────
-
-function findMatchingThread(threads: PlannerThread[], signal: string): PlannerThread | undefined {
-  const lower = signal.toLowerCase();
-  return threads.find((t) => {
-    if (t.title.toLowerCase().includes(lower) || lower.includes(t.title.toLowerCase())) return true;
-    return t.keywords.some((kw) => lower.includes(kw.toLowerCase()) || kw.toLowerCase().includes(lower));
-  });
-}
-
 // ── Service ────────────────────────────────────────────────────────────────
 
 export const plannerService = {
@@ -380,17 +334,12 @@ export const plannerService = {
   getAll(): PlannerData {
     return {
       chunks: loadChunks(),
-      threads: loadThreads(),
       checkIns: loadCheckIns(),
     };
   },
 
   getChunks(): PlannerChunk[] {
     return loadChunks();
-  },
-
-  getThreads(): PlannerThread[] {
-    return loadThreads();
   },
 
   getCheckIns(): LearningCheckIn[] {
@@ -419,13 +368,6 @@ export const plannerService = {
   /** Saved-for-later chunks. */
   getSavedChunks(): PlannerChunk[] {
     return loadChunks().filter((c) => c.status === 'saved_for_later');
-  },
-
-  /** Saved threads, sorted by last activity. */
-  getSavedThreads(): PlannerThread[] {
-    return loadThreads()
-      .filter((t) => t.saved)
-      .sort((a, b) => b.lastActivityAt - a.lastActivityAt);
   },
 
   // ── Chunk mutations ─────────────────────────────────────────────────────
@@ -469,62 +411,18 @@ export const plannerService = {
     return true;
   },
 
-  // ── Thread mutations ────────────────────────────────────────────────────
-
-  createThread(thread: Omit<PlannerThread, 'id' | 'createdAt' | 'lastActivityAt'>): PlannerThread {
-    const now = Date.now();
-    const newThread: PlannerThread = {
-      ...thread,
-      id: newId('thread'),
-      createdAt: now,
-      lastActivityAt: now,
-    };
-    const threads = loadThreads();
-    threads.push(newThread);
-    saveThreads(threads);
-    persistThreadToSQLite(newThread);
-    eventBus.emit({ type: 'PLANNER_UPDATED', payload: { reason: 'thread' } });
-    return newThread;
-  },
-
-  toggleThreadSaved(threadId: string): PlannerThread | null {
-    const threads = loadThreads();
-    const thread = threads.find((t) => t.id === threadId);
-    if (!thread) return null;
-    thread.saved = !thread.saved;
-    thread.lastActivityAt = Date.now();
-    saveThreads(threads);
-    persistThreadToSQLite(thread);
-    eventBus.emit({ type: 'PLANNER_UPDATED', payload: { reason: 'thread' } });
-    return { ...thread };
-  },
-
-  deleteThread(threadId: string): boolean {
-    const threads = loadThreads();
-    const idx = threads.findIndex((t) => t.id === threadId);
-    if (idx === -1) return false;
-    threads.splice(idx, 1);
-    saveThreads(threads);
-    deleteThreadFromSQLite(threadId);
-    eventBus.emit({ type: 'PLANNER_UPDATED', payload: { reason: 'thread' } });
-    return true;
-  },
-
   // ── Learning Check-In ───────────────────────────────────────────────────
 
   /**
    * Process a learning check-in:
    * 1. Extract signals via LLM (+ heuristic fallback)
-   * 2. Create or update threads from confusion/connection/curiosity signals
-   * 3. Generate chunk suggestions from unresolved signals (with dedup)
-   * 4. Link chunks and threads to matching knowledge-graph concepts
-   * 5. Persist everything in a single batched write + emit
+   * 2. Generate signal-aware chunk suggestions (no threads created)
+   * 3. Link chunks to matching knowledge-graph concepts
+   * 4. Persist everything in a single batched write + emit
    */
   async submitCheckIn(content: string): Promise<LearningCheckIn> {
     const signals = await extractSignals(content);
-    const threads = loadThreads();
     const chunks = loadChunks();
-    const affectedThreadIds: string[] = [];
     const newChunks: PlannerChunk[] = [];
     const now = Date.now();
 
@@ -539,7 +437,7 @@ export const plannerService = {
       type: PlannerChunk['type'],
       goal: string,
       linkedConceptIds: string[],
-      threadId?: string,
+      sourceSignal: PlannerChunk['sourceSignal'],
     ): PlannerChunk | null {
       if (existingGoals.has(goal.toLowerCase())) return null;
       existingGoals.add(goal.toLowerCase());
@@ -548,7 +446,8 @@ export const plannerService = {
         type,
         goal,
         linkedConceptIds,
-        threadId,
+        sourceSignal,
+        sourceText: content,
         status: 'suggested',
         createdAt: now,
         updatedAt: now,
@@ -557,63 +456,28 @@ export const plannerService = {
       return chunk;
     }
 
-    function makeThread(item: string): PlannerThread {
-      const conceptIds = findLinkedConceptIds(item);
-      const t: PlannerThread = {
-        id: newId('thread'),
-        title: item,
-        keywords: extractKeywords(item),
-        linkedConceptIds: conceptIds,
-        saved: true,
-        lastActivityAt: now,
-        createdAt: now,
-      };
-      threads.push(t);
-      return t;
-    }
-
-    // Process confusion signals → threads + repair chunks
+    // Process confusion signals → repair chunks (flashcards)
     for (const item of signals.confusion) {
-      const existing = findMatchingThread(threads, item);
-      if (existing) {
-        existing.lastActivityAt = now;
-        affectedThreadIds.push(existing.id);
-      } else {
-        const t = makeThread(item);
-        affectedThreadIds.push(t.id);
-        makeChunk('repair', `Clarify: ${item}`, t.linkedConceptIds, t.id);
-      }
+      const conceptIds = findLinkedConceptIds(item);
+      makeChunk('repair', `Clarify: ${item}`, conceptIds, 'confusion');
     }
 
-    // Process connections → threads + connect chunks
+    // Process connections → connect chunks (questions)
     for (const item of signals.connections) {
-      const existing = findMatchingThread(threads, item);
-      if (existing) {
-        existing.lastActivityAt = now;
-        affectedThreadIds.push(existing.id);
-      } else {
-        const t = makeThread(item);
-        affectedThreadIds.push(t.id);
-        makeChunk('connect', `Explore: ${item}`, t.linkedConceptIds, t.id);
-      }
+      const conceptIds = findLinkedConceptIds(item);
+      makeChunk('connect', `Explore: ${item}`, conceptIds, 'connection');
     }
 
-    // Process curiosity → threads only (user decides next action)
+    // Process curiosity → connect chunks (posts — exploration intent)
     for (const item of signals.curiosity) {
-      const existing = findMatchingThread(threads, item);
-      if (existing) {
-        existing.lastActivityAt = now;
-        affectedThreadIds.push(existing.id);
-      } else {
-        const t = makeThread(item);
-        affectedThreadIds.push(t.id);
-      }
+      const conceptIds = findLinkedConceptIds(item);
+      makeChunk('connect', `Explore: ${item}`, conceptIds, 'curiosity');
     }
 
-    // Process revisit intent → retrieve chunks
+    // Process revisit intent → retrieve chunks (spaced repetition)
     for (const item of signals.revisitIntent) {
       const conceptIds = findLinkedConceptIds(item);
-      makeChunk('retrieve', `Revisit: ${item}`, conceptIds);
+      makeChunk('retrieve', `Revisit: ${item}`, conceptIds, 'revisit');
     }
 
     // ── Batched persist: single write per store, single event emit ────────
@@ -623,17 +487,10 @@ export const plannerService = {
       for (const c of newChunks) persistChunkToSQLite(c);
     }
 
-    saveThreads(threads);
-    for (const id of [...new Set(affectedThreadIds)]) {
-      const t = threads.find((thread) => thread.id === id);
-      if (t) persistThreadToSQLite(t);
-    }
-
     const checkIn: LearningCheckIn = {
       id: newId('checkin'),
       content,
       signals,
-      affectedThreadIds: [...new Set(affectedThreadIds)],
       generatedChunkIds: newChunks.map((c) => c.id),
       createdAt: now,
     };
@@ -667,9 +524,4 @@ export const plannerService = {
     };
   },
 
-  /** Get active thread keywords for feed ranking. */
-  getActiveThreadKeywords(): string[] {
-    const threads = loadThreads().filter((t) => t.saved);
-    return threads.flatMap((t) => t.keywords);
-  },
 };

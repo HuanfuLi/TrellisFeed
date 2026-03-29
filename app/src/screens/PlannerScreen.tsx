@@ -14,7 +14,7 @@ import { toast } from '../lib/toast';
 import { Header, HEADER_HEIGHT } from '../components/ui/Header';
 import { MoveCard } from '../components/MoveCard';
 import { Capacitor } from '@capacitor/core';
-import type { PlannerChunk, ChunkStatus, PlannerThread, LearningCheckIn } from '../types';
+import type { PlannerChunk, ChunkStatus, LearningCheckIn } from '../types';
 
 // ── Chunk type display helpers ─────────────────────────────────────────────
 
@@ -192,82 +192,11 @@ function ChunkCard({
   );
 }
 
-// ── Thread card ─────────────────────────────────────────────────────────────
-
-function ThreadCard({
-  thread,
-  onToggleSaved,
-  onDelete,
-}: {
-  thread: PlannerThread;
-  onToggleSaved: (id: string) => void;
-  onDelete: (id: string) => void;
-}) {
-  return (
-    <Card style={{ padding: '14px 16px', marginBottom: '10px' }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ fontSize: '0.92rem', fontWeight: 500, lineHeight: 1.45, color: 'var(--foreground)' }}>
-            {thread.title}
-          </p>
-          {thread.description && (
-            <p style={{ fontSize: '0.82rem', color: 'var(--muted-foreground)', marginTop: '4px', lineHeight: 1.4 }}>
-              {thread.description}
-            </p>
-          )}
-          {thread.keywords.length > 0 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '8px' }}>
-              {thread.keywords.slice(0, 4).map((kw) => (
-                <span key={kw} style={{
-                  fontSize: '0.7rem', padding: '2px 8px', borderRadius: '999px',
-                  backgroundColor: 'var(--surface-variant)', color: 'var(--muted-foreground)',
-                  border: '1px solid var(--border)',
-                }}>
-                  {kw}
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-        <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
-          <button
-            onClick={() => onToggleSaved(thread.id)}
-            title={thread.saved ? 'Unsave' : 'Save'}
-            className="active-squish"
-            style={{
-              width: '30px', height: '30px', borderRadius: '50%',
-              backgroundColor: thread.saved ? 'var(--primary-40)' : 'var(--surface-variant)',
-              color: thread.saved ? 'white' : 'var(--muted-foreground)',
-              border: thread.saved ? 'none' : '1px solid var(--border)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}
-          >
-            <Bookmark size={13} fill={thread.saved ? 'currentColor' : 'none'} />
-          </button>
-          <button
-            onClick={() => onDelete(thread.id)}
-            title="Remove thread"
-            className="active-squish"
-            style={{
-              width: '30px', height: '30px', borderRadius: '50%',
-              backgroundColor: 'var(--surface-variant)', color: 'var(--muted-foreground)',
-              border: '1px solid var(--border)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}
-          >
-            <Trash2 size={13} />
-          </button>
-        </div>
-      </div>
-    </Card>
-  );
-}
-
 // ── Check-in outcome display ───────────────────────────────────────────────
 
 function CheckInOutcome({ checkIn }: { checkIn: LearningCheckIn }) {
-  const { signals, affectedThreadIds, generatedChunkIds } = checkIn;
-  const hasOutcome = affectedThreadIds.length > 0 || generatedChunkIds.length > 0;
+  const { signals, generatedChunkIds } = checkIn;
+  const hasOutcome = generatedChunkIds.length > 0;
 
   return (
     <div style={{
@@ -280,15 +209,6 @@ function CheckInOutcome({ checkIn }: { checkIn: LearningCheckIn }) {
       </p>
       {hasOutcome && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-          {affectedThreadIds.length > 0 && (
-            <span style={{
-              fontSize: '0.72rem', padding: '3px 8px', borderRadius: '999px',
-              backgroundColor: 'color-mix(in srgb, var(--primary-40) 15%, transparent)',
-              color: 'var(--primary-40)',
-            }}>
-              {affectedThreadIds.length} thread{affectedThreadIds.length > 1 ? 's' : ''} updated
-            </span>
-          )}
           {generatedChunkIds.length > 0 && (
             <span style={{
               fontSize: '0.72rem', padding: '3px 8px', borderRadius: '999px',
@@ -318,9 +238,9 @@ function CheckInOutcome({ checkIn }: { checkIn: LearningCheckIn }) {
 export function PlannerScreen() {
   const navigate = useNavigate();
   const {
-    continueChunks, suggestedChunks, savedChunks, savedThreads, recentCheckIns,
+    continueChunks, suggestedChunks, savedChunks, recentCheckIns,
     isLoading,
-    updateChunkStatus, deleteChunk, toggleThreadSaved, deleteThread, submitCheckIn,
+    updateChunkStatus, deleteChunk, submitCheckIn,
   } = usePlanner();
   const { moves: autoMoves, isRefreshing, accept: acceptMove, dismiss: dismissMove, skipAll, refresh: refreshMoves } = usePlannerAutoGen();
   useDailyRefresh(); // Mount to activate PODCAST_GENERATION_COMPLETED → refresh subscription
@@ -348,10 +268,10 @@ export function PlannerScreen() {
     try {
       const result = await submitCheckIn(content);
       setCheckInInput('');
-      const outcomes: string[] = [];
-      if (result.affectedThreadIds.length > 0) outcomes.push(`${result.affectedThreadIds.length} thread(s)`);
-      if (result.generatedChunkIds.length > 0) outcomes.push(`${result.generatedChunkIds.length} suggestion(s)`);
-      toast(outcomes.length > 0 ? `Check-in processed: ${outcomes.join(', ')}` : 'Check-in saved', 'success');
+      const msg = result.generatedChunkIds.length > 0
+        ? `Check-in processed: ${result.generatedChunkIds.length} suggestion(s) added`
+        : 'Check-in saved';
+      toast(msg, 'success');
     } catch {
       toast('Failed to process check-in', 'error');
     } finally {
@@ -433,7 +353,7 @@ export function PlannerScreen() {
           <span style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--foreground)' }}>Learning Check-In</span>
         </div>
         <p style={{ fontSize: '0.82rem', color: 'var(--muted-foreground)', lineHeight: 1.5, marginBottom: '10px' }}>
-          What felt clear, fuzzy, or interesting? The system will organize your thoughts into threads and suggestions.
+          What felt clear, fuzzy, or interesting? The system will turn your thoughts into actionable learning suggestions.
         </p>
         <textarea
           ref={textareaRef}
@@ -587,20 +507,12 @@ export function PlannerScreen() {
         </Card>
       )}
 
-      {/* ── Continue ──────────────────────────────────────────────────── */}
-      <SectionHeader title="Continue" count={continueChunks.length} />
+      {/* ── Your Learning Progress ────────────────────────────────────── */}
+      <SectionHeader title="Your Learning Progress" count={continueChunks.length} />
       {continueChunks.length > 0 ? continueChunks.map((chunk) => (
         <ChunkCard key={chunk.id} chunk={chunk} onStatusChange={updateChunkStatus} onDelete={deleteChunk} />
       )) : (
         <EmptySectionHint text="Chunks you start will stay here so you can pick them back up without pressure." />
-      )}
-
-      {/* ── Saved Threads ─────────────────────────────────────────────── */}
-      <SectionHeader title="Saved Threads" count={savedThreads.length} />
-      {savedThreads.length > 0 ? savedThreads.map((thread) => (
-        <ThreadCard key={thread.id} thread={thread} onToggleSaved={toggleThreadSaved} onDelete={deleteThread} />
-      )) : (
-        <EmptySectionHint text="Open topics and unresolved comparisons will collect here once your check-ins surface them." />
       )}
 
       {/* ── Saved for Later ───────────────────────────────────────────── */}

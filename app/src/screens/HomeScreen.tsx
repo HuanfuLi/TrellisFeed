@@ -52,7 +52,6 @@ export function HomeScreen() {
 
     const refreshPlannerSummary = () => {
       setActiveChunkCount(plannerService.getActiveChunks().length);
-      setThreadCount(plannerService.getSavedThreads().length);
     };
 
     const refreshFeed = () => {
@@ -328,7 +327,6 @@ export function HomeScreen() {
   };
 
   const [activeChunkCount, setActiveChunkCount] = useState(0);
-  const [threadCount, setThreadCount] = useState(0);
 
   return (
     <>
@@ -394,11 +392,6 @@ export function HomeScreen() {
                 <p style={{ fontSize: '1.875rem', fontWeight: 600, color: 'var(--bento-card-text)' }}>{activeChunkCount}</p>
                 <p style={{ fontSize: '0.875rem', color: 'var(--bento-card-text-muted)' }}>{activeChunkCount === 1 ? 'active chunk' : 'active chunks'}</p>
               </div>
-              {threadCount > 0 && (
-                <p style={{ fontSize: '0.78rem', color: 'var(--bento-card-text-muted)', marginTop: '2px' }}>
-                  {threadCount} thread{threadCount !== 1 ? 's' : ''}
-                </p>
-              )}
             </Card>
           </button>
 

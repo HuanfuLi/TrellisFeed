@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import type { PlannerChunk, PlannerThread, LearningCheckIn, ChunkStatus } from '../types';
+import type { PlannerChunk, LearningCheckIn, ChunkStatus } from '../types';
 import { plannerService } from '../services/planner.service';
 import { eventBus } from '../lib/event-bus';
 
@@ -8,7 +8,6 @@ interface UsePlannerReturn {
   continueChunks: PlannerChunk[];
   suggestedChunks: PlannerChunk[];
   savedChunks: PlannerChunk[];
-  savedThreads: PlannerThread[];
   recentCheckIns: LearningCheckIn[];
   isLoading: boolean;
 
@@ -16,8 +15,6 @@ interface UsePlannerReturn {
   refresh: () => void;
   updateChunkStatus: (chunkId: string, status: ChunkStatus) => void;
   deleteChunk: (chunkId: string) => void;
-  toggleThreadSaved: (threadId: string) => void;
-  deleteThread: (threadId: string) => void;
   submitCheckIn: (content: string) => Promise<LearningCheckIn>;
 }
 
@@ -25,7 +22,6 @@ export function usePlanner(): UsePlannerReturn {
   const [continueChunks, setContinueChunks] = useState<PlannerChunk[]>([]);
   const [suggestedChunks, setSuggestedChunks] = useState<PlannerChunk[]>([]);
   const [savedChunks, setSavedChunks] = useState<PlannerChunk[]>([]);
-  const [savedThreads, setSavedThreads] = useState<PlannerThread[]>([]);
   const [recentCheckIns, setRecentCheckIns] = useState<LearningCheckIn[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -33,7 +29,6 @@ export function usePlanner(): UsePlannerReturn {
     setContinueChunks(plannerService.getActiveChunks());
     setSuggestedChunks(plannerService.getSuggestedChunks());
     setSavedChunks(plannerService.getSavedChunks());
-    setSavedThreads(plannerService.getSavedThreads());
     setRecentCheckIns(plannerService.getCheckIns().slice(-10).reverse());
   }, []);
 
@@ -56,16 +51,6 @@ export function usePlanner(): UsePlannerReturn {
     refresh();
   }, [refresh]);
 
-  const toggleThreadSaved = useCallback((threadId: string) => {
-    plannerService.toggleThreadSaved(threadId);
-    refresh();
-  }, [refresh]);
-
-  const deleteThread = useCallback((threadId: string) => {
-    plannerService.deleteThread(threadId);
-    refresh();
-  }, [refresh]);
-
   const submitCheckIn = useCallback(async (content: string): Promise<LearningCheckIn> => {
     setIsLoading(true);
     try {
@@ -78,8 +63,8 @@ export function usePlanner(): UsePlannerReturn {
   }, [refresh]);
 
   return {
-    continueChunks, suggestedChunks, savedChunks, savedThreads, recentCheckIns,
+    continueChunks, suggestedChunks, savedChunks, recentCheckIns,
     isLoading,
-    refresh, updateChunkStatus, deleteChunk, toggleThreadSaved, deleteThread, submitCheckIn,
+    refresh, updateChunkStatus, deleteChunk, submitCheckIn,
   };
 }
