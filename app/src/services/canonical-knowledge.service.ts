@@ -61,6 +61,10 @@ export function projectQuestionToKnowledgeNode(question: Question): KnowledgeNod
   if (question.flagged === true) {
     return null;
   }
+  // Guard: anchor nodes are concept containers, not reviewable Q&A nodes
+  if (question.isAnchorNode === true) {
+    return null;
+  }
   const placement = buildFallbackPlacement(question);
   return {
     id: question.id,
@@ -250,7 +254,7 @@ export function formatCandidateContextPack(pack: CandidateContextPack): string {
 export function decideIngestionOutcome(
   content: string,
   questions: Question[],
-  llmDecision?: Partial<IngestionDecision> | null,
+  llmDecision?: { outcome?: 'merge' | 'refine' | 'new'; targetNodeId?: string } | null,
 ): IngestionDecision {
   const pack = buildCandidateContextPack(content, questions);
   const hintedTarget = llmDecision?.targetNodeId
@@ -261,62 +265,30 @@ export function decideIngestionOutcome(
     return {
       outcome: llmDecision.outcome,
       targetNodeId: hintedTarget.id,
-      rootLabel: llmDecision.rootLabel || hintedTarget.rootLabel,
-      branchLabel: llmDecision.branchLabel || hintedTarget.branchLabel,
-      clusterLabel: llmDecision.clusterLabel || hintedTarget.clusterLabel,
-      placementReason: llmDecision.placementReason || hintedTarget.placementReason,
     };
   }
 
   const top = pack.candidates[0];
   if (!top) {
-    // No existing nodes — use LLM labels if provided, otherwise fall back
-    return {
-      outcome: 'new',
-      rootLabel: llmDecision?.rootLabel?.trim() || ROOT_FALLBACK,
-      branchLabel: llmDecision?.branchLabel?.trim() || BRANCH_FALLBACK,
-      clusterLabel: llmDecision?.clusterLabel?.trim() || CLUSTER_FALLBACK,
-      placementReason: llmDecision?.placementReason || 'No close existing concept matched this ask.',
-    };
+    return { outcome: 'new' };
   }
 
   const score = candidateScore(content, top);
   if (score >= 0.78) {
-    return {
-      outcome: 'merge',
-      targetNodeId: top.id,
-      rootLabel: llmDecision?.rootLabel?.trim() || top.rootLabel,
-      branchLabel: llmDecision?.branchLabel?.trim() || top.branchLabel,
-      clusterLabel: llmDecision?.clusterLabel?.trim() || top.clusterLabel,
-      placementReason: `Merged into ${top.title} because the ask strongly overlaps with that concept.`,
-    };
+    return { outcome: 'merge', targetNodeId: top.id };
   }
 
   if (score >= 0.34) {
-    return {
-      outcome: 'refine',
-      targetNodeId: top.id,
-      rootLabel: llmDecision?.rootLabel?.trim() || top.rootLabel,
-      branchLabel: llmDecision?.branchLabel?.trim() || top.branchLabel,
-      clusterLabel: llmDecision?.clusterLabel?.trim() || top.clusterLabel,
-      placementReason: `Placed under ${top.title} as a more specific follow-up to an existing concept.`,
-    };
+    return { outcome: 'refine', targetNodeId: top.id };
   }
 
-  // New concept, not close enough to any candidate — prefer LLM labels over inheriting vague fallbacks
-  return {
-    outcome: 'new',
-    rootLabel: llmDecision?.rootLabel?.trim() || top.rootLabel || ROOT_FALLBACK,
-    branchLabel: llmDecision?.branchLabel?.trim() || top.branchLabel || BRANCH_FALLBACK,
-    clusterLabel: llmDecision?.clusterLabel?.trim() || top.clusterLabel || CLUSTER_FALLBACK,
-    placementReason: llmDecision?.placementReason || `Created as a new concept near ${top.branchLabel || top.title}, but distinct from current candidates.`,
-  };
+  return { outcome: 'new' };
 }
 
 export function buildCanonicalQuestionPatch(
   content: string,
   question: Question,
-  decision: IngestionDecision,
+  _decision: IngestionDecision,
 ): Partial<Question> {
   const aliasTitle = titleFor(question);
   const aliases = Array.from(new Set([...(question.aliases ?? []), aliasTitle, content.trim()])).filter(Boolean);
@@ -326,10 +298,6 @@ export function buildCanonicalQuestionPatch(
     aliases,
     sourcePrompts,
     sourceQuestionIds,
-    rootLabel: decision.rootLabel || question.rootLabel,
-    branchLabel: decision.branchLabel || question.branchLabel,
-    clusterLabel: decision.clusterLabel || question.clusterLabel,
-    placementReason: decision.placementReason || question.placementReason,
     nodeSummary: question.nodeSummary || question.summary,
   };
 }
