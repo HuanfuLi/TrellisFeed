@@ -45,7 +45,7 @@
 - [x] **GRAPH-06**: Mindmap renders only concept anchor nodes as leaves; individual Q&As are hidden and accessible via Mind-Elixir expand/retract on each anchor node
 
 ### Cluster Detail System (CLUSTER)
-- [ ] **CLUSTER-01**: Cluster nodes stored as Question entities with `isClusterNode: true` flag and metadata (title, nodeSummary, qaCount aggregated from child anchors)
+- [x] **CLUSTER-01**: Cluster nodes stored as Question entities with `isClusterNode: true` flag and metadata (title, nodeSummary, qaCount aggregated from child anchors)
 - [x] **CLUSTER-02**: Tapping a cluster node in the mindmap graph shows a bottom detail panel with cluster name, total Q&A count, and "View details" CTA
 - [x] **CLUSTER-03**: Cluster detail page at `/cluster/:id` aggregates and displays all Q&As and summaries from every child anchor under the cluster
 - [x] **CLUSTER-04**: "Review Flashcards" button on cluster detail gathers flashcards from all Q&As across all child anchors and launches a filtered review session
