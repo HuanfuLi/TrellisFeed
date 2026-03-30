@@ -36,9 +36,10 @@ interface ConceptCardProps {
   feedIndex?: number;
   isActive: boolean;
   onOpen: (postId: string, post: DailyPost) => void;
+  onReadyChange?: (ready: boolean) => void;
 }
 
-function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: ConceptCardProps) {
+function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen, onReadyChange }: ConceptCardProps) {
   const badge = CONCEPT_BADGE_META[post.sourceType] ?? FALLBACK_BADGE;
 
   // ── Image generation state ──────────────────────────────────────────────────
@@ -64,6 +65,7 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
         setImageError(result.error?.message ?? 'Image generation failed');
       }
       setImageLoading(false);
+      onReadyChange?.(true);
     });
 
     return () => { cancelled = true; };
@@ -88,9 +90,6 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
   };
 
   // ── End image state ─────────────────────────────────────────────────────────
-
-  // Hide the card entirely until image generation completes
-  if (imageLoading) return null;
 
   return (
     <div
@@ -568,6 +567,7 @@ interface InlineInfoFlowProps {
 }
 
 export function InlineInfoFlow({ items, onOpenConnection, showConnectionScores = false, onOpenPost, onLoadMore, isLoadingMore }: InlineInfoFlowProps) {
+  const [readyPosts, setReadyPosts] = useState<Set<string>>(() => new Set());
   const conceptCount = items.filter((item) => item.kind === 'concept').length;
   const connectionCount = items.filter((item) => item.kind === 'connection').length;
 
@@ -619,7 +619,9 @@ export function InlineInfoFlow({ items, onOpenConnection, showConnectionScores =
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {items.map((item, index) => (
+          {items.map((item, index) => {
+            const isConceptLoading = item.kind === 'concept' && !readyPosts.has(item.post.id);
+            return (
             <div
               key={index}
               style={{
@@ -634,10 +636,19 @@ export function InlineInfoFlow({ items, onOpenConnection, showConnectionScores =
                 boxShadow: item.kind === 'milestone' ? 'var(--shadow-3)' : 'var(--shadow-2)',
                 overflow: 'hidden',
                 minHeight: item.kind === 'concept' ? '320px' : item.kind === 'milestone' ? '200px' : '280px',
+                display: isConceptLoading ? 'none' : undefined,
               }}
             >
               {item.kind === 'concept' ? (
-                <ConceptCard post={item.post} feedIndex={index} isActive={true} onOpen={onOpenPost} />
+                <ConceptCard
+                  post={item.post}
+                  feedIndex={index}
+                  isActive={true}
+                  onOpen={onOpenPost}
+                  onReadyChange={(ready) => {
+                    if (ready) setReadyPosts((prev) => new Set(prev).add(item.post.id));
+                  }}
+                />
               ) : item.kind === 'connection' ? (
                 <ConnectionCard
                   questionA={item.questionA}
@@ -653,7 +664,8 @@ export function InlineInfoFlow({ items, onOpenConnection, showConnectionScores =
                 <MilestoneCard item={item.item} isActive={true} />
               )}
             </div>
-          ))}
+            );
+          })}
 
           {/* Load More button at the bottom of the feed */}
           {onLoadMore && (
