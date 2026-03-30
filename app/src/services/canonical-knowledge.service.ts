@@ -347,10 +347,13 @@ export function buildDailyReviewMap(
   const revealed = new Set(revealedNodeIds);
   const byId = new Map(projectQuestionsToKnowledgeNodes(questions).map((node) => [node.id, node]));
   const roots = new Map<string, Map<string, Map<string, Array<{ nodeId: string; label: string; state: 'hidden' | 'revealed' | 'active' }>>>>();
+  const seenNodeIds = new Set<string>();
 
   for (const card of cards) {
     const nodeId = card.nodeId;
     if (!nodeId) continue;
+    if (seenNodeIds.has(nodeId)) continue;
+    seenNodeIds.add(nodeId);
     const node = byId.get(nodeId);
     if (!node) continue;
     const state = activeNodeId === nodeId ? 'active' : revealed.has(nodeId) ? 'revealed' : 'hidden';
@@ -362,6 +365,8 @@ export function buildDailyReviewMap(
     branchMap.set(node.clusterLabel, clusterLeaves);
     clusterLeaves.push({ nodeId, label: node.title, state });
   }
+
+  const uniqueNodeCount = seenNodeIds.size;
 
   return {
     roots: Array.from(roots.entries()).map(([rootLabel, branches]) => ({
@@ -377,7 +382,7 @@ export function buildDailyReviewMap(
         })),
       })),
     })),
-    totalDue: cards.length,
+    totalDue: uniqueNodeCount,
     revealedCount: revealed.size,
   };
 }
