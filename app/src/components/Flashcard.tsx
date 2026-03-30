@@ -36,16 +36,15 @@ export function Flashcard({ front, back, onRate, pinned, onTogglePin }: Flashcar
         style={{
           position: 'relative',
           backgroundColor: 'var(--card)',
-          padding: '32px',
+          padding: '20px',
+          paddingTop: '16px',
           marginBottom: '24px',
           minHeight: '280px',
           maxHeight: '60vh',
           display: 'flex',
           flexDirection: 'column',
-          justifyContent: 'center',
           borderRadius: 'var(--radius-xl)',
           boxShadow: 'var(--shadow-2)',
-          overflow: 'hidden',
         }}
       >
         {/* Pin button — top-right corner */}
@@ -74,7 +73,7 @@ export function Flashcard({ front, back, onRate, pinned, onTogglePin }: Flashcar
           </button>
         )}
 
-        <div style={{ width: '100%', overflowY: 'auto', minHeight: 0 }}>
+        <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           {!isFlipped ? (
             <div>
               <p
@@ -89,7 +88,7 @@ export function Flashcard({ front, back, onRate, pinned, onTogglePin }: Flashcar
               >
                 Question
               </p>
-              <div className="md-prose" style={{ fontSize: '1.25rem', lineHeight: 1.6 }}>
+              <div className="md-prose" style={{ fontSize: '1.25rem', lineHeight: 1.6, textAlign: 'center' }}>
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>{front}</ReactMarkdown>
               </div>
             </div>
@@ -107,7 +106,7 @@ export function Flashcard({ front, back, onRate, pinned, onTogglePin }: Flashcar
               >
                 Answer
               </p>
-              <div className="md-prose" style={{ fontSize: '1.1rem', lineHeight: 1.7 }}>
+              <div className="md-prose" style={{ fontSize: '1.05rem', lineHeight: 1.7 }}>
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>{back}</ReactMarkdown>
               </div>
             </div>
