@@ -191,10 +191,10 @@ export function ChatMessage({
     );
   }
 
-  // AI bubble
+  // AI response — full width, no bubble
   return (
-    <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '16px' }}>
-      <div style={{ maxWidth: '85%', minWidth: 0 }}>
+    <div style={{ marginBottom: '16px' }}>
+      <div style={{ minWidth: 0 }}>
         <div
           onPointerDown={handlePointerDown}
           onPointerUp={handlePointerUp}
@@ -202,9 +202,7 @@ export function ChatMessage({
           onPointerMove={handlePointerMove}
           onClick={showActions ? dismiss : undefined}
           style={{
-            padding: '16px 20px',
-            backgroundColor: 'var(--surface-variant)',
-            borderRadius: '24px',
+            padding: '8px 4px',
             lineHeight: 1.6,
             color: 'var(--foreground)',
             userSelect: 'text',

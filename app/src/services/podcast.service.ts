@@ -158,9 +158,9 @@ export const podcastService = {
     const id = existing?.id ?? newPodcastId();
     const settings = mockSettingsService.getSync();
 
-    // Load questions for date, fall back to 5 most recent
-    const byDateResult = await questionService.getByDate(date);
-    let questions = byDateResult.data ?? [];
+    // Load concepts due for review today (SM-2 schedule), fall back to 5 most recent
+    const dueResult = await questionService.getDueForReview(date);
+    let questions = dueResult.data ?? [];
     if (questions.length === 0) {
       const recentResult = await questionService.getRecent(5);
       questions = recentResult.data ?? [];
@@ -295,5 +295,38 @@ export const podcastService = {
 
   getAll(): DailyPodcast[] {
     return loadStore();
+  },
+
+  /** Return the questionIds for today's podcast (empty if none exists). */
+  getTodayConceptIds(date: string): string[] {
+    const pod = loadStore().find((p) => p.date === date);
+    return pod?.questionIds ?? [];
+  },
+
+  /**
+   * Add a concept to today's podcast context.
+   * Returns true if added, false if already present or no podcast exists.
+   * The podcast script must be regenerated separately after insertion.
+   */
+  addConceptToPodcast(date: string, questionId: string): boolean {
+    const store = loadStore();
+    const pod = store.find((p) => p.date === date);
+    if (!pod) return false;
+    if (pod.questionIds.includes(questionId)) return false;
+
+    pod.questionIds = [...pod.questionIds, questionId];
+    // Clear existing script/audio so regeneration picks up the new concept
+    pod.script = '';
+    pod.status = 'pending';
+    pod.duration = undefined;
+    const blobUrl = audioBlobUrls.get(pod.id);
+    if (blobUrl) {
+      URL.revokeObjectURL(blobUrl);
+      audioBlobUrls.delete(pod.id);
+    }
+
+    saveStore(store);
+    eventBus.emit({ type: 'PODCAST_CONCEPT_ADDED', payload: { podcastId: pod.id, questionId } });
+    return true;
   },
 };

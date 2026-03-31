@@ -425,11 +425,7 @@ export function PostDetailScreen() {
           isLoading={isLoadingCarousel}
           onIndexChange={(index) => { /* Future: analytics or preload */ void index; }}
         />
-      ) : isLoadingCarousel ? (
-        <div style={{ height: '350px', borderRadius: 'var(--radius-xl)', backgroundColor: 'var(--surface-variant)', marginBottom: '14px', animation: 'pulse 1.5s ease-in-out infinite' }}>
-          <style>{`@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }`}</style>
-        </div>
-      ) : post && (
+      ) : !isLoadingCarousel && post && (
         <button
           onClick={() => void handleRetryImage()}
           disabled={isRetryingImage}
@@ -440,27 +436,18 @@ export function PostDetailScreen() {
             borderRadius: 'var(--radius-xl)',
             border: '1.5px dashed var(--border)',
             backgroundColor: 'var(--surface-variant)',
-            color: isRetryingImage ? 'var(--muted-foreground)' : 'var(--primary-40)',
+            color: 'var(--primary-40)',
             fontSize: '0.875rem',
             fontWeight: 600,
-            cursor: isRetryingImage ? 'not-allowed' : 'pointer',
+            cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             gap: '8px',
           }}
         >
-          {isRetryingImage ? (
-            <>
-              <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
-              Generating image...
-            </>
-          ) : (
-            <>
-              <RefreshCw size={14} />
-              Generate image
-            </>
-          )}
+          <RefreshCw size={14} />
+          Generate image
         </button>
       )}
 

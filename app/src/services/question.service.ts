@@ -435,6 +435,17 @@ export const questionService = {
     return { success: true, data: loadStore().filter((q) => q.date === date) };
   },
 
+  /** Return questions due for review on or before the given date (SM-2 schedule). */
+  async getDueForReview(date?: string): Promise<ServiceResult<Question[]>> {
+    const d = date ?? today();
+    return {
+      success: true,
+      data: loadStore().filter(
+        (q) => q.reviewSchedule && q.reviewSchedule.nextReviewDate <= d,
+      ),
+    };
+  },
+
   async getRecent(limit: number): Promise<ServiceResult<Question[]>> {
     return { success: true, data: loadStore().slice(0, limit) };
   },

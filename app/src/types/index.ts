@@ -593,6 +593,7 @@ export type AppEvent =
   | { type: 'PODCAST_GENERATION_PROGRESS'; payload: { podcastId: string; progress: number } }
   | { type: 'PODCAST_GENERATION_COMPLETED'; payload: DailyPodcast }
   | { type: 'PODCAST_GENERATION_FAILED'; payload: { podcastId: string; error: string } }
+  | { type: 'PODCAST_CONCEPT_ADDED'; payload: { podcastId: string; questionId: string } }
   | { type: 'LLM_CONFIG_CHANGED'; payload: LLMConfig }
   | { type: 'TTS_CONFIG_CHANGED'; payload: TTSConfig }
   | { type: 'ZEROTIER_STATUS_CHANGED'; payload: ZeroTierConfig }

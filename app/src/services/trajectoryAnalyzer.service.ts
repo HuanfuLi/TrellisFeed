@@ -109,32 +109,12 @@ function computeWeakAreas(
 ): string[] {
   const weakIds = new Set<string>();
 
-  // Signal 1: Low ease factor (easeFactor < 2.0 — expanded from 1.8 for 40-50% coverage)
-  const weakCardNodeIds = new Set(
-    cards
-      .filter((c) => c.reviewSchedule.easeFactor < 2.0 && c.nodeId)
-      .map((c) => c.nodeId as string),
-  );
-  for (const id of weakCardNodeIds) weakIds.add(id);
-
-  // Signal 2: Overdue with declining ease (easeFactor < 2.5 AND overdue)
-  const now = Date.now();
-  for (const q of questions) {
-    if (q.lastReviewedAt && q.reviewSchedule) {
-      const daysSinceReview = (now - q.lastReviewedAt) / 86400000;
-      const nextDue = new Date(q.reviewSchedule.nextReviewDate).getTime();
-      const isOverdue = now > nextDue;
-      const isDeclining = q.reviewSchedule.easeFactor < 2.5;
-      if (isOverdue && isDeclining && daysSinceReview > 3) {
-        weakIds.add(q.id);
-      }
-    }
-  }
-
-  // Signal 3: Never reviewed (no review history = potential weak area)
-  for (const q of questions) {
-    if (!q.lastReviewedAt && q.reviewSchedule && q.reviewSchedule.reviewCount === 0) {
-      weakIds.add(q.id);
+  // Weak = user reviewed this concept and struggled (low SM-2 ease factor).
+  // Only flashcard easeFactor is reliable — question.reviewSchedule is never
+  // updated after creation, so we derive weakness purely from card scores.
+  for (const card of cards) {
+    if (card.reviewSchedule.easeFactor < 2.0 && card.reviewSchedule.reviewCount > 0 && card.nodeId) {
+      weakIds.add(card.nodeId);
     }
   }
 

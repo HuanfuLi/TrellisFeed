@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="NONE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="971e67d3-0c04-431e-9f08-0a6dd090dc30" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/app/src/components/FeedPostImage.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/components/FeedPostImage.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/components/InfoFlow.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/components/InfoFlow.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/screens/PodcastScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/screens/PodcastScreen.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/screens/PostDetailScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/screens/PostDetailScreen.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/services/moveGenerator.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/services/moveGenerator.service.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/services/podcast.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/services/podcast.service.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/services/question.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/services/question.service.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/services/trajectoryAnalyzer.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/services/trajectoryAnalyzer.service.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/types/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/types/index.ts" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ClangdSettings">
+    <option name="formatViaClangd" value="false" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
+  "lastFilter": {
+    "state": "OPEN",
+    "assignee": "HuanfuLi"
+  }
+}]]></component>
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/HuanfuLi/EchoLearn",
+    "accountId": "7fffba21-c68d-4d8e-9951-0b627ec1b707"
+  }
+}]]></component>
+  <component name="ProjectColorInfo"><![CDATA[{
+  "associatedIndex": 8
+}]]></component>
+  <component name="ProjectId" id="3Bh6Y8LZExKUl49oiLV1YbJn87q" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.cidr.known.project.marker": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.readMode.enableVisualFormatting": "true",
+    "cf.first.check.clang-format": "false",
+    "cidr.known.project.marker": "true",
+    "git-widget-placeholder": "main",
+    "last_opened_file_path": "/Users/Code/EchoLearn"
+  }
+}]]></component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="971e67d3-0c04-431e-9f08-0a6dd090dc30" name="Changes" comment="" />
+      <created>1774928999726</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1774928999726</updated>
+    </task>
+    <servers />
+  </component>
+</project>

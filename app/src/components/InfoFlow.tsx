@@ -43,7 +43,7 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
 
   // ── Image generation state ──────────────────────────────────────────────────
   const [image, setImage] = useState<GeneratedImage | null>(null);
-  const [imageLoading, setImageLoading] = useState(true);
+  const [imageResolved, setImageResolved] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -51,19 +51,23 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
     const style = inferImageStyle(post);
     const prompt = buildImagePrompt(post);
 
-    setImageLoading(true);
+    setImageResolved(false);
+    setImage(null);
 
     void imageGenerationService.generateImage(post.id, prompt, style).then((result) => {
       if (cancelled) return;
       if (result.success && result.data) {
         setImage(result.data);
       }
-      setImageLoading(false);
+      setImageResolved(true);
     });
 
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [post.id]);
+
+  // Don't render the card until the image request has resolved (success or failure)
+  if (!imageResolved) return null;
 
   // ── End image state ─────────────────────────────────────────────────────────
 
@@ -106,7 +110,7 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
           flexDirection: 'column',
           justifyContent: 'space-between',
           gap: '20px',
-          padding: '0 0 20px',
+          padding: image ? '0 0 20px' : '20px 0',
           borderRadius: 'var(--radius-xl)',
           background: 'linear-gradient(180deg, color-mix(in srgb, var(--primary-80) 20%, var(--surface-container-high)), var(--surface-container-high))',
           border: '1.5px solid color-mix(in srgb, var(--primary-40) 22%, var(--border))',
@@ -117,13 +121,13 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
           overflow: 'hidden',
         }}
       >
-        {/* Image-forward header — skeleton while loading, image when ready */}
-        <FeedPostImage
-          imageData={image}
-          isLoading={imageLoading}
-          error={null}
-          aspectPadding="100%"
-        />
+        {/* Image header — only rendered when an image was successfully generated */}
+        {image && (
+          <FeedPostImage
+            imageData={image}
+            aspectPadding="100%"
+          />
+        )}
 
         <div style={{ padding: '0 20px' }}>
           <p
