@@ -257,6 +257,16 @@
 - **Phase 10** should complete before Phase 11 (base suggestions before retry logic)
 - **Phase 11** is final polish (card designs, retry UX)
 
+### Phase 16: token optimization
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 15
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 16 to break down)
+
 ---
 
 _Created: 2026-03-26 | v1.1 Roadmap | 5 phases | 18 requirements mapped_

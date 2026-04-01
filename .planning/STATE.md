@@ -144,3 +144,9 @@ Completed Phase 15 Plan 03 (15-03-PLAN.md) — Cluster Detail System
 - Architecture: moveNavigator utility + SuggestedMovesSection integration
 - Effort: 8-12 hours (4 waves)
 - Removed from Phase 11: PLANNER-06; Phase 11 now covers only PLANNER-04 + CARDS-01/02/03
+
+## Accumulated Context
+
+### Roadmap Evolution
+
+- Phase 16 added: token optimization
