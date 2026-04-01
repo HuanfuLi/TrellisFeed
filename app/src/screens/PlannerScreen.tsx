@@ -13,6 +13,7 @@ import { useReview } from '../state/useReview';
 import { useQuestions } from '../state/useQuestions';
 import { toast } from '../lib/toast';
 import { transcribeAudio } from '../providers/stt';
+import { startVoiceRecording, stopVoiceRecording } from '../lib/voice-recorder';
 import { mockSettingsService } from '../services/mock/settings.mock';
 import { Header, HEADER_HEIGHT } from '../components/ui/Header';
 import { MoveCard } from '../components/MoveCard';
@@ -327,8 +328,10 @@ export function PlannerScreen() {
   const [showCheckInHistory, setShowCheckInHistory] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Optional: speech-to-text support (reuse existing STT if on native)
+  // Optional: speech-to-text support
   const [isRecording, setIsRecording] = useState(false);
+  const isNative = Capacitor.isNativePlatform();
+  // Web-only fallback refs (not used on native)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
@@ -353,35 +356,51 @@ export function PlannerScreen() {
   };
 
   const handleStartRecording = async () => {
-    if (!Capacitor.isNativePlatform() && !navigator.mediaDevices) return;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
-      audioChunksRef.current = [];
-      recorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
-      recorder.onstop = async () => {
-        stream.getTracks().forEach((t) => t.stop());
-        if (audioChunksRef.current.length > 0) {
-          try {
-            const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-            const text = await transcribeAudio(blob, mockSettingsService.getSync().tts);
-            setCheckInInput((prev) => (prev ? prev + ' ' : '') + text);
-          } catch {
-            toast('Transcription failed', 'error');
+      if (isNative) {
+        // Native: use Capacitor voice recorder (produces correct MIME type)
+        await startVoiceRecording();
+      } else {
+        // Web: use MediaRecorder API
+        if (!navigator.mediaDevices) return;
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const recorder = new MediaRecorder(stream);
+        audioChunksRef.current = [];
+        recorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
+        recorder.onstop = async () => {
+          stream.getTracks().forEach((t) => t.stop());
+          if (audioChunksRef.current.length > 0) {
+            try {
+              const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType || 'audio/webm' });
+              const text = await transcribeAudio(blob, mockSettingsService.getSync().tts);
+              setCheckInInput((prev) => (prev ? prev + ' ' : '') + text);
+            } catch {
+              toast('Transcription failed', 'error');
+            }
           }
-        }
-      };
-      recorder.start();
-      mediaRecorderRef.current = recorder;
+        };
+        recorder.start();
+        mediaRecorderRef.current = recorder;
+      }
       setIsRecording(true);
     } catch {
       toast('Microphone access denied', 'error');
     }
   };
 
-  const handleStopRecording = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.stop();
+  const handleStopRecording = async () => {
+    try {
+      if (isNative) {
+        const blob = await stopVoiceRecording();
+        const text = await transcribeAudio(blob, mockSettingsService.getSync().tts);
+        setCheckInInput((prev) => (prev ? prev + ' ' : '') + text);
+      } else {
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+          mediaRecorderRef.current.stop();
+        }
+      }
+    } catch {
+      toast('Transcription failed', 'error');
     }
     setIsRecording(false);
   };

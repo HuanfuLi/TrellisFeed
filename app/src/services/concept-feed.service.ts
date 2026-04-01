@@ -598,6 +598,8 @@ export function buildPostOriginContext(post: DailyPost, questions: Question[]): 
 
 export const conceptFeedService = {
   async getDailyPosts(questions: Question[]): Promise<DailyPost[]> {
+    // Exclude off-topic/flagged questions from post generation
+    questions = questions.filter((q) => !q.flagged);
     const date = today();
     const fingerprint = computeFingerprint(questions);
     const cached = loadCache();
@@ -663,6 +665,8 @@ export const conceptFeedService = {
    * Appends to the existing cache so old post IDs remain valid.
    */
   async generateMorePosts(questions: Question[], count = 4): Promise<DailyPost[]> {
+    // Exclude off-topic/flagged questions from post generation
+    questions = questions.filter((q) => !q.flagged);
     const date = today();
     const cached = loadCache();
     const existingPosts = cached?.posts ?? [];

@@ -100,7 +100,7 @@ function RootLayout() {
         }}
       />
       {/* paddingTop clears the status bar; paddingBottom clears the bottom nav + home indicator */}
-      {/* HomeScreen is always mounted (keep-alive) — toggled via display so DOM/scroll/state are preserved */}
+      {/* Both wrappers are always mounted to avoid safe-area padding flicker on navigation */}
       <div style={{
         paddingTop: 'var(--safe-area-top)',
         paddingBottom: 'calc(80px + var(--safe-area-bottom))',
@@ -108,14 +108,13 @@ function RootLayout() {
       }}>
         <HomeScreen />
       </div>
-      {!isHome && (
-        <div style={{
-          paddingTop: 'var(--safe-area-top)',
-          paddingBottom: 'calc(80px + var(--safe-area-bottom))',
-        }}>
-          <Outlet />
-        </div>
-      )}
+      <div style={{
+        paddingTop: 'var(--safe-area-top)',
+        paddingBottom: 'calc(80px + var(--safe-area-bottom))',
+        display: isHome ? 'none' : undefined,
+      }}>
+        <Outlet />
+      </div>
       <ScrollRestoration />
       <BottomNavigation
         onAskLongPress={() => void handleAskLongPress()}
