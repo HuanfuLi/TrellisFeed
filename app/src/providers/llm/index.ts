@@ -1,5 +1,6 @@
 import { Capacitor, CapacitorHttp } from '@capacitor/core';
 import type { LLMConfig } from '../../types';
+import { tokenUsageReporter, type UsageMetadata } from '../../services/token-usage.service';
 
 interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
@@ -25,23 +26,56 @@ const STREAM_TIMEOUT_MS = 120_000;    // 120 s for full streaming response
 
 export interface CompletionOptions {
   maxTokens?: number;
+  serviceName?: string;
 }
 
 export async function chatCompletion(messages: ChatMessage[], config: LLMConfig, options?: CompletionOptions): Promise<string> {
   const maxTokens = options?.maxTokens ?? 4096;
   switch (config.provider) {
-    case 'claude':   return claudeCompletion(messages, config, maxTokens);
-    case 'gemini':   return geminiCompletion(messages, config, maxTokens);
-    default:         return openAICompletion(messages, config, maxTokens); // openai | local | lmstudio
+    case 'claude':   return claudeCompletion(messages, config, maxTokens, options);
+    case 'gemini':   return geminiCompletion(messages, config, maxTokens, options);
+    default:         return openAICompletion(messages, config, maxTokens, options); // openai | local | lmstudio
   }
 }
 
-export async function* chatStream(messages: ChatMessage[], config: LLMConfig): AsyncGenerator<string> {
+export async function* chatStream(messages: ChatMessage[], config: LLMConfig, options?: CompletionOptions): AsyncGenerator<string> {
   switch (config.provider) {
-    case 'claude':  yield* claudeStream(messages, config);  break;
-    case 'gemini':  yield* geminiStream(messages, config);  break;
-    default:        yield* openAIStream(messages, config);  break; // openai | local | lmstudio
+    case 'claude':  yield* claudeStream(messages, config, options);  break;
+    case 'gemini':  yield* geminiStream(messages, config, options);  break;
+    default:        yield* openAIStream(messages, config, options);  break; // openai | local | lmstudio
   }
+}
+
+// ─── Usage normalizers ────────────────────────────────────────────────────────
+
+function normalizeOpenAIUsage(data: Record<string, unknown>): UsageMetadata | undefined {
+  const usage = data.usage as { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } | undefined;
+  if (!usage?.prompt_tokens) return undefined;
+  return {
+    promptTokens: usage.prompt_tokens,
+    completionTokens: usage.completion_tokens ?? 0,
+    totalTokens: usage.total_tokens ?? 0,
+  };
+}
+
+function normalizeClaudeUsage(data: Record<string, unknown>): UsageMetadata | undefined {
+  const usage = data.usage as { input_tokens?: number; output_tokens?: number } | undefined;
+  if (!usage?.input_tokens) return undefined;
+  return {
+    promptTokens: usage.input_tokens,
+    completionTokens: usage.output_tokens ?? 0,
+    totalTokens: usage.input_tokens + (usage.output_tokens ?? 0),
+  };
+}
+
+function normalizeGeminiUsage(data: Record<string, unknown>): UsageMetadata | undefined {
+  const meta = data.usageMetadata as { promptTokenCount?: number; candidatesTokenCount?: number; totalTokenCount?: number } | undefined;
+  if (!meta?.promptTokenCount) return undefined;
+  return {
+    promptTokens: meta.promptTokenCount,
+    completionTokens: meta.candidatesTokenCount ?? 0,
+    totalTokens: meta.totalTokenCount ?? 0,
+  };
 }
 
 // ─── OpenAI / Local / LM Studio (OpenAI-compatible) ─────────────────────────
@@ -80,7 +114,7 @@ async function localPost(
   return fetch(url, { method: 'POST', headers, body: JSON.stringify(body), signal: timeoutSignal(COMPLETION_TIMEOUT_MS) });
 }
 
-async function openAICompletion(messages: ChatMessage[], config: LLMConfig, maxTokens = 4096): Promise<string> {
+async function openAICompletion(messages: ChatMessage[], config: LLMConfig, maxTokens = 4096, options?: CompletionOptions): Promise<string> {
   const isLocal = config.provider === 'local' || config.provider === 'lmstudio';
   const url = `${openAIBaseUrl(config)}/v1/chat/completions`;
   const body = { model: config.model, messages, max_tokens: maxTokens, stream: false };
@@ -93,18 +127,22 @@ async function openAICompletion(messages: ChatMessage[], config: LLMConfig, maxT
     const err = await response.text();
     throw new Error(`${config.provider} API error ${response.status}: ${err}`);
   }
-  const data = await response.json() as { choices: { message: { content: string } }[] };
+  const data = await response.json() as { choices: { message: { content: string } }[]; usage?: Record<string, number> };
+  const usage = normalizeOpenAIUsage(data as Record<string, unknown>);
+  if (usage && options?.serviceName) {
+    tokenUsageReporter.record({ serviceName: options.serviceName, ...usage, provider: config.provider });
+  }
   return data.choices[0].message.content;
 }
 
-async function* openAIStream(messages: ChatMessage[], config: LLMConfig): AsyncGenerator<string> {
+async function* openAIStream(messages: ChatMessage[], config: LLMConfig, options?: CompletionOptions): AsyncGenerator<string> {
   const isLocal = config.provider === 'local' || config.provider === 'lmstudio';
   const url = `${openAIBaseUrl(config)}/v1/chat/completions`;
 
   // CapacitorHttp (used for local/lmstudio) does not support SSE — fall back on native.
   // Cloud OpenAI uses window.fetch which supports streaming in the Android WebView.
   if (Capacitor.isNativePlatform() && isLocal) {
-    const text = await openAICompletion(messages, config);
+    const text = await openAICompletion(messages, config, 4096, options);
     yield text;
     return;
   }
@@ -124,7 +162,7 @@ async function* openAIStream(messages: ChatMessage[], config: LLMConfig): AsyncG
 
 // ─── Claude ──────────────────────────────────────────────────────────────────
 
-async function claudeCompletion(messages: ChatMessage[], config: LLMConfig, maxTokens = 4096): Promise<string> {
+async function claudeCompletion(messages: ChatMessage[], config: LLMConfig, maxTokens = 4096, options?: CompletionOptions): Promise<string> {
   const system = messages.find((m) => m.role === 'system')?.content;
   const userMessages = messages
     .filter((m) => m.role !== 'system')
@@ -145,11 +183,15 @@ async function claudeCompletion(messages: ChatMessage[], config: LLMConfig, maxT
     const err = await response.text();
     throw new Error(`Claude API error ${response.status}: ${err}`);
   }
-  const data = await response.json();
-  return data.content[0].text;
+  const data = await response.json() as Record<string, unknown>;
+  const usage = normalizeClaudeUsage(data);
+  if (usage && options?.serviceName) {
+    tokenUsageReporter.record({ serviceName: options.serviceName, ...usage, provider: config.provider });
+  }
+  return (data.content as Array<{ text: string }>)[0].text;
 }
 
-async function* claudeStream(messages: ChatMessage[], config: LLMConfig): AsyncGenerator<string> {
+async function* claudeStream(messages: ChatMessage[], config: LLMConfig, options?: CompletionOptions): AsyncGenerator<string> {
   // Claude uses window.fetch (not CapacitorHttp), so SSE streaming works on Android WebView.
   const system = messages.find((m) => m.role === 'system')?.content;
   const userMessages = messages
@@ -175,6 +217,8 @@ async function* claudeStream(messages: ChatMessage[], config: LLMConfig): AsyncG
     response,
     (p) => p.type === 'content_block_delta' && p.delta?.type === 'text_delta' ? p.delta.text : '',
   );
+  // options available for future SSE usage extraction
+  void options;
 }
 
 // ─── Gemini ──────────────────────────────────────────────────────────────────
@@ -196,11 +240,11 @@ function toGeminiPayload(messages: ChatMessage[], maxTokens = 4096) {
   };
 }
 
-async function geminiCompletion(messages: ChatMessage[], config: LLMConfig, maxTokens = 4096): Promise<string> {
-  const url = `${GEMINI_BASE}/models/${config.model}:generateContent?key=${config.apiKey ?? ''}`;
+async function geminiCompletion(messages: ChatMessage[], config: LLMConfig, maxTokens = 4096, options?: CompletionOptions): Promise<string> {
+  const url = `${GEMINI_BASE}/models/${config.model}:generateContent`;
   const response = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': config.apiKey ?? '' },
     body: JSON.stringify(toGeminiPayload(messages, maxTokens)),
     signal: timeoutSignal(COMPLETION_TIMEOUT_MS),
   });
@@ -208,16 +252,21 @@ async function geminiCompletion(messages: ChatMessage[], config: LLMConfig, maxT
     const err = await response.text();
     throw new Error(`Gemini API error ${response.status}: ${err}`);
   }
-  const data = await response.json();
-  return data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+  const data = await response.json() as Record<string, unknown>;
+  const usage = normalizeGeminiUsage(data);
+  if (usage && options?.serviceName) {
+    tokenUsageReporter.record({ serviceName: options.serviceName, ...usage, provider: config.provider });
+  }
+  const candidates = data.candidates as Array<{ content: { parts: Array<{ text: string }> } }> | undefined;
+  return candidates?.[0]?.content?.parts?.[0]?.text ?? '';
 }
 
-async function* geminiStream(messages: ChatMessage[], config: LLMConfig): AsyncGenerator<string> {
+async function* geminiStream(messages: ChatMessage[], config: LLMConfig, options?: CompletionOptions): AsyncGenerator<string> {
   // Gemini uses window.fetch (not CapacitorHttp), so SSE streaming works on Android WebView.
-  const url = `${GEMINI_BASE}/models/${config.model}:streamGenerateContent?alt=sse&key=${config.apiKey ?? ''}`;
+  const url = `${GEMINI_BASE}/models/${config.model}:streamGenerateContent?alt=sse`;
   const response = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': config.apiKey ?? '' },
     body: JSON.stringify(toGeminiPayload(messages)),
     signal: timeoutSignal(STREAM_TIMEOUT_MS),
   });
@@ -226,6 +275,8 @@ async function* geminiStream(messages: ChatMessage[], config: LLMConfig): AsyncG
     throw new Error(`Gemini API error ${response.status}: ${err}`);
   }
   yield* parseSseStream(response, (p) => p.candidates?.[0]?.content?.parts?.[0]?.text ?? '');
+  // options available for future SSE usage extraction
+  void options;
 }
 
 // ─── Shared SSE parser ────────────────────────────────────────────────────────
