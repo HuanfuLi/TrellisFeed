@@ -160,7 +160,7 @@ export function AskScreen() {
   // Persists directly to sessionService (not inside setSession updater) so the AI
   // response is saved even if the component unmounts during streaming.
   const generateAiReply = useCallback(
-    async (userContent: string, placeholderId: string) => {
+    async (userContent: string, placeholderId: string, currentMessages?: SessionMessage[]) => {
       // Prevent concurrent AI calls — drop if one is already in flight
       if (generatingRef.current) return;
       generatingRef.current = true;
@@ -192,14 +192,15 @@ export function AskScreen() {
           }
         } else {
           // Extract the immediate prior Q&A pair for follow-up context (avoids false-positive flagging)
-          const msgs = current.messages;
+          const msgs = currentMessages ?? current.messages;
           const lastAiIdx = msgs.map((m, i) => ({ m, i })).filter(({ m }) => m.type === 'ai').pop()?.i ?? -1;
           const sessionContext = lastAiIdx > 0 && msgs[lastAiIdx - 1]?.type === 'user'
             ? { priorQuestion: msgs[lastAiIdx - 1].content, priorAnswer: msgs[lastAiIdx].content }
             : undefined;
 
-          // Exclude the last message (just-appended user message) to avoid duplication
-          const priorMessages = sessionRef.current.messages.slice(0, -1);
+          // Use passed messages (avoids stale sessionRef timing issue).
+          // Exclude the last message (just-appended user message) to avoid duplication.
+          const priorMessages = (currentMessages ?? sessionRef.current.messages).slice(0, -1);
           question = await askStreaming(userContent, (accumulated) => {
             lastContent = accumulated;
             if (!controller.signal.aborted) {
@@ -282,7 +283,7 @@ export function AskScreen() {
       // Anchor view to the top of this user bubble — only fires once, never during streaming
       setAnchorMsgId(userMsg.id);
 
-      await generateAiReply(content, placeholderId);
+      await generateAiReply(content, placeholderId, updated.messages);
     },
     [generateAiReply],
   );
@@ -324,7 +325,7 @@ export function AskScreen() {
     setEditingMessageId(null);
     setEditingContent('');
 
-    await generateAiReply(newContent, placeholderId);
+    await generateAiReply(newContent, placeholderId, updated.messages);
   }, [editingMessageId, editingContent, generateAiReply]);
 
   const handleRegenerateResponse = useCallback(async (aiMessageId: string) => {
@@ -345,7 +346,7 @@ export function AskScreen() {
     sessionService.save(updated);
     setSession(updated);
 
-    await generateAiReply(userContent, placeholderId);
+    await generateAiReply(userContent, placeholderId, updated.messages);
   }, [generateAiReply]);
 
   const handleDeleteResponse = useCallback((aiMessageId: string) => {
