@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { Question, ServiceError } from '../types';
+import type { Question, ServiceError, SessionMessage } from '../types';
 import { questionService } from '../services/question.service';
 import { mockSettingsService } from '../services/mock/settings.mock';
 import { chatStream } from '../providers/llm';
@@ -14,7 +14,7 @@ interface UseQuestionsReturn {
   isLoading: boolean;
   error: ServiceError | null;
   ask: (content: string) => Promise<Question | null>;
-  askStreaming: (content: string, onToken: (accumulated: string) => void, sessionContext?: QuestionFilterContext) => Promise<Question | null>;
+  askStreaming: (content: string, onToken: (accumulated: string) => void, sessionContext?: QuestionFilterContext, sessionHistory?: SessionMessage[]) => Promise<Question | null>;
   getByDate: (date: string) => Question[];
   getRecent: (n: number) => Question[];
   getById: (id: string) => Question | undefined;
@@ -60,7 +60,7 @@ export function useQuestions(): UseQuestionsReturn {
   }, []);
 
   const askStreaming = useCallback(
-    async (content: string, onToken: (accumulated: string) => void, sessionContext?: QuestionFilterContext): Promise<Question | null> => {
+    async (content: string, onToken: (accumulated: string) => void, sessionContext?: QuestionFilterContext, sessionHistory?: SessionMessage[]): Promise<Question | null> => {
       setIsAsking(true);
       setError(null);
 
@@ -85,25 +85,28 @@ export function useQuestions(): UseQuestionsReturn {
 
       try {
         const store = questionService.getAll();
-        const recentContext = store.slice(0, 3);
-        const contextLines = recentContext
-          .map((q) => `Q: ${q.content}\nA: ${q.summary}`)
-          .join('\n');
         const candidatePack = buildCandidateContextPack(content, store);
 
         const systemPrompt = [
           'You are a knowledgeable learning assistant. Answer questions clearly and thoroughly.',
           'Do not generate harmful, illegal, sexually explicit, or deceptive content.',
-          recentContext.length > 0 ? `Recent questions for context:\n${contextLines}` : '',
           `Knowledge graph candidate context:\n${formatCandidateContextPack(candidatePack)}`,
         ]
           .filter(Boolean)
           .join('\n');
 
+        // Convert SessionMessage[] to ChatMessage[] for the LLM (append-only for KV-cache)
+        const historyMessages: { role: 'user' | 'assistant'; content: string }[] =
+          (sessionHistory ?? []).map((m) => ({
+            role: m.type === 'user' ? ('user' as const) : ('assistant' as const),
+            content: m.content,
+          }));
+
         let accumulated = '';
         const stream = chatStream(
           [
             { role: 'system', content: systemPrompt },
+            ...historyMessages,
             { role: 'user', content },
           ],
           llmConfig,
