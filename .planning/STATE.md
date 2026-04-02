@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
 status: Executing Phase 16
-stopped_at: Completed 16-02-PLAN.md (Token Usage Infrastructure)
-last_updated: "2026-04-02T22:12:01.635Z"
+stopped_at: Completed 16-03-PLAN.md (Token Usage Call-Site Tagging & Settings UI)
+last_updated: "2026-04-02T22:21:40.079Z"
 progress:
   total_phases: 10
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 17
-  completed_plans: 16
+  completed_plans: 17
 ---
 
 # Project State: Milestone 1.1
@@ -73,8 +73,14 @@ Phase 9 - Image Regeneration & Error Handling (next to start)
 ## Last Session
 
 Completed Phase 15 Plan 03 (15-03-PLAN.md) — Cluster Detail System
-**Stopped At:** Completed 16-02-PLAN.md (Token Usage Infrastructure)
+**Stopped At:** Completed 16-03-PLAN.md (Token Usage Call-Site Tagging & Settings UI)
 **Date:** 2026-03-29
+
+## Latest Decisions (Phase 16-03)
+
+- [Phase 16-03] serviceName tags across all 15 LLM call sites: ask(x3 — useQuestions, question.service, post-context-qa), filter(x1), classification(x2, preserving maxTokens:8192 on reorganization call), posts(x4 — concept-feed), planner(x2), podcast(x1), flashcards(x1), title(x1 — AskScreen generateSessionTitle)
+- [Phase 16-03] Token Usage state initialized via useState lazy initializer (not useEffect) — loads once at mount; explicit Refresh button for re-pull pattern
+- [Phase 16-03] handleClearTokenUsage sets local state to {} immediately after tokenUsageReporter.clear() for instant UI feedback without re-reading localStorage
 
 ## Latest Decisions (Phase 16-02)
 

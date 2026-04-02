@@ -249,12 +249,12 @@
 
 **Depends on:** Phase 15
 
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 
 Plans:
 - [x] 16-01-PLAN.md — Session history wiring for askStreaming and ask (remove global Q&A hack)
 - [x] 16-02-PLAN.md — Token usage service + provider usage extraction in llm/index.ts
-- [ ] 16-03-PLAN.md — Call site serviceName tagging + Token Usage UI in Settings
+- [x] 16-03-PLAN.md — Call site serviceName tagging + Token Usage UI in Settings
 
 **Success Criteria:**
 1. askStreaming and ask send append-only session history enabling KV-cache
