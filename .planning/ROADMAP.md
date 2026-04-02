@@ -249,11 +249,11 @@
 
 **Depends on:** Phase 15
 
-**Plans:** 3 plans
+**Plans:** 2/3 plans executed
 
 Plans:
-- [ ] 16-01-PLAN.md — Session history wiring for askStreaming and ask (remove global Q&A hack)
-- [ ] 16-02-PLAN.md — Token usage service + provider usage extraction in llm/index.ts
+- [x] 16-01-PLAN.md — Session history wiring for askStreaming and ask (remove global Q&A hack)
+- [x] 16-02-PLAN.md — Token usage service + provider usage extraction in llm/index.ts
 - [ ] 16-03-PLAN.md — Call site serviceName tagging + Token Usage UI in Settings
 
 **Success Criteria:**

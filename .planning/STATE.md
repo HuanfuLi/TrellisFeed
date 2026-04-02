@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
-status: Executing Phase 15
-stopped_at: Phase 16 context gathered
-last_updated: "2026-04-02T17:06:57.447Z"
+status: Executing Phase 16
+stopped_at: Completed 16-02-PLAN.md (Token Usage Infrastructure)
+last_updated: "2026-04-02T22:12:01.635Z"
 progress:
   total_phases: 10
   completed_phases: 5
-  total_plans: 14
-  completed_plans: 14
+  total_plans: 17
+  completed_plans: 16
 ---
 
 # Project State: Milestone 1.1
@@ -73,8 +73,15 @@ Phase 9 - Image Regeneration & Error Handling (next to start)
 ## Last Session
 
 Completed Phase 15 Plan 03 (15-03-PLAN.md) — Cluster Detail System
-**Stopped At:** Phase 16 context gathered
+**Stopped At:** Completed 16-02-PLAN.md (Token Usage Infrastructure)
 **Date:** 2026-03-29
+
+## Latest Decisions (Phase 16-02)
+
+- [Phase 16-02] LocalTokenUsageReporter uses FIFO eviction at 500 records — prevents unbounded localStorage growth
+- [Phase 16-02] Usage recording conditional on serviceName — no-op for existing callers; serviceName tagging happens in Plan 03
+- [Phase 16-02] Streaming functions accept options pass-through (void options) for future SSE usage extraction
+- [Phase 16-02] tokenUsageReporter singleton exported from token-usage.service.ts — swap LocalTokenUsageReporter for remote implementation without touching call sites
 
 ## Latest Decisions (Phase 15-03)
 
@@ -144,6 +151,12 @@ Completed Phase 15 Plan 03 (15-03-PLAN.md) — Cluster Detail System
 - Architecture: moveNavigator utility + SuggestedMovesSection integration
 - Effort: 8-12 hours (4 waves)
 - Removed from Phase 11: PLANNER-06; Phase 11 now covers only PLANNER-04 + CARDS-01/02/03
+
+## Latest Decisions (Phase 16-01)
+
+- [Phase 16-01] sessionHistory parameter is optional — all existing callers not passing it continue to work unchanged
+- [Phase 16-01] priorMessages uses slice(0,-1) to exclude just-appended user message preventing LLM duplication
+- [Phase 16-01] historyMessages conversion maps SessionMessage type field (user/ai) to ChatMessage role field (user/assistant) for KV-cache threading
 
 ## Accumulated Context
 
