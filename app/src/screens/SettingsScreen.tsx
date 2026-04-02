@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Brain, Volume2, Network, Radio, BookOpen, Palette, RotateCcw, CheckCircle, XCircle, Shield, Download, Upload, Trash2, Sparkles, Loader2, Image, CalendarClock } from 'lucide-react';
+import { Brain, Volume2, Network, Radio, BookOpen, Palette, RotateCcw, CheckCircle, XCircle, Shield, Download, Upload, Trash2, Sparkles, Loader2, Image, CalendarClock, BarChart3 } from 'lucide-react';
+import { tokenUsageReporter, type ServiceAggregate } from '../services/token-usage.service';
 import { plannerAutoGenService } from '../services/plannerAutoGen.service';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -148,6 +149,7 @@ export function SettingsScreen() {
   const [imageGen, setImageGen] = useState<ImageGenerationSettings>(() => mockSettingsService.getSync().imageGeneration);
   const [cacheStats, setCacheStats] = useState(() => imageGenerationService.getCacheStats());
   const [isClearingCache, setIsClearingCache] = useState(false);
+  const [tokenUsage, setTokenUsage] = useState<Record<string, ServiceAggregate>>(() => tokenUsageReporter.getByService());
 
   const noKeyRequired = (p: LLMConfig['provider']) => p === 'local' || p === 'lmstudio';
 
@@ -318,6 +320,13 @@ export function SettingsScreen() {
     toast('Image generation settings saved.', 'success');
   };
 
+  const refreshTokenUsage = () => setTokenUsage(tokenUsageReporter.getByService());
+  const handleClearTokenUsage = () => {
+    tokenUsageReporter.clear();
+    setTokenUsage({});
+    toast('Token usage data cleared.', 'success');
+  };
+
   const handleClearImageCache = async () => {
     if (!confirm('Clear all cached post images? They will be regenerated on next view.')) return;
     setIsClearingCache(true);
@@ -448,7 +457,7 @@ export function SettingsScreen() {
           {testResult['llm'] && (
             <span style={{
               fontSize: '0.8rem',
-              color: testResult['llm'].startsWith('✓') ? 'var(--primary-40)' : '#E53935',
+              color: testResult['llm'].startsWith('✓') ? 'var(--primary-40)' : 'var(--danger)',
               display: 'flex',
               alignItems: 'center',
               gap: '4px',
@@ -550,7 +559,7 @@ export function SettingsScreen() {
           {testResult['embedding'] && (
             <span style={{
               fontSize: '0.8rem',
-              color: testResult['embedding'].startsWith('✓') ? 'var(--primary-40)' : '#E53935',
+              color: testResult['embedding'].startsWith('✓') ? 'var(--primary-40)' : 'var(--danger)',
               display: 'flex',
               alignItems: 'center',
               gap: '4px',
@@ -679,7 +688,7 @@ export function SettingsScreen() {
           {testResult['tts'] && (
             <span style={{
               fontSize: '0.8rem',
-              color: testResult['tts'].startsWith('✓') ? 'var(--primary-40)' : '#E53935',
+              color: testResult['tts'].startsWith('✓') ? 'var(--primary-40)' : 'var(--danger)',
               display: 'flex',
               alignItems: 'center',
               gap: '4px',
@@ -839,7 +848,7 @@ export function SettingsScreen() {
             alignItems: 'flex-start',
             gap: '6px',
             fontSize: '0.8rem',
-            color: testResult['imageGen'].startsWith('✓') ? 'var(--primary-40)' : '#E53935',
+            color: testResult['imageGen'].startsWith('✓') ? 'var(--primary-40)' : 'var(--danger)',
             lineHeight: 1.5,
           }}>
             {testResult['imageGen'].startsWith('✓') ? <CheckCircle size={16} style={{ flexShrink: 0, marginTop: '1px' }} /> : <XCircle size={16} style={{ flexShrink: 0, marginTop: '1px' }} />}
@@ -1035,6 +1044,66 @@ export function SettingsScreen() {
           >
             <Trash2 size={16} /> Clear All Data
           </Button>
+        </div>
+      </Card>
+
+      {/* Token Usage */}
+      <SectionHeader icon={<BarChart3 size={20} />} title="Token Usage" />
+      <Card style={{ marginBottom: '8px' }}>
+        <p style={{ fontSize: '0.8rem', color: 'var(--muted-foreground)', marginBottom: '12px', lineHeight: 1.5 }}>
+          LLM API token usage per service. Data from provider responses.
+        </p>
+        {Object.keys(tokenUsage).length === 0 ? (
+          <p style={{ fontSize: '0.85rem', color: 'var(--muted-foreground)', fontStyle: 'italic' }}>No usage data recorded yet.</p>
+        ) : (
+          <>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', fontSize: '0.8rem', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ borderBottom: '2px solid var(--border)', textAlign: 'left' }}>
+                    <th style={{ padding: '6px 8px' }}>Service</th>
+                    <th style={{ padding: '6px 8px', textAlign: 'right' }}>Prompt</th>
+                    <th style={{ padding: '6px 8px', textAlign: 'right' }}>Completion</th>
+                    <th style={{ padding: '6px 8px', textAlign: 'right' }}>Total</th>
+                    <th style={{ padding: '6px 8px', textAlign: 'right' }}>Calls</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.entries(tokenUsage)
+                    .sort(([, a], [, b]) => b.totalTokens - a.totalTokens)
+                    .map(([service, agg]) => (
+                      <tr key={service} style={{ borderBottom: '1px solid var(--border)' }}>
+                        <td style={{ padding: '6px 8px', fontWeight: 500, textTransform: 'capitalize' }}>{service}</td>
+                        <td style={{ padding: '6px 8px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{agg.promptTokens.toLocaleString()}</td>
+                        <td style={{ padding: '6px 8px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{agg.completionTokens.toLocaleString()}</td>
+                        <td style={{ padding: '6px 8px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>{agg.totalTokens.toLocaleString()}</td>
+                        <td style={{ padding: '6px 8px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{agg.callCount}</td>
+                      </tr>
+                    ))}
+                  {/* Totals row */}
+                  <tr style={{ borderTop: '2px solid var(--border)', fontWeight: 600 }}>
+                    <td style={{ padding: '6px 8px' }}>Total</td>
+                    <td style={{ padding: '6px 8px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                      {Object.values(tokenUsage).reduce((s, a) => s + a.promptTokens, 0).toLocaleString()}
+                    </td>
+                    <td style={{ padding: '6px 8px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                      {Object.values(tokenUsage).reduce((s, a) => s + a.completionTokens, 0).toLocaleString()}
+                    </td>
+                    <td style={{ padding: '6px 8px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                      {Object.values(tokenUsage).reduce((s, a) => s + a.totalTokens, 0).toLocaleString()}
+                    </td>
+                    <td style={{ padding: '6px 8px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                      {Object.values(tokenUsage).reduce((s, a) => s + a.callCount, 0)}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+        <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+          <Button size="sm" variant="secondary" onClick={refreshTokenUsage}>Refresh</Button>
+          <Button size="sm" variant="danger" onClick={handleClearTokenUsage}>Clear</Button>
         </div>
       </Card>
 
