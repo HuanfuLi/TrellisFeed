@@ -268,6 +268,45 @@ Plans:
 
 ---
 
+## Phase 17: Auto-fetch Online Videos for Posts
+
+**Goal:** Auto-search YouTube for educational videos based on concepts due for review (SM-2 schedule), and present them as a new video post type mixed into the existing feed with embedded YouTube player and AI-generated transcript summaries.
+
+**Status:** Planning complete
+
+**Requirements:**
+- D-01: Auto-search YouTube based on concepts due for review (SM-2 schedule)
+- D-02: Use YouTube Data API v3 (free tier: 10,000 quota units/day)
+- D-03: Generate 3 video posts on initial load, 4 on pull-for-more
+- D-04: Video posts mix into existing feed alongside AI-generated posts
+- D-05: Embed YouTube videos via iframe in Capacitor WebView
+- D-06: Detail page shows embedded video player + AI-generated summary
+- D-07: Add sourceType 'video' to PostSnapshot type
+- D-08: Use YouTube thumbnail as card image (no AI image generation)
+- D-09: Generate summary from video transcript via YouTube captions/Innertube
+- D-10: Use chatCompletion to summarize transcript (serviceName: 'video-summary')
+
+**Depends on:** Phase 16
+
+**Plans:** 3 plans
+
+Plans:
+- [ ] 17-01-PLAN.md — Type extensions (VideoMetadata, sourceType 'video') + youtube.service.ts
+- [ ] 17-02-PLAN.md — Feed interleaving in concept-feed.service.ts + video card UI in InfoFlow
+- [ ] 17-03-PLAN.md — YouTubeEmbed component + PostDetailScreen video variant + Settings API key
+
+**Success Criteria:**
+1. YouTube search finds educational videos based on SM-2 due concepts
+2. 3 video posts appear on initial feed load, 4 more on pull-for-more
+3. Video posts interleave with AI posts in the home feed
+4. Video cards show YouTube thumbnails with play icon overlay and 'Video' badge
+5. Post detail page shows embedded YouTube player with AI-generated transcript summary
+6. YouTube API key configurable in Settings
+7. Feed degrades gracefully when YouTube API key is not configured
+8. No regression in existing feed, post detail, or settings functionality
+
+---
+
 ## Requirement Traceability
 
 | Phase | Requirements | Count |
@@ -282,7 +321,8 @@ Plans:
 | Phase 14 | GRAPH-01, GRAPH-02, GRAPH-03, GRAPH-04, GRAPH-05, GRAPH-06 | 6 |
 | Phase 15 | CLUSTER-01, CLUSTER-02, CLUSTER-03, CLUSTER-04, CLUSTER-05, CLUSTER-06 | 6 |
 | Phase 16 | D-01, D-02, D-03, D-04, D-05, D-06, D-07, D-08, D-09 | 9 |
-| **Total** | **41 requirements** | **41** |
+| Phase 17 | D-01, D-02, D-03, D-04, D-05, D-06, D-07, D-08, D-09, D-10 | 10 |
+| **Total** | **51 requirements** | **51** |
 
 ---
 
@@ -294,17 +334,8 @@ Plans:
 - **Phase 10** should complete before Phase 11 (base suggestions before retry logic)
 - **Phase 11** is final polish (card designs, retry UX)
 - **Phase 15** must complete before Phase 16 (classifyAndAnchor call sites need to exist)
-
-### Phase 17: auto-fetch online videos for posts
-
-**Goal:** [To be planned]
-**Requirements**: TBD
-**Depends on:** Phase 16
-**Plans:** 0 plans
-
-Plans:
-- [ ] TBD (run /gsd:plan-phase 17 to break down)
+- **Phase 16** must complete before Phase 17 (token tracking infrastructure needed for video-summary serviceName)
 
 ---
 
-_Created: 2026-03-26 | v1.1 Roadmap | 10 phases | 41 requirements mapped_
+_Created: 2026-03-26 | v1.1 Roadmap | 11 phases | 51 requirements mapped_
