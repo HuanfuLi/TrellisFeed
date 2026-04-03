@@ -41,6 +41,32 @@
 - **Node Deduplication:** Fixed the `review-map` renderer to stringently deduplicate nodes by `nodeId`, ensuring that each conceptual entity only paints once.
 - **Polished Visuals:** Redesigned the overall mindmap visualization, focusing on look, feel, and organizational flow.
 
+## Phase 17 Post-Implementation Fixes
+
+### Feed Regression Fix
+- **Non-Blocking Video Generation:** Replaced blocking `await generateVideoPosts()` in `getDailyPosts` with synchronous cache reads and fire-and-forget background generation. Feed now returns instantly; videos appear on next refresh.
+- **Settings DeepMerge Fix:** Added `youtube` to `defaultSettings` so `deepMerge` no longer silently drops the saved YouTube API key.
+- **Network Timeouts:** Wrapped all YouTube API `fetch` and `CapacitorHttp.get` calls with 10-15s timeouts to prevent indefinite hangs.
+- **Error Handling:** Added `.catch()` handlers to HomeScreen's `getDailyPosts` calls to prevent silent unhandled rejections.
+
+### Post Deletion Fix
+- **POST_DELETED Event:** Added `POST_DELETED` event to the event bus. `deletePost()` now emits it, and HomeScreen subscribes to remove the post from state immediately.
+- **Cache Re-sync on Navigation:** HomeScreen re-reads from cache when pathname returns to `/home`, catching any changes made while other screens were active.
+- **Removed Fallback Posts:** Removed `buildFallbackPosts` entirely — deterministic fallback IDs caused deleted posts to regenerate on the next feed call.
+
+### Feed Persistence
+- **Cross-Date Post Preservation:** Old posts are now preserved across date boundaries instead of being discarded when `today()` changes, preventing post loss after laptop sleep past midnight.
+
+## Mindmap Improvements
+
+### Layout & Navigation
+- **Right-Only Expansion:** Changed mindmap direction from `SIDE` (both directions) to `RIGHT` (root on left, branches rightward) for better portrait phone screen utilization.
+- **Leftward Initial Offset:** Shifted the initial view left by 25% after centering so the root sits near the left edge and more of the tree is visible.
+- **Expand/Collapse All Button:** Added a circular toggle button in the bottom-right corner of the mindmap with `FoldVertical`/`UnfoldVertical` lucide icons to collapse or expand all nodes at once.
+
+## Ask Screen Fix
+- **Double-Scroll Fix:** Fixed nested scrollable containers in AskScreen by calculating the correct available height (subtracting safe-area and nav bar), eliminating the two-pass scroll behavior.
+
 ## Bug Fixes & UX Enhancements
 
 ### Feeds & Articles (Posts)

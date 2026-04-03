@@ -249,13 +249,14 @@ function MasterMap({ nodes, edges, onNodeClick }: MasterMapProps) {
     // Zoom to 50%, centre, then nudge left so the right-expanding tree
     // uses more of the portrait viewport instead of leaving the left half empty.
     setTimeout(() => {
+      if (!containerRef.current || !instanceRef.current) return;
       mei.scale(0.5);
       mei.toCenter();
-      const containerWidth = containerRef.current?.offsetWidth ?? 0;
+      const containerWidth = containerRef.current.offsetWidth;
       if (containerWidth > 0) {
         mei.move(-containerWidth * 0.25, 0);
       }
-      if (containerRef.current) containerRef.current.style.visibility = 'visible';
+      containerRef.current.style.visibility = 'visible';
     }, 0);
 
     // mind-elixir does NOT fire a bus event for regular node clicks.
