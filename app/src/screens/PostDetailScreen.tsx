@@ -11,6 +11,7 @@ import { postContextQaService } from '../services/post-context-qa.service';
 import { Markdown } from '../components/Markdown';
 import { ChatMessage } from '../components/ChatMessage';
 import { PostCarousel } from '../components/PostCarousel';
+import { YouTubeEmbed } from '../components/YouTubeEmbed';
 import { toast } from '../lib/toast';
 import { parseMoveNavigationState } from '../lib/moveNavigator';
 import { inferImageStyle, buildImagePrompt } from '../services/postFormatting.service';
@@ -187,9 +188,16 @@ export function PostDetailScreen() {
 
   // Fetch cached images for the carousel whenever the post changes.
   // If no images are cached (post has none or generation hasn't run), shows essay alone.
+  // Video posts use the YouTube embed instead — skip image fetch entirely.
   useEffect(() => {
     if (!post?.id) {
       setCarouselImages([]);
+      return;
+    }
+
+    if (post.sourceType === 'video') {
+      setCarouselImages([]);
+      setIsLoadingCarousel(false);
       return;
     }
 
@@ -427,37 +435,55 @@ export function PostDetailScreen() {
         </div>
       )}
 
-      {/* Carousel — reserve 350px while loading to prevent layout shift */}
-      {carouselImages.length > 0 ? (
-        <PostCarousel
-          images={carouselImages}
-          isLoading={isLoadingCarousel}
-          onIndexChange={(index) => { /* Future: analytics or preload */ void index; }}
-        />
-      ) : !isLoadingCarousel && post && (
-        <button
-          onClick={() => void handleRetryImage()}
-          disabled={isRetryingImage}
-          style={{
-            width: '100%',
-            padding: '14px',
-            marginBottom: '14px',
-            borderRadius: 'var(--radius-xl)',
-            border: '1.5px dashed var(--border)',
-            backgroundColor: 'var(--surface-variant)',
-            color: 'var(--primary-40)',
-            fontSize: '0.875rem',
-            fontWeight: 600,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-          }}
-        >
-          <RefreshCw size={14} />
-          Generate image
-        </button>
+      {/* Video post: show embedded YouTube player instead of image carousel */}
+      {post.sourceType === 'video' && post.videoMeta?.videoId ? (
+        <div style={{ marginBottom: 16 }}>
+          <YouTubeEmbed videoId={post.videoMeta.videoId} />
+          {post.videoMeta.channelTitle && (
+            <p style={{
+              margin: '8px 0 0',
+              fontSize: 13,
+              color: 'var(--muted-foreground)',
+            }}>
+              {post.videoMeta.channelTitle}
+            </p>
+          )}
+        </div>
+      ) : post.sourceType !== 'video' && (
+        <>
+          {/* Carousel — reserve 350px while loading to prevent layout shift */}
+          {carouselImages.length > 0 ? (
+            <PostCarousel
+              images={carouselImages}
+              isLoading={isLoadingCarousel}
+              onIndexChange={(index) => { /* Future: analytics or preload */ void index; }}
+            />
+          ) : !isLoadingCarousel && post && (
+            <button
+              onClick={() => void handleRetryImage()}
+              disabled={isRetryingImage}
+              style={{
+                width: '100%',
+                padding: '14px',
+                marginBottom: '14px',
+                borderRadius: 'var(--radius-xl)',
+                border: '1.5px dashed var(--border)',
+                backgroundColor: 'var(--surface-variant)',
+                color: 'var(--primary-40)',
+                fontSize: '0.875rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+              }}
+            >
+              <RefreshCw size={14} />
+              Generate image
+            </button>
+          )}
+        </>
       )}
 
       <article
@@ -476,22 +502,36 @@ export function PostDetailScreen() {
           {post.contextLabel} · {post.narrativeMode}
         </p>
         <h1 style={{ fontSize: '1.55rem', lineHeight: 1.12, marginBottom: '12px', textWrap: 'balance' }}>{post.title}</h1>
-        <p style={{ fontSize: '0.98rem', lineHeight: 1.62, color: 'var(--foreground)', marginBottom: '16px' }}>{post.whyCare}</p>
+        {post.sourceType !== 'video' && post.whyCare && (
+          <p style={{ fontSize: '0.98rem', lineHeight: 1.62, color: 'var(--foreground)', marginBottom: '16px' }}>{post.whyCare}</p>
+        )}
+        {post.sourceType === 'video' && (
+          <h3 style={{
+            fontSize: 16,
+            fontWeight: 600,
+            color: 'var(--muted-foreground)',
+            margin: '16px 0 8px',
+          }}>
+            AI Summary
+          </h3>
+        )}
         <Markdown>{post.bodyMarkdown}</Markdown>
-        <div
-          style={{
-            marginTop: '16px',
-            padding: '14px',
-            borderRadius: '16px',
-            backgroundColor: 'var(--surface-variant)',
-            border: '1px solid var(--border)',
-          }}
-        >
-          <p style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--muted-foreground)', marginBottom: '6px' }}>
-            Takeaway
-          </p>
-          <p style={{ lineHeight: 1.65 }}>{post.takeaway}</p>
-        </div>
+        {post.sourceType !== 'video' && post.takeaway && (
+          <div
+            style={{
+              marginTop: '16px',
+              padding: '14px',
+              borderRadius: '16px',
+              backgroundColor: 'var(--surface-variant)',
+              border: '1px solid var(--border)',
+            }}
+          >
+            <p style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--muted-foreground)', marginBottom: '6px' }}>
+              Takeaway
+            </p>
+            <p style={{ lineHeight: 1.65 }}>{post.takeaway}</p>
+          </div>
+        )}
       </article>
 
       <section

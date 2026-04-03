@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Brain, Volume2, Network, Radio, BookOpen, Palette, RotateCcw, CheckCircle, XCircle, Shield, Download, Upload, Trash2, Sparkles, Loader2, Image, CalendarClock, BarChart3 } from 'lucide-react';
+import { Brain, Volume2, Network, Radio, BookOpen, Palette, RotateCcw, CheckCircle, XCircle, Shield, Download, Upload, Trash2, Sparkles, Loader2, Image, CalendarClock, BarChart3, Youtube } from 'lucide-react';
 import { tokenUsageReporter, type ServiceAggregate } from '../services/token-usage.service';
 import { plannerAutoGenService } from '../services/plannerAutoGen.service';
 import { Card } from '../components/ui/Card';
@@ -144,6 +144,9 @@ export function SettingsScreen() {
   const [isRefreshingPlanner, setIsRefreshingPlanner] = useState(false);
   const [theme, setTheme] = useState<AppSettings['preferences']['theme']>(() => mockSettingsService.getSync().preferences.theme);
   const [aiConsent, setAiConsent] = useState(() => mockSettingsService.getSync().preferences.aiConsentGiven ?? false);
+
+  // YouTube settings
+  const [youtubeApiKey, setYoutubeApiKey] = useState(() => mockSettingsService.getSync().youtube?.apiKey ?? '');
 
   // Image generation settings
   const [imageGen, setImageGen] = useState<ImageGenerationSettings>(() => mockSettingsService.getSync().imageGeneration);
@@ -855,6 +858,35 @@ export function SettingsScreen() {
             <span>{testResult['imageGen']}</span>
           </div>
         )}
+      </Card>
+
+      {/* YouTube Section */}
+      <SectionHeader icon={<Youtube size={20} />} title="YouTube Videos" />
+      <Card style={{ marginBottom: '8px' }}>
+        <p style={{ fontSize: '0.8rem', color: 'var(--muted-foreground)', marginBottom: '12px', lineHeight: 1.5 }}>
+          Enable video posts in the feed. Get your API key from Google Cloud Console and enable YouTube Data API v3.
+        </p>
+        <SettingRow label="API Key" description="YouTube Data API v3 key">
+          <TextInput
+            type="password"
+            value={youtubeApiKey}
+            onChange={(v) => setYoutubeApiKey(v)}
+            onBlur={() => void mockSettingsService.set('youtube', { apiKey: youtubeApiKey })}
+            placeholder="YouTube Data API v3 key"
+          />
+        </SettingRow>
+        <div style={{ paddingTop: '12px' }}>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={async () => {
+              await mockSettingsService.set('youtube', { apiKey: youtubeApiKey });
+              toast('YouTube settings saved.', 'success');
+            }}
+          >
+            Save
+          </Button>
+        </div>
       </Card>
 
       {/* Podcast Settings */}
