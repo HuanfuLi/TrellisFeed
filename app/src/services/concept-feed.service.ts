@@ -626,6 +626,14 @@ Return ONLY the text lines, no JSON, no markdown formatting.`;
   });
 }
 
+let _shortsBgRunning = false;
+function _backgroundGenerateShorts(questions: Question[]): void {
+  if (_shortsBgRunning) return;
+  if (youtubeService.getCachedShortPosts().length > 0) return; // already cached for today
+  _shortsBgRunning = true;
+  youtubeService.generateShortPosts(questions, 2).catch(() => {}).finally(() => { _shortsBgRunning = false; });
+}
+
 /**
  * Interleave video posts into AI posts. Inserts a video after every 2nd AI post.
  * Remaining video posts are appended at the end.
