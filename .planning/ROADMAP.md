@@ -309,38 +309,11 @@ Plans:
 
 ---
 
-## Requirement Traceability
-
-| Phase | Requirements | Count |
-|-------|--------------|-------|
-| Phase 7 | FEED-01, FEED-02, FEED-03, IMAGE-01, IMAGE-02, IMAGE-03 | 6 |
-| Phase 8 | FEED-04, FEED-05, FEED-06 | 3 |
-| Phase 9 | IMAGE-04, IMAGE-05 | 2 |
-| Phase 10 | PLANNER-01, PLANNER-02, PLANNER-03, PLANNER-05 | 4 |
-| Phase 11 | PLANNER-04, CARDS-01, CARDS-02, CARDS-03 | 4 |
-| Phase 12 | PLANNER-06, NAV-01, NAV-02 | 3 |
-| Phase 13 | PLANNER-07, PLANNER-08, PLANNER-09, PLANNER-10 | 4 |
-| Phase 14 | GRAPH-01, GRAPH-02, GRAPH-03, GRAPH-04, GRAPH-05, GRAPH-06 | 6 |
-| Phase 15 | CLUSTER-01, CLUSTER-02, CLUSTER-03, CLUSTER-04, CLUSTER-05, CLUSTER-06 | 6 |
-| Phase 16 | D-01, D-02, D-03, D-04, D-05, D-06, D-07, D-08, D-09 | 9 |
-| Phase 17 | D-01, D-02, D-03, D-04, D-05, D-06, D-07, D-08, D-09, D-10 | 10 |
-| **Total** | **51 requirements** | **51** |
-
----
-
-## Build Dependencies
-
-- **Phase 7** must complete before Phase 8 (image generation needed for carousel)
-- **Phase 8** must complete before Phase 9 (post detail page used for regeneration flow)
-- **Phase 9** can proceed in parallel with Phase 10
-- **Phase 10** should complete before Phase 11 (base suggestions before retry logic)
-- **Phase 11** is final polish (card designs, retry UX)
-- **Phase 15** must complete before Phase 16 (classifyAndAnchor call sites need to exist)
-- **Phase 16** must complete before Phase 17 (token tracking infrastructure needed for video-summary serviceName)
-
 ## Phase 18: Feed Redesign, Short Videos & Text-Art Posts
 
 **Goal:** Redesign all feed card faces for cleaner swipe-friendly experience. Add portrait short video posts and text-art notebook posts as new post types. Introduce weighted random feed mix to control image generation cost. Add settings toggle for image generation.
+
+**Status:** Planning complete
 
 **Requirements:**
 - FEED-07: Remove badge & context label row from all card types
@@ -359,13 +332,49 @@ Plans:
 
 **Depends on:** Phase 17
 
-**Plans:** 0 plans
+**Plans:** 4 plans
 
 Canonical refs: `.planning/phases/18-feed-redesign-short-videos-text-art-posts/18-CONTEXT.md`
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 18 to break down)
+- [ ] 18-01-PLAN.md — Type extensions + weighted mix + settings toggle + imageResolved gating
+- [ ] 18-02-PLAN.md — Card face cleanup + text-art notebook post rendering
+- [ ] 18-03-PLAN.md — Short video posts (YouTube Shorts search + portrait card + inline play)
+- [ ] 18-04-PLAN.md — Visual verification checkpoint
 
 ---
 
-_Created: 2026-03-26 | v1.1 Roadmap | 11 phases | 51 requirements mapped_
+## Requirement Traceability
+
+| Phase | Requirements | Count |
+|-------|--------------|-------|
+| Phase 7 | FEED-01, FEED-02, FEED-03, IMAGE-01, IMAGE-02, IMAGE-03 | 6 |
+| Phase 8 | FEED-04, FEED-05, FEED-06 | 3 |
+| Phase 9 | IMAGE-04, IMAGE-05 | 2 |
+| Phase 10 | PLANNER-01, PLANNER-02, PLANNER-03, PLANNER-05 | 4 |
+| Phase 11 | PLANNER-04, CARDS-01, CARDS-02, CARDS-03 | 4 |
+| Phase 12 | PLANNER-06, NAV-01, NAV-02 | 3 |
+| Phase 13 | PLANNER-07, PLANNER-08, PLANNER-09, PLANNER-10 | 4 |
+| Phase 14 | GRAPH-01, GRAPH-02, GRAPH-03, GRAPH-04, GRAPH-05, GRAPH-06 | 6 |
+| Phase 15 | CLUSTER-01, CLUSTER-02, CLUSTER-03, CLUSTER-04, CLUSTER-05, CLUSTER-06 | 6 |
+| Phase 16 | D-01, D-02, D-03, D-04, D-05, D-06, D-07, D-08, D-09 | 9 |
+| Phase 17 | D-01, D-02, D-03, D-04, D-05, D-06, D-07, D-08, D-09, D-10 | 10 |
+| Phase 18 | FEED-07, FEED-08, FEED-09, FEED-10, SHORT-01, SHORT-02, SHORT-03, TART-01, TART-02, TART-03, MIX-01, MIX-02, VIDEO-01 | 13 |
+| **Total** | **64 requirements** | **64** |
+
+---
+
+## Build Dependencies
+
+- **Phase 7** must complete before Phase 8 (image generation needed for carousel)
+- **Phase 8** must complete before Phase 9 (post detail page used for regeneration flow)
+- **Phase 9** can proceed in parallel with Phase 10
+- **Phase 10** should complete before Phase 11 (base suggestions before retry logic)
+- **Phase 11** is final polish (card designs, retry UX)
+- **Phase 15** must complete before Phase 16 (classifyAndAnchor call sites need to exist)
+- **Phase 16** must complete before Phase 17 (token tracking infrastructure needed for video-summary serviceName)
+- **Phase 17** must complete before Phase 18 (video post types and YouTube service needed for shorts extension)
+
+---
+
+_Created: 2026-03-26 | v1.1 Roadmap | 12 phases | 64 requirements mapped_
