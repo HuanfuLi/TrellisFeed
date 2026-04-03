@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
 status: Executing Phase 16
-stopped_at: Completed 16-03-PLAN.md (Token Usage Call-Site Tagging & Settings UI)
-last_updated: "2026-04-02T22:21:40.079Z"
+stopped_at: Completed 17-03-PLAN.md (YouTubeEmbed Component, PostDetail Video Variant & Settings)
+last_updated: "2026-04-03T02:48:20.777Z"
 progress:
   total_phases: 10
   completed_phases: 6
@@ -73,7 +73,7 @@ Phase 9 - Image Regeneration & Error Handling (next to start)
 ## Last Session
 
 Completed Phase 15 Plan 03 (15-03-PLAN.md) — Cluster Detail System
-**Stopped At:** Completed 16-03-PLAN.md (Token Usage Call-Site Tagging & Settings UI)
+**Stopped At:** Completed 17-03-PLAN.md (YouTubeEmbed Component, PostDetail Video Variant & Settings)
 **Date:** 2026-03-29
 
 ## Latest Decisions (Phase 16-03)
