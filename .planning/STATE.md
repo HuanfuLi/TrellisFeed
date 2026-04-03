@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
-status: Executing Phase 16
-stopped_at: Phase 17 context gathered
-last_updated: "2026-04-03T01:13:57.222Z"
+status: Executing Phase 17
+stopped_at: Completed 17-01-PLAN.md (Video Types & YouTube Service)
+last_updated: "2026-04-03T02:40:00.000Z"
 progress:
   total_phases: 11
   completed_phases: 6
-  total_plans: 17
-  completed_plans: 17
+  total_plans: 21
+  completed_plans: 19
 ---
 
 # Project State: Milestone 1.1
@@ -73,8 +73,20 @@ Phase 9 - Image Regeneration & Error Handling (next to start)
 ## Last Session
 
 Completed Phase 15 Plan 03 (15-03-PLAN.md) — Cluster Detail System
-**Stopped At:** Phase 17 context gathered
+**Stopped At:** Completed 17-00-PLAN.md (Test Scaffold for YouTube Service and Feed Interleaving)
 **Date:** 2026-03-29
+
+## Latest Decisions (Phase 17-01)
+
+- [Phase 17-01] VideoMetadata interface added to types/index.ts with videoId, channelTitle, thumbnailUrl, transcript?, summary?, duration?
+- [Phase 17-01] PostSnapshot.sourceType union extended with 'video'; DailyPost.videoMeta?: VideoMetadata added
+- [Phase 17-01] AppSettings.youtube?: { apiKey: string } added for YouTube Data API v3 configuration
+- [Phase 17-01] youtubeService._fetchNewVideoPosts internal helper (underscore prefix) keeps public API clean
+- [Phase 17-01] Concepts grouped 2-3 per search query to minimize 100-unit quota cost per YouTube search call
+- [Phase 17-01] 1.5s sleep between transcript fetches guards against YouTube rate limiting
+- [Phase 17-01] getCachedVideoPosts is the ONLY public read path for echolearn_video_cache key
+- [Phase 17-01] fetchTranscript returns null in browser (CORS block); CapacitorHttp used on native
+- [Phase 17-01] summarizeTranscript falls back to title+description summary if transcript null/empty
 
 ## Latest Decisions (Phase 16-03)
 
