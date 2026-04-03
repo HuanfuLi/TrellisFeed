@@ -61,7 +61,7 @@ function getTodayKey() {
  */
 function getCachedVideoPostsFromStorage(storage, todayKey) {
   try {
-    const raw = storage[`echolearn_video_posts_${todayKey}`];
+    const raw = storage[`echolearn_video_cache`];
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (parsed.date !== todayKey) return [];
@@ -183,7 +183,7 @@ describe('Video post caching', () => {
     const todayKey = getTodayKey();
     const posts = [makeVideoPost('cached-1'), makeVideoPost('cached-2')];
     const fakeStorage = {
-      [`echolearn_video_posts_${todayKey}`]: JSON.stringify({ date: todayKey, posts }),
+      [`echolearn_video_cache`]: JSON.stringify({ date: todayKey, posts }),
     };
     const result = getCachedVideoPostsFromStorage(fakeStorage, todayKey);
     assert.equal(result.length, 2);
@@ -195,7 +195,7 @@ describe('Video post caching', () => {
     const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
     const posts = [makeVideoPost('stale-1')];
     const fakeStorage = {
-      [`echolearn_video_posts_${yesterday}`]: JSON.stringify({ date: yesterday, posts }),
+      [`echolearn_video_cache`]: JSON.stringify({ date: yesterday, posts }),
     };
     const result = getCachedVideoPostsFromStorage(fakeStorage, todayKey);
     assert.deepEqual(result, []);
@@ -209,7 +209,7 @@ describe('Video post caching', () => {
   it('getCachedVideoPosts handles corrupted cache gracefully', () => {
     const todayKey = getTodayKey();
     const fakeStorage = {
-      [`echolearn_video_posts_${todayKey}`]: 'INVALID_JSON{{{',
+      [`echolearn_video_cache`]: 'INVALID_JSON{{{',
     };
     const result = getCachedVideoPostsFromStorage(fakeStorage, todayKey);
     assert.deepEqual(result, []);
