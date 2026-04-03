@@ -166,39 +166,91 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
           </div>
         )}
 
+        {/* Text-art notebook card (D-12, D-13, D-14) */}
+        {presentationStyle === 'text-art' && (
+          <div
+            style={{
+              width: '100%',
+              minHeight: '260px',
+              padding: '24px 20px',
+              boxSizing: 'border-box',
+              backgroundColor: '#FFFDE7',
+              backgroundImage: 'radial-gradient(circle, #C5CAE9 0.8px, transparent 0.8px)',
+              backgroundSize: '20px 20px',
+              borderRadius: 'var(--radius-xl)',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              gap: '12px',
+            }}
+          >
+            <p
+              style={{
+                fontSize: '1.2rem',
+                fontWeight: 800,
+                lineHeight: 1.25,
+                color: '#1A1A1A',
+                textWrap: 'balance',
+              }}
+            >
+              {normalizedHook}
+            </p>
+            {post.textArtContent && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {post.textArtContent.split('\n').filter(Boolean).map((line, i) => (
+                  <p
+                    key={i}
+                    style={{
+                      fontSize: '0.95rem',
+                      lineHeight: 1.5,
+                      color: '#333',
+                      margin: 0,
+                    }}
+                  >
+                    {line}
+                  </p>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* AI-generated image header — only rendered when an image was successfully generated */}
-        {!isVideoPost && image && (
+        {!isVideoPost && image && presentationStyle !== 'text-art' && (
           <FeedPostImage
             imageData={image}
             aspectPadding="100%"
           />
         )}
 
-        <div style={{ padding: '0 20px' }}>
-          <p
-            style={{
-              fontSize: '1.2rem',
-              fontWeight: 800,
-              lineHeight: 1.25,
-              color: 'var(--foreground)',
-              marginBottom: '10px',
-              textWrap: 'balance',
-            }}
-          >
-            {normalizedHook}
-          </p>
-          {isVideoPost && post.videoMeta?.channelTitle && (
-            <p style={{ fontSize: '0.78rem', color: 'var(--muted-foreground)', marginBottom: '6px' }}>
-              by {post.videoMeta.channelTitle}
+        {/* Hook, channel attribution, and preview -- not rendered for text-art (hook is inside notebook) */}
+        {presentationStyle !== 'text-art' && (
+          <div style={{ padding: '0 20px' }}>
+            <p
+              style={{
+                fontSize: '1.2rem',
+                fontWeight: 800,
+                lineHeight: 1.25,
+                color: 'var(--foreground)',
+                marginBottom: '10px',
+                textWrap: 'balance',
+              }}
+            >
+              {normalizedHook}
             </p>
-          )}
-          {/* Preview only for image-less cards (no image, no text-art, no video/short) -- per D-05, D-06 */}
-          {presentationStyle === 'image-less' && (
-            <p style={{ fontSize: '0.9rem', color: 'var(--foreground)', lineHeight: 1.6, opacity: 0.88 }}>
-              {normalizedPreview}
-            </p>
-          )}
-        </div>
+            {isVideoPost && post.videoMeta?.channelTitle && (
+              <p style={{ fontSize: '0.78rem', color: 'var(--muted-foreground)', marginBottom: '6px' }}>
+                by {post.videoMeta.channelTitle}
+              </p>
+            )}
+            {/* Preview only for image-less cards (no image, no text-art, no video/short) -- per D-05, D-06 */}
+            {presentationStyle === 'image-less' && (
+              <p style={{ fontSize: '0.9rem', color: 'var(--foreground)', lineHeight: 1.6, opacity: 0.88 }}>
+                {normalizedPreview}
+              </p>
+            )}
+          </div>
+        )}
       </button>
     </div>
   );

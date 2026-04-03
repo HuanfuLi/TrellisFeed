@@ -569,6 +569,64 @@ export function assignPresentationStyles(
 }
 
 /**
+ * Generate text-art content for posts assigned the 'text-art' presentationStyle.
+ * Runs at feed-build time (not per-card) to avoid scroll lag.
+ */
+async function generateTextArtContent(posts: DailyPost[]): Promise<DailyPost[]> {
+  const textArtPosts = posts.filter(p => p.presentationStyle === 'text-art' && !p.textArtContent);
+  if (textArtPosts.length === 0) return posts;
+
+  const settings = settingsService.getSync();
+  if (!settings.preferences.aiConsentGiven || !settings.llm.isConfigured) return posts;
+
+  // Batch all text-art prompts into parallel requests
+  const results = await Promise.allSettled(
+    textArtPosts.map(async (post) => {
+      const prompt = `You are creating a "notebook page" visual card for a learning app.
+Topic: "${post.title}"
+Context: "${post.teaser.preview}"
+
+Write 3-5 short items mixing these styles:
+- A provocative question (start with emoji)
+- A surprising fact written like a breaking news headline (start with emoji)
+- A memorable quote or insight (start with emoji)
+
+Rules:
+- Each item on its own line
+- Start each with a relevant emoji
+- Keep each item under 15 words
+- Make it feel like a student's notebook margin notes
+- The content should spark curiosity about the topic
+
+Return ONLY the text lines, no JSON, no markdown formatting.`;
+
+      const result = await chatCompletion(
+        [{ role: 'user', content: prompt }],
+        settings.llm,
+        { maxTokens: 256, serviceName: 'text-art' },
+      );
+      return { postId: post.id, content: result };
+    }),
+  );
+
+  // Build a map of post ID -> text-art content
+  const contentMap = new Map<string, string>();
+  results.forEach((r) => {
+    if (r.status === 'fulfilled' && r.value.content) {
+      contentMap.set(r.value.postId, r.value.content);
+    }
+  });
+
+  // Apply text-art content to posts
+  return posts.map(p => {
+    if (p.presentationStyle === 'text-art' && contentMap.has(p.id)) {
+      return { ...p, textArtContent: contentMap.get(p.id)! };
+    }
+    return p;
+  });
+}
+
+/**
  * Interleave video posts into AI posts. Inserts a video after every 2nd AI post.
  * Remaining video posts are appended at the end.
  * Per D-04: video posts mix into the existing feed, not a separate section.
@@ -663,7 +721,22 @@ export const conceptFeedService = {
     // Return AI posts immediately; generate video posts in background (D-04)
     const videoPosts = youtubeService.getCachedVideoPosts();
     _backgroundGenerateVideos();
-    return assignPresentationStyles(allPosts.filter((p) => p.sourceType !== 'connection'), videoPosts);
+    const styledPosts = assignPresentationStyles(allPosts.filter((p) => p.sourceType !== 'connection'), videoPosts);
+    const enrichedPosts = await generateTextArtContent(styledPosts);
+
+    // Persist text-art content back to cache so it's available on reload
+    if (enrichedPosts.some(p => p.textArtContent)) {
+      const cachedNow = loadCache();
+      if (cachedNow) {
+        const enrichedMap = new Map(enrichedPosts.filter(p => p.textArtContent).map(p => [p.id, p.textArtContent!]));
+        cachedNow.posts = cachedNow.posts.map(p =>
+          enrichedMap.has(p.id) ? { ...p, textArtContent: enrichedMap.get(p.id), presentationStyle: p.presentationStyle ?? ('text-art' as PresentationStyle) } : p,
+        );
+        saveCache(cachedNow);
+      }
+    }
+
+    return enrichedPosts;
   },
 
   /** Return cached connection card data for the current session. */
@@ -794,7 +867,22 @@ export const conceptFeedService = {
     } catch {
       // YouTube integration is optional
     }
-    return assignPresentationStyles(newPosts, moreVideos);
+    const styledMore = assignPresentationStyles(newPosts, moreVideos);
+    const enrichedMore = await generateTextArtContent(styledMore);
+
+    // Persist text-art content back to cache
+    if (enrichedMore.some(p => p.textArtContent)) {
+      const cachedNow = loadCache();
+      if (cachedNow) {
+        const enrichedMap = new Map(enrichedMore.filter(p => p.textArtContent).map(p => [p.id, p.textArtContent!]));
+        cachedNow.posts = cachedNow.posts.map(p =>
+          enrichedMap.has(p.id) ? { ...p, textArtContent: enrichedMap.get(p.id), presentationStyle: p.presentationStyle ?? ('text-art' as PresentationStyle) } : p,
+        );
+        saveCache(cachedNow);
+      }
+    }
+
+    return enrichedMore;
   },
 
   /**
