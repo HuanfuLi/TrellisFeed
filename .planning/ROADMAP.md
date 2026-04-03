@@ -252,6 +252,7 @@
 **Plans:** 3/3 plans complete
 
 Plans:
+- [ ] 17-00-PLAN.md — Wave 0 test scaffold for youtube.service.ts
 - [x] 16-01-PLAN.md — Session history wiring for askStreaming and ask (remove global Q&A hack)
 - [x] 16-02-PLAN.md — Token usage service + provider usage extraction in llm/index.ts
 - [x] 16-03-PLAN.md — Call site serviceName tagging + Token Usage UI in Settings
@@ -288,9 +289,10 @@ Plans:
 
 **Depends on:** Phase 16
 
-**Plans:** 3 plans
+**Plans:** 4 plans
 
 Plans:
+- [ ] 17-00-PLAN.md — Wave 0 test scaffold for youtube.service.ts
 - [ ] 17-01-PLAN.md — Type extensions (VideoMetadata, sourceType 'video') + youtube.service.ts
 - [ ] 17-02-PLAN.md — Feed interleaving in concept-feed.service.ts + video card UI in InfoFlow
 - [ ] 17-03-PLAN.md — YouTubeEmbed component + PostDetailScreen video variant + Settings API key
