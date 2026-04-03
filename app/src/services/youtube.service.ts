@@ -1,9 +1,10 @@
 import { Capacitor, CapacitorHttp } from '@capacitor/core';
-import type { DailyPost, ServiceResult, VideoMetadata } from '../types';
+import type { DailyPost, FlashCard, Question, ServiceResult, VideoMetadata } from '../types';
 import { today } from '../lib/date';
-import { mockSettingsService } from './mock/settings.mock';
-import { mockReviewService } from './mock/review.mock';
+import { settingsService } from './settings.service';
 import { chatCompletion } from '../providers/llm/index';
+import { flashcardService } from './flashcard.service';
+import { questionService } from './question.service';
 
 // ─── Local Types ──────────────────────────────────────────────────────────────
 
@@ -72,6 +73,49 @@ function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T
   ]);
 }
 
+function titleForQuestion(question: Question): string {
+  return question.title ?? question.content.slice(0, 60);
+}
+
+function deriveDueConcepts(): Array<{ id: string; title: string }> {
+  const allQuestions = questionService.getAll({ includeFlagged: true });
+  const byId = new Map(allQuestions.map((question) => [question.id, question]));
+  const concepts: Array<{ id: string; title: string }> = [];
+  const seenIds = new Set<string>();
+
+  // Align with the actual review queue first: due flashcards map back to real knowledge nodes.
+  const dueCards = flashcardService.getDue();
+  for (const card of dueCards) {
+    const questionId = card.nodeId ?? inferQuestionIdFromFlashcard(card);
+    if (!questionId || seenIds.has(questionId)) continue;
+    const question = byId.get(questionId);
+    if (!question || question.flagged || question.isAnchorNode || question.isClusterNode) continue;
+    concepts.push({ id: question.id, title: titleForQuestion(question) });
+    seenIds.add(question.id);
+  }
+
+  // Also include real due questions not currently represented in the due-card queue.
+  const dueQuestions = allQuestions.filter((question) =>
+    !question.flagged &&
+    !question.isAnchorNode &&
+    !question.isClusterNode &&
+    question.reviewSchedule?.nextReviewDate <= today(),
+  );
+  for (const question of dueQuestions) {
+    if (seenIds.has(question.id)) continue;
+    concepts.push({ id: question.id, title: titleForQuestion(question) });
+    seenIds.add(question.id);
+  }
+
+  return concepts;
+}
+
+function inferQuestionIdFromFlashcard(card: FlashCard): string | null {
+  if (card.nodeId) return card.nodeId;
+  if (card.id.startsWith('node-')) return card.id.slice('node-'.length);
+  return null;
+}
+
 // ─── Service ──────────────────────────────────────────────────────────────────
 
 export const youtubeService = {
@@ -82,7 +126,7 @@ export const youtubeService = {
    * Quota cost: 100 units per call.
    */
   async searchVideos(query: string, maxResults = 5): Promise<ServiceResult<YouTubeSearchResult[]>> {
-    const apiKey = mockSettingsService.getSync().youtube?.apiKey;
+    const apiKey = settingsService.getSync().youtube?.apiKey;
     if (!apiKey) {
       return {
         success: false,
@@ -269,7 +313,7 @@ export const youtubeService = {
     videoTitle: string,
     videoDescription?: string,
   ): Promise<ServiceResult<string>> {
-    const llmConfig = mockSettingsService.getSync().llm;
+    const llmConfig = settingsService.getSync().llm;
 
     if (!llmConfig.isConfigured) {
       return {
@@ -378,17 +422,9 @@ export const youtubeService = {
    * → summarize → build DailyPost. Skips videoIds in seenIds set.
    */
   async _fetchNewVideoPosts(count: number, seenIds: Set<string>): Promise<DailyPost[]> {
-    // 1. Get due review concepts
-    const reviewResult = await mockReviewService.getTodayReviewItems();
-    const reviewItems = reviewResult.data ?? [];
-
-    // Filter out anchor and cluster nodes, prefer title over content
-    const concepts = reviewItems
-      .filter((q) => !q.isAnchorNode && !q.isClusterNode)
-      .map((q) => ({
-        id: q.id,
-        title: q.title ?? q.content.slice(0, 60),
-      }));
+    // 1. Get real due learning concepts from the persisted review/question graph.
+    // Prefer due flashcards (matches Review screen), then fill with due questions.
+    const concepts = deriveDueConcepts();
 
     if (concepts.length === 0) {
       return [];

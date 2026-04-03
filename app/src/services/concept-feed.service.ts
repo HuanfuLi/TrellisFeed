@@ -2,7 +2,7 @@ import { chatCompletion, chatStream } from '../providers/llm/index.ts';
 import type { DailyPost, PostNarrativeMode, PostOriginContext, PostSnapshot, Question } from '../types';
 import { today } from '../lib/date.ts';
 import { eventBus } from '../lib/event-bus.ts';
-import { mockSettingsService } from './mock/settings.mock.ts';
+import { settingsService } from './settings.service.ts';
 import { plannerService } from './planner.service.ts';
 import { graphService } from './graph.service.ts';
 import { youtubeService } from './youtube.service';
@@ -459,7 +459,7 @@ function extractPosts(parsed: Array<Record<string, unknown>>, questions: Questio
 }
 
 async function generateDailyPostsWithLLM(questions: Question[], date: string): Promise<ParsedGeneration> {
-  const settings = mockSettingsService.getSync();
+  const settings = settingsService.getSync();
   if (!settings.preferences.aiConsentGiven || !settings.llm.isConfigured) return { posts: [], connectionCards: [] };
 
   const context = buildDailyKnowledgeContext(questions.slice(0, CONTEXT_LIMIT));
@@ -674,7 +674,7 @@ export const conceptFeedService = {
 
     let newPosts: DailyPost[] = [];
 
-    const settings = mockSettingsService.getSync();
+    const settings = settingsService.getSync();
     if (settings.preferences.aiConsentGiven && settings.llm.isConfigured && questions.length > 0) {
       const context = buildDailyKnowledgeContext(questions.slice(0, CONTEXT_LIMIT));
       if (context.recent.length > 0 || context.resurfaced.length > 0 || context.related.length > 0) {
@@ -740,7 +740,7 @@ export const conceptFeedService = {
     conceptNounA: string,
     conceptNounB: string,
   ): AsyncGenerator<string> {
-    const settings = mockSettingsService.getSync();
+    const settings = settingsService.getSync();
     if (!settings.preferences.aiConsentGiven || !settings.llm.isConfigured) return;
 
     const system = [
@@ -864,7 +864,7 @@ export const conceptFeedService = {
    * Stream an exploratory essay for a discover chunk. Yields markdown chunks as they arrive.
    */
   async *generateDiscoverPost(concept: string, title: string): AsyncGenerator<string> {
-    const settings = mockSettingsService.getSync();
+    const settings = settingsService.getSync();
     if (!settings.preferences.aiConsentGiven || !settings.llm.isConfigured) return;
 
     const system = [

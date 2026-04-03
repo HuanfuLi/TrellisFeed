@@ -2,7 +2,7 @@ import type { Question, ServiceResult, AskResult, SessionMessage } from '../type
 import { today } from '../lib/date.ts';
 import { eventBus } from '../lib/event-bus.ts';
 import { toast } from '../lib/toast.ts';
-import { mockSettingsService } from './mock/settings.mock.ts';
+import { settingsService } from './settings.service.ts';
 import { chatCompletion } from '../providers/llm/index.ts';
 import { embedText, cosine } from '../providers/embedding/index.ts';
 import { dbExecute, dbQuery } from './db.service.ts';
@@ -159,7 +159,7 @@ function findRelated(keywords: string[], store: Question[], embedding?: number[]
 
 export const questionService = {
   async ask(content: string, sessionContext?: QuestionFilterContext, sessionHistory?: SessionMessage[]): Promise<ServiceResult<AskResult>> {
-    const settings = mockSettingsService.getSync();
+    const settings = settingsService.getSync();
     const llmConfig = settings.llm;
 
     if (!llmConfig.isConfigured) {
@@ -177,7 +177,7 @@ export const questionService = {
 
     // Pre-compute query embedding before the LLM call so context candidates can be
     // re-ranked by cosine similarity instead of keyword overlap alone.
-    const embCfgEarly = mockSettingsService.getSync().embedding;
+    const embCfgEarly = settingsService.getSync().embedding;
     let queryEmbedding: number[] | undefined;
     if (embCfgEarly.isConfigured) {
       try {
@@ -327,7 +327,7 @@ export const questionService = {
         persistToSQLite(mergedQuestion);
         eventBus.emit({ type: 'QUESTION_ASKED', payload: mergedQuestion });
 
-        const embCfg = mockSettingsService.getSync().embedding;
+        const embCfg = settingsService.getSync().embedding;
         if (embCfg.isConfigured) {
           void embedText(`${mergedQuestion.content} ${mergedQuestion.answer}`, embCfg)
             .then((vector) => {
@@ -401,7 +401,7 @@ export const questionService = {
 
     // Fire-and-forget: embed content+answer for a richer vector (replaces the content-only
     // pre-computed vector). Skipped entirely if embedding is not configured.
-    const embeddingConfig = mockSettingsService.getSync().embedding;
+    const embeddingConfig = settingsService.getSync().embedding;
     if (embeddingConfig.isConfigured) {
       void embedText(`${content} ${answer}`, embeddingConfig)
         .then((vector) => {

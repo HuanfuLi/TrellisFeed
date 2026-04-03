@@ -388,7 +388,7 @@ describe('withTimeout helper', () => {
 // ─── Pure helpers for Settings deepMerge tests ───────────────────────────────
 
 /**
- * Mirrors the deepMerge() function from settings.mock.ts exactly.
+ * Mirrors the deepMerge() function from settings.service.ts exactly.
  * Merges stored partial settings over defaults, with object-level spread for nested objects.
  */
 function deepMerge(defaults, stored) {

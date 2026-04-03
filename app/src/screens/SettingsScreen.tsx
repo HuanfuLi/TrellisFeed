@@ -4,7 +4,7 @@ import { tokenUsageReporter, type ServiceAggregate } from '../services/token-usa
 import { plannerAutoGenService } from '../services/plannerAutoGen.service';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { mockSettingsService } from '../services/mock/settings.mock';
+import { settingsService } from '../services/settings.service';
 import { testLLMConnection } from '../providers/llm';
 import { testTTSConnection } from '../providers/tts';
 import type { LLMConfig, TTSConfig, EmbeddingConfig, EmbeddingDebugConfig, AppSettings, ImageGenerationSettings, ImageProviderPrimary } from '../types';
@@ -123,17 +123,17 @@ export function SettingsScreen() {
   const [testResult, setTestResult] = useState<Record<string, string | null>>({});
   const [isTesting, setIsTesting] = useState<Record<string, boolean>>({});
 
-  const [llm, setLlm] = useState<LLMConfig>(() => mockSettingsService.getSync().llm);
-  const [tts, setTts] = useState<TTSConfig>(() => mockSettingsService.getSync().tts);
-  const [embedding, setEmbedding] = useState<EmbeddingConfig>(() => mockSettingsService.getSync().embedding);
-  const [embeddingDebug, setEmbeddingDebug] = useState<EmbeddingDebugConfig>(() => mockSettingsService.getSync().embeddingDebug);
-  const [ztNetworkId, setZtNetworkId] = useState(() => mockSettingsService.getSync().zerotier.networkId ?? '');
-  const [podcastAutoGenerate, setPodcastAutoGenerate] = useState(() => mockSettingsService.getSync().podcast.autoGenerate);
-  const [podcastSleepTime, setPodcastSleepTime] = useState(() => mockSettingsService.getSync().podcast.sleepTime);
-  const [podcastAdvance, setPodcastAdvance] = useState(() => String(mockSettingsService.getSync().podcast.advanceMinutes));
-  const [reviewLimit, setReviewLimit] = useState(() => String(mockSettingsService.getSync().review.dailyLimit));
-  const [reviewNotif, setReviewNotif] = useState(() => mockSettingsService.getSync().review.notificationsEnabled);
-  const [reviewReminderTime, setReviewReminderTime] = useState(() => mockSettingsService.getSync().review.reminderTime);
+  const [llm, setLlm] = useState<LLMConfig>(() => settingsService.getSync().llm);
+  const [tts, setTts] = useState<TTSConfig>(() => settingsService.getSync().tts);
+  const [embedding, setEmbedding] = useState<EmbeddingConfig>(() => settingsService.getSync().embedding);
+  const [embeddingDebug, setEmbeddingDebug] = useState<EmbeddingDebugConfig>(() => settingsService.getSync().embeddingDebug);
+  const [ztNetworkId, setZtNetworkId] = useState(() => settingsService.getSync().zerotier.networkId ?? '');
+  const [podcastAutoGenerate, setPodcastAutoGenerate] = useState(() => settingsService.getSync().podcast.autoGenerate);
+  const [podcastSleepTime, setPodcastSleepTime] = useState(() => settingsService.getSync().podcast.sleepTime);
+  const [podcastAdvance, setPodcastAdvance] = useState(() => String(settingsService.getSync().podcast.advanceMinutes));
+  const [reviewLimit, setReviewLimit] = useState(() => String(settingsService.getSync().review.dailyLimit));
+  const [reviewNotif, setReviewNotif] = useState(() => settingsService.getSync().review.notificationsEnabled);
+  const [reviewReminderTime, setReviewReminderTime] = useState(() => settingsService.getSync().review.reminderTime);
   const [plannerRefreshEnabled, setPlannerRefreshEnabled] = useState(() => {
     const stored = localStorage.getItem('echolearn_planner_refresh_enabled');
     return stored !== null ? stored === 'true' : true;
@@ -142,14 +142,14 @@ export function SettingsScreen() {
     return localStorage.getItem('echolearn_planner_refresh_time') ?? '08:00';
   });
   const [isRefreshingPlanner, setIsRefreshingPlanner] = useState(false);
-  const [theme, setTheme] = useState<AppSettings['preferences']['theme']>(() => mockSettingsService.getSync().preferences.theme);
-  const [aiConsent, setAiConsent] = useState(() => mockSettingsService.getSync().preferences.aiConsentGiven ?? false);
+  const [theme, setTheme] = useState<AppSettings['preferences']['theme']>(() => settingsService.getSync().preferences.theme);
+  const [aiConsent, setAiConsent] = useState(() => settingsService.getSync().preferences.aiConsentGiven ?? false);
 
   // YouTube settings
-  const [youtubeApiKey, setYoutubeApiKey] = useState(() => mockSettingsService.getSync().youtube?.apiKey ?? '');
+  const [youtubeApiKey, setYoutubeApiKey] = useState(() => settingsService.getSync().youtube?.apiKey ?? '');
 
   // Image generation settings
-  const [imageGen, setImageGen] = useState<ImageGenerationSettings>(() => mockSettingsService.getSync().imageGeneration);
+  const [imageGen, setImageGen] = useState<ImageGenerationSettings>(() => settingsService.getSync().imageGeneration);
   const [cacheStats, setCacheStats] = useState(() => imageGenerationService.getCacheStats());
   const [isClearingCache, setIsClearingCache] = useState(false);
   const [tokenUsage, setTokenUsage] = useState<Record<string, ServiceAggregate>>(() => tokenUsageReporter.getByService());
@@ -157,11 +157,11 @@ export function SettingsScreen() {
   const noKeyRequired = (p: LLMConfig['provider']) => p === 'local' || p === 'lmstudio';
 
   const saveLlm = (current: LLMConfig = llm) => {
-    mockSettingsService.set('llm', { ...current, isConfigured: !!current.apiKey || noKeyRequired(current.provider) });
+    settingsService.set('llm', { ...current, isConfigured: !!current.apiKey || noKeyRequired(current.provider) });
     // Keep TTS isConfigured in sync: OpenAI TTS reuses the LLM key as a fallback
     if (tts.provider === 'openai') {
       const effectiveKey = tts.apiKey || (current.apiKey ?? '');
-      mockSettingsService.set('tts', { ...tts, isConfigured: !!effectiveKey });
+      settingsService.set('tts', { ...tts, isConfigured: !!effectiveKey });
     }
   };
 
@@ -173,11 +173,11 @@ export function SettingsScreen() {
     const isConfigured =
       current.provider === 'local' || current.provider === 'lmstudio' ? !!current.baseUrl :
         !!current.apiKey;
-    mockSettingsService.set('embedding', { ...current, isConfigured });
+    settingsService.set('embedding', { ...current, isConfigured });
   };
 
   const saveEmbeddingDebug = (current: EmbeddingDebugConfig = embeddingDebug) => {
-    mockSettingsService.set('embeddingDebug', current);
+    settingsService.set('embeddingDebug', current);
   };
 
   const saveTts = (current: TTSConfig = tts) => {
@@ -187,7 +187,7 @@ export function SettingsScreen() {
       current.provider === 'openai' ? !!effectiveKey :
         current.provider === 'gptsovits' ? !!current.baseUrl :
           false;
-    mockSettingsService.set('tts', { ...current, isConfigured });
+    settingsService.set('tts', { ...current, isConfigured });
   };
 
   const handleTestLLM = async () => {
@@ -248,9 +248,9 @@ export function SettingsScreen() {
   };
 
   const handleToggleAiConsent = async () => {
-    const prefs = mockSettingsService.getSync().preferences;
+    const prefs = settingsService.getSync().preferences;
     const next = !aiConsent;
-    await mockSettingsService.set('preferences', { ...prefs, aiConsentGiven: next });
+    await settingsService.set('preferences', { ...prefs, aiConsentGiven: next });
     setAiConsent(next);
     toast(next ? 'AI transmission enabled.' : 'AI transmission disabled.', 'success');
   };
@@ -259,8 +259,8 @@ export function SettingsScreen() {
     if (!confirm('Delete all stored API keys? This will disable AI and TTS features until you re-enter your keys.')) return;
     const nextLlm = { ...llm, apiKey: '', isConfigured: noKeyRequired(llm.provider) };
     const nextTts = { ...tts, apiKey: '', isConfigured: tts.provider === 'gptsovits' ? !!tts.baseUrl : false };
-    await mockSettingsService.set('llm', nextLlm);
-    await mockSettingsService.set('tts', nextTts);
+    await settingsService.set('llm', nextLlm);
+    await settingsService.set('tts', nextTts);
     setLlm(nextLlm);
     setTts(nextTts);
     toast('All API keys deleted.', 'success');
@@ -298,8 +298,8 @@ export function SettingsScreen() {
 
   const handleReset = async () => {
     if (confirm('Reset all settings to defaults?')) {
-      await mockSettingsService.reset();
-      const s = mockSettingsService.getSync();
+      await settingsService.reset();
+      const s = settingsService.getSync();
       setLlm(s.llm);
       setTts(s.tts);
       setEmbedding(s.embedding);
@@ -317,7 +317,7 @@ export function SettingsScreen() {
   };
 
   const saveImageGen = async (current: ImageGenerationSettings = imageGen) => {
-    await mockSettingsService.set('imageGeneration', current);
+    await settingsService.set('imageGeneration', current);
     // Re-bootstrap providers with new keys.
     bootstrapImageGeneration();
     toast('Image generation settings saved.', 'success');
@@ -724,7 +724,7 @@ export function SettingsScreen() {
               <Button
                 size="sm"
                 onClick={async () => {
-                  await mockSettingsService.set('zerotier', { networkId: ztNetworkId, isConnected: false });
+                  await settingsService.set('zerotier', { networkId: ztNetworkId, isConnected: false });
                   toast('ZeroTier settings saved.', 'success');
                 }}
                 variant="secondary"
@@ -732,7 +732,7 @@ export function SettingsScreen() {
                 Save
               </Button>
               <span style={{ display: 'flex', alignItems: 'center', fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>
-                {mockSettingsService.getSync().zerotier.isConnected ? '● Connected' : '○ Disconnected'}
+                {settingsService.getSync().zerotier.isConnected ? '● Connected' : '○ Disconnected'}
               </span>
             </div>
           </Card>
@@ -871,7 +871,7 @@ export function SettingsScreen() {
             type="password"
             value={youtubeApiKey}
             onChange={(v) => setYoutubeApiKey(v)}
-            onBlur={() => void mockSettingsService.set('youtube', { apiKey: youtubeApiKey })}
+            onBlur={() => void settingsService.set('youtube', { apiKey: youtubeApiKey })}
             placeholder="YouTube Data API v3 key"
           />
         </SettingRow>
@@ -880,7 +880,7 @@ export function SettingsScreen() {
             size="sm"
             variant="secondary"
             onClick={async () => {
-              await mockSettingsService.set('youtube', { apiKey: youtubeApiKey });
+              await settingsService.set('youtube', { apiKey: youtubeApiKey });
               toast('YouTube settings saved.', 'success');
             }}
           >
@@ -909,7 +909,7 @@ export function SettingsScreen() {
             size="sm"
             variant="secondary"
             onClick={async () => {
-              const result = await mockSettingsService.set('podcast', {
+              const result = await settingsService.set('podcast', {
                 autoGenerate: podcastAutoGenerate,
                 sleepTime: podcastSleepTime,
                 advanceMinutes: Number.isNaN(parseInt(podcastAdvance)) ? 60 : parseInt(podcastAdvance),
@@ -949,7 +949,7 @@ export function SettingsScreen() {
             size="sm"
             variant="secondary"
             onClick={async () => {
-              await mockSettingsService.set('review', {
+              await settingsService.set('review', {
                 dailyLimit: parseInt(reviewLimit) || 20,
                 notificationsEnabled: reviewNotif,
                 reminderTime: reviewReminderTime,
@@ -1023,8 +1023,8 @@ export function SettingsScreen() {
               const t = v as AppSettings['preferences']['theme'];
               setTheme(t);
               applyTheme(t);
-              const prefs = mockSettingsService.getSync().preferences;
-              await mockSettingsService.set('preferences', { ...prefs, theme: t });
+              const prefs = settingsService.getSync().preferences;
+              await settingsService.set('preferences', { ...prefs, theme: t });
             }}
             options={[
               { value: 'light', label: 'Light' },

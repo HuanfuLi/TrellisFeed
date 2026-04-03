@@ -4,6 +4,7 @@ import type { BlindboxItem, DailyPost, GeneratedImage, Question } from '../types
 import { FeedPostImage } from './FeedPostImage';
 import { imageGenerationService } from '../services/imageGeneration.service';
 import { inferImageStyle, buildImagePrompt } from '../services/postFormatting.service';
+import { normalizePlainText } from '../lib/text-normalization';
 
 export type InfoFlowItem =
   | { kind: 'concept'; post: DailyPost }
@@ -83,6 +84,10 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
   const contextLabel = isVideoPost && post.videoMeta?.channelTitle
     ? post.videoMeta.channelTitle
     : post.contextLabel;
+  const normalizedContextLabel = normalizePlainText(contextLabel);
+  const normalizedTitle = normalizePlainText(post.title);
+  const normalizedHook = normalizePlainText(post.teaser.hook);
+  const normalizedPreview = normalizePlainText(post.teaser.preview);
 
   return (
     <div
@@ -112,7 +117,7 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
         >
           {badge.label}
         </span>
-        <span style={{ fontSize: '0.78rem', color: 'var(--muted-foreground)' }}>{contextLabel}</span>
+        <span style={{ fontSize: '0.78rem', color: 'var(--muted-foreground)' }}>{normalizedContextLabel}</span>
       </div>
 
       <button
@@ -141,7 +146,7 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
           >
             <img
               src={post.videoMeta.thumbnailUrl}
-              alt={post.title}
+              alt={normalizedTitle}
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             />
             <div
@@ -199,10 +204,10 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
               textWrap: 'balance',
             }}
           >
-            {post.teaser.hook}
+            {normalizedHook}
           </p>
           <p style={{ fontSize: '0.9rem', color: 'var(--foreground)', lineHeight: 1.6, opacity: 0.88 }}>
-            {post.teaser.preview}
+            {normalizedPreview}
           </p>
         </div>
 

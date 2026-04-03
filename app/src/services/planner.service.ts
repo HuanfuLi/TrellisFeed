@@ -3,7 +3,7 @@ import type {
   ChunkStatus, CheckInSignals,
 } from '../types';
 import { chatCompletion } from '../providers/llm/index.ts';
-import { mockSettingsService } from './mock/settings.mock.ts';
+import { settingsService } from './settings.service.ts';
 import { eventBus } from '../lib/event-bus.ts';
 import { dbExecute, dbQuery } from './db.service.ts';
 import { Capacitor } from '@capacitor/core';
@@ -256,7 +256,7 @@ function mergeSignals(primary: CheckInSignals, fallback: CheckInSignals): CheckI
 async function extractSignals(content: string): Promise<CheckInSignals> {
   const fallback = heuristicExtractSignals(content);
 
-  const settings = mockSettingsService.getSync();
+  const settings = settingsService.getSync();
   if (!settings.llm.isConfigured) return fallback;
 
   try {
@@ -365,7 +365,7 @@ function findClosestCachedPost(conceptIds: string[], connectionOnly: boolean): s
 
 async function generateDiscoverTitle(
   topic: string,
-  settings: ReturnType<typeof mockSettingsService.getSync>,
+  settings: ReturnType<typeof settingsService.getSync>,
 ): Promise<string> {
   if (!settings.llm.isConfigured) return `Discover: ${topic}`;
   try {
@@ -561,7 +561,7 @@ export const plannerService = {
     }
 
     // Process curiosity → discover chunks (LLM generates essay title)
-    const settings = mockSettingsService.getSync();
+    const settings = settingsService.getSync();
     for (const item of signals.curiosity) {
       const conceptIds = findLinkedConceptIds(item);
       const title = await generateDiscoverTitle(item, settings);

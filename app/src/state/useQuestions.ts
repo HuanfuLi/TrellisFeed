@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Question, ServiceError, SessionMessage } from '../types';
 import { questionService } from '../services/question.service';
-import { mockSettingsService } from '../services/mock/settings.mock';
+import { settingsService } from '../services/settings.service';
 import { chatStream } from '../providers/llm';
 import { today } from '../lib/date';
 import { buildCandidateContextPack, classifyAndAnchor, formatCandidateContextPack } from '../services/canonical-knowledge.service';
@@ -64,7 +64,7 @@ export function useQuestions(): UseQuestionsReturn {
       setIsAsking(true);
       setError(null);
 
-      const settings = mockSettingsService.getSync();
+      const settings = settingsService.getSync();
       const llmConfig = settings.llm;
 
       if (!settings.preferences.aiConsentGiven) {

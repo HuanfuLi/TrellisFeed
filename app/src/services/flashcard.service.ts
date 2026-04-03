@@ -2,7 +2,7 @@ import type { FlashCard, ChatSession, ReviewSchedule } from '../types';
 import { today } from '../lib/date';
 import { eventBus } from '../lib/event-bus';
 import { toast } from '../lib/toast';
-import { mockSettingsService } from './mock/settings.mock';
+import { settingsService } from './settings.service';
 import { chatCompletion } from '../providers/llm';
 import { questionService } from './question.service';
 import { getDueProjectedFlashcards, getProjectedFlashcards } from './canonical-knowledge.service';
@@ -183,7 +183,7 @@ export const flashcardService = {
     const userMessages = session.messages.filter((m) => m.type === 'user');
     if (userMessages.length === 0) return [];
 
-    const settings = mockSettingsService.getSync();
+    const settings = settingsService.getSync();
     if (!settings.llm.isConfigured) return [];
 
     const transcript = session.messages

@@ -17,7 +17,7 @@
 
 import { Capacitor } from '@capacitor/core';
 import { App as CapApp } from '@capacitor/app';
-import { mockSettingsService } from './mock/settings.mock';
+import { settingsService } from './settings.service';
 import { podcastService } from './podcast.service';
 import { plannerAutoGenService } from './plannerAutoGen.service';
 import { today } from '../lib/date';
@@ -60,7 +60,7 @@ function nowMinutes(): number {
  */
 async function checkPodcast(): Promise<void> {
   const doneToday = isDoneToday(PODCAST_DONE_KEY);
-  const settings = mockSettingsService.getSync();
+  const settings = settingsService.getSync();
   const sleepMin = parseTime(settings.podcast.sleepTime);
   const advance = settings.podcast.advanceMinutes ?? 60;
   const triggerMin = sleepMin - advance;
@@ -95,7 +95,7 @@ async function checkPodcast(): Promise<void> {
 async function checkPlanner(): Promise<void> {
   if (isDoneToday(PLANNER_DONE_KEY)) return;
 
-  const settings = mockSettingsService.getSync();
+  const settings = settingsService.getSync();
   if (!settings.llm.isConfigured) return;
 
   if (!plannerAutoGenService.isDailyRefreshNeeded()) return;
@@ -116,7 +116,7 @@ async function checkPlanner(): Promise<void> {
 function checkReviewReminder(): void {
   if (isDoneToday(REVIEW_DONE_KEY)) return;
 
-  const settings = mockSettingsService.getSync();
+  const settings = settingsService.getSync();
   if (!settings.review.notificationsEnabled) return;
 
   const reminderMin = parseTime(settings.review.reminderTime);

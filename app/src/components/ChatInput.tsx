@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Send, Mic, Loader2 } from 'lucide-react';
 import { transcribeAudio } from '../providers/stt';
 import { startVoiceRecording, stopVoiceRecording, MicPermissionDeniedError } from '../lib/voice-recorder';
-import { mockSettingsService } from '../services/mock/settings.mock';
+import { settingsService } from '../services/settings.service';
 import { toast } from '../lib/toast';
 
 interface ChatInputProps {
@@ -50,7 +50,7 @@ export function ChatInput({ onSend, placeholder = 'Ask anything...', disabled }:
     setIsTranscribing(true);
     try {
       const blob = await stopVoiceRecording();
-      const settings = mockSettingsService.getSync();
+      const settings = settingsService.getSync();
       const text = await transcribeAudio(blob, settings.tts);
       if (text) setMessage((prev) => (prev ? `${prev} ${text}` : text));
     } catch (err) {

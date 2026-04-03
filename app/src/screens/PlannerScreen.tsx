@@ -14,7 +14,7 @@ import { useQuestions } from '../state/useQuestions';
 import { toast } from '../lib/toast';
 import { transcribeAudio } from '../providers/stt';
 import { startVoiceRecording, stopVoiceRecording } from '../lib/voice-recorder';
-import { mockSettingsService } from '../services/mock/settings.mock';
+import { settingsService } from '../services/settings.service';
 import { Header, HEADER_HEIGHT } from '../components/ui/Header';
 import { MoveCard } from '../components/MoveCard';
 import { Capacitor } from '@capacitor/core';
@@ -372,7 +372,7 @@ export function PlannerScreen() {
           if (audioChunksRef.current.length > 0) {
             try {
               const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType || 'audio/webm' });
-              const text = await transcribeAudio(blob, mockSettingsService.getSync().tts);
+              const text = await transcribeAudio(blob, settingsService.getSync().tts);
               setCheckInInput((prev) => (prev ? prev + ' ' : '') + text);
             } catch {
               toast('Transcription failed', 'error');
@@ -392,7 +392,7 @@ export function PlannerScreen() {
     try {
       if (isNative) {
         const blob = await stopVoiceRecording();
-        const text = await transcribeAudio(blob, mockSettingsService.getSync().tts);
+        const text = await transcribeAudio(blob, settingsService.getSync().tts);
         setCheckInInput((prev) => (prev ? prev + ' ' : '') + text);
       } else {
         if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {

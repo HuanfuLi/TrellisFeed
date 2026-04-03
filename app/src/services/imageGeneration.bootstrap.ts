@@ -18,10 +18,10 @@
 import { imageGenerationService } from './imageGeneration.service';
 import { NanoBananaProvider } from '../providers/nanoBanana.provider';
 import { GeminiProvider } from '../providers/gemini.provider';
-import { mockSettingsService } from './mock/settings.mock';
+import { settingsService } from './settings.service';
 
 export function bootstrapImageGeneration(): void {
-  const settings = mockSettingsService.getSync();
+  const settings = settingsService.getSync();
   const imageSettings = settings.imageGeneration;
 
   const nanoBananaKey = imageSettings?.nanoBananaApiKey ?? '';

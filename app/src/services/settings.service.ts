@@ -1,4 +1,4 @@
-import type { AppSettings, ServiceResult } from '../../types';
+import type { AppSettings, ServiceResult } from '../types';
 
 const STORAGE_KEY = 'echolearn_settings';
 
@@ -99,7 +99,7 @@ function save(settings: AppSettings): boolean {
   }
 }
 
-export const mockSettingsService = {
+export const settingsService = {
   async getAll(): Promise<ServiceResult<AppSettings>> {
     return { success: true, data: load() };
   },

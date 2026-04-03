@@ -1,6 +1,6 @@
 import { chatStream } from '../providers/llm';
 import type { PostOriginContext } from '../types';
-import { mockSettingsService } from './mock/settings.mock';
+import { settingsService } from './settings.service';
 
 function buildContextPrompt(context: PostOriginContext, userQuestion: string): string {
   const sourceBlock = context.sourceQuestions.length > 0
@@ -41,7 +41,7 @@ function buildContextPrompt(context: PostOriginContext, userQuestion: string): s
 
 export const postContextQaService = {
   async *askStreaming(context: PostOriginContext, userQuestion: string): AsyncGenerator<string> {
-    const settings = mockSettingsService.getSync();
+    const settings = settingsService.getSync();
     if (!settings.preferences.aiConsentGiven) {
       throw new Error('AI features are disabled. Enable AI Data Transmission in Settings to ask about posts.');
     }

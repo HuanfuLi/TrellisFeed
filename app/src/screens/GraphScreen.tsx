@@ -9,7 +9,7 @@ import { graphService } from '../services/graph.service';
 import { toast } from '../lib/toast';
 import { Header, HEADER_HEIGHT } from '../components/ui/Header';
 import { buildAnchorReflectionTree, reorganizeMindmap, revertReorganization, hasReorgBackup, isReorgInProgress } from '../services/canonical-knowledge.service';
-import { mockSettingsService } from '../services/mock/settings.mock';
+import { settingsService } from '../services/settings.service';
 import { eventBus } from '../lib/event-bus';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -742,7 +742,7 @@ export function GraphScreen() {
     setShowReorgConfirm(false);
     toast('Reorganizing your knowledge map...', 'info');
 
-    const settings = mockSettingsService.getSync();
+    const settings = settingsService.getSync();
     // Fire-and-forget — events handle state updates across navigation
     void reorganizeMindmap(settings.llm);
   }, []);

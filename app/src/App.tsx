@@ -18,7 +18,7 @@ const GraphScreen = lazy(() => import('./screens/GraphScreen').then((m) => ({ de
 import { PostDetailScreen } from './screens/PostDetailScreen';
 import { AnchorDetailScreen } from './screens/AnchorDetailScreen';
 import { ClusterDetailScreen } from './screens/ClusterDetailScreen';
-import { mockSettingsService } from './services/mock/settings.mock';
+import { settingsService } from './services/settings.service';
 import { hydrateFromSQLite } from './services/question.service';
 import { hydratePlannerFromSQLite } from './services/planner.service';
 import { bootstrapImageGeneration } from './services/imageGeneration.bootstrap';
@@ -70,7 +70,7 @@ function RootLayout() {
     setIsTranscribing(true);
     try {
       const blob = await stopVoiceRecording();
-      const settings = mockSettingsService.getSync();
+      const settings = settingsService.getSync();
       const text = await transcribeAudio(blob, settings.tts);
       navigate('/ask', { state: { prompt: text?.trim() || '' } });
     } catch (err) {
@@ -168,7 +168,7 @@ function RootLayout() {
 }
 
 function HomeRedirect() {
-  const settings = mockSettingsService.getSync();
+  const settings = settingsService.getSync();
   if (!settings.preferences.onboardingCompleted) {
     return <Navigate to="/onboarding" replace />;
   }
@@ -219,7 +219,7 @@ export default function App() {
   useEffect(() => {
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
     const handler = () => {
-      const { theme } = mockSettingsService.getSync().preferences;
+      const { theme } = settingsService.getSync().preferences;
       if (theme === 'system') applyTheme('system');
     };
     mq.addEventListener('change', handler);
@@ -232,7 +232,7 @@ export default function App() {
     let listenerHandle: Awaited<ReturnType<typeof CapApp.addListener>> | null = null;
     void CapApp.addListener('appStateChange', ({ isActive }) => {
       if (isActive) {
-        const { theme } = mockSettingsService.getSync().preferences;
+        const { theme } = settingsService.getSync().preferences;
         applyTheme(theme);
       }
     }).then((handle) => { listenerHandle = handle; });

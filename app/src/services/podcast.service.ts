@@ -1,7 +1,7 @@
 import type { DailyPodcast, Question, ServiceResult } from '../types';
 import { eventBus } from '../lib/event-bus';
 import { toast } from '../lib/toast';
-import { mockSettingsService } from './mock/settings.mock';
+import { settingsService } from './settings.service';
 import { questionService } from './question.service';
 import { chatCompletion } from '../providers/llm';
 import { synthesize } from '../providers/tts';
@@ -156,7 +156,7 @@ export const podcastService = {
     }
 
     const id = existing?.id ?? newPodcastId();
-    const settings = mockSettingsService.getSync();
+    const settings = settingsService.getSync();
 
     // Use provided concept IDs (from Knowledge Today list) or fall back to SM-2 due list
     let questions: Question[];

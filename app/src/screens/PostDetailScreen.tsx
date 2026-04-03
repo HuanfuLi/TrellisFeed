@@ -15,6 +15,7 @@ import { YouTubeEmbed } from '../components/YouTubeEmbed';
 import { toast } from '../lib/toast';
 import { parseMoveNavigationState } from '../lib/moveNavigator';
 import { inferImageStyle, buildImagePrompt } from '../services/postFormatting.service';
+import { normalizePlainText } from '../lib/text-normalization';
 
 interface ConnectionMeta {
   questionA: Question;
@@ -244,6 +245,8 @@ export function PostDetailScreen() {
   }, [session?.messages, qaStreaming]);
 
   const quickAskPrompts = useMemo(() => post?.quickAskPrompts ?? [], [post]);
+  const normalizedContextLabel = post ? normalizePlainText(post.contextLabel) : '';
+  const normalizedTitle = post ? normalizePlainText(post.title) : '';
 
   const handleAsk = async (content: string) => {
     if (!content.trim() || !post || !session) return;
@@ -499,9 +502,9 @@ export function PostDetailScreen() {
         }}
       >
         <p style={{ fontSize: '0.68rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--muted-foreground)', marginBottom: '8px' }}>
-          {post.contextLabel} · {post.narrativeMode}
+          {normalizedContextLabel} · {post.narrativeMode}
         </p>
-        <h1 style={{ fontSize: '1.55rem', lineHeight: 1.12, marginBottom: '12px', textWrap: 'balance' }}>{post.title}</h1>
+        <h1 style={{ fontSize: '1.55rem', lineHeight: 1.12, marginBottom: '12px', textWrap: 'balance' }}>{normalizedTitle}</h1>
         {post.sourceType !== 'video' && post.whyCare && (
           <p style={{ fontSize: '0.98rem', lineHeight: 1.62, color: 'var(--foreground)', marginBottom: '16px' }}>{post.whyCare}</p>
         )}

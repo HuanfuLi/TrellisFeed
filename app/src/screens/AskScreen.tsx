@@ -14,7 +14,7 @@ import { formatDate } from '../lib/date';
 import { questionService } from '../services/question.service';
 import { postContextQaService } from '../services/post-context-qa.service';
 import { chatCompletion } from '../providers/llm';
-import { mockSettingsService } from '../services/mock/settings.mock';
+import { settingsService } from '../services/settings.service';
 import { toast } from '../lib/toast';
 import { Header, HEADER_HEIGHT } from '../components/ui/Header';
 
@@ -40,7 +40,7 @@ function newMsgId(prefix: string): string {
 /** Ask the LLM for a short conversation title based on the first Q&A exchange. */
 async function generateSessionTitle(userMessage: string, aiReply: string): Promise<string> {
   try {
-    const settings = mockSettingsService.getSync();
+    const settings = settingsService.getSync();
     if (!settings.preferences.aiConsentGiven || !settings.llm.isConfigured) {
       return '';
     }

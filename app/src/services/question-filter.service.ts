@@ -1,6 +1,6 @@
 import type { Question, LLMConfig } from '../types/index.ts';
 import { chatCompletion } from '../providers/llm/index.ts';
-import { mockSettingsService } from './mock/settings.mock.ts';
+import { settingsService } from './settings.service.ts';
 
 // ─── Pattern Library ─────────────────────────────────────────────────────────
 // Each entry has a regex pattern and a confidence weight (0.0–1.0).
@@ -119,7 +119,7 @@ export async function evaluateQuestion(
 
   // Step 3: Low but non-zero confidence — try LLM fallback if configured
   if (patternResult.confidence > 0) {
-    const settings = mockSettingsService.getSync();
+    const settings = settingsService.getSync();
     if (settings.llm.isConfigured) {
       const llmResult = await isOffTopicByLLM(question.content, sessionContext, settings.llm);
       return { ...question, flagged: llmResult };

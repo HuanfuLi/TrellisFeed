@@ -14,7 +14,7 @@
 
 import { Capacitor } from '@capacitor/core';
 import { LocalNotifications } from '@capacitor/local-notifications';
-import { mockSettingsService } from './mock/settings.mock';
+import { settingsService } from './settings.service';
 
 // Fixed notification IDs (stable across reschedules)
 const PODCAST_NOTIF_ID = 9001;
@@ -56,7 +56,7 @@ export async function scheduleNativeNotifications(): Promise<void> {
     // Cancel existing scheduled notifications to avoid duplicates
     await LocalNotifications.cancel({ notifications: [{ id: PODCAST_NOTIF_ID }, { id: REVIEW_NOTIF_ID }] });
 
-    const settings = mockSettingsService.getSync();
+    const settings = settingsService.getSync();
     const notifications: Array<{
       id: number;
       title: string;

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { AppSettings, ServiceError } from '../types';
-import { mockSettingsService } from '../services/mock/settings.mock';
+import { settingsService } from '../services/settings.service';
 
 interface UseSettingsReturn {
   settings: AppSettings | null;
@@ -18,7 +18,7 @@ export function useSettings(): UseSettingsReturn {
 
   const reload = useCallback(async () => {
     setIsLoading(true);
-    const result = await mockSettingsService.getAll();
+    const result = await settingsService.getAll();
     if (result.success && result.data) {
       setSettings(result.data);
     } else {
@@ -32,7 +32,7 @@ export function useSettings(): UseSettingsReturn {
   }, [reload]);
 
   const set = useCallback(async <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
-    const result = await mockSettingsService.set(key, value);
+    const result = await settingsService.set(key, value);
     if (result.success) {
       setSettings((prev) => prev ? { ...prev, [key]: value } : null);
     } else {
@@ -41,7 +41,7 @@ export function useSettings(): UseSettingsReturn {
   }, []);
 
   const reset = useCallback(async () => {
-    const result = await mockSettingsService.reset();
+    const result = await settingsService.reset();
     if (result.success && result.data) {
       setSettings(result.data);
     }

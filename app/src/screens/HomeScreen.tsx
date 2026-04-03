@@ -11,7 +11,7 @@ import { useQuestions } from '../state/useQuestions';
 import { useReview } from '../state/useReview';
 import { usePodcast } from '../state/usePodcast';
 import { plannerService } from '../services/planner.service';
-import { mockSettingsService } from '../services/mock/settings.mock';
+import { settingsService } from '../services/settings.service';
 import { conceptFeedService } from '../services/concept-feed.service';
 import { eventBus } from '../lib/event-bus';
 import { today, getGreeting } from '../lib/date';
@@ -463,7 +463,7 @@ export function HomeScreen() {
             <InlineInfoFlow
               items={infoFlowItems}
               onOpenConnection={handleOpenConnection}
-              showConnectionScores={mockSettingsService.getSync().embeddingDebug.showScores}
+              showConnectionScores={settingsService.getSync().embeddingDebug.showScores}
               onOpenPost={(postId, post) => {
                 navigate(`/posts/${postId}`, { state: { post } });
               }}
