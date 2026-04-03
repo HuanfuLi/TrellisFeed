@@ -5,6 +5,7 @@ import { FeedPostImage } from './FeedPostImage';
 import { imageGenerationService } from '../services/imageGeneration.service';
 import { inferImageStyle, buildImagePrompt } from '../services/postFormatting.service';
 import { normalizePlainText } from '../lib/text-normalization';
+import { settingsService } from '../services/settings.service';
 
 export type InfoFlowItem =
   | { kind: 'concept'; post: DailyPost }
@@ -28,6 +29,8 @@ const CONCEPT_BADGE_META: Record<DailyPost['sourceType'], { label: string; color
   mixed: { label: 'Mixed', color: '#AD1457' },
   connection: { label: 'Connection', color: '#00695C' },
   video: { label: 'Video', color: '#FF0000' },
+  short: { label: 'Short', color: '#FF0000' },
+  'text-art': { label: 'Notebook', color: '#FF8F00' },
 };
 
 const FALLBACK_BADGE = { label: 'Daily', color: '#558B2F' };
@@ -44,19 +47,36 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
   const badge = CONCEPT_BADGE_META[post.sourceType] ?? FALLBACK_BADGE;
 
   // ── Image generation state ──────────────────────────────────────────────────
-  // Video posts skip AI image generation entirely (D-08: use YouTube thumbnail).
+  // Video/short posts skip AI image generation entirely (D-08: use YouTube thumbnail).
   const isVideoPost = post.sourceType === 'video';
+  const isShortPost = post.sourceType === 'short';
+  const presentationStyle = post.presentationStyle;
 
-  // Check localStorage metadata synchronously to avoid a blank frame when the
-  // image is already cached (common after pull-to-load pre-generates images).
+  // Non-image presentation styles and video/short posts skip image generation entirely
   const [image, setImage] = useState<GeneratedImage | null>(null);
   const [imageResolved, setImageResolved] = useState(
-    () => isVideoPost || imageGenerationService.hasCachedImage(post.id, inferImageStyle(post)),
+    () => isVideoPost || isShortPost
+      || presentationStyle === 'text-art'
+      || presentationStyle === 'image-less'
+      || presentationStyle === 'short'
+      || presentationStyle === 'video'
+      || imageGenerationService.hasCachedImage(post.id, inferImageStyle(post)),
   );
 
   useEffect(() => {
-    // D-08: no AI image generation for video posts
-    if (isVideoPost) return;
+    // Skip AI image generation for non-image presentation styles
+    if (isVideoPost || isShortPost) return;
+    if (presentationStyle && presentationStyle !== 'image') {
+      setImageResolved(true);
+      return;
+    }
+
+    // Also respect the image generation settings toggle (per D-11)
+    const imageEnabled = settingsService.getSync().imageGeneration.enabled;
+    if (!imageEnabled) {
+      setImageResolved(true);
+      return;
+    }
 
     let cancelled = false;
 
@@ -73,7 +93,7 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
 
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [post.id, isVideoPost]);
+  }, [post.id, isVideoPost, isShortPost, presentationStyle]);
 
   // Don't render the card until the image request has resolved (success or failure)
   if (!imageResolved) return null;

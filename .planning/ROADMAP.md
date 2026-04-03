@@ -313,7 +313,7 @@ Plans:
 
 **Goal:** Redesign all feed card faces for cleaner swipe-friendly experience. Add portrait short video posts and text-art notebook posts as new post types. Introduce weighted random feed mix to control image generation cost. Add settings toggle for image generation.
 
-**Status:** Planning complete
+**Status:** Executing (1/4 plans complete)
 
 **Requirements:**
 - FEED-07: Remove badge & context label row from all card types
@@ -337,7 +337,7 @@ Plans:
 Canonical refs: `.planning/phases/18-feed-redesign-short-videos-text-art-posts/18-CONTEXT.md`
 
 Plans:
-- [ ] 18-01-PLAN.md — Type extensions + weighted mix + settings toggle + imageResolved gating
+- [x] 18-01-PLAN.md — Type extensions + weighted mix + settings toggle + imageResolved gating
 - [ ] 18-02-PLAN.md — Card face cleanup + text-art notebook post rendering
 - [ ] 18-03-PLAN.md — Short video posts (YouTube Shorts search + portrait card + inline play)
 - [ ] 18-04-PLAN.md — Visual verification checkpoint

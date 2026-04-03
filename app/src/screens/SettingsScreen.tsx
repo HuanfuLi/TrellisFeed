@@ -742,6 +742,16 @@ export function SettingsScreen() {
       {/* Image Generation Section */}
       <SectionHeader icon={<Image size={20} />} title="Image Generation" />
       <Card style={{ marginBottom: '8px' }}>
+        <SettingRow label="Image Generation" description="Generate AI images for feed posts">
+          <MaterialSwitch
+            checked={imageGen.enabled ?? true}
+            onChange={() => {
+              const next = { ...imageGen, enabled: !(imageGen.enabled ?? true) };
+              setImageGen(next);
+              void saveImageGen(next);
+            }}
+          />
+        </SettingRow>
         <p style={{ fontSize: '0.8rem', color: 'var(--muted-foreground)', marginBottom: '12px', lineHeight: 1.5 }}>
           AI-generated images for feed posts. Add API keys to enable real generation; mock placeholders are used when keys are absent.
         </p>

@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
 status: Executing Phase 18
-stopped_at: Completed 17-03-PLAN.md (YouTubeEmbed Component, PostDetail Video Variant & Settings)
-last_updated: "2026-04-03T22:48:26.897Z"
+stopped_at: Completed 18-01-PLAN.md (Type Extensions & Weighted Mix)
+last_updated: "2026-04-03T23:02:04.915Z"
 progress:
   total_phases: 12
   completed_phases: 7
   total_plans: 25
-  completed_plans: 21
+  completed_plans: 22
 ---
 
 # Project State: Milestone 1.1
@@ -72,9 +72,17 @@ Phase 9 - Image Regeneration & Error Handling (next to start)
 
 ## Last Session
 
-Completed Phase 15 Plan 03 (15-03-PLAN.md) — Cluster Detail System
-**Stopped At:** Completed 17-03-PLAN.md (YouTubeEmbed Component, PostDetail Video Variant & Settings)
-**Date:** 2026-03-29
+Completed Phase 18 Plan 01 (18-01-PLAN.md) — Type Extensions & Weighted Mix
+**Stopped At:** Completed 18-01-PLAN.md (Type Extensions & Weighted Mix)
+**Date:** 2026-04-03
+
+## Latest Decisions (Phase 18-01)
+
+- [Phase 18-01] Non-video weights 40/33/27 (image/text-art/image-less) normalized from overall 30/25/20/25 target
+- [Phase 18-01] When image generation disabled, redistribute to 55/45 text-art/image-less (no image API calls)
+- [Phase 18-01] presentationStyle field on DailyPost drives rendering branch selection
+- [Phase 18-01] settingsService.getSync().imageGeneration.enabled gates all image API calls
+- [Phase 18-01] interleaveVideoPosts kept as deprecated; assignPresentationStyles replaces all call sites
 
 ## Latest Decisions (Phase 16-03)
 

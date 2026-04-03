@@ -58,6 +58,7 @@ const defaultSettings: AppSettings = {
     maxCacheSizeMb: 50,
     cacheTtlDays: 30,
     primaryProvider: 'auto' as const,
+    enabled: true,
   },
   youtube: {
     apiKey: '',

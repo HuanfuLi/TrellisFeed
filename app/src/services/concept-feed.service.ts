@@ -1,5 +1,5 @@
 import { chatCompletion, chatStream } from '../providers/llm/index.ts';
-import type { DailyPost, PostNarrativeMode, PostOriginContext, PostSnapshot, Question } from '../types';
+import type { DailyPost, PostNarrativeMode, PostOriginContext, PostSnapshot, PresentationStyle, Question } from '../types';
 import { today } from '../lib/date.ts';
 import { eventBus } from '../lib/event-bus.ts';
 import { settingsService } from './settings.service.ts';
@@ -42,7 +42,7 @@ interface CachedDailyPosts {
   connectionCards?: ConnectionCardData[];
 }
 
-const VALID_SOURCE_TYPES = new Set<DailyPost['sourceType']>(['recent', 'related', 'resurfaced', 'starter', 'mixed', 'connection', 'video']);
+const VALID_SOURCE_TYPES = new Set<DailyPost['sourceType']>(['recent', 'related', 'resurfaced', 'starter', 'mixed', 'connection', 'video', 'short', 'text-art']);
 
 export const STARTER_POSTS: DailyPost[] = [
   makeStarterPost(
@@ -502,10 +502,77 @@ function _backgroundGenerateVideos(): void {
   youtubeService.generateVideoPosts(3).catch(() => {}).finally(() => { _videoBgRunning = false; });
 }
 
+/** Fisher-Yates shuffle — returns a new shuffled copy. */
+function shuffleArray<T>(array: T[]): T[] {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+/**
+ * Assign a presentationStyle to every post and interleave video posts among AI posts.
+ * Non-video weights: image 40%, text-art 33%, image-less 27% (when image gen enabled).
+ * When image generation is off, image weight redistributes to text-art (55%) and image-less (45%).
+ */
+export function assignPresentationStyles(
+  aiPosts: DailyPost[],
+  videoPosts: DailyPost[],
+): DailyPost[] {
+  const imageEnabled = settingsService.getSync().imageGeneration.enabled;
+
+  // Video posts keep their sourceType-based presentation
+  const styledVideos = videoPosts.map(p => ({
+    ...p,
+    presentationStyle: (p.sourceType === 'short' ? 'short' : 'video') as PresentationStyle,
+  }));
+
+  const nonVideoCount = aiPosts.length;
+  if (nonVideoCount === 0) return styledVideos;
+
+  // When image generation is off, redistribute image slots to text-art and image-less
+  const effectiveWeights = imageEnabled
+    ? { image: 0.40, 'text-art': 0.33, 'image-less': 0.27 }
+    : { image: 0, 'text-art': 0.55, 'image-less': 0.45 };
+
+  const imageCount = Math.round(nonVideoCount * effectiveWeights.image);
+  const textArtCount = Math.round(nonVideoCount * effectiveWeights['text-art']);
+  const imageLessCount = nonVideoCount - imageCount - textArtCount;
+
+  const styles: PresentationStyle[] = [
+    ...Array(imageCount).fill('image' as PresentationStyle),
+    ...Array(textArtCount).fill('text-art' as PresentationStyle),
+    ...Array(imageLessCount).fill('image-less' as PresentationStyle),
+  ];
+  const shuffled = shuffleArray(styles);
+
+  const styledAi = aiPosts.map((post, i) => ({
+    ...post,
+    presentationStyle: shuffled[i] ?? ('image-less' as PresentationStyle),
+  }));
+
+  // Interleave: place video posts at regular intervals among AI posts
+  if (styledVideos.length === 0) return styledAi;
+  const result: DailyPost[] = [];
+  const interval = Math.max(2, Math.floor(styledAi.length / (styledVideos.length + 1)));
+  let vIdx = 0;
+  for (let i = 0; i < styledAi.length; i++) {
+    result.push(styledAi[i]);
+    if ((i + 1) % interval === 0 && vIdx < styledVideos.length) {
+      result.push(styledVideos[vIdx++]);
+    }
+  }
+  while (vIdx < styledVideos.length) result.push(styledVideos[vIdx++]);
+  return result;
+}
+
 /**
  * Interleave video posts into AI posts. Inserts a video after every 2nd AI post.
  * Remaining video posts are appended at the end.
  * Per D-04: video posts mix into the existing feed, not a separate section.
+ * @deprecated Use assignPresentationStyles instead.
  */
 function interleaveVideoPosts(aiPosts: DailyPost[], videoPosts: DailyPost[]): DailyPost[] {
   if (videoPosts.length === 0) return aiPosts;
@@ -557,7 +624,7 @@ export const conceptFeedService = {
       const aiPosts = cached.posts.filter((p) => p.sourceType !== 'connection');
       const videoPosts = youtubeService.getCachedVideoPosts();
       _backgroundGenerateVideos();
-      return interleaveVideoPosts(aiPosts, videoPosts);
+      return assignPresentationStyles(aiPosts, videoPosts);
     }
 
     // If the cache has posts for today but just the fingerprint changed (e.g. new
@@ -570,7 +637,7 @@ export const conceptFeedService = {
       const aiPosts = cached.posts.filter((p) => p.sourceType !== 'connection');
       const videoPosts = youtubeService.getCachedVideoPosts();
       _backgroundGenerateVideos();
-      return interleaveVideoPosts(aiPosts, videoPosts);
+      return assignPresentationStyles(aiPosts, videoPosts);
     }
 
     let generated: ParsedGeneration = { posts: [], connectionCards: [] };
@@ -596,7 +663,7 @@ export const conceptFeedService = {
     // Return AI posts immediately; generate video posts in background (D-04)
     const videoPosts = youtubeService.getCachedVideoPosts();
     _backgroundGenerateVideos();
-    return interleaveVideoPosts(allPosts.filter((p) => p.sourceType !== 'connection'), videoPosts);
+    return assignPresentationStyles(allPosts.filter((p) => p.sourceType !== 'connection'), videoPosts);
   },
 
   /** Return cached connection card data for the current session. */
@@ -621,7 +688,7 @@ export const conceptFeedService = {
     const aiPosts = (loadCache()?.posts ?? []).filter((p) => p.sourceType !== 'connection');
     // Use youtubeService's encapsulated cache reader (not raw localStorage)
     const videoPosts = youtubeService.getCachedVideoPosts();
-    return interleaveVideoPosts(aiPosts, videoPosts);
+    return assignPresentationStyles(aiPosts, videoPosts);
   },
 
   /** Delete a single post by ID from both the daily cache and the connection store. */
@@ -727,7 +794,7 @@ export const conceptFeedService = {
     } catch {
       // YouTube integration is optional
     }
-    return interleaveVideoPosts(newPosts, moreVideos);
+    return assignPresentationStyles(newPosts, moreVideos);
   },
 
   /**
