@@ -36,6 +36,9 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
   const isShortPost = post.sourceType === 'short';
   const presentationStyle = post.presentationStyle;
 
+  // Short video inline playback state (D-02)
+  const [shortPlaying, setShortPlaying] = useState(false);
+
   // Non-image presentation styles and video/short posts skip image generation entirely
   const [image, setImage] = useState<GeneratedImage | null>(null);
   const [imageResolved, setImageResolved] = useState(
@@ -102,18 +105,18 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
       }}
     >
       <button
-        onClick={() => onOpen(post.id, post)}
+        onClick={isShortPost ? undefined : () => onOpen(post.id, post)}
         style={{
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
           gap: '20px',
-          padding: (image || isVideoPost) ? '0 0 20px' : '20px 0',
+          padding: (image || isVideoPost || isShortPost) ? '0 0 20px' : '20px 0',
           borderRadius: 'var(--radius-xl)',
           background: 'linear-gradient(180deg, color-mix(in srgb, var(--primary-80) 20%, var(--surface-container-high)), var(--surface-container-high))',
           border: '1.5px solid color-mix(in srgb, var(--primary-40) 22%, var(--border))',
-          cursor: 'pointer',
+          cursor: isShortPost ? 'default' : 'pointer',
           transition: 'transform 0.18s ease, background 0.25s ease',
           textAlign: 'left',
           animation: isActive ? 'card-slide-in 0.35s ease' : 'none',
@@ -163,6 +166,126 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
                 />
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Short video card (D-01, D-02, D-03) */}
+        {isShortPost && post.videoMeta?.videoId && (
+          <div
+            onClick={(e) => {
+              if (!shortPlaying) {
+                e.stopPropagation();
+                setShortPlaying(true);
+              }
+            }}
+            style={{ cursor: shortPlaying ? 'default' : 'pointer', width: '100%' }}
+          >
+            {shortPlaying ? (
+              <>
+                <div style={{
+                  position: 'relative',
+                  width: '100%',
+                  aspectRatio: '9/16',
+                  maxHeight: '480px',
+                  overflow: 'hidden',
+                  borderRadius: 'var(--radius-xl)',
+                }}>
+                  <iframe
+                    src={`https://www.youtube.com/embed/${post.videoMeta.videoId}?playsinline=1&autoplay=1&rel=0`}
+                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none' }}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    title={normalizedTitle || 'Short video'}
+                  />
+                </div>
+                {post.videoMeta.summary && (
+                  <p style={{
+                    fontSize: '0.85rem',
+                    color: 'var(--muted-foreground)',
+                    padding: '12px 20px',
+                    lineHeight: 1.5,
+                    margin: 0,
+                  }}>
+                    {post.videoMeta.summary.split(/[.!?]\s+/).slice(0, 2).join('. ').replace(/\.$/, '') + '.'}
+                  </p>
+                )}
+              </>
+            ) : (
+              <div style={{
+                position: 'relative',
+                width: '100%',
+                aspectRatio: '9/16',
+                maxHeight: '480px',
+                overflow: 'hidden',
+                borderRadius: 'var(--radius-xl)',
+              }}>
+                <img
+                  src={post.videoMeta.thumbnailUrl}
+                  alt={normalizedTitle}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+                <span style={{
+                  position: 'absolute',
+                  top: 12,
+                  right: 12,
+                  fontSize: '0.65rem',
+                  fontWeight: 700,
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  color: '#fff',
+                  background: 'rgba(255,0,0,0.85)',
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                }}>
+                  Short
+                </span>
+                <div style={{
+                  position: 'absolute',
+                  inset: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <div style={{
+                    width: 56,
+                    height: 56,
+                    borderRadius: '50%',
+                    background: 'rgba(0,0,0,0.6)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <div style={{
+                      width: 0,
+                      height: 0,
+                      borderLeft: '20px solid white',
+                      borderTop: '12px solid transparent',
+                      borderBottom: '12px solid transparent',
+                      marginLeft: 5,
+                    }} />
+                  </div>
+                </div>
+                <div style={{
+                  position: 'absolute',
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  padding: '20px',
+                  background: 'linear-gradient(transparent, rgba(0,0,0,0.7))',
+                }}>
+                  <p style={{
+                    color: 'white',
+                    fontWeight: 800,
+                    fontSize: '1.2rem',
+                    lineHeight: 1.25,
+                    margin: 0,
+                    textWrap: 'balance',
+                  }}>
+                    {normalizedHook}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -701,7 +824,9 @@ export function InlineInfoFlow({ items, onOpenConnection, showConnectionScores =
                 boxShadow: item.kind === 'milestone' ? 'var(--shadow-3)' : 'var(--shadow-2)',
                 overflow: 'hidden',
                 minHeight: item.kind === 'concept'
-                  ? (item.post.presentationStyle === 'image-less' ? '200px' : '320px')
+                  ? (item.post.sourceType === 'short'
+                    ? '400px'
+                    : item.post.presentationStyle === 'image-less' ? '200px' : '320px')
                   : item.kind === 'milestone' ? '200px' : '280px',
               }}
             >
