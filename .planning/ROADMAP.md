@@ -338,6 +338,34 @@ Plans:
 - **Phase 15** must complete before Phase 16 (classifyAndAnchor call sites need to exist)
 - **Phase 16** must complete before Phase 17 (token tracking infrastructure needed for video-summary serviceName)
 
+## Phase 18: Feed Redesign, Short Videos & Text-Art Posts
+
+**Goal:** Redesign all feed card faces for cleaner swipe-friendly experience. Add portrait short video posts and text-art notebook posts as new post types. Introduce weighted random feed mix to control image generation cost. Add settings toggle for image generation.
+
+**Requirements:**
+- FEED-07: Remove badge & context label row from all card types
+- FEED-08: Kill preview text when AI image present (image + hook only)
+- FEED-09: Text-forward fallback for no-image cards (hook + preview, shorter card)
+- FEED-10: Remove keyword tag pills from all card faces
+- SHORT-01: Portrait short video card (9:16 thumbnail-dominant, minimal chrome)
+- SHORT-02: Direct inline play on tap (no detail page navigation)
+- SHORT-03: Brief 1-2 sentence AI takeaway shown below player after tap
+- TART-01: Notebook-paper background (white/light yellow, dot grid pattern)
+- TART-02: LLM-generated mixed content (questions, facts, quotes) with inline emojis
+- TART-03: Same height as image cards for consistent feed rhythm
+- MIX-01: Weighted random feed mix (~30% image, 25% text-art, 20% image-less, 25% video/short)
+- MIX-02: Settings toggle to enable/disable image generation (no API calls when off)
+- VIDEO-01: Apply card cleanup to existing landscape video posts (remove badge row, keyword tags)
+
+**Depends on:** Phase 17
+
+**Plans:** 0 plans
+
+Canonical refs: `.planning/phases/18-feed-redesign-short-videos-text-art-posts/18-CONTEXT.md`
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 18 to break down)
+
 ---
 
 _Created: 2026-03-26 | v1.1 Roadmap | 11 phases | 51 requirements mapped_
