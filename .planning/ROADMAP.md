@@ -289,12 +289,12 @@ Plans:
 
 **Depends on:** Phase 16
 
-**Plans:** 2/4 plans executed
+**Plans:** 3/4 plans executed
 
 Plans:
-- [ ] 17-00-PLAN.md — Wave 0 test scaffold for youtube.service.ts
+- [x] 17-00-PLAN.md — Wave 0 test scaffold for youtube.service.ts
 - [x] 17-01-PLAN.md — Type extensions (VideoMetadata, sourceType 'video') + youtube.service.ts
-- [ ] 17-02-PLAN.md — Feed interleaving in concept-feed.service.ts + video card UI in InfoFlow
+- [x] 17-02-PLAN.md — Feed interleaving in concept-feed.service.ts + video card UI in InfoFlow
 - [ ] 17-03-PLAN.md — YouTubeEmbed component + PostDetailScreen video variant + Settings API key
 
 **Success Criteria:**
