@@ -21,20 +21,6 @@ export type InfoFlowItem =
     }
   | { kind: 'milestone'; item: BlindboxItem };
 
-const CONCEPT_BADGE_META: Record<DailyPost['sourceType'], { label: string; color: string }> = {
-  recent: { label: 'Fresh', color: '#D84315' },
-  related: { label: 'Connected', color: '#0277BD' },
-  resurfaced: { label: 'Rediscovered', color: '#6A1B9A' },
-  starter: { label: 'Starter', color: '#2E7D32' },
-  mixed: { label: 'Mixed', color: '#AD1457' },
-  connection: { label: 'Connection', color: '#00695C' },
-  video: { label: 'Video', color: '#FF0000' },
-  short: { label: 'Short', color: '#FF0000' },
-  'text-art': { label: 'Notebook', color: '#FF8F00' },
-};
-
-const FALLBACK_BADGE = { label: 'Daily', color: '#558B2F' };
-
 interface ConceptCardProps {
   post: DailyPost;
   /** 0-based feed index — used to rotate image styles across the feed. */
@@ -44,8 +30,6 @@ interface ConceptCardProps {
 }
 
 function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: ConceptCardProps) {
-  const badge = CONCEPT_BADGE_META[post.sourceType] ?? FALLBACK_BADGE;
-
   // ── Image generation state ──────────────────────────────────────────────────
   // Video/short posts skip AI image generation entirely (D-08: use YouTube thumbnail).
   const isVideoPost = post.sourceType === 'video';
@@ -100,11 +84,6 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
 
   // ── End image state ─────────────────────────────────────────────────────────
 
-  // Context label: for video posts show first source concept/topic instead of channel
-  const contextLabel = isVideoPost && post.sourceQuestionTitles?.length
-    ? post.sourceQuestionTitles[0]
-    : post.contextLabel;
-  const normalizedContextLabel = normalizePlainText(contextLabel);
   const normalizedTitle = normalizePlainText(post.title);
   const normalizedHook = normalizePlainText(post.teaser.hook);
   const normalizedPreview = normalizePlainText(post.teaser.preview);
@@ -122,24 +101,6 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
           'radial-gradient(circle at top right, color-mix(in srgb, var(--primary-80) 55%, transparent), transparent 40%), var(--card)',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '16px' }}>
-        <span
-          style={{
-            fontSize: '0.68rem',
-            fontWeight: 700,
-            letterSpacing: '0.1em',
-            textTransform: 'uppercase',
-            color: badge.color,
-            background: `${badge.color}18`,
-            padding: '5px 12px',
-            borderRadius: '100px',
-          }}
-        >
-          {badge.label}
-        </span>
-        <span style={{ fontSize: '0.78rem', color: 'var(--muted-foreground)' }}>{normalizedContextLabel}</span>
-      </div>
-
       <button
         onClick={() => onOpen(post.id, post)}
         style={{
@@ -231,29 +192,12 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
               by {post.videoMeta.channelTitle}
             </p>
           )}
-          <p style={{ fontSize: '0.9rem', color: 'var(--foreground)', lineHeight: 1.6, opacity: 0.88 }}>
-            {normalizedPreview}
-          </p>
-        </div>
-
-        <div style={{ padding: '0 20px' }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-            {post.keywords.slice(0, 3).map((keyword) => (
-              <span
-                key={keyword}
-                style={{
-                  fontSize: '0.72rem',
-                  color: 'var(--muted-foreground)',
-                  backgroundColor: 'var(--surface)',
-                  border: '1px solid var(--border)',
-                  padding: '4px 10px',
-                  borderRadius: '100px',
-                }}
-              >
-                {keyword}
-              </span>
-            ))}
-          </div>
+          {/* Preview only for image-less cards (no image, no text-art, no video/short) -- per D-05, D-06 */}
+          {presentationStyle === 'image-less' && (
+            <p style={{ fontSize: '0.9rem', color: 'var(--foreground)', lineHeight: 1.6, opacity: 0.88 }}>
+              {normalizedPreview}
+            </p>
+          )}
         </div>
       </button>
     </div>
@@ -295,7 +239,7 @@ interface ConnectionCardProps {
   onOpenConnection: (idA: string, idB: string) => void;
 }
 
-function ConnectionCard({ conceptNounA, conceptNounB, bridgeInsight, cosineSimilarity, showScore, questionA, questionB, onOpenConnection }: ConnectionCardProps) {
+function ConnectionCard({ conceptNounA, conceptNounB, bridgeInsight, cosineSimilarity: _cosineSimilarity, showScore: _showScore, questionA, questionB, onOpenConnection }: ConnectionCardProps) {
   const colors = pickConnectionColors(questionA.id, questionB.id);
 
   return (
@@ -315,32 +259,6 @@ function ConnectionCard({ conceptNounA, conceptNounB, bridgeInsight, cosineSimil
         textAlign: 'left',
       }}
     >
-      {/* Header row */}
-      <div style={{ marginBottom: '18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
-        <span
-          style={{
-            fontSize: '0.68rem',
-            fontWeight: 700,
-            letterSpacing: '0.1em',
-            textTransform: 'uppercase',
-            color: '#ffffff',
-            background: colors.a.bg,
-            padding: '4px 12px',
-            borderRadius: '100px',
-          }}
-        >
-          Connect
-        </span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {showScore && (
-            <span style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)', fontVariantNumeric: 'tabular-nums' }}>
-              {cosineSimilarity.toFixed(2)}
-            </span>
-          )}
-          <span style={{ fontSize: '0.75rem', color: 'var(--primary-40)', fontWeight: 600 }}>Read essay →</span>
-        </div>
-      </div>
-
       {/* Bridge insight — primary hook */}
       <p
         style={{
@@ -730,7 +648,9 @@ export function InlineInfoFlow({ items, onOpenConnection, showConnectionScores =
                       : '1.5px solid var(--border)',
                 boxShadow: item.kind === 'milestone' ? 'var(--shadow-3)' : 'var(--shadow-2)',
                 overflow: 'hidden',
-                minHeight: item.kind === 'concept' ? '320px' : item.kind === 'milestone' ? '200px' : '280px',
+                minHeight: item.kind === 'concept'
+                  ? (item.post.presentationStyle === 'image-less' ? '200px' : '320px')
+                  : item.kind === 'milestone' ? '200px' : '280px',
               }}
             >
               {item.kind === 'concept' ? (
