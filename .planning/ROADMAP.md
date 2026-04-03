@@ -332,13 +332,13 @@ Plans:
 
 **Depends on:** Phase 17
 
-**Plans:** 4 plans
+**Plans:** 2/4 plans executed
 
 Canonical refs: `.planning/phases/18-feed-redesign-short-videos-text-art-posts/18-CONTEXT.md`
 
 Plans:
 - [x] 18-01-PLAN.md — Type extensions + weighted mix + settings toggle + imageResolved gating
-- [ ] 18-02-PLAN.md — Card face cleanup + text-art notebook post rendering
+- [x] 18-02-PLAN.md — Card face cleanup + text-art notebook post rendering
 - [ ] 18-03-PLAN.md — Short video posts (YouTube Shorts search + portrait card + inline play)
 - [ ] 18-04-PLAN.md — Visual verification checkpoint
 
