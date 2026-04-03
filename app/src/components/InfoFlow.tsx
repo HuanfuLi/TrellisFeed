@@ -26,6 +26,7 @@ const CONCEPT_BADGE_META: Record<DailyPost['sourceType'], { label: string; color
   starter: { label: 'Starter', color: '#2E7D32' },
   mixed: { label: 'Mixed', color: '#AD1457' },
   connection: { label: 'Connection', color: '#00695C' },
+  video: { label: 'Video', color: '#FF0000' },
 };
 
 const FALLBACK_BADGE = { label: 'Daily', color: '#558B2F' };
@@ -42,14 +43,20 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
   const badge = CONCEPT_BADGE_META[post.sourceType] ?? FALLBACK_BADGE;
 
   // ── Image generation state ──────────────────────────────────────────────────
+  // Video posts skip AI image generation entirely (D-08: use YouTube thumbnail).
+  const isVideoPost = post.sourceType === 'video';
+
   // Check localStorage metadata synchronously to avoid a blank frame when the
   // image is already cached (common after pull-to-load pre-generates images).
   const [image, setImage] = useState<GeneratedImage | null>(null);
   const [imageResolved, setImageResolved] = useState(
-    () => imageGenerationService.hasCachedImage(post.id, inferImageStyle(post)),
+    () => isVideoPost || imageGenerationService.hasCachedImage(post.id, inferImageStyle(post)),
   );
 
   useEffect(() => {
+    // D-08: no AI image generation for video posts
+    if (isVideoPost) return;
+
     let cancelled = false;
 
     const style = inferImageStyle(post);
@@ -65,12 +72,17 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
 
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [post.id]);
+  }, [post.id, isVideoPost]);
 
   // Don't render the card until the image request has resolved (success or failure)
   if (!imageResolved) return null;
 
   // ── End image state ─────────────────────────────────────────────────────────
+
+  // Context label: for video posts show channel name instead of contextLabel
+  const contextLabel = isVideoPost && post.videoMeta?.channelTitle
+    ? post.videoMeta.channelTitle
+    : post.contextLabel;
 
   return (
     <div
@@ -100,7 +112,7 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
         >
           {badge.label}
         </span>
-        <span style={{ fontSize: '0.78rem', color: 'var(--muted-foreground)' }}>{post.contextLabel}</span>
+        <span style={{ fontSize: '0.78rem', color: 'var(--muted-foreground)' }}>{contextLabel}</span>
       </div>
 
       <button
@@ -111,7 +123,7 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
           flexDirection: 'column',
           justifyContent: 'space-between',
           gap: '20px',
-          padding: image ? '0 0 20px' : '20px 0',
+          padding: (image || isVideoPost) ? '0 0 20px' : '20px 0',
           borderRadius: 'var(--radius-xl)',
           background: 'linear-gradient(180deg, color-mix(in srgb, var(--primary-80) 20%, var(--surface-container-high)), var(--surface-container-high))',
           border: '1.5px solid color-mix(in srgb, var(--primary-40) 22%, var(--border))',
@@ -122,8 +134,54 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
           overflow: 'hidden',
         }}
       >
-        {/* Image header — only rendered when an image was successfully generated */}
-        {image && (
+        {/* Video card: show YouTube thumbnail with play overlay (D-08) */}
+        {isVideoPost && post.videoMeta?.thumbnailUrl && (
+          <div
+            style={{ position: 'relative', width: '100%', aspectRatio: '16/9', overflow: 'hidden' }}
+          >
+            <img
+              src={post.videoMeta.thumbnailUrl}
+              alt={post.title}
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'rgba(0,0,0,0.15)',
+              }}
+            >
+              <div
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: '50%',
+                  background: 'rgba(0,0,0,0.7)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <div
+                  style={{
+                    width: 0,
+                    height: 0,
+                    borderLeft: '16px solid white',
+                    borderTop: '10px solid transparent',
+                    borderBottom: '10px solid transparent',
+                    marginLeft: 4,
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* AI-generated image header — only rendered when an image was successfully generated */}
+        {!isVideoPost && image && (
           <FeedPostImage
             imageData={image}
             aspectPadding="100%"
