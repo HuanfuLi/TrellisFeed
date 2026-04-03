@@ -42,7 +42,7 @@ interface CachedDailyPosts {
   connectionCards?: ConnectionCardData[];
 }
 
-const VALID_SOURCE_TYPES = new Set<DailyPost['sourceType']>(['recent', 'related', 'resurfaced', 'starter', 'mixed', 'connection', 'video']);
+const VALID_SOURCE_TYPES = new Set<DailyPost['sourceType']>(['recent', 'related', 'resurfaced', 'starter', 'mixed', 'connection', 'video', 'short', 'text-art']);
 
 export const STARTER_POSTS: DailyPost[] = [
   makeStarterPost(
@@ -500,6 +500,14 @@ function _backgroundGenerateVideos(): void {
   if (youtubeService.getCachedVideoPosts().length > 0) return; // already cached for today
   _videoBgRunning = true;
   youtubeService.generateVideoPosts(3).catch(() => {}).finally(() => { _videoBgRunning = false; });
+}
+
+let _shortsBgRunning = false;
+function _backgroundGenerateShorts(questions: Question[]): void {
+  if (_shortsBgRunning) return;
+  if (youtubeService.getCachedShortPosts().length > 0) return; // already cached for today
+  _shortsBgRunning = true;
+  youtubeService.generateShortPosts(questions, 2).catch(() => {}).finally(() => { _shortsBgRunning = false; });
 }
 
 /**
