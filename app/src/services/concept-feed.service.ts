@@ -502,6 +502,31 @@ function _backgroundGenerateVideos(): void {
   youtubeService.generateVideoPosts(3).catch(() => {}).finally(() => { _videoBgRunning = false; });
 }
 
+/** Background text-art content generation for cache-hit paths. */
+let _textArtBgRunning = false;
+function _backgroundGenerateTextArt(posts: DailyPost[]): void {
+  if (_textArtBgRunning) return;
+  const needsContent = posts.some(p => p.presentationStyle === 'text-art' && !p.textArtContent);
+  if (!needsContent) return;
+  _textArtBgRunning = true;
+  generateTextArtContent(posts).then(enriched => {
+    _persistStylesToCache(enriched);
+  }).catch(() => {}).finally(() => { _textArtBgRunning = false; });
+}
+
+/** Persist presentationStyle and textArtContent from styled posts back into the cache. */
+function _persistStylesToCache(styledPosts: DailyPost[]): void {
+  const cachedNow = loadCache();
+  if (!cachedNow) return;
+  const styleMap = new Map(styledPosts.map(p => [p.id, { presentationStyle: p.presentationStyle, textArtContent: p.textArtContent }]));
+  cachedNow.posts = cachedNow.posts.map(p => {
+    const info = styleMap.get(p.id);
+    if (!info) return p;
+    return { ...p, presentationStyle: info.presentationStyle, textArtContent: info.textArtContent ?? p.textArtContent };
+  });
+  saveCache(cachedNow);
+}
+
 /** Fisher-Yates shuffle — returns a new shuffled copy. */
 function shuffleArray<T>(array: T[]): T[] {
   const arr = [...array];
@@ -690,7 +715,16 @@ export const conceptFeedService = {
       const aiPosts = cached.posts.filter((p) => p.sourceType !== 'connection');
       const videoPosts = youtubeService.getCachedVideoPosts();
       _backgroundGenerateVideos();
-      return assignPresentationStyles(aiPosts, videoPosts);
+      // If cached posts already have presentationStyle assigned, use them directly;
+      // otherwise assign styles and persist back to cache.
+      const allStyled = aiPosts.every(p => p.presentationStyle);
+      const styledResult = allStyled
+        ? [...aiPosts, ...videoPosts.map(p => ({ ...p, presentationStyle: (p.sourceType === 'short' ? 'short' : 'video') as PresentationStyle }))]
+        : assignPresentationStyles(aiPosts, videoPosts);
+      if (!allStyled) _persistStylesToCache(styledResult);
+      // Generate text-art content in background for any text-art posts missing it
+      _backgroundGenerateTextArt(styledResult);
+      return styledResult;
     }
 
     // If the cache has posts for today but just the fingerprint changed (e.g. new
@@ -703,7 +737,13 @@ export const conceptFeedService = {
       const aiPosts = cached.posts.filter((p) => p.sourceType !== 'connection');
       const videoPosts = youtubeService.getCachedVideoPosts();
       _backgroundGenerateVideos();
-      return assignPresentationStyles(aiPosts, videoPosts);
+      const allStyled2 = aiPosts.every(p => p.presentationStyle);
+      const styledResult2 = allStyled2
+        ? [...aiPosts, ...videoPosts.map(p => ({ ...p, presentationStyle: (p.sourceType === 'short' ? 'short' : 'video') as PresentationStyle }))]
+        : assignPresentationStyles(aiPosts, videoPosts);
+      if (!allStyled2) _persistStylesToCache(styledResult2);
+      _backgroundGenerateTextArt(styledResult2);
+      return styledResult2;
     }
 
     let generated: ParsedGeneration = { posts: [], connectionCards: [] };
@@ -732,17 +772,8 @@ export const conceptFeedService = {
     const styledPosts = assignPresentationStyles(allPosts.filter((p) => p.sourceType !== 'connection'), videoPosts);
     const enrichedPosts = await generateTextArtContent(styledPosts);
 
-    // Persist text-art content back to cache so it's available on reload
-    if (enrichedPosts.some(p => p.textArtContent)) {
-      const cachedNow = loadCache();
-      if (cachedNow) {
-        const enrichedMap = new Map(enrichedPosts.filter(p => p.textArtContent).map(p => [p.id, p.textArtContent!]));
-        cachedNow.posts = cachedNow.posts.map(p =>
-          enrichedMap.has(p.id) ? { ...p, textArtContent: enrichedMap.get(p.id), presentationStyle: p.presentationStyle ?? ('text-art' as PresentationStyle) } : p,
-        );
-        saveCache(cachedNow);
-      }
-    }
+    // Persist presentationStyle and textArtContent back to cache
+    _persistStylesToCache(enrichedPosts);
 
     return enrichedPosts;
   },
@@ -767,9 +798,14 @@ export const conceptFeedService = {
 
   getCachedDailyPosts(): DailyPost[] {
     const aiPosts = (loadCache()?.posts ?? []).filter((p) => p.sourceType !== 'connection');
-    // Use youtubeService's encapsulated cache reader (not raw localStorage)
     const videoPosts = youtubeService.getCachedVideoPosts();
-    return assignPresentationStyles(aiPosts, videoPosts);
+    const allStyled = aiPosts.every(p => p.presentationStyle);
+    const result = allStyled
+      ? [...aiPosts, ...videoPosts.map(p => ({ ...p, presentationStyle: (p.sourceType === 'short' ? 'short' : 'video') as PresentationStyle }))]
+      : assignPresentationStyles(aiPosts, videoPosts);
+    if (!allStyled) _persistStylesToCache(result);
+    _backgroundGenerateTextArt(result);
+    return result;
   },
 
   /** Delete a single post by ID from both the daily cache and the connection store. */
