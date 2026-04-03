@@ -28,6 +28,8 @@ const CONCEPT_BADGE_META: Record<DailyPost['sourceType'], { label: string; color
   mixed: { label: 'Mixed', color: '#AD1457' },
   connection: { label: 'Connection', color: '#00695C' },
   video: { label: 'Video', color: '#FF0000' },
+  short: { label: 'Short', color: '#FF0000' },
+  'text-art': { label: 'Notebook', color: '#795548' },
 };
 
 const FALLBACK_BADGE = { label: 'Daily', color: '#558B2F' };
@@ -44,19 +46,23 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
   const badge = CONCEPT_BADGE_META[post.sourceType] ?? FALLBACK_BADGE;
 
   // ── Image generation state ──────────────────────────────────────────────────
-  // Video posts skip AI image generation entirely (D-08: use YouTube thumbnail).
+  // Video/short posts skip AI image generation entirely (D-08: use YouTube thumbnail).
   const isVideoPost = post.sourceType === 'video';
+  const isShortPost = post.sourceType === 'short';
+
+  // Short video inline playback state (D-02)
+  const [shortPlaying, setShortPlaying] = useState(false);
 
   // Check localStorage metadata synchronously to avoid a blank frame when the
   // image is already cached (common after pull-to-load pre-generates images).
   const [image, setImage] = useState<GeneratedImage | null>(null);
   const [imageResolved, setImageResolved] = useState(
-    () => isVideoPost || imageGenerationService.hasCachedImage(post.id, inferImageStyle(post)),
+    () => isVideoPost || isShortPost || imageGenerationService.hasCachedImage(post.id, inferImageStyle(post)),
   );
 
   useEffect(() => {
-    // D-08: no AI image generation for video posts
-    if (isVideoPost) return;
+    // D-08: no AI image generation for video/short posts
+    if (isVideoPost || isShortPost) return;
 
     let cancelled = false;
 
@@ -73,7 +79,7 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
 
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [post.id, isVideoPost]);
+  }, [post.id, isVideoPost, isShortPost]);
 
   // Don't render the card until the image request has resolved (success or failure)
   if (!imageResolved) return null;
@@ -121,7 +127,7 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
       </div>
 
       <button
-        onClick={() => onOpen(post.id, post)}
+        onClick={isShortPost ? undefined : () => onOpen(post.id, post)}
         style={{
           flex: 1,
           display: 'flex',
@@ -132,13 +138,138 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
           borderRadius: 'var(--radius-xl)',
           background: 'linear-gradient(180deg, color-mix(in srgb, var(--primary-80) 20%, var(--surface-container-high)), var(--surface-container-high))',
           border: '1.5px solid color-mix(in srgb, var(--primary-40) 22%, var(--border))',
-          cursor: 'pointer',
+          cursor: isShortPost ? 'default' : 'pointer',
           transition: 'transform 0.18s ease, background 0.25s ease',
           textAlign: 'left',
           animation: isActive ? 'card-slide-in 0.35s ease' : 'none',
           overflow: 'hidden',
         }}
       >
+        {/* Short video card (D-01, D-02, D-03) */}
+        {isShortPost && post.videoMeta?.videoId && (
+          <div
+            onClick={(e) => {
+              if (!shortPlaying) {
+                e.stopPropagation();
+                setShortPlaying(true);
+              }
+            }}
+            style={{ cursor: shortPlaying ? 'default' : 'pointer', width: '100%' }}
+          >
+            {shortPlaying ? (
+              <>
+                <div style={{
+                  position: 'relative',
+                  width: '100%',
+                  aspectRatio: '9/16',
+                  maxHeight: '480px',
+                  overflow: 'hidden',
+                  borderRadius: 'var(--radius-xl)',
+                }}>
+                  <iframe
+                    src={`https://www.youtube.com/embed/${post.videoMeta.videoId}?playsinline=1&autoplay=1&rel=0`}
+                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none' }}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    title={normalizedTitle || 'Short video'}
+                  />
+                </div>
+                {/* AI takeaway (SHORT-03, D-03) -- summary truncated to 2 sentences */}
+                {post.videoMeta.summary && (
+                  <p style={{
+                    fontSize: '0.85rem',
+                    color: 'var(--muted-foreground)',
+                    padding: '12px 20px',
+                    lineHeight: 1.5,
+                    margin: 0,
+                  }}>
+                    {post.videoMeta.summary.split(/[.!?]\s+/).slice(0, 2).join('. ').replace(/\.$/, '') + '.'}
+                  </p>
+                )}
+              </>
+            ) : (
+              /* Portrait thumbnail with "Short" badge and title overlay */
+              <div style={{
+                position: 'relative',
+                width: '100%',
+                aspectRatio: '9/16',
+                maxHeight: '480px',
+                overflow: 'hidden',
+                borderRadius: 'var(--radius-xl)',
+              }}>
+                <img
+                  src={post.videoMeta.thumbnailUrl}
+                  alt={normalizedTitle}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+                {/* "Short" badge (D-01) */}
+                <span style={{
+                  position: 'absolute',
+                  top: 12,
+                  right: 12,
+                  fontSize: '0.65rem',
+                  fontWeight: 700,
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  color: '#fff',
+                  background: 'rgba(255,0,0,0.85)',
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                }}>
+                  Short
+                </span>
+                {/* Play icon overlay */}
+                <div style={{
+                  position: 'absolute',
+                  inset: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <div style={{
+                    width: 56,
+                    height: 56,
+                    borderRadius: '50%',
+                    background: 'rgba(0,0,0,0.6)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <div style={{
+                      width: 0,
+                      height: 0,
+                      borderLeft: '20px solid white',
+                      borderTop: '12px solid transparent',
+                      borderBottom: '12px solid transparent',
+                      marginLeft: 5,
+                    }} />
+                  </div>
+                </div>
+                {/* Title overlay at bottom (D-01) */}
+                <div style={{
+                  position: 'absolute',
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  padding: '20px',
+                  background: 'linear-gradient(transparent, rgba(0,0,0,0.7))',
+                }}>
+                  <p style={{
+                    color: 'white',
+                    fontWeight: 800,
+                    fontSize: '1.2rem',
+                    lineHeight: 1.25,
+                    margin: 0,
+                    textWrap: 'balance',
+                  }}>
+                    {normalizedHook}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Video card: show YouTube thumbnail with play overlay (D-08) */}
         {isVideoPost && post.videoMeta?.thumbnailUrl && (
           <div
@@ -186,55 +317,60 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
         )}
 
         {/* AI-generated image header — only rendered when an image was successfully generated */}
-        {!isVideoPost && image && (
+        {!isVideoPost && !isShortPost && image && (
           <FeedPostImage
             imageData={image}
             aspectPadding="100%"
           />
         )}
 
-        <div style={{ padding: '0 20px' }}>
-          <p
-            style={{
-              fontSize: '1.2rem',
-              fontWeight: 800,
-              lineHeight: 1.25,
-              color: 'var(--foreground)',
-              marginBottom: '10px',
-              textWrap: 'balance',
-            }}
-          >
-            {normalizedHook}
-          </p>
-          {isVideoPost && post.videoMeta?.channelTitle && (
-            <p style={{ fontSize: '0.78rem', color: 'var(--muted-foreground)', marginBottom: '6px' }}>
-              by {post.videoMeta.channelTitle}
-            </p>
-          )}
-          <p style={{ fontSize: '0.9rem', color: 'var(--foreground)', lineHeight: 1.6, opacity: 0.88 }}>
-            {normalizedPreview}
-          </p>
-        </div>
-
-        <div style={{ padding: '0 20px' }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-            {post.keywords.slice(0, 3).map((keyword) => (
-              <span
-                key={keyword}
+        {/* Hook, channel attribution, preview, and keywords -- not rendered for short posts (content is inside short card) */}
+        {!isShortPost && (
+          <>
+            <div style={{ padding: '0 20px' }}>
+              <p
                 style={{
-                  fontSize: '0.72rem',
-                  color: 'var(--muted-foreground)',
-                  backgroundColor: 'var(--surface)',
-                  border: '1px solid var(--border)',
-                  padding: '4px 10px',
-                  borderRadius: '100px',
+                  fontSize: '1.2rem',
+                  fontWeight: 800,
+                  lineHeight: 1.25,
+                  color: 'var(--foreground)',
+                  marginBottom: '10px',
+                  textWrap: 'balance',
                 }}
               >
-                {keyword}
-              </span>
-            ))}
-          </div>
-        </div>
+                {normalizedHook}
+              </p>
+              {isVideoPost && post.videoMeta?.channelTitle && (
+                <p style={{ fontSize: '0.78rem', color: 'var(--muted-foreground)', marginBottom: '6px' }}>
+                  by {post.videoMeta.channelTitle}
+                </p>
+              )}
+              <p style={{ fontSize: '0.9rem', color: 'var(--foreground)', lineHeight: 1.6, opacity: 0.88 }}>
+                {normalizedPreview}
+              </p>
+            </div>
+
+            <div style={{ padding: '0 20px' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {post.keywords.slice(0, 3).map((keyword) => (
+                  <span
+                    key={keyword}
+                    style={{
+                      fontSize: '0.72rem',
+                      color: 'var(--muted-foreground)',
+                      backgroundColor: 'var(--surface)',
+                      border: '1px solid var(--border)',
+                      padding: '4px 10px',
+                      borderRadius: '100px',
+                    }}
+                  >
+                    {keyword}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
       </button>
     </div>
   );
@@ -710,7 +846,9 @@ export function InlineInfoFlow({ items, onOpenConnection, showConnectionScores =
                       : '1.5px solid var(--border)',
                 boxShadow: item.kind === 'milestone' ? 'var(--shadow-3)' : 'var(--shadow-2)',
                 overflow: 'hidden',
-                minHeight: item.kind === 'concept' ? '320px' : item.kind === 'milestone' ? '200px' : '280px',
+                minHeight: item.kind === 'concept'
+                  ? (item.post.sourceType === 'short' ? '400px' : '320px')
+                  : item.kind === 'milestone' ? '200px' : '280px',
               }}
             >
               {item.kind === 'concept' ? (
