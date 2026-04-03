@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { BookOpen, CheckSquare, Headphones } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
@@ -28,6 +28,7 @@ const MILESTONE_POOL: BlindboxItem[] = [
 
 export function HomeScreen() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { questions, isLoading: questionsLoading } = useQuestions();
   const { reviewCount } = useReview();
   const { getPodcastForDate } = usePodcast();
@@ -89,6 +90,15 @@ export function HomeScreen() {
       unsubPostDeleted();
     };
   }, [questions, questionsLoading]);
+
+  // Re-sync feed from cache when navigating back to /home (e.g. after deleting
+  // a post on PostDetailScreen). HomeScreen is always mounted so state can go
+  // stale while other screens are active.
+  useEffect(() => {
+    if (location.pathname === '/home') {
+      setDailyPosts(conceptFeedService.getCachedDailyPosts());
+    }
+  }, [location.pathname]);
 
   // Load handler — called on intentional pull-and-release gesture.
   // Generates posts AND their images before adding to the feed so cards

@@ -99,7 +99,7 @@ function makeStarterPost(
     sourceQuestionTitles: [],
     keywords: ['learning', 'memory'],
     generatedAt: Date.now(),
-    origin: 'fallback',
+    origin: 'ai',
   };
 }
 
@@ -125,7 +125,7 @@ function isValidDailyPost(value: unknown): value is DailyPost {
     Array.isArray(post.quickAskPrompts) &&
     Array.isArray(post.keywords) &&
     typeof post.generatedAt === 'number' &&
-    (post.origin === 'ai' || post.origin === 'fallback')
+    post.origin === 'ai'
   );
 }
 
@@ -256,88 +256,6 @@ export function buildDailyKnowledgeContext(questions: Question[]): DailyKnowledg
   return { recent, resurfaced, related, plannerSignals };
 }
 
-export function buildFallbackPosts(questions: Question[], date: string): DailyPost[] {
-  if (questions.length === 0) return [];
-
-  const context = buildDailyKnowledgeContext(questions);
-  const posts: DailyPost[] = [];
-
-  for (const question of context.recent.slice(0, 2)) {
-    posts.push({
-      id: `fallback-recent-${question.id}`,
-      date,
-      title: titleFor(question),
-      teaser: {
-        hook: question.storyHook?.trim() || `Why does ${titleFor(question).toLowerCase()} matter?`,
-        preview: firstSentence(question.summary || question.answer, 120),
-      },
-      bodyMarkdown: [
-        `## The Core Idea`,
-        firstSentence(question.answer, 520),
-        '',
-        `## Why You Should Care`,
-        `This matters because ${firstSentence(question.summary || question.answer, 220).toLowerCase()}`,
-        '',
-        `## A Useful Way To Remember It`,
-        `Link **${titleFor(question)}** to ${question.keywords.slice(0, 2).join(' and ') || 'the questions you have been exploring lately'}. That extra association makes it easier to retrieve later.`,
-      ].join('\n'),
-      whyCare: `This idea strengthens the rest of today's learning because it connects directly to what you have been asking.`,
-      takeaway: firstSentence(question.answer, 140),
-      quickAskPrompts: [
-        `Give me an example of ${titleFor(question)}`,
-        `Why does ${titleFor(question).toLowerCase()} matter in practice?`,
-        `How does this connect to what I asked before?`,
-      ],
-      narrativeMode: 'mechanism-breakdown',
-      contextLabel: 'Fresh from your recent questions',
-      sourceType: 'recent',
-      sourceQuestionIds: [question.id],
-      sourceQuestionTitles: [titleFor(question)],
-      keywords: question.keywords.slice(0, 5),
-      generatedAt: Date.now(),
-      origin: 'fallback',
-    });
-  }
-
-  for (const pair of context.related.slice(0, 1)) {
-    posts.push({
-      id: `fallback-related-${pair.source.id}-${pair.target.id}`,
-      date,
-      title: `What links ${titleFor(pair.source)} and ${titleFor(pair.target)}?`,
-      teaser: {
-        hook: `What links ${titleFor(pair.source)} and ${titleFor(pair.target)}?`,
-        preview: 'Sometimes two ideas become easier to remember together than apart.',
-      },
-      bodyMarkdown: [
-        `## The Hidden Bridge`,
-        `${titleFor(pair.source)} and ${titleFor(pair.target)} look different on the surface, but they overlap in the way they organize the problem. Once you notice the bridge, each idea becomes easier to retrieve because the other one can call it back.`,
-        '',
-        `## Why This Helps`,
-        `Learning compounds when concepts stop competing for attention and start reinforcing each other. That is often the moment when the subject begins to feel lighter instead of heavier.`,
-        '',
-        `## Memory Hook`,
-        `If you can explain how **${titleFor(pair.source)}** opens into **${titleFor(pair.target)}**, you are no longer memorizing fragments. You are building structure.`,
-      ].join('\n'),
-      whyCare: 'Connections turn isolated answers into a system you can return to later.',
-      takeaway: 'A bridge between concepts often becomes the memory handle that survives longest.',
-      quickAskPrompts: [
-        `Explain the connection in simpler words`,
-        `Give me a concrete example of this bridge`,
-        `What should I learn next after these two ideas?`,
-      ],
-      narrativeMode: 'analogy',
-      contextLabel: 'Connected to what you already asked',
-      sourceType: 'related',
-      sourceQuestionIds: [pair.source.id, pair.target.id],
-      sourceQuestionTitles: [titleFor(pair.source), titleFor(pair.target)],
-      keywords: Array.from(new Set([...pair.source.keywords, ...pair.target.keywords])).slice(0, 6),
-      generatedAt: Date.now(),
-      origin: 'fallback',
-    });
-  }
-
-  return posts.slice(0, MAX_POSTS);
-}
 
 function buildGenerationPrompt(
   date: string,
@@ -662,10 +580,7 @@ export const conceptFeedService = {
       generated = { posts: [], connectionCards: [] };
     }
 
-    let newPosts = generated.posts;
-    if (newPosts.length === 0) {
-      newPosts = buildFallbackPosts(questions, date);
-    }
+    const newPosts = generated.posts;
 
     // Preserve old posts so they remain accessible via getPostById and don't
     // vanish on date rollover or failed LLM regeneration. Old posts whose IDs
@@ -791,21 +706,6 @@ export const conceptFeedService = {
             .filter((p) => !existingIds.has(p.id));
         } catch {
           newPosts = [];
-        }
-      }
-    }
-
-    if (newPosts.length === 0) {
-      // Generate fallback posts offset from existing ones
-      newPosts = buildFallbackPosts(questions, date)
-        .filter((p) => !existingIds.has(p.id));
-      if (newPosts.length === 0 && questions.length > 0) {
-        // Create posts from questions not yet covered
-        const coveredIds = new Set(existingPosts.flatMap((p) => p.sourceQuestionIds));
-        const uncovered = questions.filter((q) => !coveredIds.has(q.id));
-        if (uncovered.length > 0) {
-          newPosts = buildFallbackPosts(uncovered, date)
-            .filter((p) => !existingIds.has(p.id));
         }
       }
     }

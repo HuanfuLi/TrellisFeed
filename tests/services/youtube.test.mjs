@@ -152,7 +152,7 @@ function isValidVideoPost(post) {
     typeof post.title === 'string' &&
     typeof post.date === 'string' &&
     typeof post.generatedAt === 'number' &&
-    (post.origin === 'ai' || post.origin === 'fallback') &&
+    post.origin === 'ai' &&
     typeof post.videoMeta === 'object' &&
     post.videoMeta !== null &&
     typeof post.videoMeta.videoId === 'string' &&

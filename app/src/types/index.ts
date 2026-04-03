@@ -482,7 +482,7 @@ export interface VideoMetadata {
 
 export interface DailyPost extends PostSnapshot {
   generatedAt: number;
-  origin: 'ai' | 'fallback';
+  origin: 'ai';
   videoMeta?: VideoMetadata;
 }
 
