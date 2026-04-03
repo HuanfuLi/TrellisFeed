@@ -611,6 +611,7 @@ export type AppEvent =
   | { type: 'TTS_CONFIG_CHANGED'; payload: TTSConfig }
   | { type: 'ZEROTIER_STATUS_CHANGED'; payload: ZeroTierConfig }
   | { type: 'NETWORK_STATUS_CHANGED'; payload: { isOnline: boolean } }
+  | { type: 'POST_DELETED'; payload: { id: string } }
   | { type: 'SESSION_CREATED'; payload: ChatSession }
   | { type: 'SESSION_UPDATED'; payload: { id: string } }
   | { type: 'FLASHCARDS_CREATED'; payload: { sessionId: string; count: number } }

@@ -1,6 +1,7 @@
 import { chatCompletion, chatStream } from '../providers/llm/index.ts';
 import type { DailyPost, PostNarrativeMode, PostOriginContext, PostSnapshot, Question } from '../types';
 import { today } from '../lib/date.ts';
+import { eventBus } from '../lib/event-bus.ts';
 import { mockSettingsService } from './mock/settings.mock.ts';
 import { plannerService } from './planner.service.ts';
 import { graphService } from './graph.service.ts';
@@ -666,11 +667,10 @@ export const conceptFeedService = {
       newPosts = buildFallbackPosts(questions, date);
     }
 
-    // Preserve all old posts (both feed and connection posts) so they remain
-    // accessible via getPostById and don't disappear when new questions are added.
-    // New posts are appended; old posts are only dropped if their ID collides with
-    // a newly generated post (prevents duplicates).
-    const oldPosts = cached?.date === date ? (cached?.posts ?? []) : [];
+    // Preserve old posts so they remain accessible via getPostById and don't
+    // vanish on date rollover or failed LLM regeneration. Old posts whose IDs
+    // collide with newly generated posts are replaced; the rest are kept.
+    const oldPosts = cached?.posts ?? [];
     const newIds = new Set(newPosts.map((p) => p.id));
     const preserved = oldPosts.filter((p) => !newIds.has(p.id));
     const allPosts = [...newPosts, ...preserved];
@@ -733,6 +733,9 @@ export const conceptFeedService = {
         }
       }
     } catch { /* ignore */ }
+    if (deleted) {
+      eventBus.emit({ type: 'POST_DELETED', payload: { id } });
+    }
     return deleted;
   },
 

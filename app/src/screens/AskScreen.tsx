@@ -426,7 +426,7 @@ export function AskScreen() {
   }, []);
 
   return (
-    <div style={{ height: '100dvh', display: 'flex', flexDirection: 'column', maxWidth: '448px', margin: '0 auto', position: 'relative' }}>
+    <div style={{ height: 'calc(100dvh - var(--safe-area-top) - 80px - var(--safe-area-bottom))', display: 'flex', flexDirection: 'column', maxWidth: '448px', margin: '0 auto', position: 'relative', overflow: 'hidden' }}>
       {/* Fixed Header */}
       <Header
         title={session.title || 'Ask'}

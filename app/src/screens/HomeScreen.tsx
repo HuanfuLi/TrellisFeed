@@ -79,9 +79,14 @@ export function HomeScreen() {
       }
     });
 
+    const unsubPostDeleted = eventBus.subscribe('POST_DELETED', (event) => {
+      setDailyPosts((prev) => prev.filter((p) => p.id !== event.payload.id));
+    });
+
     return () => {
       cancelled = true;
       unsubPlanner();
+      unsubPostDeleted();
     };
   }, [questions, questionsLoading]);
 

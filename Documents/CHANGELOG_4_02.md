@@ -1,5 +1,18 @@
 # Changelog: April 02, 2026
 
+## YouTube Video Integration (`phase-17`)
+
+### Feed & Video Player
+- **Video Feed Interleaving:** Infused YouTube videos directly into the concept feed by intelligently interleaving video cards among standard AI posts. Uses non-blocking background generation to prevent layout flickers or UI blockages.
+- **YouTube Embed Player:** Introduced `YouTubeEmbed` component—a responsive 16:9 player optimized for iOS WebViews with `playsinline` and strict referrer policies.
+- **Video Context Details:** Updated `PostDetailScreen` natively swapping the default image carousel for the video embed when handling `sourceType === 'video'`. Features AI-summarized text summaries tailored specifically for video content.
+- **Video Thumbnails:** `InfoFlow` cards natively render YouTube thumbnails with a play-button overlay and channel metadata for clear visual contrast against text posts.
+
+### Service & Infrastructure 
+- **YouTube Settings:** Introduced a dedicated YouTube Data API v3 configuration section within `SettingsScreen` for user API keys, ensuring settings deep-merge operates properly inside `settings.mock.ts` fallback.
+- **Service Integration:** Built `youtube.service.ts` to coordinate external YouTube API fetches, including robust 10-15s timeouts and graceful failure (catch-all) allowing the main feed to continue functioning fully unblocked if the key isn't present or fetching times out.
+- **Nyquist Validation:** Authored robust end-to-end module tests in `youtube.test.mjs`, certifying rigorous cache key handling (`VIDEO_CACHE_KEY`) safely passing CI strict assertions.
+
 ## Token Optimization & Session History (`phase-16`)
 
 ### Context-Aware Q&A Threading
