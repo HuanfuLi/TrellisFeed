@@ -169,3 +169,4 @@ Completed Phase 15 Plan 03 (15-03-PLAN.md) — Cluster Detail System
 ### Roadmap Evolution
 
 - Phase 16 added: token optimization
+- Phase 17 added: auto-fetch online videos for posts

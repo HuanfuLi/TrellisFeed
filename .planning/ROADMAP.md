@@ -295,6 +295,16 @@ Plans:
 - **Phase 11** is final polish (card designs, retry UX)
 - **Phase 15** must complete before Phase 16 (classifyAndAnchor call sites need to exist)
 
+### Phase 17: auto-fetch online videos for posts
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 16
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 17 to break down)
+
 ---
 
 _Created: 2026-03-26 | v1.1 Roadmap | 10 phases | 41 requirements mapped_
