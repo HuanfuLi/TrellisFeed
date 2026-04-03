@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import MindElixir from 'mind-elixir';
 import 'mind-elixir/style';
 import type { MindElixirData, MindElixirInstance, NodeObj } from 'mind-elixir';
-import { ArrowLeft, RefreshCw, GitBranch, Plus, X, ChevronRight, Undo2 } from 'lucide-react';
+import { ArrowLeft, RefreshCw, GitBranch, Plus, X, ChevronRight, Undo2, FoldVertical, UnfoldVertical } from 'lucide-react';
 import type { Question } from '../types';
 import { graphService } from '../services/graph.service';
 import { toast } from '../lib/toast';
@@ -196,9 +196,19 @@ interface MasterMapProps {
   onNodeClick: (q: Question) => void;
 }
 
+function setAllExpanded(node: NodeObj, expanded: boolean): void {
+  node.expanded = expanded;
+  if (node.children) {
+    for (const child of node.children) {
+      setAllExpanded(child, expanded);
+    }
+  }
+}
+
 function MasterMap({ nodes, edges, onNodeClick }: MasterMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const instanceRef = useRef<MindElixirInstance | null>(null);
+  const [allExpanded, setAllExpandedState] = useState(true);
 
   // Keep a stable ref to the callback so the effect doesn't re-run when it changes
   const onNodeClickRef = useRef(onNodeClick);
@@ -222,7 +232,7 @@ function MasterMap({ nodes, edges, onNodeClick }: MasterMapProps) {
 
     const mei = new MindElixir({
       el: containerRef.current,
-      direction: MindElixir.SIDE,
+      direction: MindElixir.RIGHT,
       editable: false,
       draggable: true,
       contextMenu: false,
@@ -236,10 +246,15 @@ function MasterMap({ nodes, edges, onNodeClick }: MasterMapProps) {
 
     mei.init(buildMindElixirData(nodes));
 
-    // Zoom to 50% and centre after the layout has been painted
+    // Zoom to 50%, centre, then nudge left so the right-expanding tree
+    // uses more of the portrait viewport instead of leaving the left half empty.
     setTimeout(() => {
       mei.scale(0.5);
       mei.toCenter();
+      const containerWidth = containerRef.current?.offsetWidth ?? 0;
+      if (containerWidth > 0) {
+        mei.move(-containerWidth * 0.25, 0);
+      }
       if (containerRef.current) containerRef.current.style.visibility = 'visible';
     }, 0);
 
@@ -331,6 +346,20 @@ function MasterMap({ nodes, edges, onNodeClick }: MasterMapProps) {
     );
   }
 
+  const handleToggleExpand = () => {
+    const mei = instanceRef.current;
+    if (!mei) return;
+    const next = !allExpanded;
+    setAllExpanded(mei.nodeData, next);
+    mei.refresh();
+    setTimeout(() => {
+      mei.toCenter();
+      const w = containerRef.current?.offsetWidth ?? 0;
+      if (w > 0) mei.move(-w * 0.25, 0);
+    }, 0);
+    setAllExpandedState(next);
+  };
+
   return (
     <div
       style={{
@@ -339,9 +368,35 @@ function MasterMap({ nodes, edges, onNodeClick }: MasterMapProps) {
         border: '1px solid var(--border)',
         overflow: 'hidden',
         backgroundColor: 'var(--surface-variant)',
+        position: 'relative',
       }}
     >
       <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+      <button
+        onClick={handleToggleExpand}
+        title={allExpanded ? 'Collapse all' : 'Expand all'}
+        style={{
+          position: 'absolute',
+          bottom: '12px',
+          right: '12px',
+          width: '36px',
+          height: '36px',
+          borderRadius: '50%',
+          border: '1px solid var(--border)',
+          backgroundColor: 'var(--surface)',
+          color: 'var(--foreground)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          boxShadow: 'var(--shadow-1)',
+          fontSize: '15px',
+          fontWeight: 700,
+          zIndex: 10,
+        }}
+      >
+        {allExpanded ? <FoldVertical size={18} /> : <UnfoldVertical size={18} />}
+      </button>
     </div>
   );
 }
