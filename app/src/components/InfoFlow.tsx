@@ -112,7 +112,7 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
           flexDirection: 'column',
           justifyContent: 'space-between',
           gap: '20px',
-          padding: (image || isVideoPost || isShortPost) ? '0 0 20px' : '20px 0',
+          padding: (image || isVideoPost || isShortPost || presentationStyle === 'text-art') ? '0 0 20px' : '20px 0',
           borderRadius: 'var(--radius-xl)',
           background: 'linear-gradient(180deg, color-mix(in srgb, var(--primary-80) 20%, var(--surface-container-high)), var(--surface-container-high))',
           border: '1.5px solid color-mix(in srgb, var(--primary-40) 22%, var(--border))',
@@ -169,7 +169,7 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
           </div>
         )}
 
-        {/* Short video card (D-01, D-02, D-03) — portrait 9:16 */}
+        {/* Short video card (D-01, D-02, D-03) — portrait, fills card width */}
         {isShortPost && post.videoMeta?.videoId && (
           <div
             onClick={(e) => {
@@ -181,21 +181,15 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
             style={{
               cursor: shortPlaying ? 'default' : 'pointer',
               width: '100%',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
             }}
           >
             {shortPlaying ? (
               <>
                 <div style={{
                   position: 'relative',
-                  width: '70%',
-                  maxWidth: '280px',
+                  width: '100%',
                   aspectRatio: '9/16',
                   overflow: 'hidden',
-                  borderRadius: 'var(--radius-xl)',
-                  margin: '0 auto',
                 }}>
                   <iframe
                     src={`https://www.youtube.com/embed/${post.videoMeta.videoId}?playsinline=1&autoplay=1&rel=0`}
@@ -221,11 +215,9 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
             ) : (
               <div style={{
                 position: 'relative',
-                width: '70%',
-                maxWidth: '280px',
+                width: '100%',
                 aspectRatio: '9/16',
                 overflow: 'hidden',
-                borderRadius: 'var(--radius-xl)',
               }}>
                 <img
                   src={post.videoMeta.thumbnailUrl}
@@ -297,53 +289,41 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
           </div>
         )}
 
-        {/* Text-art notebook card (D-12, D-13, D-14) */}
+        {/* Text-art notebook card (D-12, D-13, D-14) — square area like image posts */}
         {presentationStyle === 'text-art' && (
           <div
             style={{
+              position: 'relative',
               width: '100%',
-              minHeight: '260px',
-              padding: '28px 24px',
-              boxSizing: 'border-box',
+              aspectRatio: '1/1',
+              overflow: 'hidden',
               backgroundColor: '#FFFDE7',
               backgroundImage: 'radial-gradient(circle, #C5CAE9 0.8px, transparent 0.8px)',
               backgroundSize: '20px 20px',
-              borderRadius: 'var(--radius-xl)',
               display: 'flex',
               flexDirection: 'column',
-              justifyContent: 'flex-start',
-              gap: '16px',
+              justifyContent: 'center',
+              padding: '28px 24px',
+              boxSizing: 'border-box',
+              gap: '10px',
             }}
           >
-            <p
-              style={{
-                fontSize: '1.15rem',
-                fontWeight: 800,
-                lineHeight: 1.3,
-                color: '#1A1A1A',
-                textWrap: 'balance',
-              }}
-            >
-              {normalizedHook}
-            </p>
             {post.textArtContent ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {post.textArtContent.split('\n').filter(Boolean).map((line, i) => (
-                  <p
-                    key={i}
-                    style={{
-                      fontSize: '0.95rem',
-                      lineHeight: 1.5,
-                      color: '#333',
-                      margin: 0,
-                    }}
-                  >
-                    {line}
-                  </p>
-                ))}
-              </div>
+              post.textArtContent.split('\n').filter(Boolean).map((line, i) => (
+                <p
+                  key={i}
+                  style={{
+                    fontSize: '0.95rem',
+                    lineHeight: 1.5,
+                    color: '#333',
+                    margin: 0,
+                  }}
+                >
+                  {line}
+                </p>
+              ))
             ) : (
-              <p style={{ fontSize: '0.9rem', color: '#666', lineHeight: 1.6, margin: 0 }}>
+              <p style={{ fontSize: '0.95rem', color: '#666', lineHeight: 1.6, margin: 0 }}>
                 {normalizedPreview}
               </p>
             )}
@@ -358,8 +338,8 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
           />
         )}
 
-        {/* Hook, channel attribution, and preview — NOT rendered for text-art (hook inside notebook) or short (hook inside thumbnail overlay) */}
-        {presentationStyle !== 'text-art' && !isShortPost && (
+        {/* Hook, channel attribution, and preview — NOT rendered for short (hook inside thumbnail overlay) */}
+        {!isShortPost && (
           <div style={{ padding: '0 20px' }}>
             <p
               style={{
