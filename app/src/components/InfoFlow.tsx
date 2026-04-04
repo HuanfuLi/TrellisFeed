@@ -265,25 +265,7 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
                     }} />
                   </div>
                 </div>
-                <div style={{
-                  position: 'absolute',
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  padding: '20px',
-                  background: 'linear-gradient(transparent, rgba(0,0,0,0.7))',
-                }}>
-                  <p style={{
-                    color: 'white',
-                    fontWeight: 800,
-                    fontSize: '1.1rem',
-                    lineHeight: 1.25,
-                    margin: 0,
-                    textWrap: 'balance',
-                  }}>
-                    {normalizedHook}
-                  </p>
-                </div>
+                {/* No heading overlay — short video card is thumbnail-only */}
               </div>
             )}
           </div>

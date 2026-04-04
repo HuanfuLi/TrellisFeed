@@ -448,9 +448,11 @@ export const youtubeService = {
     if (!apiKey) return [];
 
     const shortsQuery = `${query} #Shorts`;
+    // Request extra results since we'll filter out non-Shorts (landscape videos under 4min)
+    const fetchCount = Math.min(maxResults * 3, 10);
     const url =
       `${YOUTUBE_SEARCH_URL}?part=snippet&type=video&videoEmbeddable=true` +
-      `&videoDuration=short&q=${encodeURIComponent(shortsQuery)}&maxResults=${maxResults}` +
+      `&videoDuration=short&q=${encodeURIComponent(shortsQuery)}&maxResults=${fetchCount}` +
       `&relevanceLanguage=en&safeSearch=strict&key=${apiKey}`;
 
     try {
@@ -464,7 +466,7 @@ export const youtubeService = {
         }>;
       };
 
-      return (data.items ?? [])
+      const candidates = (data.items ?? [])
         .map((item) => ({
           videoId: item.id?.videoId ?? '',
           title: item.snippet?.title ?? '',
@@ -472,6 +474,25 @@ export const youtubeService = {
           thumbnailUrl: `https://img.youtube.com/vi/${item.id?.videoId}/maxresdefault.jpg`,
         }))
         .filter((v) => v.videoId);
+
+      // Verify each candidate is actually a Short by checking the /shorts/ URL.
+      // Non-Shorts return a redirect (3xx) to /watch; real Shorts return 200.
+      const verified: typeof candidates = [];
+      for (const v of candidates) {
+        if (verified.length >= maxResults) break;
+        try {
+          const check = await withTimeout(
+            fetch(`https://www.youtube.com/shorts/${v.videoId}`, { method: 'HEAD', redirect: 'manual' }),
+            5_000,
+            null as unknown as Response,
+          );
+          // status 200 = real Short; 3xx redirect = regular video
+          if (check && check.status === 200) verified.push(v);
+        } catch {
+          // Skip on network error
+        }
+      }
+      return verified;
     } catch {
       return [];
     }
