@@ -299,7 +299,7 @@ function buildGenerationPrompt(
     'The posts should feel like intriguing short-form educational essays, not flashcards or summaries.',
     'Each post must be substantial: bodyMarkdown 180-340 words.',
     'teaserHook: max 8 words. Punchy, curiosity-driven, sounds like a podcast title or tweet. Examples: "Your brain lied about rereading", "Why forgetting is a feature", "The 20-minute rule nobody follows".',
-    'teaserPreview: max 15 words. One short sentence that makes the reader want to tap. Not a summary — a hook.',
+    'teaserPreview: 130-170 characters. A vivid teaser that pulls the reader in — not a dry summary. Write it like the opening line of a story or the subheadline of an article.',
     'Vary narrative style across posts using these modes: example-first, historical-story, contrast, analogy, false-intuition, mnemonic, mechanism-breakdown.',
     'At least one post should use an example, and if helpful one may use a gentle joke or mnemonic to improve recall.',
     'Every post must include: title, teaserHook, teaserPreview, bodyMarkdown, takeaway, quickAskPrompts (3 strings), narrativeMode, contextLabel, sourceType, sourceQuestionIds, keywords.',

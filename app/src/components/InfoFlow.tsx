@@ -111,9 +111,9 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          justifyContent: 'space-between',
+          justifyContent: (image || isVideoPost || presentationStyle === 'text-art') ? 'space-between' : 'flex-start',
           gap: '20px',
-          padding: isShortPost ? '0' : (image || isVideoPost || presentationStyle === 'text-art') ? '0 0 20px' : '20px 0',
+          padding: isShortPost ? '0' : (image || isVideoPost || presentationStyle === 'text-art') ? '0 0 20px' : '20px',
           borderRadius: 'var(--radius-xl)',
           background: 'linear-gradient(180deg, color-mix(in srgb, var(--primary-80) 20%, var(--surface-container-high)), var(--surface-container-high))',
           border: '1.5px solid color-mix(in srgb, var(--primary-40) 22%, var(--border))',
@@ -785,7 +785,7 @@ export function InlineInfoFlow({ items, onOpenConnection, showConnectionScores =
                 boxShadow: item.kind === 'milestone' ? 'var(--shadow-3)' : 'var(--shadow-2)',
                 overflow: 'hidden',
                 minHeight: item.kind === 'concept'
-                  ? (item.post.presentationStyle === 'image-less' ? '200px' : '320px')
+                  ? (item.post.presentationStyle === 'image-less' || item.post.presentationStyle === 'image' || !item.post.presentationStyle ? 'auto' : '320px')
                   : item.kind === 'milestone' ? '200px' : '280px',
               }}
             >
