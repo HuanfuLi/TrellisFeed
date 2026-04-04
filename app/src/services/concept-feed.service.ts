@@ -557,7 +557,9 @@ export function assignPresentationStyles(
   const nonVideoCount = aiPosts.length;
   if (nonVideoCount === 0) return styledVideos;
 
-  // When image generation is off, redistribute image slots to text-art and image-less
+  // Weights for AI posts only (video/short already separated).
+  // Spec: ~30% image, ~25% text-art, ~20% image-less of AI posts (remaining ~25% is video/short via interleave).
+  // When image generation is off, redistribute image slots to text-art and image-less.
   const effectiveWeights = imageEnabled
     ? { image: 0.40, 'text-art': 0.33, 'image-less': 0.27 }
     : { image: 0, 'text-art': 0.55, 'image-less': 0.45 };
@@ -642,10 +644,15 @@ Return ONLY the text lines, no JSON, no markdown formatting.`;
     }
   });
 
-  // Apply text-art content to posts
+  // Apply text-art content to posts; use fallback for failed generations
   return posts.map(p => {
-    if (p.presentationStyle === 'text-art' && contentMap.has(p.id)) {
+    if (p.presentationStyle !== 'text-art') return p;
+    if (contentMap.has(p.id)) {
       return { ...p, textArtContent: contentMap.get(p.id)! };
+    }
+    // Fallback: if LLM generation failed but post needs text-art, use preview as content
+    if (!p.textArtContent && p.teaser.preview) {
+      return { ...p, textArtContent: `💡 ${p.teaser.hook}\n\n📝 ${p.teaser.preview}` };
     }
     return p;
   });
@@ -710,18 +717,21 @@ export const conceptFeedService = {
     const fingerprint = computeFingerprint(questions);
     const cached = loadCache();
     if (cached?.date === date && cached.fingerprint === fingerprint && cached.posts.length > 0) {
-      // Return feed posts immediately with any already-cached video posts.
-      // Kick off video generation in the background so videos appear on next refresh.
+      // Return feed posts immediately with any already-cached video/short posts.
+      // Kick off video + short generation in the background so they appear on next refresh.
       const aiPosts = cached.posts.filter((p) => p.sourceType !== 'connection');
       const videoPosts = youtubeService.getCachedVideoPosts();
+      const shortPosts = youtubeService.getCachedShortPosts();
+      const allVideos = [...videoPosts, ...shortPosts];
       _backgroundGenerateVideos();
+      _backgroundGenerateShorts(questions);
       // If cached posts already have presentationStyle assigned, use them directly;
       // otherwise assign styles and persist back to cache.
-      const allStyled = aiPosts.every(p => p.presentationStyle);
+      const allStyled = aiPosts.length > 0 && aiPosts.every(p => p.presentationStyle);
       const styledResult = allStyled
-        ? [...aiPosts, ...videoPosts.map(p => ({ ...p, presentationStyle: (p.sourceType === 'short' ? 'short' : 'video') as PresentationStyle }))]
-        : assignPresentationStyles(aiPosts, videoPosts);
-      if (!allStyled) _persistStylesToCache(styledResult);
+        ? [...aiPosts, ...allVideos.map(p => ({ ...p, presentationStyle: (p.sourceType === 'short' ? 'short' : 'video') as PresentationStyle }))]
+        : assignPresentationStyles(aiPosts, allVideos);
+      if (!allStyled && aiPosts.length > 0) _persistStylesToCache(styledResult);
       // Generate text-art content in background for any text-art posts missing it
       _backgroundGenerateTextArt(styledResult);
       return styledResult;
@@ -736,12 +746,15 @@ export const conceptFeedService = {
       saveCache({ ...cached, fingerprint });
       const aiPosts = cached.posts.filter((p) => p.sourceType !== 'connection');
       const videoPosts = youtubeService.getCachedVideoPosts();
+      const shortPosts = youtubeService.getCachedShortPosts();
+      const allVideos = [...videoPosts, ...shortPosts];
       _backgroundGenerateVideos();
-      const allStyled2 = aiPosts.every(p => p.presentationStyle);
+      _backgroundGenerateShorts(questions);
+      const allStyled2 = aiPosts.length > 0 && aiPosts.every(p => p.presentationStyle);
       const styledResult2 = allStyled2
-        ? [...aiPosts, ...videoPosts.map(p => ({ ...p, presentationStyle: (p.sourceType === 'short' ? 'short' : 'video') as PresentationStyle }))]
-        : assignPresentationStyles(aiPosts, videoPosts);
-      if (!allStyled2) _persistStylesToCache(styledResult2);
+        ? [...aiPosts, ...allVideos.map(p => ({ ...p, presentationStyle: (p.sourceType === 'short' ? 'short' : 'video') as PresentationStyle }))]
+        : assignPresentationStyles(aiPosts, allVideos);
+      if (!allStyled2 && aiPosts.length > 0) _persistStylesToCache(styledResult2);
       _backgroundGenerateTextArt(styledResult2);
       return styledResult2;
     }
@@ -768,8 +781,18 @@ export const conceptFeedService = {
 
     // Return AI posts immediately; generate video posts in background (D-04)
     const videoPosts = youtubeService.getCachedVideoPosts();
+    const shortPosts = youtubeService.getCachedShortPosts();
     _backgroundGenerateVideos();
-    const styledPosts = assignPresentationStyles(allPosts.filter((p) => p.sourceType !== 'connection'), videoPosts);
+    _backgroundGenerateShorts(questions);
+    // Only style new posts — preserved old posts keep their existing presentationStyle
+    const feedPosts = allPosts.filter((p) => p.sourceType !== 'connection');
+    const unstyledPosts = feedPosts.filter(p => !p.presentationStyle);
+    const alreadyStyled = feedPosts.filter(p => p.presentationStyle);
+    const allVideos = [...videoPosts, ...shortPosts];
+    const newlyStyled = unstyledPosts.length > 0
+      ? assignPresentationStyles(unstyledPosts, allVideos)
+      : [...alreadyStyled, ...allVideos.map(p => ({ ...p, presentationStyle: (p.sourceType === 'short' ? 'short' : 'video') as PresentationStyle }))];
+    const styledPosts = unstyledPosts.length > 0 ? [...alreadyStyled, ...newlyStyled] : newlyStyled;
     const enrichedPosts = await generateTextArtContent(styledPosts);
 
     // Persist presentationStyle and textArtContent back to cache
@@ -799,11 +822,15 @@ export const conceptFeedService = {
   getCachedDailyPosts(): DailyPost[] {
     const aiPosts = (loadCache()?.posts ?? []).filter((p) => p.sourceType !== 'connection');
     const videoPosts = youtubeService.getCachedVideoPosts();
-    const allStyled = aiPosts.every(p => p.presentationStyle);
+    const shortPosts = youtubeService.getCachedShortPosts();
+    const allVideos = [...videoPosts, ...shortPosts];
+    // Only reassign styles if none of the AI posts have presentationStyle yet.
+    // This prevents reshuffling the feed on every call.
+    const allStyled = aiPosts.length > 0 && aiPosts.every(p => p.presentationStyle);
     const result = allStyled
-      ? [...aiPosts, ...videoPosts.map(p => ({ ...p, presentationStyle: (p.sourceType === 'short' ? 'short' : 'video') as PresentationStyle }))]
-      : assignPresentationStyles(aiPosts, videoPosts);
-    if (!allStyled) _persistStylesToCache(result);
+      ? [...aiPosts, ...allVideos.map(p => ({ ...p, presentationStyle: (p.sourceType === 'short' ? 'short' : 'video') as PresentationStyle }))]
+      : assignPresentationStyles(aiPosts, allVideos);
+    if (!allStyled && aiPosts.length > 0) _persistStylesToCache(result);
     _backgroundGenerateTextArt(result);
     return result;
   },
@@ -820,16 +847,13 @@ export const conceptFeedService = {
         deleted = true;
       }
     }
-    // Also try the connection post sessionStorage store
+    // Also try the connection post sessionStorage store (Record<string, DailyPost>)
     try {
-      const raw = sessionStorage.getItem(CONNECTION_POSTS_KEY);
-      if (raw) {
-        const arr = JSON.parse(raw) as DailyPost[];
-        const filtered = arr.filter((p) => p.id !== id);
-        if (filtered.length < arr.length) {
-          sessionStorage.setItem(CONNECTION_POSTS_KEY, JSON.stringify(filtered));
-          deleted = true;
-        }
+      const store = loadConnectionPosts();
+      if (store[id]) {
+        delete store[id];
+        sessionStorage.setItem(CONNECTION_POSTS_KEY, JSON.stringify(store));
+        deleted = true;
       }
     } catch { /* ignore */ }
     if (deleted) {
@@ -914,17 +938,8 @@ export const conceptFeedService = {
     const styledMore = assignPresentationStyles(newPosts, moreVideos);
     const enrichedMore = await generateTextArtContent(styledMore);
 
-    // Persist text-art content back to cache
-    if (enrichedMore.some(p => p.textArtContent)) {
-      const cachedNow = loadCache();
-      if (cachedNow) {
-        const enrichedMap = new Map(enrichedMore.filter(p => p.textArtContent).map(p => [p.id, p.textArtContent!]));
-        cachedNow.posts = cachedNow.posts.map(p =>
-          enrichedMap.has(p.id) ? { ...p, textArtContent: enrichedMap.get(p.id), presentationStyle: p.presentationStyle ?? ('text-art' as PresentationStyle) } : p,
-        );
-        saveCache(cachedNow);
-      }
-    }
+    // Persist presentationStyle and textArtContent back to cache for new posts
+    _persistStylesToCache(enrichedMore);
 
     return enrichedMore;
   },

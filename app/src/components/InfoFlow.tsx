@@ -379,7 +379,7 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
               </p>
             )}
             {/* Preview only for image-less cards (D-05: image+hook only, D-06: no-image gets hook+preview) */}
-            {(presentationStyle === 'image-less' || (!image && !isVideoPost && presentationStyle !== 'image')) && (
+            {(presentationStyle === 'image-less' || (!image && !isVideoPost && !isShortPost && presentationStyle !== 'image' && presentationStyle !== 'video' && presentationStyle !== 'short')) && (
               <p style={{ fontSize: '0.9rem', color: 'var(--foreground)', lineHeight: 1.6, opacity: 0.88 }}>
                 {normalizedPreview}
               </p>
@@ -836,9 +836,7 @@ export function InlineInfoFlow({ items, onOpenConnection, showConnectionScores =
                 boxShadow: item.kind === 'milestone' ? 'var(--shadow-3)' : 'var(--shadow-2)',
                 overflow: 'hidden',
                 minHeight: item.kind === 'concept'
-                  ? (item.post.sourceType === 'short'
-                    ? '400px'
-                    : item.post.presentationStyle === 'image-less' ? '200px' : '320px')
+                  ? (item.post.presentationStyle === 'image-less' ? '200px' : '320px')
                   : item.kind === 'milestone' ? '200px' : '280px',
               }}
             >

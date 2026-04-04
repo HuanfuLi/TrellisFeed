@@ -647,6 +647,7 @@ export const youtubeService = {
         keywords,
         generatedAt: Date.now(),
         origin: 'ai',
+        presentationStyle: 'video',
         videoMeta,
       };
 
