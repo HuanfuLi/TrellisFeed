@@ -328,7 +328,7 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
               </p>
             )}
             {/* Preview: show when no image is present (D-05: image+hook only, D-06: no-image gets hook+preview) */}
-            {!image && !isVideoPost && (
+            {!image && !isVideoPost && presentationStyle !== 'text-art' && (
               <p style={{ fontSize: '0.9rem', color: 'var(--foreground)', lineHeight: 1.6, opacity: 0.88 }}>
                 {normalizedPreview}
               </p>

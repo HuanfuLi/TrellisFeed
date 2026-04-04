@@ -609,23 +609,22 @@ async function generateTextArtContent(posts: DailyPost[]): Promise<DailyPost[]> 
   // Batch all text-art prompts into parallel requests
   const results = await Promise.allSettled(
     textArtPosts.map(async (post) => {
-      const prompt = `You are creating a "notebook page" visual card for a learning app.
-Topic: "${post.title}"
-Context: "${post.teaser.preview}"
+      const prompt = `Write 3 punchy one-liners for a learning app card about: "${post.title}"
 
-Write 3-5 short items mixing these styles:
-- A provocative question (start with emoji)
-- A surprising fact written like a breaking news headline (start with emoji)
-- A memorable quote or insight (start with emoji)
+Each line should be a DIFFERENT style. Pick 3 from:
+- Breaking news: "🔥 Gemma 4 released — will it beat QWEN 3.5?"
+- Interview hook: "🎤 Interviewer: How much VRAM to train a 7B model?"
+- Hot take: "🧊 Why I'm not bullish on World Models"
+- Provocative question: "🤔 What if transformers are already obsolete?"
+- Bold claim: "⚡ RAG is dead. Long live agentic search."
 
 Rules:
-- Each item on its own line
+- One line each, under 12 words
 - Start each with a relevant emoji
-- Keep each item under 15 words
-- Make it feel like a student's notebook margin notes
-- The content should spark curiosity about the topic
+- Sound like real headlines, tweets, or podcast titles — not textbook summaries
+- Be specific to the topic, not generic
 
-Return ONLY the text lines, no JSON, no markdown formatting.`;
+Return ONLY 3 lines, nothing else.`;
 
       const result = await chatCompletion(
         [{ role: 'user', content: prompt }],
