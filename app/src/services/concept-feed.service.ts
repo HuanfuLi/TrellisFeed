@@ -614,15 +614,16 @@ async function generateTextArtContent(posts: DailyPost[]): Promise<DailyPost[]> 
       const prompt = `Write ONE punchy headline about: "${post.title}"
 
 Pick one style:
-- Breaking news: "🔥 Gemma 4 released — will it beat QWEN 3.5?"
-- Interview hook: "🎤 Interviewer: How much VRAM to train a 7B model?"
-- Hot take: "🧊 Why I'm not bullish on World Models"
-- Provocative question: "🤔 What if transformers are already obsolete?"
-- Bold claim: "⚡ RAG is dead. Long live agentic search."
+- Breaking news: "Gemma 4 released — will it beat QWEN 3.5? 🔥"
+- Interview hook: "Interviewer: How much VRAM to train a 7B model?"
+- Hot take: "Why I'm not bullish on World Models"
+- Provocative question: "What if transformers are already obsolete? 🤔"
+- Bold claim: "RAG is dead. Long live agentic search."
+- Conversation starter: "Your brain is lying to you about rereading 🧠"
 
 Rules:
 - ONE line only, under 12 words
-- Start with a relevant emoji
+- Emojis are OPTIONAL — use 0, 1, or 2 emojis placed naturally (middle, end, or nowhere). Never always at the start.
 - Sound like a real headline, tweet, or podcast title
 - Be specific to the topic
 

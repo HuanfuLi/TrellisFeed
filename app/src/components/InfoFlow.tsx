@@ -115,7 +115,7 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        padding: isShortPost ? '0' : '24px 20px',
+        padding: isShortPost ? '0' : '16px 12px',
         boxSizing: 'border-box',
         background: isShortPost
           ? 'var(--card)'
@@ -322,7 +322,7 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
           />
         )}
 
-        {/* Hook, channel attribution, and preview — NOT rendered for short (hook inside thumbnail overlay) */}
+        {/* Hook, channel attribution, preview, and tags — NOT rendered for short */}
         {!isShortPost && (
           <div style={{ padding: '0 20px' }}>
             <p
@@ -342,12 +342,45 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
                 by {post.videoMeta.channelTitle}
               </p>
             )}
-            {/* Preview: show when no image is present (D-05: image+hook only, D-06: no-image gets hook+preview) */}
+            {/* Preview: show when no image is present */}
             {!image && !isVideoPost && presentationStyle !== 'text-art' && (
               <p style={{ fontSize: '0.9rem', color: 'var(--foreground)', lineHeight: 1.6, opacity: 0.88 }}>
                 {normalizedPreview}
               </p>
             )}
+            {/* Bottom tags: source concepts + narrative mode */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '12px' }}>
+              {post.sourceQuestionTitles?.slice(0, 2).map((title) => (
+                <span
+                  key={title}
+                  style={{
+                    fontSize: '0.7rem',
+                    color: 'var(--muted-foreground)',
+                    backgroundColor: 'var(--surface)',
+                    border: '1px solid var(--border)',
+                    padding: '3px 8px',
+                    borderRadius: '100px',
+                  }}
+                >
+                  {title}
+                </span>
+              ))}
+              {post.narrativeMode && post.narrativeMode !== 'starter' && (
+                <span
+                  style={{
+                    fontSize: '0.7rem',
+                    color: 'var(--muted-foreground)',
+                    backgroundColor: 'var(--surface)',
+                    border: '1px solid var(--border)',
+                    padding: '3px 8px',
+                    borderRadius: '100px',
+                    fontStyle: 'italic',
+                  }}
+                >
+                  {post.narrativeMode.replace(/-/g, ' ')}
+                </span>
+              )}
+            </div>
           </div>
         )}
       </button>
