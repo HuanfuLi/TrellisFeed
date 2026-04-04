@@ -1,5 +1,5 @@
 import { chatCompletion, chatStream } from '../providers/llm/index.ts';
-import type { DailyPost, PostNarrativeMode, PostOriginContext, PostSnapshot, Question } from '../types';
+import type { DailyPost, PostNarrativeMode, PostOriginContext, PostSnapshot, PresentationStyle, Question } from '../types';
 import { today } from '../lib/date.ts';
 import { eventBus } from '../lib/event-bus.ts';
 import { settingsService } from './settings.service.ts';
@@ -502,6 +502,162 @@ function _backgroundGenerateVideos(): void {
   youtubeService.generateVideoPosts(3).catch(() => {}).finally(() => { _videoBgRunning = false; });
 }
 
+/** Background text-art content generation for cache-hit paths. */
+let _textArtBgRunning = false;
+function _backgroundGenerateTextArt(posts: DailyPost[]): void {
+  if (_textArtBgRunning) return;
+  const needsContent = posts.some(p => p.presentationStyle === 'text-art' && !p.textArtContent);
+  if (!needsContent) return;
+  _textArtBgRunning = true;
+  generateTextArtContent(posts).then(enriched => {
+    _persistStylesToCache(enriched);
+  }).catch(() => {}).finally(() => { _textArtBgRunning = false; });
+}
+
+/** Persist presentationStyle and textArtContent from styled posts back into the cache. */
+function _persistStylesToCache(styledPosts: DailyPost[]): void {
+  const cachedNow = loadCache();
+  if (!cachedNow) return;
+  const styleMap = new Map(styledPosts.map(p => [p.id, { presentationStyle: p.presentationStyle, textArtContent: p.textArtContent }]));
+  cachedNow.posts = cachedNow.posts.map(p => {
+    const info = styleMap.get(p.id);
+    if (!info) return p;
+    return { ...p, presentationStyle: info.presentationStyle, textArtContent: info.textArtContent ?? p.textArtContent };
+  });
+  saveCache(cachedNow);
+}
+
+/** Fisher-Yates shuffle — returns a new shuffled copy. */
+function shuffleArray<T>(array: T[]): T[] {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+/**
+ * Assign a presentationStyle to every post and interleave video posts among AI posts.
+ * Non-video weights: image 40%, text-art 33%, image-less 27% (when image gen enabled).
+ * When image generation is off, image weight redistributes to text-art (55%) and image-less (45%).
+ */
+export function assignPresentationStyles(
+  aiPosts: DailyPost[],
+  videoPosts: DailyPost[],
+): DailyPost[] {
+  const imageEnabled = settingsService.getSync().imageGeneration.enabled;
+
+  // Video posts keep their sourceType-based presentation
+  const styledVideos = videoPosts.map(p => ({
+    ...p,
+    presentationStyle: (p.sourceType === 'short' ? 'short' : 'video') as PresentationStyle,
+  }));
+
+  const nonVideoCount = aiPosts.length;
+  if (nonVideoCount === 0) return styledVideos;
+
+  // Weights for AI posts only (video/short already separated).
+  // Spec: ~30% image, ~25% text-art, ~20% image-less of AI posts (remaining ~25% is video/short via interleave).
+  // When image generation is off, redistribute image slots to text-art and image-less.
+  const effectiveWeights = imageEnabled
+    ? { image: 0.40, 'text-art': 0.33, 'image-less': 0.27 }
+    : { image: 0, 'text-art': 0.55, 'image-less': 0.45 };
+
+  const imageCount = Math.round(nonVideoCount * effectiveWeights.image);
+  const textArtCount = Math.round(nonVideoCount * effectiveWeights['text-art']);
+  const imageLessCount = nonVideoCount - imageCount - textArtCount;
+
+  const styles: PresentationStyle[] = [
+    ...Array(imageCount).fill('image' as PresentationStyle),
+    ...Array(textArtCount).fill('text-art' as PresentationStyle),
+    ...Array(imageLessCount).fill('image-less' as PresentationStyle),
+  ];
+  const shuffled = shuffleArray(styles);
+
+  const styledAi = aiPosts.map((post, i) => ({
+    ...post,
+    presentationStyle: shuffled[i] ?? ('image-less' as PresentationStyle),
+  }));
+
+  // Interleave: place video posts at regular intervals among AI posts
+  if (styledVideos.length === 0) return styledAi;
+  const result: DailyPost[] = [];
+  const interval = Math.max(2, Math.floor(styledAi.length / (styledVideos.length + 1)));
+  let vIdx = 0;
+  for (let i = 0; i < styledAi.length; i++) {
+    result.push(styledAi[i]);
+    if ((i + 1) % interval === 0 && vIdx < styledVideos.length) {
+      result.push(styledVideos[vIdx++]);
+    }
+  }
+  while (vIdx < styledVideos.length) result.push(styledVideos[vIdx++]);
+  return result;
+}
+
+/**
+ * Generate text-art content for posts assigned the 'text-art' presentationStyle.
+ * Runs at feed-build time (not per-card) to avoid scroll lag.
+ */
+async function generateTextArtContent(posts: DailyPost[]): Promise<DailyPost[]> {
+  const textArtPosts = posts.filter(p => p.presentationStyle === 'text-art' && !p.textArtContent);
+  if (textArtPosts.length === 0) return posts;
+
+  const settings = settingsService.getSync();
+  if (!settings.preferences.aiConsentGiven || !settings.llm.isConfigured) return posts;
+
+  // Batch all text-art prompts into parallel requests
+  const results = await Promise.allSettled(
+    textArtPosts.map(async (post) => {
+      const prompt = `You are creating a "notebook page" visual card for a learning app.
+Topic: "${post.title}"
+Context: "${post.teaser.preview}"
+
+Write 3-5 short items mixing these styles:
+- A provocative question (start with emoji)
+- A surprising fact written like a breaking news headline (start with emoji)
+- A memorable quote or insight (start with emoji)
+
+Rules:
+- Each item on its own line
+- Start each with a relevant emoji
+- Keep each item under 15 words
+- Make it feel like a student's notebook margin notes
+- The content should spark curiosity about the topic
+
+Return ONLY the text lines, no JSON, no markdown formatting.`;
+
+      const result = await chatCompletion(
+        [{ role: 'user', content: prompt }],
+        settings.llm,
+        { maxTokens: 256, serviceName: 'text-art' },
+      );
+      return { postId: post.id, content: result };
+    }),
+  );
+
+  // Build a map of post ID -> text-art content
+  const contentMap = new Map<string, string>();
+  results.forEach((r) => {
+    if (r.status === 'fulfilled' && r.value.content) {
+      contentMap.set(r.value.postId, r.value.content);
+    }
+  });
+
+  // Apply text-art content to posts; use fallback for failed generations
+  return posts.map(p => {
+    if (p.presentationStyle !== 'text-art') return p;
+    if (contentMap.has(p.id)) {
+      return { ...p, textArtContent: contentMap.get(p.id)! };
+    }
+    // Fallback: if LLM generation failed but post needs text-art, use preview as content
+    if (!p.textArtContent && p.teaser.preview) {
+      return { ...p, textArtContent: `💡 ${p.teaser.hook}\n\n📝 ${p.teaser.preview}` };
+    }
+    return p;
+  });
+}
+
 let _shortsBgRunning = false;
 function _backgroundGenerateShorts(questions: Question[]): void {
   if (_shortsBgRunning) return;
@@ -514,6 +670,7 @@ function _backgroundGenerateShorts(questions: Question[]): void {
  * Interleave video posts into AI posts. Inserts a video after every 2nd AI post.
  * Remaining video posts are appended at the end.
  * Per D-04: video posts mix into the existing feed, not a separate section.
+ * @deprecated Use assignPresentationStyles instead.
  */
 function interleaveVideoPosts(aiPosts: DailyPost[], videoPosts: DailyPost[]): DailyPost[] {
   if (videoPosts.length === 0) return aiPosts;
@@ -560,12 +717,24 @@ export const conceptFeedService = {
     const fingerprint = computeFingerprint(questions);
     const cached = loadCache();
     if (cached?.date === date && cached.fingerprint === fingerprint && cached.posts.length > 0) {
-      // Return feed posts immediately with any already-cached video posts.
-      // Kick off video generation in the background so videos appear on next refresh.
+      // Return feed posts immediately with any already-cached video/short posts.
+      // Kick off video + short generation in the background so they appear on next refresh.
       const aiPosts = cached.posts.filter((p) => p.sourceType !== 'connection');
       const videoPosts = youtubeService.getCachedVideoPosts();
+      const shortPosts = youtubeService.getCachedShortPosts();
+      const allVideos = [...videoPosts, ...shortPosts];
       _backgroundGenerateVideos();
-      return interleaveVideoPosts(aiPosts, videoPosts);
+      _backgroundGenerateShorts(questions);
+      // If cached posts already have presentationStyle assigned, use them directly;
+      // otherwise assign styles and persist back to cache.
+      const allStyled = aiPosts.length > 0 && aiPosts.every(p => p.presentationStyle);
+      const styledResult = allStyled
+        ? [...aiPosts, ...allVideos.map(p => ({ ...p, presentationStyle: (p.sourceType === 'short' ? 'short' : 'video') as PresentationStyle }))]
+        : assignPresentationStyles(aiPosts, allVideos);
+      if (!allStyled && aiPosts.length > 0) _persistStylesToCache(styledResult);
+      // Generate text-art content in background for any text-art posts missing it
+      _backgroundGenerateTextArt(styledResult);
+      return styledResult;
     }
 
     // If the cache has posts for today but just the fingerprint changed (e.g. new
@@ -577,8 +746,17 @@ export const conceptFeedService = {
       saveCache({ ...cached, fingerprint });
       const aiPosts = cached.posts.filter((p) => p.sourceType !== 'connection');
       const videoPosts = youtubeService.getCachedVideoPosts();
+      const shortPosts = youtubeService.getCachedShortPosts();
+      const allVideos = [...videoPosts, ...shortPosts];
       _backgroundGenerateVideos();
-      return interleaveVideoPosts(aiPosts, videoPosts);
+      _backgroundGenerateShorts(questions);
+      const allStyled2 = aiPosts.length > 0 && aiPosts.every(p => p.presentationStyle);
+      const styledResult2 = allStyled2
+        ? [...aiPosts, ...allVideos.map(p => ({ ...p, presentationStyle: (p.sourceType === 'short' ? 'short' : 'video') as PresentationStyle }))]
+        : assignPresentationStyles(aiPosts, allVideos);
+      if (!allStyled2 && aiPosts.length > 0) _persistStylesToCache(styledResult2);
+      _backgroundGenerateTextArt(styledResult2);
+      return styledResult2;
     }
 
     let generated: ParsedGeneration = { posts: [], connectionCards: [] };
@@ -603,8 +781,24 @@ export const conceptFeedService = {
 
     // Return AI posts immediately; generate video posts in background (D-04)
     const videoPosts = youtubeService.getCachedVideoPosts();
+    const shortPosts = youtubeService.getCachedShortPosts();
     _backgroundGenerateVideos();
-    return interleaveVideoPosts(allPosts.filter((p) => p.sourceType !== 'connection'), videoPosts);
+    _backgroundGenerateShorts(questions);
+    // Only style new posts — preserved old posts keep their existing presentationStyle
+    const feedPosts = allPosts.filter((p) => p.sourceType !== 'connection');
+    const unstyledPosts = feedPosts.filter(p => !p.presentationStyle);
+    const alreadyStyled = feedPosts.filter(p => p.presentationStyle);
+    const allVideos = [...videoPosts, ...shortPosts];
+    const newlyStyled = unstyledPosts.length > 0
+      ? assignPresentationStyles(unstyledPosts, allVideos)
+      : [...alreadyStyled, ...allVideos.map(p => ({ ...p, presentationStyle: (p.sourceType === 'short' ? 'short' : 'video') as PresentationStyle }))];
+    const styledPosts = unstyledPosts.length > 0 ? [...alreadyStyled, ...newlyStyled] : newlyStyled;
+    const enrichedPosts = await generateTextArtContent(styledPosts);
+
+    // Persist presentationStyle and textArtContent back to cache
+    _persistStylesToCache(enrichedPosts);
+
+    return enrichedPosts;
   },
 
   /** Return cached connection card data for the current session. */
@@ -627,9 +821,18 @@ export const conceptFeedService = {
 
   getCachedDailyPosts(): DailyPost[] {
     const aiPosts = (loadCache()?.posts ?? []).filter((p) => p.sourceType !== 'connection');
-    // Use youtubeService's encapsulated cache reader (not raw localStorage)
     const videoPosts = youtubeService.getCachedVideoPosts();
-    return interleaveVideoPosts(aiPosts, videoPosts);
+    const shortPosts = youtubeService.getCachedShortPosts();
+    const allVideos = [...videoPosts, ...shortPosts];
+    // Only reassign styles if none of the AI posts have presentationStyle yet.
+    // This prevents reshuffling the feed on every call.
+    const allStyled = aiPosts.length > 0 && aiPosts.every(p => p.presentationStyle);
+    const result = allStyled
+      ? [...aiPosts, ...allVideos.map(p => ({ ...p, presentationStyle: (p.sourceType === 'short' ? 'short' : 'video') as PresentationStyle }))]
+      : assignPresentationStyles(aiPosts, allVideos);
+    if (!allStyled && aiPosts.length > 0) _persistStylesToCache(result);
+    _backgroundGenerateTextArt(result);
+    return result;
   },
 
   /** Delete a single post by ID from both the daily cache and the connection store. */
@@ -644,16 +847,13 @@ export const conceptFeedService = {
         deleted = true;
       }
     }
-    // Also try the connection post sessionStorage store
+    // Also try the connection post sessionStorage store (Record<string, DailyPost>)
     try {
-      const raw = sessionStorage.getItem(CONNECTION_POSTS_KEY);
-      if (raw) {
-        const arr = JSON.parse(raw) as DailyPost[];
-        const filtered = arr.filter((p) => p.id !== id);
-        if (filtered.length < arr.length) {
-          sessionStorage.setItem(CONNECTION_POSTS_KEY, JSON.stringify(filtered));
-          deleted = true;
-        }
+      const store = loadConnectionPosts();
+      if (store[id]) {
+        delete store[id];
+        sessionStorage.setItem(CONNECTION_POSTS_KEY, JSON.stringify(store));
+        deleted = true;
       }
     } catch { /* ignore */ }
     if (deleted) {
@@ -735,7 +935,13 @@ export const conceptFeedService = {
     } catch {
       // YouTube integration is optional
     }
-    return interleaveVideoPosts(newPosts, moreVideos);
+    const styledMore = assignPresentationStyles(newPosts, moreVideos);
+    const enrichedMore = await generateTextArtContent(styledMore);
+
+    // Persist presentationStyle and textArtContent back to cache for new posts
+    _persistStylesToCache(enrichedMore);
+
+    return enrichedMore;
   },
 
   /**
