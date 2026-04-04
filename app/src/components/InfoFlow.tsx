@@ -98,10 +98,11 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        padding: '24px 20px',
+        padding: isShortPost ? '0' : '24px 20px',
         boxSizing: 'border-box',
-        background:
-          'radial-gradient(circle at top right, color-mix(in srgb, var(--primary-80) 55%, transparent), transparent 40%), var(--card)',
+        background: isShortPost
+          ? 'var(--card)'
+          : 'radial-gradient(circle at top right, color-mix(in srgb, var(--primary-80) 55%, transparent), transparent 40%), var(--card)',
       }}
     >
       <button
@@ -112,7 +113,7 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
           flexDirection: 'column',
           justifyContent: 'space-between',
           gap: '20px',
-          padding: (image || isVideoPost || isShortPost || presentationStyle === 'text-art') ? '0 0 20px' : '20px 0',
+          padding: isShortPost ? '0' : (image || isVideoPost || presentationStyle === 'text-art') ? '0 0 20px' : '20px 0',
           borderRadius: 'var(--radius-xl)',
           background: 'linear-gradient(180deg, color-mix(in srgb, var(--primary-80) 20%, var(--surface-container-high)), var(--surface-container-high))',
           border: '1.5px solid color-mix(in srgb, var(--primary-40) 22%, var(--border))',
