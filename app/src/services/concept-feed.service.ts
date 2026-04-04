@@ -297,7 +297,9 @@ function buildGenerationPrompt(
   return [
     `Create ${Math.min(MAX_POSTS, Math.max(2, context.recent.length + context.related.length))} daily learning posts for ${date}.`,
     'The posts should feel like intriguing short-form educational essays, not flashcards or summaries.',
-    'Each post must be substantial: teaser preview 25-55 words; bodyMarkdown 180-340 words.',
+    'Each post must be substantial: bodyMarkdown 180-340 words.',
+    'teaserHook: max 8 words. Punchy, curiosity-driven, sounds like a podcast title or tweet. Examples: "Your brain lied about rereading", "Why forgetting is a feature", "The 20-minute rule nobody follows".',
+    'teaserPreview: max 15 words. One short sentence that makes the reader want to tap. Not a summary — a hook.',
     'Vary narrative style across posts using these modes: example-first, historical-story, contrast, analogy, false-intuition, mnemonic, mechanism-breakdown.',
     'At least one post should use an example, and if helpful one may use a gentle joke or mnemonic to improve recall.',
     'Every post must include: title, teaserHook, teaserPreview, bodyMarkdown, takeaway, quickAskPrompts (3 strings), narrativeMode, contextLabel, sourceType, sourceQuestionIds, keywords.',
@@ -609,9 +611,9 @@ async function generateTextArtContent(posts: DailyPost[]): Promise<DailyPost[]> 
   // Batch all text-art prompts into parallel requests
   const results = await Promise.allSettled(
     textArtPosts.map(async (post) => {
-      const prompt = `Write 3 punchy one-liners for a learning app card about: "${post.title}"
+      const prompt = `Write ONE punchy headline about: "${post.title}"
 
-Each line should be a DIFFERENT style. Pick 3 from:
+Pick one style:
 - Breaking news: "🔥 Gemma 4 released — will it beat QWEN 3.5?"
 - Interview hook: "🎤 Interviewer: How much VRAM to train a 7B model?"
 - Hot take: "🧊 Why I'm not bullish on World Models"
@@ -619,12 +621,12 @@ Each line should be a DIFFERENT style. Pick 3 from:
 - Bold claim: "⚡ RAG is dead. Long live agentic search."
 
 Rules:
-- One line each, under 12 words
-- Start each with a relevant emoji
-- Sound like real headlines, tweets, or podcast titles — not textbook summaries
-- Be specific to the topic, not generic
+- ONE line only, under 12 words
+- Start with a relevant emoji
+- Sound like a real headline, tweet, or podcast title
+- Be specific to the topic
 
-Return ONLY 3 lines, nothing else.`;
+Return ONLY the single line, nothing else.`;
 
       const result = await chatCompletion(
         [{ role: 'user', content: prompt }],
