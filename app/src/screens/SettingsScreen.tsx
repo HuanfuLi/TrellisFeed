@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Brain, Volume2, Network, Radio, BookOpen, Palette, RotateCcw, CheckCircle, XCircle, Shield, Download, Upload, Trash2, Sparkles, Loader2, Image, CalendarClock, BarChart3, Youtube } from 'lucide-react';
+import { Brain, Volume2, Network, Radio, BookOpen, Palette, RotateCcw, CheckCircle, XCircle, Shield, Download, Upload, Trash2, Sparkles, Loader2, Image, CalendarClock, BarChart3, Youtube, Globe } from 'lucide-react';
 import { tokenUsageReporter, type ServiceAggregate } from '../services/token-usage.service';
 import { plannerAutoGenService } from '../services/plannerAutoGen.service';
 import { Card } from '../components/ui/Card';
@@ -147,6 +147,9 @@ export function SettingsScreen() {
 
   // YouTube settings
   const [youtubeApiKey, setYoutubeApiKey] = useState(() => settingsService.getSync().youtube?.apiKey ?? '');
+
+  // Web Search settings
+  const [tavilyApiKey, setTavilyApiKey] = useState(() => settingsService.getSync().webSearch?.tavilyApiKey ?? '');
 
   // Image generation settings
   const [imageGen, setImageGen] = useState<ImageGenerationSettings>(() => settingsService.getSync().imageGeneration);
@@ -892,6 +895,39 @@ export function SettingsScreen() {
             onClick={async () => {
               await settingsService.set('youtube', { apiKey: youtubeApiKey });
               toast('YouTube settings saved.', 'success');
+            }}
+          >
+            Save
+          </Button>
+        </div>
+      </Card>
+
+      {/* Web Search Section */}
+      <SectionHeader icon={<Globe size={20} />} title="Web Search" />
+      <Card style={{ marginBottom: '8px' }}>
+        <p style={{ fontSize: '0.8rem', color: 'var(--muted-foreground)', marginBottom: '12px', lineHeight: 1.5 }}>
+          Enable web search in Ask screen and news posts in the feed. Get your API key from{' '}
+          <a href="https://tavily.com" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary-40)' }}>
+            tavily.com
+          </a>{' '}
+          (1,000 free searches/month).
+        </p>
+        <SettingRow label="API Key" description="Tavily Search API key">
+          <TextInput
+            type="password"
+            value={tavilyApiKey}
+            onChange={(v) => setTavilyApiKey(v)}
+            onBlur={() => void settingsService.set('webSearch', { tavilyApiKey })}
+            placeholder="tvly-..."
+          />
+        </SettingRow>
+        <div style={{ paddingTop: '12px' }}>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={async () => {
+              await settingsService.set('webSearch', { tavilyApiKey });
+              toast('Web search settings saved.', 'success');
             }}
           >
             Save
