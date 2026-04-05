@@ -601,7 +601,7 @@ export function PostDetailScreen() {
               isLoading={isLoadingCarousel}
               onIndexChange={(index) => { /* Future: analytics or preload */ void index; }}
             />
-          ) : !isLoadingCarousel && post && post.presentationStyle !== 'text-art' && (
+          ) : !isLoadingCarousel && post && (post.presentationStyle === 'image' || post.presentationStyle === 'image-less') && (
             <button
               onClick={() => void handleRetryImage()}
               disabled={isRetryingImage}
