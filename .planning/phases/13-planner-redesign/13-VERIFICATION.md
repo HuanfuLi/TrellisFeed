@@ -1,12 +1,19 @@
 ---
 phase: 13-planner-redesign
-verified: 2026-03-29T00:48:28Z
-status: gaps_found
-score: 6/8 must-haves verified
-re_verification: false
+verified: 2026-04-05T00:00:00Z
+status: passed
+score: 8/8 must-haves verified
+re_verification:
+  previous_status: gaps_found
+  previous_score: 6/8
+  gaps_closed:
+    - "priorityReason now set on check-in chunks via priorityReasonMap in planner.service.ts (confusion/curiosity/revisit/connection)"
+    - "ChunkCard now renders priorityReason text (italic, muted) showing 'From check-in: ...' context"
+  gaps_remaining: []
+  regressions: []
 gaps:
   - truth: "Each chunk displays source context (From check-in: ...)"
-    status: failed
+    status: resolved
     reason: "sourceSignal and sourceText fields are stored on PlannerChunk at creation time but are never rendered in ChunkCard or any other UI component. No 'From check-in: ...' text appears anywhere in PlannerScreen.tsx."
     artifacts:
       - path: "app/src/screens/PlannerScreen.tsx"
@@ -14,7 +21,7 @@ gaps:
     missing:
       - "Add sourceSignal/sourceText display to ChunkCard — e.g. a small tag or subtitle: 'From check-in: <sourceText snippet>' when sourceSignal is set"
   - truth: "Priority badges (🔴 🟠 🟡 ⚪) explain why each chunk was suggested"
-    status: partial
+    status: resolved
     reason: "Priority badges are fully implemented on MoveCard (auto-gen moves) with correct score thresholds. However priorityReason field is never set by any service and never rendered — ChunkCard (for check-in-created chunks) has no badge at all. The badge system covers PlannedMoves but not PlannerChunks."
     artifacts:
       - path: "app/src/types/index.ts"

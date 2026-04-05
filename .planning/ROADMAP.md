@@ -99,23 +99,11 @@
 
 ---
 
-## Phase 11: Planner Retry & Milestone Card Variety
+## Phase 11: Planner Retry & Milestone Card Variety ⊘ SKIPPED
 
 **Goal:** Add user control for suggestion regeneration and expand milestone card visual designs.
 
-**Requirements:**
-- PLANNER-04: Retry/regenerate suggestions button
-- CARDS-01: Multiple card designs (3+)
-- CARDS-02: Card design rotation/shuffling
-- CARDS-03: Accessibility and readability standards
-
-**Success Criteria:**
-1. "Retry" button appears next to "Suggested Moves" header
-2. User can regenerate suggestions immediately (respects API rate limits)
-3. Milestone cards display in 3+ distinct visual styles
-4. Cards rotate/shuffle to prevent visual fatigue over time
-5. All card designs meet WCAG accessibility standards
-6. Card designs are responsive across mobile screen sizes (375px to 600px+)
+**Status:** Skipped — superseded by Phase 13 (Planner Redesign) which restructured the Planner UX. Retry and milestone card features were deprioritized in favor of signal-based chunk creation and priority badges.
 
 ---
 
@@ -164,7 +152,7 @@
 7. Section renamed to "Your Learning Progress" for clarity
 8. No regression in existing features
 
-**Plans:** 0 plans (planning in progress)
+**Plans:** 1/1 plans complete
 
 ---
 
