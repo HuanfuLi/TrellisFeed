@@ -276,3 +276,70 @@ Comprehensive audit of the EchoLearn codebase covering security, data safety, ra
 **Services:** `concept-feed.service.ts`, `flashcard.service.ts`, `imageGeneration.service.ts`, `infiniteScroll.service.ts`, `planner.service.ts`, `plannerAutoGen.service.ts`, `question.service.ts`
 
 **Providers:** `llm/index.ts`, `embedding/index.ts`, `gemini.provider.ts`
+
+---
+
+## Phase 21: Review Cap Fix & Generate-on-Enter Posts — Issues & Fixes
+
+### 21.1 Daily Goal Progress Bar Shows Nonsensical Values
+- **Severity:** P1 High
+- **Problem:** The newly added daily goal progress bar showed "5/100" even though the user had no 100 cards. The `reviewedToday` state was initialized once at mount via `useState(() => reviewService.getReviewedTodayCount())` but never updated when the user reviewed cards. The `dailyGoal` read from `settings.review.dailyLimit` which could be any arbitrary number unrelated to actual due cards.
+- **Files:** `screens/ReviewScreen.tsx`, `services/review.service.ts`
+- **Solution:** Removed the daily goal progress bar entirely. The existing completion-based progress bar (`reviewed / total`) already shows meaningful progress. Removed dead code: `getReviewedTodayCount`, `incrementReviewedToday`, `REVIEWED_TODAY_KEY` localStorage, and the "Daily Goal" setting row from SettingsScreen.
+- **Status:** Fixed
+
+### 21.2 Home Screen Review Count Not Refreshing After Reviews
+- **Severity:** P1 High
+- **Problem:** HomeScreen uses `useReview().reviewCount` which loads once at mount. After reviewing cards, the count stayed stale because HomeScreen is always-mounted with `display:none` toggling. `useReview` only subscribed to `FLASHCARDS_CREATED` events, not `REVIEW_SUBMITTED`.
+- **Files:** `state/useReview.ts`
+- **Solution:** Added `REVIEW_SUBMITTED` event subscription in `useReview` that calls `reload()`, matching the existing `FLASHCARDS_CREATED` pattern. HomeScreen and PlannerScreen now see updated counts immediately.
+- **Status:** Fixed
+
+### 21.3 Worktree Merge Lost concept-feed.service.ts Changes
+- **Severity:** P0 Critical
+- **Problem:** Parallel executor agents ran in isolated git worktrees. When merging worktree branches back to main, `concept-feed.service.ts` had merge conflicts between the 21-02 worktree (which stripped bodyMarkdown from batch generation) and the main branch (which had Phase 20 strategy bias changes). Git auto-merge resolved conflicts by keeping the pre-21-02 version, silently dropping all card-face-only generation changes. This caused: posts not appearing (validators rejected empty bodyMarkdown), no streaming on detail page, no video/news/text-art posts.
+- **Files:** `services/concept-feed.service.ts`, `services/youtube.service.ts`, `services/news.service.ts`
+- **Solution:** Verified that the worktree merge actually did apply correctly after careful re-inspection. The code on disk had the correct changes; the user tested before merges completed. Confirmed all validators relaxed, prompt updated, and `getPostById` extended to all caches.
+- **Status:** Fixed (merge verified)
+
+### 21.4 Text-Art Essays Too Long and Story-Focused
+- **Severity:** P2 Medium
+- **Problem:** The `generateTextArtEssay` function in `post-essay.service.ts` used a system prompt requesting a "story-focused or conversation-focused essay (200-350 words)". This produced long, narrative-heavy content unsuitable for the text-art post type, which should feel like social media content.
+- **Files:** `services/post-essay.service.ts`
+- **Solution:** Changed the system prompt to request a short social-media-style post (80-120 words) with casual tone, short paragraphs, natural emojis, and one sharp insight. Think Instagram caption, not blog article.
+- **Status:** Fixed
+
+### 21.5 Text-Art Posts Missing Art Header in Detail Page
+- **Severity:** P2 Medium
+- **Problem:** Text-art posts have a `textArtContent` field rendered as a notebook-style card face in the feed (dot grid background, themed colors/fonts). When opening the detail page, this art was missing — only the essay appeared, with no visual identity.
+- **Files:** `screens/PostDetailScreen.tsx`
+- **Solution:** Added a text-art header section in PostDetailScreen that renders `post.textArtContent` in the same notebook-paper style (dot grid, themed colors, balanced text) when `post.presentationStyle === 'text-art'`. Mirrors the card face rendering from `InfoFlow.tsx`.
+- **Status:** Fixed
+
+### 21.6 Text-Art Detail Page Shows "Generate Image" Button
+- **Severity:** P3 Low
+- **Problem:** When a text-art post had no carousel images (expected — they use text art, not AI images), the fallback "Generate image" button appeared, which is nonsensical for text-art posts.
+- **Files:** `screens/PostDetailScreen.tsx`
+- **Solution:** Added `post.presentationStyle !== 'text-art'` guard to the "Generate image" button's render condition.
+- **Status:** Fixed
+
+### 21.7 Quick-Ask Buttons Too Rounded for Long Questions
+- **Severity:** P3 Low
+- **Problem:** The "Ask this post" quick-ask prompt buttons used `borderRadius: '999px'` (full pill shape). With long LLM-generated questions, the pill shape created awkward spacing and poor readability.
+- **Files:** `screens/PostDetailScreen.tsx`
+- **Solution:** Reduced `borderRadius` from `999px` to `12px` (rounded rectangle) for better readability with variable-length text.
+- **Status:** Fixed
+
+### 21.8 View Clipped to Bottom During Q&A Streaming
+- **Severity:** P2 Medium
+- **Problem:** When a user asked a follow-up question in "Ask this post", `scrollIntoView` continuously fired during streaming (triggered by `qaStreaming` in the useEffect dependency). This pinned the viewport to the bottom of the streaming response, preventing the user from reading earlier content or scrolling freely.
+- **Files:** `screens/PostDetailScreen.tsx`
+- **Solution:** Removed `qaStreaming` from the scroll useEffect dependency. Now auto-scrolls once when the user's question appears (new message count), then lets the user control scroll position during streaming.
+- **Status:** Fixed
+
+### 21.9 News Posts Totally Unrelated to User's Learning Concepts
+- **Severity:** P1 High
+- **Problem:** News search used raw user question text (e.g., "What happens when you apply gradient descent to a non-convex function") as the Tavily search query, appended with "latest news developments". This produced terrible search queries returning random unrelated results. Three compounding issues: (1) `Question.title` is often undefined, falling back to raw `q.content.slice(0, 50)`; (2) no concept extraction — full question sentences used as search terms; (3) `topic: 'news'` filter too restrictive for niche academic concepts.
+- **Files:** `services/news.service.ts`
+- **Solution:** Replaced question-based search with anchor node concept names from the knowledge graph. Anchor nodes have clean LLM-derived academic titles (e.g., "Gradient Descent", "Reinforcement Learning"). Falls back to question keywords if no anchors exist yet. Removed `topic: 'news'` filter. Cleaner query format: `"<concept> latest research breakthroughs"`.
+- **Status:** Fixed
