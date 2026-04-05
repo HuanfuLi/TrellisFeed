@@ -231,6 +231,9 @@ export interface AppSettings {
   youtube: {
     apiKey: string;
   };
+  webSearch: {
+    tavilyApiKey: string;
+  };
 }
 
 export interface EmbeddingConfig {
@@ -452,7 +455,7 @@ export type PostNarrativeMode =
   | 'starter';
 
 /** Visual presentation style assigned to each feed post by the weighted mix algorithm. */
-export type PresentationStyle = 'image' | 'text-art' | 'image-less' | 'video' | 'short';
+export type PresentationStyle = 'image' | 'text-art' | 'image-less' | 'video' | 'short' | 'news';
 
 export interface FeedTeaser {
   hook: string;
@@ -470,10 +473,29 @@ export interface PostSnapshot {
   quickAskPrompts: string[];
   narrativeMode: PostNarrativeMode;
   contextLabel: string;
-  sourceType: 'recent' | 'related' | 'resurfaced' | 'starter' | 'mixed' | 'connection' | 'video' | 'short' | 'text-art';
+  sourceType: 'recent' | 'related' | 'resurfaced' | 'starter' | 'mixed' | 'connection' | 'video' | 'short' | 'text-art' | 'news';
   sourceQuestionIds: string[];
   sourceQuestionTitles: string[];
   keywords: string[];
+}
+
+export interface WebSearchResult {
+  title: string;
+  url: string;
+  content: string;  // clean text snippet from Tavily
+  score: number;    // relevance 0-1
+}
+
+export interface WebSearchResponse {
+  results: WebSearchResult[];
+  query: string;
+  responseTime: number;
+}
+
+export interface SourceCitation {
+  index: number;
+  title: string;
+  url: string;
 }
 
 export interface VideoMetadata {
@@ -493,6 +515,11 @@ export interface DailyPost extends PostSnapshot {
   textArtContent?: string;
   /** Visual presentation style assigned by the weighted mix algorithm. */
   presentationStyle?: PresentationStyle;
+  /** News post metadata with source citations and fetch timestamp. */
+  newsMeta?: {
+    sources: SourceCitation[];
+    fetchedAt: number;
+  };
 }
 
 export interface PostOriginContext {
