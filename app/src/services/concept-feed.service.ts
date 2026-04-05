@@ -897,7 +897,8 @@ export const conceptFeedService = {
       : assignPresentationStyles(aiPosts, allVideos);
     if (!allStyled && aiPosts.length > 0) _persistStylesToCache(result);
     _backgroundGenerateTextArt(result);
-    return result;
+    const newsPosts = newsService.getCachedNewsPosts();
+    return interleaveNewsPosts(result, newsPosts);
   },
 
   /** Delete a single post by ID from both the daily cache and the connection store. */
