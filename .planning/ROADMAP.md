@@ -450,12 +450,12 @@ Plans:
 
 **Depends on:** Phase 19
 
-**Plans:** 4 plans
+**Plans:** 1/4 plans executed
 
 Canonical refs: `.planning/phases/20-orchestration-strategy-diagnostic-dialogue/20-CONTEXT.md`
 
 Plans:
-- [ ] 20-01-PLAN.md — OrchestrationStrategy interface + defaultStrategy + tests (ORCH-01)
+- [x] 20-01-PLAN.md — OrchestrationStrategy interface + defaultStrategy + tests (ORCH-01)
 - [ ] 20-02-PLAN.md — Diagnostic dialogue service + tests (DIAG-01, DIAG-03)
 - [ ] 20-03-PLAN.md — Strategy consumers: scorer + feed bias (ORCH-02, ORCH-03)
 - [ ] 20-04-PLAN.md — PortalCard + DiagnosticChat + PlannerScreen integration (DIAG-02, PORTAL-01-03)
