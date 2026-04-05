@@ -23,7 +23,24 @@ function clamp(value) {
   return Math.min(100, Math.max(0, value));
 }
 
-function scoreMove(concept, signals) {
+/** Strategy-aware weight computation per learning mode. */
+function getStrategyWeights(hints) {
+  switch (hints.mode) {
+    case 'retrieval':
+      return { reviewPerformance: 0.55, timeSinceReview: 0.25, feedEngagement: 0.1, conceptCoverage: 0.1 };
+    case 'discovery':
+      return { reviewPerformance: 0.25, timeSinceReview: 0.2, feedEngagement: 0.35, conceptCoverage: 0.2 };
+    case 'reinforcement':
+      return { reviewPerformance: 0.35, timeSinceReview: 0.4, feedEngagement: 0.15, conceptCoverage: 0.1 };
+    case 'balanced':
+    default:
+      return { ...WEIGHTS };
+  }
+}
+
+function scoreMove(concept, signals, hints) {
+  const w = hints ? getStrategyWeights(hints) : WEIGHTS;
+
   const perfScore = clamp(100 - signals.reviewPerformance);
 
   const conceptOverdue = concept.lastReviewedAt
@@ -35,21 +52,21 @@ function scoreMove(concept, signals) {
 
   const coverageScore = clamp(100 - signals.conceptCoverage);
 
-  const isWeakArea = signals.weakAreas.includes(concept.id) ? 15 : 0;
+  const isWeakArea = signals.weakAreas.includes(concept.id) ? 30 * (hints?.weakAreaBias ?? 1) : 0;
 
   const rawScore = (
-    WEIGHTS.reviewPerformance * perfScore
-    + WEIGHTS.timeSinceReview * overdueScore
-    + WEIGHTS.feedEngagement * engagementScore
-    + WEIGHTS.conceptCoverage * coverageScore
+    w.reviewPerformance * perfScore
+    + w.timeSinceReview * overdueScore
+    + w.feedEngagement * engagementScore
+    + w.conceptCoverage * coverageScore
   );
 
   return Math.round(clamp(rawScore + isWeakArea));
 }
 
-function rankConcepts(concepts, signals, topN = 8) {
+function rankConcepts(concepts, signals, topN = 8, hints) {
   return concepts
-    .map((concept) => ({ concept, score: scoreMove(concept, signals) }))
+    .map((concept) => ({ concept, score: scoreMove(concept, signals, hints) }))
     .sort((a, b) => b.score - a.score)
     .slice(0, topN);
 }
@@ -133,7 +150,7 @@ describe('scoreMove — weight ordering', () => {
     assert.strictEqual(perfContribution, 40, 'review perf weight must be 40');
   });
 
-  it('prioritises weak areas with 15-point boost', () => {
+  it('prioritises weak areas with 30-point boost', () => {
     const concept = makeConcept('c1');
     const signals = makeSignals({ weakAreas: ['c1'] });
     const signalsNoWeak = makeSignals({ weakAreas: [] });
@@ -147,7 +164,7 @@ describe('scoreMove — weight ordering', () => {
     );
   });
 
-  it('weak area boost is approximately 15 points (capped at 100)', () => {
+  it('weak area boost is approximately 30 points (capped at 100)', () => {
     const concept = makeConcept('c1');
     const neutralSignals = makeSignals({
       reviewPerformance: 50,
@@ -163,7 +180,7 @@ describe('scoreMove — weight ordering', () => {
     const boost = boostedScore - baseScore;
 
     // Allow ±2 for rounding
-    assert.ok(boost >= 13 && boost <= 17, `expected ~15pt boost, got ${boost}`);
+    assert.ok(boost >= 28 && boost <= 32, `expected ~30pt boost, got ${boost}`);
   });
 });
 
@@ -240,6 +257,124 @@ describe('rankConcepts — ordering and limits', () => {
     const ranked = rankConcepts(concepts, signals);
     assert.ok(ranked[0].concept, 'should have concept field');
     assert.ok(typeof ranked[0].score === 'number', 'should have numeric score field');
+  });
+});
+
+// ─── Strategy-aware scoring tests ────────────────────────────────────────────
+
+describe('scoreMove — strategy-aware scoring', () => {
+  const retrievalHints = {
+    mode: 'retrieval',
+    weakAreaBias: 0.7,
+    discoveryWeight: 0.3,
+    priorityConceptIds: [],
+    curiosityTopics: [],
+  };
+
+  const discoveryHints = {
+    mode: 'discovery',
+    weakAreaBias: 0.3,
+    discoveryWeight: 0.6,
+    priorityConceptIds: [],
+    curiosityTopics: [],
+  };
+
+  it('scoreMove without hints returns same score as before (backward compatible)', () => {
+    const concept = makeConcept('c1');
+    const signals = makeSignals();
+    const scoreNoHints = scoreMove(concept, signals);
+    const scoreUndefinedHints = scoreMove(concept, signals, undefined);
+    assert.strictEqual(scoreNoHints, scoreUndefinedHints, 'no hints and undefined hints should produce identical scores');
+    // Verify it uses default weights
+    assert.ok(typeof scoreNoHints === 'number' && scoreNoHints >= 0 && scoreNoHints <= 100);
+  });
+
+  it('retrieval mode increases reviewPerformance weight to 0.55, decreases feedEngagement to 0.1', () => {
+    const concept = makeConcept('c1');
+    // Use signals where reviewPerformance is low (high perfScore) to see weight difference
+    const signals = makeSignals({
+      reviewPerformance: 0,     // perfScore = 100
+      timeSinceLastReview: 0,   // overdueScore = 0
+      feedEngagement: 20,       // engagementScore = 100
+      conceptCoverage: 50,      // coverageScore = 50
+      weakAreas: [],
+    });
+
+    const defaultScore = scoreMove(concept, signals);
+    const retrievalScore = scoreMove(concept, signals, retrievalHints);
+
+    // In retrieval mode: 0.55*100 + 0.25*0 + 0.1*100 + 0.1*50 = 55 + 0 + 10 + 5 = 70
+    // In default mode:   0.4*100  + 0.3*0  + 0.2*100 + 0.1*50 = 40 + 0 + 20 + 5 = 65
+    // Retrieval should be higher because perfScore weight is higher
+    assert.ok(retrievalScore > defaultScore,
+      `retrieval score (${retrievalScore}) should be higher than default (${defaultScore}) when perfScore dominates`);
+    assert.strictEqual(retrievalScore, 70, 'retrieval mode should compute to 70 with these signals');
+  });
+
+  it('discovery mode increases feedEngagement weight to 0.35, increases conceptCoverage to 0.2', () => {
+    const concept = makeConcept('c1');
+    // Use signals where feedEngagement is high
+    const signals = makeSignals({
+      reviewPerformance: 100,   // perfScore = 0
+      timeSinceLastReview: 0,   // overdueScore = 0
+      feedEngagement: 20,       // engagementScore = 100
+      conceptCoverage: 0,       // coverageScore = 100
+      weakAreas: [],
+    });
+
+    const defaultScore = scoreMove(concept, signals);
+    const discoveryScore = scoreMove(concept, signals, discoveryHints);
+
+    // In discovery mode: 0.25*0 + 0.2*0 + 0.35*100 + 0.2*100 = 0 + 0 + 35 + 20 = 55
+    // In default mode:   0.4*0  + 0.3*0  + 0.2*100 + 0.1*100 = 0 + 0 + 20 + 10 = 30
+    assert.ok(discoveryScore > defaultScore,
+      `discovery score (${discoveryScore}) should be higher than default (${defaultScore}) when engagement/coverage dominate`);
+    assert.strictEqual(discoveryScore, 55, 'discovery mode should compute to 55 with these signals');
+  });
+
+  it('weakAreaBias multiplies the isWeakArea boost (30 * weakAreaBias instead of flat 30)', () => {
+    const concept = makeConcept('c1');
+    const signals = makeSignals({
+      reviewPerformance: 50,
+      timeSinceLastReview: 0,
+      feedEngagement: 0,
+      conceptCoverage: 50,
+      weakAreas: ['c1'],
+    });
+
+    const defaultScore = scoreMove(concept, signals);
+    const retrievalScore = scoreMove(concept, signals, retrievalHints);
+
+    // Default (no hints): weakAreaBias defaults to 1, boost = 30 * 1 = 30
+    // Retrieval hints: weakAreaBias = 0.7, boost = 30 * 0.7 = 21
+    // Base raw scores differ due to weight differences, but the weak area boost should differ
+    const signalsNoWeak = { ...signals, weakAreas: [] };
+    const defaultBase = scoreMove(concept, signalsNoWeak);
+    const retrievalBase = scoreMove(concept, signalsNoWeak, retrievalHints);
+
+    const defaultBoost = defaultScore - defaultBase;
+    const retrievalBoost = retrievalScore - retrievalBase;
+
+    assert.ok(defaultBoost >= 28 && defaultBoost <= 32, `default boost should be ~30, got ${defaultBoost}`);
+    assert.ok(retrievalBoost >= 19 && retrievalBoost <= 23, `retrieval boost should be ~21 (30*0.7), got ${retrievalBoost}`);
+  });
+
+  it('rankConcepts passes hints through to scoreMove', () => {
+    const signals = makeSignals({
+      reviewPerformance: 0,
+      timeSinceLastReview: 0,
+      feedEngagement: 20,
+      conceptCoverage: 50,
+      weakAreas: [],
+    });
+    const concepts = [makeConcept('c1'), makeConcept('c2')];
+
+    const defaultRanked = rankConcepts(concepts, signals);
+    const retrievalRanked = rankConcepts(concepts, signals, 8, retrievalHints);
+
+    // Scores should differ between default and retrieval modes
+    assert.notStrictEqual(defaultRanked[0].score, retrievalRanked[0].score,
+      'ranked scores should differ when hints are provided');
   });
 });
 

@@ -17,6 +17,7 @@ import { plannerService } from './planner.service';
 import { trajectoryAnalyzerService } from './trajectoryAnalyzer.service';
 import { rankConcepts } from './suggestionScorer.service';
 import { generateMoves } from './moveGenerator.service';
+import { defaultStrategy } from './orchestration-strategy.service';
 import { eventBus } from '../lib/event-bus';
 
 // ── Storage ────────────────────────────────────────────────────────────────
@@ -111,13 +112,14 @@ export const plannerAutoGenService = {
     if (concepts.length === 0) return [];
 
     const signals = trajectoryAnalyzerService.aggregateSignals(forceRefresh);
+    const hints = defaultStrategy.computeHints(signals);
     const existing = loadMoves();
 
     // Filter out concepts with recent duplicate moves.
     const candidates = concepts.filter((c) => !isRecentDuplicate(c.id, existing));
     if (candidates.length === 0) return existing;
 
-    const ranked = rankConcepts(candidates, signals, 8);
+    const ranked = rankConcepts(candidates, signals, 8, hints);
     const newMoves = generateMoves(ranked, signals);
 
     // Merge: keep non-auto moves + non-expired auto moves + new moves.

@@ -12,6 +12,7 @@
  */
 
 import type { Question, TrajectorySignal } from '../types';
+import type { StrategyHints } from './orchestration-strategy.service';
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -21,6 +22,23 @@ const WEIGHTS = {
   feedEngagement: 0.2,
   conceptCoverage: 0.1,
 } as const;
+
+type WeightSet = { reviewPerformance: number; timeSinceReview: number; feedEngagement: number; conceptCoverage: number };
+
+/** Compute dynamic weights based on strategy learning mode. */
+function getStrategyWeights(hints: StrategyHints): WeightSet {
+  switch (hints.mode) {
+    case 'retrieval':
+      return { reviewPerformance: 0.55, timeSinceReview: 0.25, feedEngagement: 0.1, conceptCoverage: 0.1 };
+    case 'discovery':
+      return { reviewPerformance: 0.25, timeSinceReview: 0.2, feedEngagement: 0.35, conceptCoverage: 0.2 };
+    case 'reinforcement':
+      return { reviewPerformance: 0.35, timeSinceReview: 0.4, feedEngagement: 0.15, conceptCoverage: 0.1 };
+    case 'balanced':
+    default:
+      return { ...WEIGHTS };
+  }
+}
 
 /** 30 days — the cap for "overdue" normalisation. */
 const MAX_OVERDUE_MS = 30 * 24 * 60 * 60 * 1000;
@@ -39,7 +57,9 @@ function clamp(value: number): number {
  * @param signals  - Aggregated user trajectory.
  * @returns         Score in [0, 100].
  */
-export function scoreMove(concept: Question, signals: TrajectorySignal): number {
+export function scoreMove(concept: Question, signals: TrajectorySignal, hints?: StrategyHints): number {
+  const w = hints ? getStrategyWeights(hints) : WEIGHTS;
+
   // Component 1: Prioritise areas where the user struggles (low review perf).
   const perfScore = clamp(100 - signals.reviewPerformance);
 
@@ -57,14 +77,14 @@ export function scoreMove(concept: Question, signals: TrajectorySignal): number 
   // Component 4: Concept coverage gap (low coverage → higher priority).
   const coverageScore = clamp(100 - signals.conceptCoverage);
 
-  // Boost for concepts in weak areas (+30 to strongly differentiate priorities).
-  const isWeakArea = signals.weakAreas.includes(concept.id) ? 30 : 0;
+  // Boost for concepts in weak areas — scaled by weakAreaBias when hints provided.
+  const isWeakArea = signals.weakAreas.includes(concept.id) ? 30 * (hints?.weakAreaBias ?? 1) : 0;
 
   const rawScore = (
-    WEIGHTS.reviewPerformance * perfScore
-    + WEIGHTS.timeSinceReview * overdueScore
-    + WEIGHTS.feedEngagement * engagementScore
-    + WEIGHTS.conceptCoverage * coverageScore
+    w.reviewPerformance * perfScore
+    + w.timeSinceReview * overdueScore
+    + w.feedEngagement * engagementScore
+    + w.conceptCoverage * coverageScore
   );
 
   return Math.round(clamp(rawScore + isWeakArea));
@@ -81,9 +101,10 @@ export function rankConcepts(
   concepts: Question[],
   signals: TrajectorySignal,
   topN = 8,
+  hints?: StrategyHints,
 ): Array<{ concept: Question; score: number }> {
   return concepts
-    .map((concept) => ({ concept, score: scoreMove(concept, signals) }))
+    .map((concept) => ({ concept, score: scoreMove(concept, signals, hints) }))
     .sort((a, b) => b.score - a.score)
     .slice(0, topN);
 }
