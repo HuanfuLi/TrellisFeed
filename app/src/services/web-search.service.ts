@@ -13,6 +13,7 @@ import type { ServiceResult, WebSearchResult, WebSearchResponse, SourceCitation 
 interface WebSearchOptions {
   topic?: 'general' | 'news';
   maxResults?: number;
+  includeImages?: boolean;
 }
 
 // ─── Web Search ───────────────────────────────────────────────────────────────
@@ -36,7 +37,7 @@ export async function webSearch(
   }
 
   const url = 'https://api.tavily.com/search';
-  const body = {
+  const body: Record<string, unknown> = {
     query,
     topic: options?.topic ?? 'general',
     max_results: options?.maxResults ?? 5,
@@ -44,6 +45,9 @@ export async function webSearch(
     include_answer: false,
     include_raw_content: false,
   };
+  if (options?.includeImages) {
+    body.include_images = true;
+  }
   const headers = {
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${apiKey}`,
@@ -73,7 +77,7 @@ export async function webSearch(
     }
 
     const elapsed = Date.now() - startTime;
-    const data = responseData as { results?: Array<{ title: string; url: string; content: string; score: number }>; query?: string };
+    const data = responseData as { results?: Array<{ title: string; url: string; content: string; score: number }>; images?: string[]; query?: string };
 
     const results: WebSearchResult[] = (data.results ?? []).map((r) => ({
       title: r.title,
@@ -86,6 +90,7 @@ export async function webSearch(
       success: true,
       data: {
         results,
+        images: data.images,
         query: data.query ?? query,
         responseTime: elapsed,
       },

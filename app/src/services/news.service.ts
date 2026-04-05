@@ -109,13 +109,14 @@ async function generateNewsPosts(count?: number): Promise<DailyPost[]> {
 
     if (concepts.length === 0) return [];
 
-    // 3. Search for news on each concept
+    // 3. Search for news on each concept (with images)
     interface SearchHit {
       title: string;
       url: string;
       content: string;
       score: number;
       concept: string;
+      imageUrl?: string;
     }
 
     const allHits: SearchHit[] = [];
@@ -124,12 +125,16 @@ async function generateNewsPosts(count?: number): Promise<DailyPost[]> {
     for (const concept of concepts) {
       const result = await webSearch(concept + ' latest research breakthroughs', {
         maxResults: 3,
+        includeImages: true,
       });
       if (result.success && result.data) {
-        for (const r of result.data.results) {
+        // Tavily returns images as a flat array of URLs for the entire search
+        const images = result.data.images ?? [];
+        for (let i = 0; i < result.data.results.length; i++) {
+          const r = result.data.results[i];
           if (!seenUrls.has(r.url)) {
             seenUrls.add(r.url);
-            allHits.push({ ...r, concept });
+            allHits.push({ ...r, concept, imageUrl: images[i] });
           }
         }
       }
@@ -159,7 +164,7 @@ async function generateNewsPosts(count?: number): Promise<DailyPost[]> {
         bodyMarkdown: '',  // Deferred to on-enter streaming (POST-06)
         whyCare: '',
         takeaway: '',
-        newsMeta: { sources: [{ index: 1, title: hit.title, url: hit.url }], fetchedAt: Date.now() },
+        newsMeta: { sources: [{ index: 1, title: hit.title, url: hit.url }], fetchedAt: Date.now(), imageUrl: hit.imageUrl },
         sourceQuestionIds: [],
         sourceQuestionTitles: [],
         keywords: [hit.concept],

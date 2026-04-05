@@ -488,6 +488,7 @@ export interface WebSearchResult {
 
 export interface WebSearchResponse {
   results: WebSearchResult[];
+  images?: string[];
   query: string;
   responseTime: number;
 }
@@ -520,6 +521,7 @@ export interface DailyPost extends PostSnapshot {
   newsMeta?: {
     sources: SourceCitation[];
     fetchedAt: number;
+    imageUrl?: string;
   };
 }
 

@@ -594,6 +594,21 @@ export function PostDetailScreen() {
               </div>
             );
           })()}
+          {/* News source image */}
+          {post.sourceType === 'news' && post.newsMeta?.imageUrl && (
+            <img
+              src={post.newsMeta.imageUrl}
+              alt={post.title}
+              style={{
+                width: '100%',
+                maxHeight: '300px',
+                objectFit: 'cover',
+                borderRadius: '12px',
+                marginBottom: '8px',
+              }}
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+            />
+          )}
           {/* Carousel — reserve 350px while loading to prevent layout shift */}
           {carouselImages.length > 0 ? (
             <PostCarousel
