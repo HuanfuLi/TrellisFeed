@@ -41,7 +41,7 @@ const defaultSettings: AppSettings = {
     autoGenerate: true,
   },
   review: {
-    dailyLimit: 20,
+    dailyLimit: 50,
     notificationsEnabled: false,
     reminderTime: '09:00',
   },
