@@ -485,6 +485,49 @@ Plans:
 - **Phase 18** must complete before Phase 19 (feed mix and presentation styles needed for news post integration)
 - **Phase 19** must complete before Phase 20 (web search enrichment needed for strategy-driven content selection)
 
+## Phase 21: Review Cap Fix & Generate-on-Enter Posts
+
+**Goal:** (1) Remove the hard `dailyLimit` cap from the review queue, repurpose as daily goal with progress indicator. (2) Rework post generation to card-face-only at feed time, deferring essay body + metadata to on-demand streaming LLM calls when user opens a post — saving tokens and dramatically reducing feed load time.
+
+**Requirements:**
+
+*Review Cap:*
+- REVIEW-01: `getTodayReviewItems()` returns all due cards (remove `.slice(0, limit)`)
+- REVIEW-02: Review count badges on Home/Planner show true due count
+- REVIEW-03: Daily goal progress bar in ReviewScreen (e.g., "12/20 reviewed today")
+- REVIEW-04: Rename setting from "Daily Limit / Max cards per day" to "Daily Goal"
+- REVIEW-05: Raise default from 20 to 50
+
+*Generate-on-Enter Posts:*
+- POST-01: Strip `bodyMarkdown` from batch feed generation LLM call — generate only card-face fields (title, teaser hook/preview, keywords, contextLabel, sourceType, narrativeMode)
+- POST-02: On-enter streaming LLM call in PostDetailScreen — generates bodyMarkdown, whyCare, takeaway, quickAskPrompts, streamed into pre-built UI shell
+- POST-03: Pre-built detail page UI shell (heading, essay container, follow-up section) renders independently of LLM content — no layout shift or broken UI during streaming
+- POST-04: Cache generated essay to DB/localStorage on completion so re-visits are instant
+- POST-05: Video posts — keep transcript fetch in background, defer LLM summary (serviceName: 'video-summary') to on-enter streaming call
+- POST-06: News posts — keep web search in background, defer LLM summary to on-enter streaming call
+- POST-07: Text-art posts get a detail page with vivid, story-focused or conversation-focused essay (generated on-enter)
+- POST-08: Error state with retry button if on-enter LLM call fails
+
+**Depends on:** None (independent fix)
+
+**Success Criteria:**
+1. All due flashcards visible in review queue; daily goal progress shown (not hard cap)
+2. Feed loads in <3s (card-face-only generation, no essay bodies)
+3. Opening any post streams essay body into pre-rendered UI shell — first words visible in <1s
+4. UI shell (heading, body container, follow-up section) renders before LLM response begins — incomplete/streaming response never damages layout
+5. Generated essays cached and persist across re-visits
+6. Video post detail streams transcript summary on-enter (transcript pre-fetched in background)
+7. News post detail streams summary on-enter (web search results pre-fetched in background)
+8. Text-art posts open a detail page with story/conversation-focused essay
+9. No regression in existing feed, post detail, or review functionality
+
+**Plans:** 3 plans (2 waves)
+
+Plans:
+- [ ] 21-01-PLAN.md — Review cap removal + daily goal progress (REVIEW-01..05)
+- [ ] 21-02-PLAN.md — Card-face-only batch generation + post-essay service + video/news deferrals (POST-01, POST-04..06)
+- [ ] 21-03-PLAN.md — PostDetailScreen on-enter streaming + UI shell + caching + error handling (POST-02, POST-03, POST-07, POST-08)
+
 ---
 
-_Created: 2026-03-26 | v1.1 Roadmap | 14 phases | 81 requirements mapped_
+_Created: 2026-03-26 | v1.1 Roadmap | 15 phases | 89 requirements mapped_
