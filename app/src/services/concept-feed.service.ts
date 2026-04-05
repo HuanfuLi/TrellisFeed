@@ -8,6 +8,8 @@ import { graphService } from './graph.service.ts';
 import { youtubeService } from './youtube.service';
 import { newsService } from './news.service';
 import { webSearch } from './web-search.service';
+import { defaultStrategy } from './orchestration-strategy.service';
+import { trajectoryAnalyzerService } from './trajectoryAnalyzer.service';
 
 const STORAGE_KEY = 'echolearn_daily_posts';
 const CONNECTION_POSTS_KEY = 'echolearn_connection_posts';
@@ -765,6 +767,28 @@ export function buildPostOriginContext(post: DailyPost, questions: Question[]): 
   };
 }
 
+/**
+ * Apply strategy bias: sort posts so those whose sourceQuestionIds overlap
+ * with priorityConceptIds appear first. This is a light bias (sorting, not
+ * filtering) per D-01 "strategy provides hints".
+ */
+function applyStrategyBias(posts: DailyPost[]): DailyPost[] {
+  try {
+    const signals = trajectoryAnalyzerService.aggregateSignals();
+    const hints = defaultStrategy.computeHints(signals);
+    if (hints.priorityConceptIds.length > 0) {
+      posts.sort((a, b) => {
+        const aMatch = hints.priorityConceptIds.some(id => a.sourceQuestionIds?.includes(id)) ? 1 : 0;
+        const bMatch = hints.priorityConceptIds.some(id => b.sourceQuestionIds?.includes(id)) ? 1 : 0;
+        return bMatch - aMatch;
+      });
+    }
+  } catch {
+    // Strategy bias is optional — don't break feed if signals unavailable
+  }
+  return posts;
+}
+
 export const conceptFeedService = {
   async getDailyPosts(questions: Question[]): Promise<DailyPost[]> {
     // Exclude off-topic/flagged questions from post generation
@@ -793,7 +817,7 @@ export const conceptFeedService = {
       _backgroundGenerateTextArt(styledResult);
       // Interleave news posts (NEWS-02, NEWS-03)
       const newsPosts = newsService.getCachedNewsPosts();
-      return interleaveNewsPosts(styledResult, newsPosts);
+      return applyStrategyBias(interleaveNewsPosts(styledResult, newsPosts));
     }
 
     // If the cache has posts for today but just the fingerprint changed (e.g. new
@@ -818,7 +842,7 @@ export const conceptFeedService = {
       _backgroundGenerateTextArt(styledResult2);
       // Interleave news posts (NEWS-02, NEWS-03)
       const newsPosts2 = newsService.getCachedNewsPosts();
-      return interleaveNewsPosts(styledResult2, newsPosts2);
+      return applyStrategyBias(interleaveNewsPosts(styledResult2, newsPosts2));
     }
 
     let generated: ParsedGeneration = { posts: [], connectionCards: [] };
@@ -863,7 +887,7 @@ export const conceptFeedService = {
 
     // Interleave news posts (NEWS-02, NEWS-03)
     const newsPosts3 = newsService.getCachedNewsPosts();
-    return interleaveNewsPosts(enrichedPosts, newsPosts3);
+    return applyStrategyBias(interleaveNewsPosts(enrichedPosts, newsPosts3));
   },
 
   /** Return cached connection card data for the current session. */
@@ -898,7 +922,7 @@ export const conceptFeedService = {
     if (!allStyled && aiPosts.length > 0) _persistStylesToCache(result);
     _backgroundGenerateTextArt(result);
     const newsPosts = newsService.getCachedNewsPosts();
-    return interleaveNewsPosts(result, newsPosts);
+    return applyStrategyBias(interleaveNewsPosts(result, newsPosts));
   },
 
   /** Delete a single post by ID from both the daily cache and the connection store. */
