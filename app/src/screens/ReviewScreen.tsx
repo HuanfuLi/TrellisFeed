@@ -11,6 +11,8 @@ import type { DailyReviewMap, FlashCard, StructuralSignalType } from '../types';
 import { buildDailyReviewMap, recordStructuralSignalPatch } from '../services/canonical-knowledge.service';
 import { questionService } from '../services/question.service';
 import { graphService } from '../services/graph.service';
+import { reviewService } from '../services/review.service';
+import { settingsService } from '../services/settings.service';
 
 // ─── Library view ─────────────────────────────────────────────────────────────
 
@@ -275,6 +277,10 @@ export function ReviewScreen() {
   const reviewItems = filteredItems && filteredItems.length > 0 ? filteredItems : items;
 
   const [reviewed, setReviewed] = useState(0);
+  const [reviewedToday, setReviewedToday] = useState(() => reviewService.getReviewedTodayCount());
+  const dailyGoal = useMemo(() => {
+    try { return settingsService.getSync().review.dailyLimit || 50; } catch { return 50; }
+  }, []);
   const [totalRatings, setTotalRatings] = useState(0);
   const [done, setDone] = useState(false);
   const [showLibrary, setShowLibrary] = useState(false);
@@ -341,6 +347,7 @@ export function ReviewScreen() {
       }
     }
     setTotalRatings((prev) => prev + rating);
+    setReviewedToday(prev => prev + 1);
     const nextReviewed = reviewed + 1;
     setReviewed(nextReviewed);
     if (nextReviewed >= total || reviewItems.length <= 1) {
@@ -582,6 +589,18 @@ export function ReviewScreen() {
           <span style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>
             {reviewed} / {total} reviewed
           </span>
+        </div>
+        {/* Daily goal progress */}
+        <div style={{ marginBottom: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+            <span style={{ fontSize: '0.82rem', color: 'var(--muted-foreground)' }}>
+              Daily Goal
+            </span>
+            <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--foreground)' }}>
+              {reviewedToday}/{dailyGoal} reviewed today
+            </span>
+          </div>
+          <ProgressBar value={dailyGoal > 0 ? Math.min((reviewedToday / dailyGoal) * 100, 100) : 0} />
         </div>
         <ProgressBar value={progress} />
       </div>
