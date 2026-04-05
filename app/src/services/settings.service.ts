@@ -63,6 +63,9 @@ const defaultSettings: AppSettings = {
   youtube: {
     apiKey: '',
   },
+  webSearch: {
+    tavilyApiKey: '',
+  },
 };
 
 function deepMerge(defaults: AppSettings, stored: Partial<AppSettings>): AppSettings {

@@ -388,6 +388,7 @@ export function PostDetailScreen() {
 
   const messages = session?.messages ?? [];
   const isConnectionPost = post.sourceType === 'connection';
+  const isNews = post.sourceType === 'news';
   const meta = connectionMetaRef.current;
 
   return (
@@ -435,6 +436,32 @@ export function PostDetailScreen() {
               {noun}
             </span>
           ))}
+        </div>
+      )}
+
+      {/* News source attribution */}
+      {isNews && post.newsMeta?.sources && post.newsMeta.sources.length > 0 && (
+        <div style={{
+          marginBottom: '16px',
+          paddingBottom: '12px',
+          borderBottom: '1px solid var(--border)',
+        }}>
+          <span style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            Sources
+          </span>
+          <div style={{ marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            {post.newsMeta.sources.map((s) => (
+              <a
+                key={s.index}
+                href={s.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ fontSize: '0.82rem', color: 'var(--primary-40)', textDecoration: 'none' }}
+              >
+                [{s.index}] {s.title}
+              </a>
+            ))}
+          </div>
         </div>
       )}
 
@@ -518,7 +545,9 @@ export function PostDetailScreen() {
             AI Summary
           </h3>
         )}
-        <Markdown>{post.bodyMarkdown}</Markdown>
+        <div style={isNews ? { fontFamily: "Georgia, 'Times New Roman', serif" } : undefined}>
+          <Markdown>{post.bodyMarkdown}</Markdown>
+        </div>
         {post.sourceType !== 'video' && post.takeaway && (
           <div
             style={{

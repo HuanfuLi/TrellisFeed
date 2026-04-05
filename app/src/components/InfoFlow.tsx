@@ -54,6 +54,7 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
   // Video/short posts skip AI image generation entirely (D-08: use YouTube thumbnail).
   const isVideoPost = post.sourceType === 'video';
   const isShortPost = post.sourceType === 'short';
+  const isNewsPost = post.sourceType === 'news';
   const presentationStyle = post.presentationStyle;
 
   // Short video inline playback state (D-02)
@@ -62,17 +63,18 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
   // Non-image presentation styles and video/short posts skip image generation entirely
   const [image, setImage] = useState<GeneratedImage | null>(null);
   const [imageResolved, setImageResolved] = useState(
-    () => isVideoPost || isShortPost
+    () => isVideoPost || isShortPost || isNewsPost
       || presentationStyle === 'text-art'
       || presentationStyle === 'image-less'
       || presentationStyle === 'short'
       || presentationStyle === 'video'
+      || presentationStyle === 'news'
       || imageGenerationService.hasCachedImage(post.id, inferImageStyle(post)),
   );
 
   useEffect(() => {
     // Skip AI image generation for non-image presentation styles
-    if (isVideoPost || isShortPost) return;
+    if (isVideoPost || isShortPost || isNewsPost) return;
     if (presentationStyle && presentationStyle !== 'image') {
       setImageResolved(true);
       return;
@@ -100,7 +102,7 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
 
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [post.id, isVideoPost, isShortPost, presentationStyle]);
+  }, [post.id, isVideoPost, isShortPost, isNewsPost, presentationStyle]);
 
   // Don't render the card until the image request has resolved (success or failure)
   if (!imageResolved) return null;
@@ -125,7 +127,120 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
           : 'radial-gradient(circle at top right, color-mix(in srgb, var(--primary-80) 55%, transparent), transparent 40%), var(--card)',
       }}
     >
-      <button
+      {/* News card (D-09) — newspaper style */}
+      {isNewsPost && (
+        <div
+          onClick={() => onOpen(post.id, post)}
+          style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            padding: '24px 20px',
+            borderRadius: 'var(--radius-xl)',
+            backgroundColor: '#faf8f4',
+            border: '1px solid #e8e2d8',
+            cursor: 'pointer',
+            fontFamily: "Georgia, 'Times New Roman', 'Noto Serif', serif",
+            position: 'relative',
+            overflow: 'hidden',
+            animation: isActive ? 'card-slide-in 0.35s ease' : 'none',
+          }}
+        >
+          {/* Subtle dot grid background pattern */}
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            backgroundImage: 'radial-gradient(circle, #d4c9b8 0.5px, transparent 0.5px)',
+            backgroundSize: '20px 20px',
+            opacity: 0.15,
+            pointerEvents: 'none',
+          }} />
+
+          {/* Source attribution — uppercase, small */}
+          {post.newsMeta?.sources?.[0] && (
+            <span style={{
+              fontSize: '0.7rem',
+              color: '#888',
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
+              marginBottom: '12px',
+              fontFamily: 'system-ui, -apple-system, sans-serif',
+              position: 'relative',
+            }}>
+              {(() => {
+                try { return new URL(post.newsMeta.sources[0].url).hostname.replace('www.', ''); }
+                catch { return 'Web'; }
+              })()}
+            </span>
+          )}
+
+          {/* Headline */}
+          <h3 style={{
+            fontSize: '1.25rem',
+            fontWeight: 700,
+            lineHeight: 1.3,
+            color: '#1a1a1a',
+            marginBottom: '10px',
+            position: 'relative',
+          }}>
+            {normalizedTitle}
+          </h3>
+
+          {/* Preview text */}
+          <p style={{
+            fontSize: '0.9rem',
+            lineHeight: 1.5,
+            color: '#444',
+            position: 'relative',
+            flex: 1,
+          }}>
+            {normalizedPreview}
+          </p>
+
+          {/* Bottom rule line — newspaper divider */}
+          <div style={{
+            borderTop: '1px solid #d4c9b8',
+            marginTop: '16px',
+            paddingTop: '8px',
+            position: 'relative',
+          }}>
+            {/* Bottom tags */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+              <span style={{
+                fontSize: '0.65rem',
+                fontWeight: 700,
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                color: '#6B4C35',
+                fontFamily: 'system-ui, -apple-system, sans-serif',
+                backgroundColor: 'rgba(107,76,53,0.08)',
+                padding: '3px 8px',
+                borderRadius: '100px',
+              }}>
+                NEWS
+              </span>
+              {post.sourceQuestionTitles?.slice(0, 1).map((title) => (
+                <span
+                  key={title}
+                  style={{
+                    fontSize: '0.65rem',
+                    color: '#999',
+                    fontFamily: 'system-ui, -apple-system, sans-serif',
+                    padding: '3px 8px',
+                    borderRadius: '100px',
+                    border: '1px solid #e8e2d8',
+                  }}
+                >
+                  {title}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!isNewsPost && <button
         onClick={isShortPost ? undefined : () => onOpen(post.id, post)}
         style={{
           flex: 1,
@@ -385,7 +500,7 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
             </div>
           </div>
         )}
-      </button>
+      </button>}
     </div>
   );
 }
