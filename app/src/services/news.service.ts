@@ -9,12 +9,11 @@
  */
 
 import { webSearch } from './web-search.service';
-import { chatCompletion } from '../providers/llm/index';
 import { settingsService } from './settings.service';
 import { questionService } from './question.service';
 import { today } from '../lib/date';
 import { eventBus } from '../lib/event-bus';
-import type { DailyPost, SourceCitation } from '../types';
+import type { DailyPost } from '../types';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -133,70 +132,31 @@ async function generateNewsPosts(count?: number): Promise<DailyPost[]> {
     for (let index = 0; index < topHits.length; index++) {
       const hit = topHits[index];
 
-      try {
-        const raw = await chatCompletion(
-          [
-            {
-              role: 'system',
-              content:
-                'You are a learning digest writer. Create a short educational news summary (150-250 words) from the following web search result. Write a catchy headline, a brief preview sentence, and the full summary. Format as JSON: { "headline": "...", "preview": "...", "summary": "...", "whyCare": "...", "takeaway": "..." }. Keep it relevant to the learner\'s concepts.',
-            },
-            {
-              role: 'user',
-              content: `Title: ${hit.title}\nContent: ${hit.content}\nURL: ${hit.url}`,
-            },
-          ],
-          settings.llm,
-          { serviceName: 'news' },
-        );
+      const post: DailyPost = {
+        id: `news-${Date.now()}-${index}`,
+        sourceType: 'news',
+        presentationStyle: 'news',
+        title: hit.title.slice(0, 110),
+        teaser: {
+          hook: hit.title.slice(0, 110),
+          preview: hit.content.slice(0, 150),
+        },
+        bodyMarkdown: '',  // Deferred to on-enter streaming (POST-06)
+        whyCare: '',
+        takeaway: '',
+        newsMeta: { sources: [{ index: 1, title: hit.title, url: hit.url }], fetchedAt: Date.now() },
+        sourceQuestionIds: [],
+        sourceQuestionTitles: [],
+        keywords: [hit.concept],
+        narrativeMode: 'mechanism-breakdown',
+        contextLabel: extractDomain(hit.url),
+        quickAskPrompts: [],
+        generatedAt: Date.now(),
+        origin: 'ai',
+        date: today(),
+      };
 
-        // Parse LLM JSON response
-        const jsonMatch = raw.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) continue;
-
-        const parsed = JSON.parse(jsonMatch[0]) as {
-          headline?: string;
-          preview?: string;
-          summary?: string;
-          whyCare?: string;
-          takeaway?: string;
-        };
-
-        if (!parsed.headline || !parsed.summary) continue;
-
-        const sources: SourceCitation[] = [
-          { index: 1, title: hit.title, url: hit.url },
-        ];
-
-        const post: DailyPost = {
-          id: `news-${Date.now()}-${index}`,
-          sourceType: 'news',
-          presentationStyle: 'news',
-          title: parsed.headline,
-          teaser: {
-            hook: parsed.headline,
-            preview: parsed.preview || parsed.summary.slice(0, 150),
-          },
-          bodyMarkdown: parsed.summary,
-          whyCare: parsed.whyCare || '',
-          takeaway: parsed.takeaway || '',
-          newsMeta: { sources, fetchedAt: Date.now() },
-          sourceQuestionIds: [],
-          sourceQuestionTitles: [],
-          keywords: [hit.concept],
-          narrativeMode: 'mechanism-breakdown',
-          contextLabel: extractDomain(hit.url),
-          quickAskPrompts: [],
-          generatedAt: Date.now(),
-          origin: 'ai',
-          date: today(),
-        };
-
-        posts.push(post);
-      } catch {
-        // Skip individual post generation failures
-        continue;
-      }
+      posts.push(post);
     }
 
     // 5. Cache and emit

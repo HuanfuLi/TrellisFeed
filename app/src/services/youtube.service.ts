@@ -622,21 +622,14 @@ export const youtubeService = {
 
       const transcript = await youtubeService.fetchTranscript(result.videoId);
 
-      const summaryResult = await youtubeService.summarizeTranscript(
-        transcript,
-        result.title,
-        result.description,
-      );
-      const bodyMarkdown = summaryResult.success && summaryResult.data
-        ? summaryResult.data
-        : 'Summary unavailable — please watch the video for details.';
+      const bodyMarkdown = ''; // Deferred to on-enter streaming (POST-05)
 
       const videoMeta: VideoMetadata = {
         videoId: result.videoId,
         channelTitle: result.channelTitle,
         thumbnailUrl: result.thumbnailUrl,
         transcript: transcript ?? undefined,
-        summary: summaryResult.data,
+        summary: undefined,
       };
 
       const keywords = sourceTitles.length > 0
