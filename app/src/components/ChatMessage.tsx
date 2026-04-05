@@ -1,6 +1,8 @@
 import { useState, useRef, memo } from 'react';
-import { Pencil, RefreshCw, Trash2 } from 'lucide-react';
+import { Pencil, RefreshCw, Trash2, Globe } from 'lucide-react';
 import { Markdown } from './Markdown';
+import { extractCitations } from '../services/web-search.service';
+import type { SourceCitation } from '../types';
 
 export type MessageType = 'user' | 'ai';
 
@@ -24,6 +26,66 @@ interface ChatMessageProps {
   questionId?: string;
   flagged?: boolean;
   onQuestionOverride?: (questionId: string, shouldSave: boolean) => void;
+}
+
+function SourcesSection({ sources }: { sources: SourceCitation[] }) {
+  const [expanded, setExpanded] = useState(false);
+  if (sources.length === 0) return null;
+  return (
+    <div style={{ marginTop: '12px' }}>
+      <button
+        onClick={() => setExpanded(!expanded)}
+        style={{
+          fontSize: '0.78rem',
+          color: 'var(--muted-foreground)',
+          cursor: 'pointer',
+          background: 'none',
+          border: 'none',
+          padding: '4px 0',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '5px',
+        }}
+      >
+        <Globe size={13} />
+        <span>{sources.length} source{sources.length > 1 ? 's' : ''}</span>
+        <span style={{
+          display: 'inline-block',
+          transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
+          transition: 'transform 0.2s',
+          fontSize: '0.7rem',
+        }}>
+          &#x25B2;
+        </span>
+      </button>
+      {expanded && (
+        <div style={{
+          marginTop: '8px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '6px',
+          paddingLeft: '4px',
+        }}>
+          {sources.map((s) => (
+            <a
+              key={s.index}
+              href={s.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                fontSize: '0.8rem',
+                color: 'var(--primary-40)',
+                textDecoration: 'none',
+                lineHeight: 1.4,
+              }}
+            >
+              [{s.index}] {s.title}
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export const ChatMessage = memo(function ChatMessage({
@@ -212,7 +274,15 @@ export const ChatMessage = memo(function ChatMessage({
             wordBreak: 'break-word',
           }}
         >
-          <Markdown>{content}</Markdown>
+          {(() => {
+            const { body, sources } = extractCitations(content);
+            return (
+              <>
+                <Markdown>{body}</Markdown>
+                <SourcesSection sources={sources} />
+              </>
+            );
+          })()}
           {type === 'ai' && flagged && (
             <div style={{
               display: 'flex',
