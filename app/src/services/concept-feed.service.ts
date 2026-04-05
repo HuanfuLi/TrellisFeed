@@ -6,6 +6,8 @@ import { settingsService } from './settings.service.ts';
 import { plannerService } from './planner.service.ts';
 import { graphService } from './graph.service.ts';
 import { youtubeService } from './youtube.service';
+import { newsService } from './news.service';
+import { webSearch } from './web-search.service';
 
 const STORAGE_KEY = 'echolearn_daily_posts';
 const CONNECTION_POSTS_KEY = 'echolearn_connection_posts';
@@ -42,7 +44,7 @@ interface CachedDailyPosts {
   connectionCards?: ConnectionCardData[];
 }
 
-const VALID_SOURCE_TYPES = new Set<DailyPost['sourceType']>(['recent', 'related', 'resurfaced', 'starter', 'mixed', 'connection', 'video', 'short', 'text-art']);
+const VALID_SOURCE_TYPES = new Set<DailyPost['sourceType']>(['recent', 'related', 'resurfaced', 'starter', 'mixed', 'connection', 'video', 'short', 'text-art', 'news']);
 
 export const STARTER_POSTS: DailyPost[] = [
   makeStarterPost(
@@ -469,6 +471,21 @@ async function generateDailyPostsWithLLM(questions: Question[], date: string): P
 
   const candidates = graphService.getSemanticCandidates(settings.embeddingDebug.similarityThreshold);
 
+  // Enrich with web context (NEWS-01) — best-effort, non-blocking per concept
+  let webContext = '';
+  try {
+    const primaryConcept = context.recent[0]?.title || context.recent[0]?.content?.slice(0, 50);
+    if (primaryConcept) {
+      const searchResult = await webSearch(primaryConcept + ' latest research findings', { maxResults: 3 });
+      if (searchResult.success && searchResult.data?.results.length) {
+        webContext = '\n\nRecent web context (use to enrich posts with current information):\n' +
+          searchResult.data.results
+            .map((r) => `- ${r.title}: ${r.content.slice(0, 200)}`)
+            .join('\n');
+      }
+    }
+  } catch { /* web enrichment is best-effort */ }
+
   const raw = await chatCompletion(
     [
       {
@@ -480,7 +497,7 @@ async function generateDailyPostsWithLLM(questions: Question[], date: string): P
           'Return only valid JSON.',
         ].join('\n'),
       },
-      { role: 'user', content: buildGenerationPrompt(date, context, candidates) },
+      { role: 'user', content: buildGenerationPrompt(date, context, candidates) + webContext },
     ],
     settings.llm,
     { serviceName: 'posts' },
@@ -668,6 +685,43 @@ function _backgroundGenerateShorts(questions: Question[]): void {
   youtubeService.generateShortPosts(questions, 2).catch(() => {}).finally(() => { _shortsBgRunning = false; });
 }
 
+// ─── News post helpers ──────────────────────────────────────────────────────
+
+const MAX_NEWS_PER_DAY = 3;
+
+/**
+ * Fire-and-forget news generation so the feed is never blocked on Tavily API
+ * or LLM summarization. Results are written to the news cache;
+ * they will appear on the next feed access (pull-to-refresh or navigation).
+ */
+let _newsBgRunning = false;
+function _backgroundGenerateNews(): void {
+  if (_newsBgRunning) return;
+  if (newsService.getCachedNewsPosts().length > 0) return; // already generated today
+  _newsBgRunning = true;
+  newsService.generateNewsPosts(MAX_NEWS_PER_DAY)
+    .catch(() => {})
+    .finally(() => { _newsBgRunning = false; });
+}
+
+/**
+ * Interleave news posts into the feed. Inserts a news post after every 3rd
+ * feed post. Remaining news posts are appended at the end.
+ */
+function interleaveNewsPosts(feedPosts: DailyPost[], news: DailyPost[]): DailyPost[] {
+  if (news.length === 0) return feedPosts;
+  const result: DailyPost[] = [];
+  let nIdx = 0;
+  for (let i = 0; i < feedPosts.length; i++) {
+    result.push(feedPosts[i]);
+    if ((i + 1) % 3 === 0 && nIdx < news.length) {
+      result.push(news[nIdx++]);
+    }
+  }
+  while (nIdx < news.length) result.push(news[nIdx++]);
+  return result;
+}
+
 /**
  * Interleave video posts into AI posts. Inserts a video after every 2nd AI post.
  * Remaining video posts are appended at the end.
@@ -727,6 +781,7 @@ export const conceptFeedService = {
       const allVideos = [...videoPosts, ...shortPosts];
       _backgroundGenerateVideos();
       _backgroundGenerateShorts(questions);
+      _backgroundGenerateNews();
       // If cached posts already have presentationStyle assigned, use them directly;
       // otherwise assign styles and persist back to cache.
       const allStyled = aiPosts.length > 0 && aiPosts.every(p => p.presentationStyle);
@@ -736,7 +791,9 @@ export const conceptFeedService = {
       if (!allStyled && aiPosts.length > 0) _persistStylesToCache(styledResult);
       // Generate text-art content in background for any text-art posts missing it
       _backgroundGenerateTextArt(styledResult);
-      return styledResult;
+      // Interleave news posts (NEWS-02, NEWS-03)
+      const newsPosts = newsService.getCachedNewsPosts();
+      return interleaveNewsPosts(styledResult, newsPosts);
     }
 
     // If the cache has posts for today but just the fingerprint changed (e.g. new
@@ -752,13 +809,16 @@ export const conceptFeedService = {
       const allVideos = [...videoPosts, ...shortPosts];
       _backgroundGenerateVideos();
       _backgroundGenerateShorts(questions);
+      _backgroundGenerateNews();
       const allStyled2 = aiPosts.length > 0 && aiPosts.every(p => p.presentationStyle);
       const styledResult2 = allStyled2
         ? [...aiPosts, ...allVideos.map(p => ({ ...p, presentationStyle: (p.sourceType === 'short' ? 'short' : 'video') as PresentationStyle }))]
         : assignPresentationStyles(aiPosts, allVideos);
       if (!allStyled2 && aiPosts.length > 0) _persistStylesToCache(styledResult2);
       _backgroundGenerateTextArt(styledResult2);
-      return styledResult2;
+      // Interleave news posts (NEWS-02, NEWS-03)
+      const newsPosts2 = newsService.getCachedNewsPosts();
+      return interleaveNewsPosts(styledResult2, newsPosts2);
     }
 
     let generated: ParsedGeneration = { posts: [], connectionCards: [] };
@@ -786,6 +846,7 @@ export const conceptFeedService = {
     const shortPosts = youtubeService.getCachedShortPosts();
     _backgroundGenerateVideos();
     _backgroundGenerateShorts(questions);
+    _backgroundGenerateNews();
     // Only style new posts — preserved old posts keep their existing presentationStyle
     const feedPosts = allPosts.filter((p) => p.sourceType !== 'connection');
     const unstyledPosts = feedPosts.filter(p => !p.presentationStyle);
@@ -800,7 +861,9 @@ export const conceptFeedService = {
     // Persist presentationStyle and textArtContent back to cache
     _persistStylesToCache(enrichedPosts);
 
-    return enrichedPosts;
+    // Interleave news posts (NEWS-02, NEWS-03)
+    const newsPosts3 = newsService.getCachedNewsPosts();
+    return interleaveNewsPosts(enrichedPosts, newsPosts3);
   },
 
   /** Return cached connection card data for the current session. */
