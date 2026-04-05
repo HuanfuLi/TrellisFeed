@@ -433,6 +433,67 @@ Plans:
 - **Phase 17** must complete before Phase 18 (video post types and YouTube service needed for shorts extension)
 - **Phase 18** must complete before Phase 19 (feed mix and presentation styles needed for news post integration)
 
+## Phase 20: Orchestration Strategy & Diagnostic Dialogue
+
+**Goal:** Formalize the trajectory-to-planner pipeline with an OrchestrationStrategy interface for decentralized learning hints. Enhance Planner check-in into multi-turn Socratic diagnostic dialogue. Replace flat planner suggestions with portal cards linking to posts, flashcards, and questions.
+
+**Requirements:**
+- ORCH-01: Define OrchestrationStrategy interface on top of trajectoryAnalyzerService
+- ORCH-02: Feed service consumes strategy hints to bias post selection toward weak areas
+- ORCH-03: Planner scoring incorporates strategy hints (retrieval vs discovery mode)
+- DIAG-01: Multi-turn Socratic check-in — LLM asks follow-up questions based on extracted signals
+- DIAG-02: Conversation rendered within existing PlannerScreen check-in UI
+- DIAG-03: Check-in signals (confusion, curiosity, confidence) update after each turn
+- PORTAL-01: Replace flat planner suggestions with portal cards
+- PORTAL-02: Portal card shows topic, description, and quick-access links to related posts/flashcards/questions
+- PORTAL-03: Portal card navigation uses existing moveNavigator pattern
+
+**Depends on:** Phase 19
+
+**Plans:** 0 plans
+
+Canonical refs: `.planning/phases/20-orchestration-strategy-diagnostic-dialogue/20-CONTEXT.md`
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 20 to break down)
+
 ---
 
-_Created: 2026-03-26 | v1.1 Roadmap | 13 phases | 72 requirements mapped_
+## Requirement Traceability
+
+| Phase | Requirements | Count |
+|-------|--------------|-------|
+| Phase 7 | FEED-01, FEED-02, FEED-03, IMAGE-01, IMAGE-02, IMAGE-03 | 6 |
+| Phase 8 | FEED-04, FEED-05, FEED-06 | 3 |
+| Phase 9 | IMAGE-04, IMAGE-05 | 2 |
+| Phase 10 | PLANNER-01, PLANNER-02, PLANNER-03, PLANNER-05 | 4 |
+| Phase 11 | PLANNER-04, CARDS-01, CARDS-02, CARDS-03 | 4 |
+| Phase 12 | PLANNER-06, NAV-01, NAV-02 | 3 |
+| Phase 13 | PLANNER-07, PLANNER-08, PLANNER-09, PLANNER-10 | 4 |
+| Phase 14 | GRAPH-01, GRAPH-02, GRAPH-03, GRAPH-04, GRAPH-05, GRAPH-06 | 6 |
+| Phase 15 | CLUSTER-01, CLUSTER-02, CLUSTER-03, CLUSTER-04, CLUSTER-05, CLUSTER-06 | 6 |
+| Phase 16 | D-01, D-02, D-03, D-04, D-05, D-06, D-07, D-08, D-09 | 9 |
+| Phase 17 | D-01, D-02, D-03, D-04, D-05, D-06, D-07, D-08, D-09, D-10 | 10 |
+| Phase 18 | FEED-07, FEED-08, FEED-09, FEED-10, SHORT-01, SHORT-02, SHORT-03, TART-01, TART-02, TART-03, MIX-01, MIX-02, VIDEO-01 | 13 |
+| Phase 19 | WEB-01, WEB-02, WEB-03, WEB-04, NEWS-01, NEWS-02, NEWS-03, NEWS-04 | 8 |
+| Phase 20 | ORCH-01, ORCH-02, ORCH-03, DIAG-01, DIAG-02, DIAG-03, PORTAL-01, PORTAL-02, PORTAL-03 | 9 |
+| **Total** | **81 requirements** | **81** |
+
+---
+
+## Build Dependencies
+
+- **Phase 7** must complete before Phase 8 (image generation needed for carousel)
+- **Phase 8** must complete before Phase 9 (post detail page used for regeneration flow)
+- **Phase 9** can proceed in parallel with Phase 10
+- **Phase 10** should complete before Phase 11 (base suggestions before retry logic)
+- **Phase 11** is final polish (card designs, retry UX)
+- **Phase 15** must complete before Phase 16 (classifyAndAnchor call sites need to exist)
+- **Phase 16** must complete before Phase 17 (token tracking infrastructure needed for video-summary serviceName)
+- **Phase 17** must complete before Phase 18 (video post types and YouTube service needed for shorts extension)
+- **Phase 18** must complete before Phase 19 (feed mix and presentation styles needed for news post integration)
+- **Phase 19** must complete before Phase 20 (web search enrichment needed for strategy-driven content selection)
+
+---
+
+_Created: 2026-03-26 | v1.1 Roadmap | 14 phases | 81 requirements mapped_
