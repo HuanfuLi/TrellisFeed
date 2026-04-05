@@ -654,4 +654,5 @@ export type AppEvent =
   | { type: 'AUTO_GEN_UPDATED'; payload: { moves: unknown[]; count: number } }
   | { type: 'REORG_STARTED' }
   | { type: 'REORG_COMPLETED'; payload: { anchorCount: number; clusterCount: number } }
-  | { type: 'REORG_FAILED'; payload: { error: string } };
+  | { type: 'REORG_FAILED'; payload: { error: string } }
+  | { type: 'NEWS_POSTS_READY'; payload: { posts: DailyPost[] } };
