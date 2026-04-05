@@ -496,6 +496,7 @@ export interface SourceCitation {
   index: number;
   title: string;
   url: string;
+  snippet?: string;
 }
 
 export interface VideoMetadata {
@@ -505,13 +506,6 @@ export interface VideoMetadata {
   transcript?: string;
   summary?: string;
   duration?: string;
-}
-
-export interface SourceCitation {
-  index: number;
-  title: string;
-  url: string;
-  snippet?: string;
 }
 
 export interface DailyPost extends PostSnapshot {
