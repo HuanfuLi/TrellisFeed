@@ -5,22 +5,6 @@ import { eventBus } from '../lib/event-bus';
 import { questionService } from './question.service';
 
 const SM2_INTERVALS = [1, 2, 4, 7, 15, 30];
-const REVIEWED_TODAY_KEY = 'echolearn_reviewed_today';
-
-function getReviewedTodayCount(): number {
-  try {
-    const raw = localStorage.getItem(REVIEWED_TODAY_KEY);
-    if (!raw) return 0;
-    const parsed = JSON.parse(raw) as { date: string; count: number };
-    if (parsed.date !== today()) return 0;
-    return parsed.count;
-  } catch { return 0; }
-}
-
-function incrementReviewedToday(): void {
-  const current = getReviewedTodayCount();
-  localStorage.setItem(REVIEWED_TODAY_KEY, JSON.stringify({ date: today(), count: current + 1 }));
-}
 
 function calcNextInterval(
   reviewCount: number,
@@ -75,15 +59,12 @@ export const reviewService = {
     };
 
     flashcardService.updateReviewSchedule(cardId, newSchedule);
-    incrementReviewedToday();
     if (card.nodeId) {
       questionService.patchQuestion(card.nodeId, { lastReviewedAt: Date.now() });
     }
     eventBus.emit({ type: 'REVIEW_SUBMITTED', payload: { questionId: card.nodeId ?? cardId, rating } });
     return { success: true, data: newSchedule };
   },
-
-  getReviewedTodayCount,
 
   async skipReview(cardId: string): Promise<ServiceResult<void>> {
     const all = flashcardService.getAll();

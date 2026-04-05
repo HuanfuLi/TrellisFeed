@@ -46,6 +46,13 @@ export function useReview(): UseReviewReturn {
     });
   }, [reload]);
 
+  // Reload when a review is submitted so always-mounted screens (Home, Planner) see the updated count
+  useEffect(() => {
+    return eventBus.subscribe('REVIEW_SUBMITTED', () => {
+      void reload();
+    });
+  }, [reload]);
+
   const submitReview = useCallback(
     async (id: string, rating: 1 | 2 | 3 | 4 | 5): Promise<ReviewSchedule | null> => {
       const result = await reviewService.submitReview(id, rating);

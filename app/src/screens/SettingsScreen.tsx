@@ -976,9 +976,6 @@ export function SettingsScreen() {
       {/* Review Settings */}
       <SectionHeader icon={<BookOpen size={20} />} title="Review" />
       <Card style={{ marginBottom: '8px' }}>
-        <SettingRow label="Daily Goal" description="Target cards per day">
-          <TextInput value={reviewLimit} onChange={setReviewLimit} placeholder="20" />
-        </SettingRow>
         <SettingRow label="Notifications">
           <MaterialSwitch
             checked={reviewNotif}
