@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Play, Bookmark, Check, Trash2, Link2, RefreshCw, Sparkles,
@@ -16,7 +16,10 @@ import { transcribeAudio } from '../providers/stt';
 import { startVoiceRecording, stopVoiceRecording } from '../lib/voice-recorder';
 import { settingsService } from '../services/settings.service';
 import { Header, HEADER_HEIGHT } from '../components/ui/Header';
-import { MoveCard } from '../components/MoveCard';
+import { PortalCard, buildPortalData } from '../components/PortalCard';
+import { DiagnosticChat } from '../components/DiagnosticChat';
+import { diagnosticDialogueService } from '../services/diagnostic-dialogue.service';
+import type { DiagnosticSession } from '../services/diagnostic-dialogue.service';
 import { Capacitor } from '@capacitor/core';
 import { conceptFeedService } from '../services/concept-feed.service';
 import { plannerService } from '../services/planner.service';
@@ -324,6 +327,8 @@ export function PlannerScreen() {
 
   const [checkInInput, setCheckInInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [diagnosticSession, setDiagnosticSession] = useState<DiagnosticSession | null>(null);
+  const [isDialogueProcessing, setIsDialogueProcessing] = useState(false);
   const [showSavedChunks, setShowSavedChunks] = useState(false);
   const [showCheckInHistory, setShowCheckInHistory] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -337,22 +342,68 @@ export function PlannerScreen() {
 
   // refresh() is now auto-called by usePlanner on mount + PLANNER_UPDATED events
 
+  // Restore active diagnostic session on mount
+  useEffect(() => {
+    const active = diagnosticDialogueService.getActiveSession();
+    if (active && active.status === 'active') setDiagnosticSession(active);
+  }, []);
+
   const handleSubmitCheckIn = async () => {
     const content = checkInInput.trim();
     if (!content || isSubmitting) return;
     setIsSubmitting(true);
     try {
-      const result = await submitCheckIn(content);
+      const session = await diagnosticDialogueService.startSession(content);
       setCheckInInput('');
-      const msg = result.generatedChunkIds.length > 0
-        ? `Check-in processed: ${result.generatedChunkIds.length} suggestion(s) added`
-        : 'Check-in saved';
-      toast(msg, 'success');
+      setDiagnosticSession(session);
+      const followUp = await diagnosticDialogueService.generateFollowUp(session);
+      // generateFollowUp already pushes the turn onto session.turns and persists
+      setDiagnosticSession({ ...session });
     } catch {
-      toast('Failed to process check-in', 'error');
+      // Fallback to original single-shot check-in if dialogue fails
+      try {
+        const result = await submitCheckIn(content);
+        setCheckInInput('');
+        const msg = result.generatedChunkIds.length > 0
+          ? `Check-in processed: ${result.generatedChunkIds.length} suggestion(s) added`
+          : 'Check-in saved';
+        toast(msg, 'success');
+      } catch {
+        toast('Failed to process check-in', 'error');
+      }
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleDialogueReply = async (text: string) => {
+    if (!diagnosticSession) return;
+    setIsDialogueProcessing(true);
+    try {
+      const updated = await diagnosticDialogueService.processReply(diagnosticSession, text);
+      if (updated.status === 'completed') {
+        await handleDialogueDone();
+      } else {
+        const followUp = await diagnosticDialogueService.generateFollowUp(updated);
+        // generateFollowUp already pushes the assistant turn and persists
+        setDiagnosticSession({ ...updated });
+      }
+    } finally {
+      setIsDialogueProcessing(false);
+    }
+  };
+
+  const handleDialogueDone = async () => {
+    if (!diagnosticSession) return;
+    const finalized = diagnosticDialogueService.finalize(diagnosticSession);
+    const allText = finalized.turns.filter((t) => t.role === 'user').map((t) => t.content).join('\n');
+    try {
+      await submitCheckIn(allText);
+      toast('Check-in complete', 'success');
+    } catch {
+      toast('Failed to finalize check-in', 'error');
+    }
+    setDiagnosticSession(null);
   };
 
   const handleStartRecording = async () => {
@@ -464,52 +515,63 @@ export function PlannerScreen() {
         <p style={{ fontSize: '0.82rem', color: 'var(--muted-foreground)', lineHeight: 1.5, marginBottom: '10px' }}>
           What felt clear, fuzzy, or interesting? The system will turn your thoughts into actionable learning suggestions.
         </p>
-        <textarea
-          ref={textareaRef}
-          value={checkInInput}
-          onChange={(e) => setCheckInInput(e.target.value)}
-          rows={3}
-          placeholder="e.g. I finally get how closures work, but I'm still fuzzy on how they interact with async/await..."
-          disabled={isSubmitting}
-          style={{
-            width: '100%', resize: 'vertical', minHeight: '72px',
-            borderRadius: '12px', border: '1.5px solid var(--border)',
-            backgroundColor: 'var(--surface-variant)', color: 'var(--foreground)',
-            padding: '10px 12px', fontSize: '0.88rem', lineHeight: 1.45,
-          }}
-        />
-        <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-          <button
-            onClick={() => isRecording ? handleStopRecording() : void handleStartRecording()}
-            title={isRecording ? 'Stop recording' : 'Voice input'}
-            className="active-squish"
-            style={{
-              width: '44px', height: '44px', borderRadius: '12px',
-              backgroundColor: isRecording ? 'var(--danger)' : 'var(--surface-variant)',
-              color: isRecording ? 'white' : 'var(--muted-foreground)',
-              border: isRecording ? 'none' : '1px solid var(--border)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-            }}
-          >
-            {isRecording ? <X size={16} /> : <Mic size={16} />}
-          </button>
-          <button
-            onClick={() => void handleSubmitCheckIn()}
-            disabled={!checkInInput.trim() || isSubmitting}
-            className="active-squish"
-            style={{
-              flex: 1, padding: '9px 16px', borderRadius: '12px',
-              border: 'none', backgroundColor: 'var(--primary-40)', color: 'white',
-              fontSize: '0.88rem', fontWeight: 500,
-              cursor: !checkInInput.trim() || isSubmitting ? 'not-allowed' : 'pointer',
-              opacity: !checkInInput.trim() || isSubmitting ? 0.5 : 1,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-            }}
-          >
-            {isSubmitting && <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />}
-            {isSubmitting ? 'Processing...' : 'Check In'}
-          </button>
-        </div>
+        {diagnosticSession ? (
+          <DiagnosticChat
+            session={diagnosticSession}
+            onReply={(text) => { void handleDialogueReply(text); }}
+            onDone={() => { void handleDialogueDone(); }}
+            isProcessing={isDialogueProcessing}
+          />
+        ) : (
+          <>
+            <textarea
+              ref={textareaRef}
+              value={checkInInput}
+              onChange={(e) => setCheckInInput(e.target.value)}
+              rows={3}
+              placeholder="e.g. I finally get how closures work, but I'm still fuzzy on how they interact with async/await..."
+              disabled={isSubmitting}
+              style={{
+                width: '100%', resize: 'vertical', minHeight: '72px',
+                borderRadius: '12px', border: '1.5px solid var(--border)',
+                backgroundColor: 'var(--surface-variant)', color: 'var(--foreground)',
+                padding: '10px 12px', fontSize: '0.88rem', lineHeight: 1.45,
+              }}
+            />
+            <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+              <button
+                onClick={() => isRecording ? handleStopRecording() : void handleStartRecording()}
+                title={isRecording ? 'Stop recording' : 'Voice input'}
+                className="active-squish"
+                style={{
+                  width: '44px', height: '44px', borderRadius: '12px',
+                  backgroundColor: isRecording ? 'var(--danger)' : 'var(--surface-variant)',
+                  color: isRecording ? 'white' : 'var(--muted-foreground)',
+                  border: isRecording ? 'none' : '1px solid var(--border)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                }}
+              >
+                {isRecording ? <X size={16} /> : <Mic size={16} />}
+              </button>
+              <button
+                onClick={() => void handleSubmitCheckIn()}
+                disabled={!checkInInput.trim() || isSubmitting}
+                className="active-squish"
+                style={{
+                  flex: 1, padding: '9px 16px', borderRadius: '12px',
+                  border: 'none', backgroundColor: 'var(--primary-40)', color: 'white',
+                  fontSize: '0.88rem', fontWeight: 500,
+                  cursor: !checkInInput.trim() || isSubmitting ? 'not-allowed' : 'pointer',
+                  opacity: !checkInInput.trim() || isSubmitting ? 0.5 : 1,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                }}
+              >
+                {isSubmitting && <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />}
+                {isSubmitting ? 'Processing...' : 'Check In'}
+              </button>
+            </div>
+          </>
+        )}
       </Card>
 
       {/* Recent check-in history */}
@@ -572,20 +634,21 @@ export function PlannerScreen() {
           <EmptySectionHint text="No suggestions right now — tap refresh to check for new moves." />
         ) : (
           <>
-            {visibleAutoMoves.map((move) => (
-              <MoveCard
-                key={move.id}
-                move={move}
-                onAccept={acceptMove}
-                onDismiss={dismissMove}
-                onNavigate={(success) => {
-                  if (!success) {
-                    toast('Navigation failed — check move configuration', 'error');
-                  }
-                }}
-                onRegenerate={handleRegenerateMove}
-              />
-            ))}
+            {visibleAutoMoves.map((move) => {
+              const partial = buildPortalData(move.conceptId, move.title, move.reason);
+              const portalData = { ...partial, primaryAction: move.moveType, move };
+              return (
+                <PortalCard
+                  key={move.id}
+                  data={portalData}
+                  onAccept={acceptMove}
+                  onDismiss={dismissMove}
+                  onNavigate={() => {
+                    // Navigation handled internally by PortalCard
+                  }}
+                />
+              );
+            })}
             {suggestedChunks.map((chunk) => (
               <ChunkCard key={chunk.id} chunk={chunk} onStatusChange={updateChunkStatus} onDelete={deleteChunk} onRegenerate={handleRegenerateChunk} />
             ))}
