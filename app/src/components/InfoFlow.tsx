@@ -335,7 +335,6 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
                 lineHeight: 1.25,
                 color: 'var(--foreground)',
                 marginBottom: '10px',
-                textWrap: 'balance',
               }}
             >
               {normalizedHook}
@@ -454,7 +453,6 @@ function ConnectionCard({ conceptNounA, conceptNounB, bridgeInsight, cosineSimil
           lineHeight: 1.35,
           color: 'var(--foreground)',
           marginBottom: '20px',
-          textWrap: 'balance',
         }}
       >
         {bridgeInsight}
