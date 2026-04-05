@@ -976,7 +976,7 @@ export function SettingsScreen() {
       {/* Review Settings */}
       <SectionHeader icon={<BookOpen size={20} />} title="Review" />
       <Card style={{ marginBottom: '8px' }}>
-        <SettingRow label="Daily Limit" description="Max cards per day">
+        <SettingRow label="Daily Goal" description="Target cards per day">
           <TextInput value={reviewLimit} onChange={setReviewLimit} placeholder="20" />
         </SettingRow>
         <SettingRow label="Notifications">
@@ -996,7 +996,7 @@ export function SettingsScreen() {
             variant="secondary"
             onClick={async () => {
               await settingsService.set('review', {
-                dailyLimit: parseInt(reviewLimit) || 20,
+                dailyLimit: parseInt(reviewLimit) || 50,
                 notificationsEnabled: reviewNotif,
                 reminderTime: reviewReminderTime,
               });
