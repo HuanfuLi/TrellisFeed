@@ -5,7 +5,7 @@ import { toast } from '../lib/toast';
 import { settingsService } from './settings.service';
 import { chatCompletion } from '../providers/llm';
 import { questionService } from './question.service';
-import { getDueProjectedFlashcards, getProjectedFlashcards } from './canonical-knowledge.service';
+// Projected flashcards removed (D-02 revised: only LLM-extracted flashcards shown)
 
 const STORAGE_KEY = 'echolearn_flashcards';
 
@@ -92,18 +92,13 @@ function defaultSchedule(): ReviewSchedule {
 
 export const flashcardService = {
   getAll(): FlashCard[] {
-    const projected = getProjectedFlashcards(questionService.getAll());
-    const extracted = loadAll();
-    const seen = new Set(projected.map((c) => c.id));
-    return [...projected, ...extracted.filter((c) => !seen.has(c.id))];
+    // Only return LLM-extracted flashcards — no projected Q&As as raw flashcards
+    return loadAll();
   },
 
   getDue(): FlashCard[] {
     const t = today();
-    const projected = getDueProjectedFlashcards(questionService.getAll());
-    const extracted = loadAll().filter((c) => c.pinned || c.reviewSchedule.nextReviewDate <= t);
-    const seen = new Set(projected.map((c) => c.id));
-    return [...projected, ...extracted.filter((c) => !seen.has(c.id))];
+    return loadAll().filter((c) => c.pinned || c.reviewSchedule.nextReviewDate <= t);
   },
 
   togglePin(id: string): void {
@@ -220,8 +215,8 @@ export const flashcardService = {
       const cards: FlashCard[] = parsed
         .filter((item) => item && typeof item === 'object' && (item.front || item.back))
         .map((item) => {
-        const front = String(item.front ?? '').slice(0, 120);
-        const back = String(item.back ?? '').slice(0, 200);
+        const front = String(item.front ?? '');
+        const back = String(item.back ?? '');
 
         // Find a matching question to inherit hierarchy labels (nodeId, rootLabel, etc.)
         // so the Review Map can place this card in the knowledge tree.

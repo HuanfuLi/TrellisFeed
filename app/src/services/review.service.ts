@@ -1,6 +1,7 @@
 import type { FlashCard, ReviewSchedule, ServiceResult } from '../types';
 import { today, addDays } from '../lib/date';
 import { flashcardService } from './flashcard.service';
+import { settingsService } from './settings.service';
 import { eventBus } from '../lib/event-bus';
 import { questionService } from './question.service';
 
@@ -25,7 +26,8 @@ function calcNextInterval(
 export const reviewService = {
   async getTodayReviewItems(): Promise<ServiceResult<FlashCard[]>> {
     const due = flashcardService.getDue();
-    return { success: true, data: due.slice(0, 10) };
+    const limit = settingsService.getSync().review.dailyLimit;
+    return { success: true, data: due.slice(0, limit) };
   },
 
   async getTodayReviewCount(): Promise<ServiceResult<number>> {
