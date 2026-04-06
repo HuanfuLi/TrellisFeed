@@ -94,14 +94,16 @@ function processSessionIfNeeded(session: ChatSession): void {
  * Tracked separately from flashcard processing — uses its own Set to avoid
  * duplicate generation without being blocked by session.processed.
  */
-const postGeneratedSessionIds = new Set<string>();
+// Track session ID + message count to detect new messages in the same session
+const postGeneratedSessionKeys = new Set<string>();
 function generateSessionPostsIfNeeded(session: ChatSession): void {
+  const key = `${session.id}:${session.messages.length}`;
   if (
     !session.messages.some((m) => m.type === 'user') ||
-    postGeneratedSessionIds.has(session.id)
+    postGeneratedSessionKeys.has(key)
   ) return;
 
-  postGeneratedSessionIds.add(session.id);
+  postGeneratedSessionKeys.add(key);
 
   void conceptFeedService.generateSessionPosts(session).then((posts) => {
     if (posts.length > 0) {
