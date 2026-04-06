@@ -6,6 +6,8 @@ import { ChatInput } from '../components/ChatInput';
 import { useQuestions } from '../state/useQuestions';
 import { sessionService } from '../services/session.service';
 import { flashcardService } from '../services/flashcard.service';
+import { conceptFeedService } from '../services/concept-feed.service';
+import { infiniteScrollService } from '../services/infiniteScroll.service';
 import type { ChatSession, SessionMessage } from '../types';
 import { formatDate } from '../lib/date';
 // NOTE: AskScreen uses questionService.askStreaming() (via useQuestions) exclusively for Q&A.
@@ -81,6 +83,16 @@ function processSessionIfNeeded(session: ChatSession): void {
     }).finally(() => {
       processingSessionIds.delete(session.id);
     });
+
+    // Generate session-based posts in background and enqueue for swipe-to-load.
+    // Only generate if the pending queue is low (< 4 posts).
+    if (infiniteScrollService.getPendingCount() < 4) {
+      void conceptFeedService.generateSessionPosts(session).then((posts) => {
+        if (posts.length > 0) {
+          infiniteScrollService.enqueuePosts(posts);
+        }
+      }).catch(() => { /* silent — feed still works without session posts */ });
+    }
   }
 }
 

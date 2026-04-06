@@ -16,6 +16,7 @@ import { conceptFeedService } from './concept-feed.service';
 
 let seenPostIds: Set<string> = new Set();
 let offset = 0;
+let pendingQueue: DailyPost[] = [];
 
 // ─── Service ──────────────────────────────────────────────────────────────────
 
@@ -41,25 +42,49 @@ export const infiniteScrollService = {
    */
   async loadNextBatch(questions: Question[], limit = 10): Promise<DailyPost[]> {
     try {
-      const batch = await conceptFeedService.generateMorePosts(questions, limit);
+      // Drain pending queue first (session-generated posts waiting to be shown)
+      const fromQueue: DailyPost[] = [];
+      while (pendingQueue.length > 0 && fromQueue.length < limit) {
+        const post = pendingQueue.shift()!;
+        if (!seenPostIds.has(post.id)) {
+          fromQueue.push(post);
+          if (seenPostIds.size < 500) seenPostIds.add(post.id);
+        }
+      }
+      if (fromQueue.length >= limit) {
+        offset += fromQueue.length;
+        return fromQueue;
+      }
 
-      // Filter out posts already shown
+      // Generate fresh posts to fill remaining slots
+      const remaining = limit - fromQueue.length;
+      const batch = await conceptFeedService.generateMorePosts(questions, remaining);
       const deduplicated = batch.filter((post) => !seenPostIds.has(post.id));
-
-      // Track new post IDs to prevent future duplicates.
-      // Cap at 500 entries to bound memory in long sessions.
       deduplicated.forEach((post) => {
         if (seenPostIds.size < 500) seenPostIds.add(post.id);
       });
 
-      // Increment pagination offset
-      offset += limit;
-
-      return deduplicated;
+      offset += fromQueue.length + deduplicated.length;
+      return [...fromQueue, ...deduplicated];
     } catch (err) {
       console.error('[infiniteScrollService] Batch load failed:', err);
       throw err; // Caller handles retry
     }
+  },
+
+  /**
+   * Push pre-generated posts into the pending queue.
+   * These will be served first on the next loadNextBatch call.
+   */
+  enqueuePosts(posts: DailyPost[]): void {
+    pendingQueue.push(...posts);
+  },
+
+  /**
+   * Get the current pending queue size.
+   */
+  getPendingCount(): number {
+    return pendingQueue.length;
   },
 
   /**
@@ -68,6 +93,7 @@ export const infiniteScrollService = {
   reset(): void {
     seenPostIds = new Set();
     offset = 0;
+    pendingQueue = [];
   },
 
   /**

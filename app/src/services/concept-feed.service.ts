@@ -1,5 +1,5 @@
 import { chatCompletion, chatStream } from '../providers/llm/index.ts';
-import type { DailyPost, PostNarrativeMode, PostOriginContext, PostSnapshot, PresentationStyle, Question } from '../types';
+import type { ChatSession, DailyPost, PostNarrativeMode, PostOriginContext, PostSnapshot, PresentationStyle, Question } from '../types';
 import { today } from '../lib/date.ts';
 import { eventBus } from '../lib/event-bus.ts';
 import { settingsService } from './settings.service.ts';
@@ -1059,6 +1059,157 @@ export const conceptFeedService = {
     _persistStylesToCache(enrichedMore);
 
     return enrichedMore;
+  },
+
+  /**
+   * Generate posts based on a completed session's Q&As, weighted by concept.
+   * Groups session questions by anchor/cluster, builds a weighted prompt
+   * (primary: session Q&As, secondary: same-anchor knowledge, background: other concepts),
+   * and generates 6 posts in one LLM call.
+   *
+   * Generated posts are pushed into infiniteScrollService's pending queue —
+   * they are NOT added to the feed immediately.
+   */
+  async generateSessionPosts(session: ChatSession): Promise<DailyPost[]> {
+    const allQuestions = questionService.getAll().filter(q => !q.flagged);
+    if (allQuestions.length === 0) return [];
+
+    // 1. Extract question IDs from session messages
+    const sessionQuestionIds = new Set(
+      session.messages
+        .filter(m => m.questionId)
+        .map(m => m.questionId!),
+    );
+    if (sessionQuestionIds.size === 0) return [];
+
+    const sessionQuestions = allQuestions.filter(q => sessionQuestionIds.has(q.id));
+    if (sessionQuestions.length === 0) return [];
+
+    // 2. Group session questions by anchor parent (concept)
+    const conceptGroups = new Map<string, { anchor: Question | null; questions: Question[] }>();
+    for (const q of sessionQuestions) {
+      const anchorId = q.parentId ?? 'ungrouped';
+      if (!conceptGroups.has(anchorId)) {
+        const anchor = anchorId !== 'ungrouped'
+          ? allQuestions.find(a => a.id === anchorId && a.isAnchorNode)
+          : null;
+        conceptGroups.set(anchorId, { anchor: anchor ?? null, questions: [] });
+      }
+      conceptGroups.get(anchorId)!.questions.push(q);
+    }
+
+    // 3. Build weighted prompt
+    const primaryLines: string[] = [];
+    const secondaryLines: string[] = [];
+
+    for (const [, group] of conceptGroups) {
+      const conceptName = group.anchor?.title || group.anchor?.content.slice(0, 50) || 'General';
+      primaryLines.push(`\n### Concept: ${conceptName} (just explored — high priority)`);
+      for (const q of group.questions) {
+        primaryLines.push(`Q: ${q.title || q.content.slice(0, 80)}`);
+        primaryLines.push(`A: ${(q.summary || q.answer).slice(0, 300)}`);
+      }
+
+      // Secondary: other Q&As under the same anchor (existing knowledge)
+      if (group.anchor) {
+        const sameAnchorQs = allQuestions.filter(
+          q => q.parentId === group.anchor!.id && !sessionQuestionIds.has(q.id) && !q.isAnchorNode,
+        ).slice(0, 3);
+        if (sameAnchorQs.length > 0) {
+          secondaryLines.push(`\n### Related knowledge in ${conceptName}`);
+          for (const q of sameAnchorQs) {
+            secondaryLines.push(`- ${q.title || q.content.slice(0, 60)}: ${(q.summary || q.answer).slice(0, 120)}`);
+          }
+        }
+      }
+    }
+
+    // Background: other concept areas (just names)
+    const sessionAnchorIds = new Set([...conceptGroups.keys()].filter(k => k !== 'ungrouped'));
+    const otherAnchors = allQuestions
+      .filter(q => q.isAnchorNode && !sessionAnchorIds.has(q.id))
+      .slice(0, 15)
+      .map(a => a.title || a.content.slice(0, 40));
+
+    const backgroundLine = otherAnchors.length > 0
+      ? `\n### Other concepts the user is learning\n${otherAnchors.join(', ')}`
+      : '';
+
+    // 4. Generate posts
+    const settings = settingsService.getSync();
+    if (!settings.preferences.aiConsentGiven || !settings.llm.isConfigured) return [];
+
+    const date = today();
+    const cached = loadCache();
+    const existingPosts = cached?.posts ?? [];
+    const existingTitles = existingPosts.map(p => p.title);
+    const avoidClause = existingTitles.length > 0
+      ? `\nIMPORTANT: Do NOT repeat topics already covered. Existing post titles to avoid:\n${existingTitles.slice(0, 20).map(t => `- ${t}`).join('\n')}\nChoose different angles, examples, or connections.`
+      : '';
+
+    try {
+      const raw = await chatCompletion(
+        [
+          {
+            role: 'system',
+            content: [
+              'You are an editorial learning writer.',
+              'Generate 6 learning posts. Focus primarily on the concepts the user just explored, but feel free to connect them to their broader knowledge.',
+              'Write rich, intriguing, accurate educational posts.',
+              'Do not write flashcards, tiny summaries, or listicles without a narrative spine.',
+              'Return only valid JSON.',
+            ].join('\n'),
+          },
+          {
+            role: 'user',
+            content: [
+              'Generate 6 learning posts based on what the user just studied.',
+              '',
+              '== Just explored (priority) ==',
+              ...primaryLines,
+              '',
+              '== Related knowledge in these areas ==',
+              ...secondaryLines,
+              '',
+              backgroundLine,
+              '',
+              'Each post must have a punchy teaserHook and a vivid teaserPreview.',
+              'teaserHook: max 8 words. Punchy, curiosity-driven.',
+              'teaserPreview: 130-170 characters. Vivid teaser, not a dry summary.',
+              'Vary narrative style: example-first, historical-story, contrast, analogy, false-intuition, mnemonic, mechanism-breakdown.',
+              'Every post must include: title, teaserHook, teaserPreview, narrativeMode, contextLabel, sourceType, sourceQuestionIds, keywords.',
+              'Do NOT include bodyMarkdown, whyCare, takeaway, or quickAskPrompts — these are generated on demand.',
+              'sourceType must be one of: "recent", "related", "resurfaced", "mixed".',
+              'Use only sourceQuestionIds from the provided context.',
+              avoidClause,
+            ].join('\n'),
+          },
+        ],
+        settings.llm,
+        { serviceName: 'posts' },
+      );
+
+      let newPosts = parseGeneratedPosts(raw, allQuestions, date, [], existingPosts.length).posts
+        .filter(p => !existingPosts.some(ep => ep.id === p.id));
+      newPosts = newPosts.slice(0, 6);
+
+      // Assign presentation styles and generate text-art
+      const styled = assignPresentationStyles(newPosts, []);
+      const enriched = await generateTextArtContent(styled);
+      _persistStylesToCache(enriched);
+
+      // Append to cache
+      if (enriched.length > 0) {
+        const allPosts = [...existingPosts, ...enriched];
+        const fingerprint = computeFingerprint(allQuestions);
+        saveCache({ date, fingerprint, posts: allPosts, connectionCards: cached?.connectionCards });
+      }
+
+      return enriched;
+    } catch (err) {
+      console.warn('[concept-feed] Session post generation failed:', err);
+      return [];
+    }
   },
 
   /**
