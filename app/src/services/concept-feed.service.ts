@@ -1166,12 +1166,9 @@ export const conceptFeedService = {
       const styled = assignPresentationStyles(newPosts, []);
       const enriched = await generateTextArtContent(styled);
 
-      // Append to daily cache
-      if (enriched.length > 0) {
-        const allPosts = [...existingPosts, ...enriched];
-        const fingerprint = computeFingerprint(allQuestions);
-        saveCache({ date, fingerprint, posts: allPosts, connectionCards: cached?.connectionCards });
-      }
+      // Do NOT save to daily cache — session posts go only to the pending queue
+      // via infiniteScrollService.enqueuePosts(). They enter the daily cache
+      // when the user swipes and loadNextBatch serves + caches them.
 
       return enriched;
     } catch (err) {

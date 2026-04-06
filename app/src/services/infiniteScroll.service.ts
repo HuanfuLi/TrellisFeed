@@ -43,14 +43,18 @@ export const infiniteScrollService = {
   async loadNextBatch(questions: Question[], limit = 6): Promise<DailyPost[]> {
     try {
       // Drain pending queue first (session-generated posts waiting to be shown)
+      console.log('[infinite] loadNextBatch: pendingQueue size:', pendingQueue.length, 'seenIds:', seenPostIds.size);
       const fromQueue: DailyPost[] = [];
       while (pendingQueue.length > 0 && fromQueue.length < limit) {
         const post = pendingQueue.shift()!;
-        if (!seenPostIds.has(post.id)) {
+        const seen = seenPostIds.has(post.id);
+        console.log('[infinite] queue post:', post.id.slice(0, 30), seen ? 'SKIP (seen)' : 'TAKE');
+        if (!seen) {
           fromQueue.push(post);
           if (seenPostIds.size < 500) seenPostIds.add(post.id);
         }
       }
+      console.log('[infinite] fromQueue:', fromQueue.length, 'of', limit);
       if (fromQueue.length >= limit) {
         offset += fromQueue.length;
         return fromQueue;
@@ -58,6 +62,7 @@ export const infiniteScrollService = {
 
       // Generate fresh posts to fill remaining slots
       const remaining = limit - fromQueue.length;
+      console.log('[infinite] generating', remaining, 'fresh posts via LLM');
       const batch = await conceptFeedService.generateMorePosts(questions, remaining);
       const deduplicated = batch.filter((post) => !seenPostIds.has(post.id));
       deduplicated.forEach((post) => {
