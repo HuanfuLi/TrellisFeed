@@ -341,7 +341,6 @@ export function ReviewScreen() {
       }
     }
     setTotalRatings((prev) => prev + rating);
-    setReviewedToday(prev => prev + 1);
     const nextReviewed = reviewed + 1;
     setReviewed(nextReviewed);
     if (nextReviewed >= total || reviewItems.length <= 1) {
