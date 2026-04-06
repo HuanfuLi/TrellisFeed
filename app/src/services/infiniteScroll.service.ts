@@ -70,7 +70,18 @@ export const infiniteScrollService = {
       });
 
       offset += fromQueue.length + deduplicated.length;
-      return [...fromQueue, ...deduplicated];
+      const result = [...fromQueue, ...deduplicated];
+
+      // Background-refill: if queue is empty after serving, pre-generate 6 for next swipe
+      if (pendingQueue.length === 0) {
+        void conceptFeedService.generateMorePosts(questions, 6).then((posts) => {
+          if (posts.length > 0) {
+            pendingQueue.push(...posts);
+          }
+        }).catch(() => { /* silent — next swipe will generate fresh */ });
+      }
+
+      return result;
     } catch (err) {
       console.error('[infiniteScrollService] Batch load failed:', err);
       throw err; // Caller handles retry
