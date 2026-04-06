@@ -141,27 +141,15 @@ export function AskScreen() {
     sessionRef.current = session;
   }, [session]);
 
-  // Process the current session for flashcard extraction when the screen unmounts
-  // (e.g. user navigates away via BottomNavigation or closes the app)
+  // Process the current session on unmount (app close / full navigation away).
+  // For always-mounted AskScreen, this rarely fires — the primary triggers are
+  // startNewSession and handleSelectSession which explicitly call both functions.
   useEffect(() => {
     return () => {
       processSessionIfNeeded(sessionRef.current);
+      generateSessionPostsIfNeeded(sessionRef.current);
     };
   }, []);
-
-  // AskScreen is always-mounted (display:none toggling), so the unmount cleanup
-  // above never fires on navigation. Detect route change away from /ask to
-  // trigger post generation. Flashcard processing is NOT triggered here —
-  // it only fires on New Chat or session switch (via processSessionIfNeeded)
-  // to avoid duplicate extraction when the user navigates back and forth.
-  const wasOnAskRef = useRef(false);
-  useEffect(() => {
-    const isOnAsk = location.pathname.startsWith('/ask');
-    if (wasOnAskRef.current && !isOnAsk) {
-      generateSessionPostsIfNeeded(sessionRef.current);
-    }
-    wasOnAskRef.current = isOnAsk;
-  }, [location.pathname]);
 
   // Guard against concurrent generateAiReply calls (race condition)
   const generatingRef = useRef(false);
