@@ -132,6 +132,18 @@ export function AskScreen() {
     };
   }, []);
 
+  // AskScreen is always-mounted (display:none toggling), so the unmount cleanup
+  // above never fires on navigation. Detect route change away from /ask to
+  // trigger session processing + post generation.
+  const wasOnAskRef = useRef(false);
+  useEffect(() => {
+    const isOnAsk = location.pathname.startsWith('/ask');
+    if (wasOnAskRef.current && !isOnAsk) {
+      processSessionIfNeeded(sessionRef.current);
+    }
+    wasOnAskRef.current = isOnAsk;
+  }, [location.pathname]);
+
   // Guard against concurrent generateAiReply calls (race condition)
   const generatingRef = useRef(false);
   // Abort in-flight AI streams on unmount to prevent stale state updates
