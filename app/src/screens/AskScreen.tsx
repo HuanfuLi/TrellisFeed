@@ -151,12 +151,13 @@ export function AskScreen() {
 
   // AskScreen is always-mounted (display:none toggling), so the unmount cleanup
   // above never fires on navigation. Detect route change away from /ask to
-  // trigger session processing + post generation.
+  // trigger post generation. Flashcard processing is NOT triggered here —
+  // it only fires on New Chat or session switch (via processSessionIfNeeded)
+  // to avoid duplicate extraction when the user navigates back and forth.
   const wasOnAskRef = useRef(false);
   useEffect(() => {
     const isOnAsk = location.pathname.startsWith('/ask');
     if (wasOnAskRef.current && !isOnAsk) {
-      processSessionIfNeeded(sessionRef.current);
       generateSessionPostsIfNeeded(sessionRef.current);
     }
     wasOnAskRef.current = isOnAsk;
