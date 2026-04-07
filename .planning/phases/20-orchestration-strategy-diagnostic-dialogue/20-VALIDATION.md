@@ -1,9 +1,9 @@
 ---
 phase: 20
 slug: orchestration-strategy-diagnostic-dialogue
-status: draft
+status: audited
 nyquist_compliant: true
-wave_0_complete: false
+wave_0_complete: true
 created: 2026-04-05
 ---
 
@@ -20,7 +20,7 @@ created: 2026-04-05
 | **Framework** | Node.js test runner (`node --test`) + TypeScript compiler (`tsc --noEmit`) |
 | **Config file** | `app/tsconfig.json` |
 | **Quick run command** | `cd app && npx tsc --noEmit` |
-| **Full suite command** | `cd app && node --test tests/services/orchestration-strategy.test.mjs && node --test tests/services/diagnostic-dialogue.test.mjs && node --test tests/services/portal-card.test.mjs && node --test tests/services/suggestionScorer.test.mjs && npx tsc --noEmit` |
+| **Full suite command** | `cd app && node --test tests/services/orchestration-strategy.test.mjs && node --test tests/services/diagnostic-dialogue.test.mjs && node --test tests/services/portal-card.test.mjs && node --test tests/services/suggestionScorer.test.mjs && node --test tests/services/concept-feed-strategy.test.mjs && npx tsc --noEmit` |
 | **Estimated runtime** | ~15 seconds |
 
 ---
@@ -38,14 +38,14 @@ created: 2026-04-05
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 20-01-01 | 01 | 1 | ORCH-01 | unit | `node --test tests/services/orchestration-strategy.test.mjs` | ✅ | ⬜ pending |
-| 20-02-01 | 02 | 1 | DIAG-01,DIAG-03 | unit | `node --test tests/services/diagnostic-dialogue.test.mjs` | ✅ | ⬜ pending |
-| 20-03-01 | 03 | 2 | ORCH-03 | unit | `node --test tests/services/suggestionScorer.test.mjs` | ✅ | ⬜ pending |
-| 20-03-02 | 03 | 2 | ORCH-02,ORCH-03 | compile+unit | `npx tsc --noEmit && node --test tests/services/plannerAutoGen.test.mjs && node --test tests/services/suggestionScorer.test.mjs` | ✅ | ⬜ pending |
-| 20-04-01 | 04 | 3 | PORTAL-02,PORTAL-03 | unit+compile | `node --test tests/services/portal-card.test.mjs && npx tsc --noEmit` | ✅ | ⬜ pending |
-| 20-04-02 | 04 | 3 | DIAG-02 | compile | `npx tsc --noEmit` | ✅ | ⬜ pending |
-| 20-04-03 | 04 | 3 | PORTAL-01,DIAG-02 | compile | `npx tsc --noEmit` | ✅ | ⬜ pending |
-| 20-04-04 | 04 | 3 | PORTAL-01,PORTAL-02,PORTAL-03,DIAG-02 | visual | `npx tsc --noEmit` + manual | ✅ | ⬜ pending |
+| 20-01-01 | 01 | 1 | ORCH-01 | unit | `node --test tests/services/orchestration-strategy.test.mjs` | ✅ | ✅ green |
+| 20-02-01 | 02 | 1 | DIAG-01,DIAG-03 | unit | `node --test tests/services/diagnostic-dialogue.test.mjs` | ✅ | ✅ green |
+| 20-03-01 | 03 | 2 | ORCH-03 | unit | `node --test tests/services/suggestionScorer.test.mjs` | ✅ | ✅ green |
+| 20-03-02 | 03 | 2 | ORCH-02,ORCH-03 | compile+unit | `npx tsc --noEmit && node --test tests/services/plannerAutoGen.test.mjs && node --test tests/services/suggestionScorer.test.mjs && node --test tests/services/concept-feed-strategy.test.mjs` | ✅ | ✅ green |
+| 20-04-01 | 04 | 3 | PORTAL-02,PORTAL-03 | unit+compile | `node --test tests/services/portal-card.test.mjs && npx tsc --noEmit` | ✅ | ✅ green |
+| 20-04-02 | 04 | 3 | DIAG-02 | compile | `npx tsc --noEmit` | ✅ | ✅ green |
+| 20-04-03 | 04 | 3 | PORTAL-01,DIAG-02 | compile | `npx tsc --noEmit` | ✅ | ✅ green |
+| 20-04-04 | 04 | 3 | PORTAL-01,PORTAL-02,PORTAL-03,DIAG-02 | visual | `npx tsc --noEmit` + manual | ✅ | ⬜ manual |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -81,4 +81,16 @@ created: 2026-04-05
 - [x] Feedback latency < 15s
 - [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** audited 2026-04-07
+
+---
+
+## Validation Audit 2026-04-07
+
+| Metric | Count |
+|--------|-------|
+| Gaps found | 1 |
+| Resolved | 1 |
+| Escalated | 0 |
+
+**Gap resolved:** ORCH-02 — added `concept-feed-strategy.test.mjs` (11 tests) covering `applyStrategyBias` behavioral and structural verification.
