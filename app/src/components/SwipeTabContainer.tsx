@@ -19,7 +19,7 @@
 import { useRef, useEffect, useLayoutEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
-import type { PanInfo } from 'framer-motion';
+import type { PanInfo, AnimationPlaybackControls } from 'framer-motion';
 import { SwipeTabContext } from '../lib/swipe-tab-context';
 import {
   resolveAxisLock,
@@ -51,6 +51,7 @@ export function SwipeTabContainer({ screens, routes, children }: SwipeTabContain
   const gestureBlockedRef = useRef(false);
   const keyboardOpenRef = useRef(false);
   const animatingRef = useRef(false);
+  const animControlsRef = useRef<AnimationPlaybackControls | null>(null);
 
   // Resolve initial index from current route (once on mount)
   const initialIndex = useMemo(() => {
@@ -106,8 +107,11 @@ export function SwipeTabContainer({ screens, routes, children }: SwipeTabContain
   // ── Pan handlers ────────────────────────────────────────────────────────
 
   const onPanStart = useCallback((_e: PointerEvent) => {
-    lockAxisRef.current = null;
+    // Stop any running spring animation so it doesn't fight with the gesture
+    animControlsRef.current?.stop();
+    animControlsRef.current = null;
     animatingRef.current = false;
+    lockAxisRef.current = null;
     screenWidthRef.current = getScreenWidth();
     gestureBlockedRef.current = !!((_e.target as HTMLElement)?.closest?.('[data-no-swipe-nav]'));
   }, []);
@@ -132,7 +136,7 @@ export function SwipeTabContainer({ screens, routes, children }: SwipeTabContain
 
     // Blocked or vertical → snap back to current screen
     if (gestureBlockedRef.current || lockAxisRef.current !== 'x') {
-      animate(stripX, -(activeIndexRef.current * sw), SPRING);
+      animControlsRef.current = animate(stripX, -(activeIndexRef.current * sw), SPRING);
       return;
     }
 
@@ -141,8 +145,8 @@ export function SwipeTabContainer({ screens, routes, children }: SwipeTabContain
     activeIndexRef.current = newIndex;
     animatingRef.current = true;
 
-    const controls = animate(stripX, -(newIndex * sw), SPRING);
-    controls.then(() => { animatingRef.current = false; });
+    animControlsRef.current = animate(stripX, -(newIndex * sw), SPRING);
+    animControlsRef.current.then(() => { animatingRef.current = false; });
 
     // Sync URL only if the route actually changed
     if (routes[newIndex] !== location.pathname) {
@@ -155,11 +159,12 @@ export function SwipeTabContainer({ screens, routes, children }: SwipeTabContain
     if (targetIndex === activeIndexRef.current) return;
     if (targetIndex < 0 || targetIndex >= routes.length) return;
 
+    animControlsRef.current?.stop();
     activeIndexRef.current = targetIndex;
     animatingRef.current = true;
 
-    const controls = animate(stripX, -(targetIndex * screenWidthRef.current), SPRING);
-    controls.then(() => { animatingRef.current = false; });
+    animControlsRef.current = animate(stripX, -(targetIndex * screenWidthRef.current), SPRING);
+    animControlsRef.current.then(() => { animatingRef.current = false; });
 
     navigate(routes[targetIndex]);
   }, [routes, navigate, stripX]);

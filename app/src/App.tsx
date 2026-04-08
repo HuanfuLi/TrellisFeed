@@ -121,6 +121,7 @@ function RootLayout() {
             overflowY: 'auto',
             WebkitOverflowScrolling: 'touch',
             overscrollBehavior: 'contain',
+            touchAction: 'pan-y',
           } as React.CSSProperties}>
             <PlannerScreen />
           </div>,
@@ -137,6 +138,7 @@ function RootLayout() {
             overflowY: 'auto',
             WebkitOverflowScrolling: 'touch',
             overscrollBehavior: 'contain',
+            touchAction: 'pan-y',
           } as React.CSSProperties}>
             <GraphScreen />
           </div>,
@@ -149,6 +151,7 @@ function RootLayout() {
             overflowY: 'auto',
             WebkitOverflowScrolling: 'touch',
             overscrollBehavior: 'contain',
+            touchAction: 'pan-y',
           } as React.CSSProperties}>
             <SettingsScreen />
           </div>,
