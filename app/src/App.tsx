@@ -108,19 +108,48 @@ function RootLayout() {
       <SwipeTabContainer
         routes={SCREEN_ROUTES}
         screens={[
-          <div key="home" style={{ paddingTop: 'var(--safe-area-top)', paddingBottom: 'calc(80px + var(--safe-area-bottom))' }}>
+          /* Home — manages its own scroll container (height: 100dvh) */
+          <div key="home" style={{ paddingTop: 'var(--safe-area-top)' }}>
             <HomeScreen />
           </div>,
-          <div key="planner" style={{ paddingTop: 'var(--safe-area-top)', paddingBottom: 'calc(80px + var(--safe-area-bottom))' }}>
+          /* Planner — needs scroll wrapper (no internal scroll container) */
+          <div key="planner" style={{
+            paddingTop: 'var(--safe-area-top)',
+            paddingBottom: 'calc(80px + var(--safe-area-bottom))',
+            height: '100dvh',
+            boxSizing: 'border-box',
+            overflowY: 'auto',
+            WebkitOverflowScrolling: 'touch',
+            overscrollBehavior: 'contain',
+          } as React.CSSProperties}>
             <PlannerScreen />
           </div>,
-          <div key="ask" style={{ paddingTop: 'var(--safe-area-top)', paddingBottom: 'calc(80px + var(--safe-area-bottom))' }}>
+          /* Ask — manages its own flex layout and scroll */
+          <div key="ask" style={{ paddingTop: 'var(--safe-area-top)' }}>
             <AskScreen />
           </div>,
-          <div key="graph" style={{ paddingTop: 'var(--safe-area-top)', paddingBottom: 'calc(80px + var(--safe-area-bottom))' }}>
+          /* Graph — needs scroll wrapper */
+          <div key="graph" style={{
+            paddingTop: 'var(--safe-area-top)',
+            paddingBottom: 'calc(80px + var(--safe-area-bottom))',
+            height: '100dvh',
+            boxSizing: 'border-box',
+            overflowY: 'auto',
+            WebkitOverflowScrolling: 'touch',
+            overscrollBehavior: 'contain',
+          } as React.CSSProperties}>
             <GraphScreen />
           </div>,
-          <div key="settings" style={{ paddingTop: 'var(--safe-area-top)', paddingBottom: 'calc(80px + var(--safe-area-bottom))' }}>
+          /* Settings — needs scroll wrapper */
+          <div key="settings" style={{
+            paddingTop: 'var(--safe-area-top)',
+            paddingBottom: 'calc(80px + var(--safe-area-bottom))',
+            height: '100dvh',
+            boxSizing: 'border-box',
+            overflowY: 'auto',
+            WebkitOverflowScrolling: 'touch',
+            overscrollBehavior: 'contain',
+          } as React.CSSProperties}>
             <SettingsScreen />
           </div>,
         ]}

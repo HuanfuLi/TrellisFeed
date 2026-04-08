@@ -2,18 +2,21 @@
  * SwipeTabContainer.tsx
  * Horizontal strip container with gesture-driven swipe navigation.
  *
- * Phase 22, Plan 01 — Core swipe infrastructure
- *
  * Lays out all screens side by side in a horizontal strip.
- * Handles: axis lock (D-07), rubber-band edges (D-13), commit threshold (D-14),
- * keyboard guard (D-09), nested-drag suppression (D-08/D-10), spring animation (D-16),
- * tab-tap animation (D-04/D-05), URL sync on commit only (Pitfall 2).
+ * Handles: axis lock, rubber-band edges, commit threshold,
+ * keyboard guard, nested-drag suppression, spring animation,
+ * tab-tap animation, URL sync on commit only.
  *
- * Children (e.g. BottomNavigation) are rendered outside the strip but inside the
- * SwipeTabContext.Provider, so they can read the swipeProgress MotionValue.
+ * Each screen slot has `transform: translateZ(0)` to create a per-slot
+ * containing block for `position: fixed` descendants — without this,
+ * the strip's CSS transform captures all fixed elements and breaks
+ * header/modal positioning.
+ *
+ * Children (e.g. BottomNavigation) are rendered outside the strip but
+ * inside the SwipeTabContext.Provider so they can read swipeProgress.
  */
 
-import { useRef, useState, useEffect, useCallback, useMemo } from 'react';
+import { useRef, useEffect, useLayoutEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
 import type { PanInfo } from 'framer-motion';
@@ -31,45 +34,53 @@ interface SwipeTabContainerProps {
   children?: React.ReactNode;
 }
 
-/** Spring transition used for both swipe commit and tab-tap animations (D-16: ~250ms) */
+/** Spring transition (~250ms feel) for swipe commit and tab-tap animations */
 const SPRING = { type: 'spring' as const, stiffness: 300, damping: 30, mass: 0.8 };
+
+function getScreenWidth() {
+  return typeof window !== 'undefined' ? window.innerWidth : 375;
+}
 
 export function SwipeTabContainer({ screens, routes, children }: SwipeTabContainerProps) {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // ── Refs (no re-renders during gesture) ──────────────────────────────────
-  const activeIndexRef = useRef(0);
-  const screenWidthRef = useRef(typeof window !== 'undefined' ? window.innerWidth : 375);
+  // ── Refs (all gesture state in refs — zero re-renders during interaction) ──
+  const screenWidthRef = useRef(getScreenWidth());
   const lockAxisRef = useRef<'x' | 'y' | null>(null);
   const gestureBlockedRef = useRef(false);
+  const keyboardOpenRef = useRef(false);
+  const animatingRef = useRef(false);
 
-  // ── Motion values ────────────────────────────────────────────────────────
-  const dragOffset = useMotionValue(0);
+  // Resolve initial index from current route (once on mount)
+  const initialIndex = useMemo(() => {
+    const idx = routes.indexOf(location.pathname);
+    return idx !== -1 ? idx : 0;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  // Strip x = -(activeIndex * screenWidth) + dragOffset
-  const stripX = useTransform(dragOffset, (raw) => {
-    return -(activeIndexRef.current * screenWidthRef.current) + raw;
-  });
+  const activeIndexRef = useRef(initialIndex);
 
-  // swipeProgress = fractional screen index (0–N) derived from strip position
+  // ── Primary MotionValue: absolute strip pixel position ──────────────────
+  // Single source of truth for visual position. No derived transforms with
+  // stale refs — stripX is set directly during pan and animated on commit.
+  const stripX = useMotionValue(-(initialIndex * getScreenWidth()));
+
+  // Fractional screen index (0=Home … 4=Settings) for BottomNavigation color interpolation
   const swipeProgress = useTransform(stripX, (x) => {
     const w = screenWidthRef.current;
     return w > 0 ? -x / w : 0;
   });
 
-  // ── Keyboard detection (D-09) ────────────────────────────────────────────
-  const [keyboardOpen, setKeyboardOpen] = useState(false);
-
+  // ── Keyboard detection (ref-only, no state / no re-renders) ─────────────
   useEffect(() => {
     const onFocusIn = (e: FocusEvent) => {
       const el = e.target as HTMLElement;
-      const tag = el?.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || el?.isContentEditable) {
-        setKeyboardOpen(true);
+      if (el?.tagName === 'INPUT' || el?.tagName === 'TEXTAREA' || el?.isContentEditable) {
+        keyboardOpenRef.current = true;
       }
     };
-    const onFocusOut = () => setKeyboardOpen(false);
+    const onFocusOut = () => { keyboardOpenRef.current = false; };
     document.addEventListener('focusin', onFocusIn);
     document.addEventListener('focusout', onFocusOut);
     return () => {
@@ -78,103 +89,82 @@ export function SwipeTabContainer({ screens, routes, children }: SwipeTabContain
     };
   }, []);
 
-  // ── Route sync (external navigation / initial load / back button) ────────
-  useEffect(() => {
+  // ── Route sync (back button, programmatic navigate, initial load) ───────
+  // useLayoutEffect prevents one-frame flash before paint
+  useLayoutEffect(() => {
     const idx = routes.indexOf(location.pathname);
     if (idx !== -1 && idx !== activeIndexRef.current) {
       activeIndexRef.current = idx;
-      // Snap to new position without animation (external navigation)
-      dragOffset.set(0);
+      // Snap immediately — don't interfere with an in-progress animation
+      // (navigateToTab / onPanEnd already animate to the correct position)
+      if (!animatingRef.current) {
+        stripX.set(-(idx * screenWidthRef.current));
+      }
     }
-  }, [location.pathname, routes, dragOffset]);
+  }, [location.pathname, routes, stripX]);
 
-  // ── Pan handlers ─────────────────────────────────────────────────────────
+  // ── Pan handlers ────────────────────────────────────────────────────────
 
   const onPanStart = useCallback((_e: PointerEvent) => {
     lockAxisRef.current = null;
-    // Read fresh screen width at gesture start (Pitfall 6)
-    screenWidthRef.current = window.innerWidth;
-    // Check for nested draggable (D-08, D-10)
-    const target = (_e.target as HTMLElement);
-    if (target?.closest?.('[data-no-swipe-nav]')) {
-      gestureBlockedRef.current = true;
-      return;
-    }
-    gestureBlockedRef.current = false;
+    animatingRef.current = false;
+    screenWidthRef.current = getScreenWidth();
+    gestureBlockedRef.current = !!((_e.target as HTMLElement)?.closest?.('[data-no-swipe-nav]'));
   }, []);
 
   const onPan = useCallback((_e: PointerEvent, info: PanInfo) => {
-    if (shouldBlockGesture({ keyboardOpen, gestureBlocked: gestureBlockedRef.current })) return;
+    if (shouldBlockGesture({ keyboardOpen: keyboardOpenRef.current, gestureBlocked: gestureBlockedRef.current })) return;
 
-    // Axis lock (D-07)
+    // Axis lock after ~10px
     if (lockAxisRef.current === null) {
       const resolved = resolveAxisLock({ x: info.offset.x, y: info.offset.y });
-      if (resolved !== null) {
-        lockAxisRef.current = resolved;
-      }
+      if (resolved !== null) lockAxisRef.current = resolved;
     }
-
-    // If not locked to x, let vertical scroll happen
     if (lockAxisRef.current !== 'x') return;
 
-    // Compute drag offset with rubber-band at edges (D-13)
-    const offset = computeDragOffset(
-      info.offset.x,
-      activeIndexRef.current,
-      routes.length,
-    );
-    dragOffset.set(offset);
-  }, [keyboardOpen, routes.length, dragOffset]);
+    // Set strip position directly — no derived transform, no stale ref
+    const offset = computeDragOffset(info.offset.x, activeIndexRef.current, routes.length);
+    stripX.set(-(activeIndexRef.current * screenWidthRef.current) + offset);
+  }, [routes.length, stripX]);
 
   const onPanEnd = useCallback((_e: PointerEvent, info: PanInfo) => {
-    // If blocked or not horizontally locked, snap back
+    const sw = screenWidthRef.current;
+
+    // Blocked or vertical → snap back to current screen
     if (gestureBlockedRef.current || lockAxisRef.current !== 'x') {
-      animate(dragOffset, 0, SPRING);
+      animate(stripX, -(activeIndexRef.current * sw), SPRING);
       return;
     }
 
-    // Determine commit target (D-14: 20% threshold)
-    const newIndex = resolveCommitIndex(
-      info.offset.x,
-      activeIndexRef.current,
-      screenWidthRef.current,
-      routes.length,
-    );
+    // Resolve commit target (20% threshold)
+    const newIndex = resolveCommitIndex(info.offset.x, activeIndexRef.current, sw, routes.length);
+    activeIndexRef.current = newIndex;
+    animatingRef.current = true;
 
-    if (newIndex !== activeIndexRef.current) {
-      // Adjust dragOffset so visual position doesn't jump when activeIndex changes.
-      // stripX = -(activeIndex * sw) + dragOffset, so compensate for the index shift.
-      const currentOffset = dragOffset.get();
-      const sw = screenWidthRef.current;
-      dragOffset.set(currentOffset + (newIndex - activeIndexRef.current) * sw);
-      activeIndexRef.current = newIndex;
+    const controls = animate(stripX, -(newIndex * sw), SPRING);
+    controls.then(() => { animatingRef.current = false; });
+
+    // Sync URL only if the route actually changed
+    if (routes[newIndex] !== location.pathname) {
       navigate(routes[newIndex]);
     }
+  }, [routes, navigate, stripX, location.pathname]);
 
-    // Animate dragOffset to 0 — strip will rest at -(newIndex * screenWidth)
-    animate(dragOffset, 0, SPRING);
-  }, [routes, navigate, dragOffset]);
-
-  // ── navigateToTab (D-04, D-05) ──────────────────────────────────────────
+  // ── navigateToTab (called by BottomNavigation tap) ──────────────────────
   const navigateToTab = useCallback((targetIndex: number) => {
     if (targetIndex === activeIndexRef.current) return;
     if (targetIndex < 0 || targetIndex >= routes.length) return;
 
-    // Calculate visual jump so strip starts at old position and animates to new.
-    // stripX = -(activeIndex * sw) + dragOffset → to keep visual position at old screen,
-    // dragOffset must compensate: jump = (targetIndex - oldIndex) * sw
-    const jump = (targetIndex - activeIndexRef.current) * screenWidthRef.current;
     activeIndexRef.current = targetIndex;
+    animatingRef.current = true;
 
-    // Set dragOffset to the visual distance (appears at old position)
-    dragOffset.set(jump);
-    // Animate to 0 → slides to new committed position
-    animate(dragOffset, 0, SPRING);
+    const controls = animate(stripX, -(targetIndex * screenWidthRef.current), SPRING);
+    controls.then(() => { animatingRef.current = false; });
 
     navigate(routes[targetIndex]);
-  }, [routes, navigate, dragOffset]);
+  }, [routes, navigate, stripX]);
 
-  // ── Context value (stable reference) ─────────────────────────────────────
+  // ── Context (stable identity) ───────────────────────────────────────────
   const contextValue = useMemo(() => ({
     swipeProgress,
     navigateToTab,
@@ -199,8 +189,11 @@ export function SwipeTabContainer({ screens, routes, children }: SwipeTabContain
             style={{
               width: '100vw',
               flexShrink: 0,
-              minHeight: '100vh',
+              height: '100dvh',
               overflow: 'hidden',
+              // Creates a per-slot containing block so position:fixed elements
+              // (Header, modals) are scoped to their own screen, not the strip.
+              transform: 'translateZ(0)',
             }}
           >
             {screen}
