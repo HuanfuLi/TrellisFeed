@@ -370,6 +370,7 @@ export function HomeScreen() {
           height: '100dvh',
           WebkitOverflowScrolling: 'touch',
           overscrollBehavior: 'contain',
+          touchAction: 'pan-y',
         }}
       >
       <div style={{ padding: `${HEADER_HEIGHT + 8}px 16px calc(96px + var(--safe-area-top) + var(--safe-area-bottom))`, maxWidth: '448px', margin: '0 auto' }}>

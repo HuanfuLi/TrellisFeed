@@ -397,12 +397,14 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
         {presentationStyle === 'text-art' && (() => {
           const theme = pickTextArtTheme(post.id);
           const content = post.textArtContent?.split('\n').filter(Boolean).join(' ') || normalizedPreview;
+          const fontSize = content.length > 100 ? '1.25rem' : content.length > 60 ? '1.5rem' : '2rem';
           return (
             <div
               style={{
                 position: 'relative',
                 width: '100%',
                 aspectRatio: '1/1',
+                maxHeight: '320px',
                 overflow: 'hidden',
                 backgroundColor: theme.bg,
                 backgroundImage: `radial-gradient(circle, ${theme.dot} 0.8px, transparent 0.8px)`,
@@ -416,7 +418,7 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
             >
               <p
                 style={{
-                  fontSize: '2rem',
+                  fontSize,
                   fontWeight: 700,
                   lineHeight: 1.3,
                   color: theme.text,

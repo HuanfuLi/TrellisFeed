@@ -510,7 +510,7 @@ export function AskScreen() {
       <div style={{ height: `${HEADER_HEIGHT}px`, flexShrink: 0 }} />
 
       {/* Messages */}
-      <div ref={scrollContainerRef} style={{ flex: 1, overflowY: 'auto', padding: '16px', paddingBottom: '16px' }}>
+      <div ref={scrollContainerRef} style={{ flex: 1, overflowY: 'auto', padding: '16px', paddingBottom: '16px', touchAction: 'pan-y' }}>
         {session.origin?.type === 'post' && (
           <div
             style={{
