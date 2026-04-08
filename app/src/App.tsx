@@ -13,8 +13,8 @@ import { PlannerScreen } from './screens/PlannerScreen';
 import { ReviewScreen } from './screens/ReviewScreen';
 import { PodcastScreen } from './screens/PodcastScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
-import { lazy, Suspense } from 'react';
-const GraphScreen = lazy(() => import('./screens/GraphScreen').then((m) => ({ default: m.GraphScreen })));
+import { GraphScreen } from './screens/GraphScreen';
+import { SwipeTabContainer } from './components/SwipeTabContainer';
 import { PostDetailScreen } from './screens/PostDetailScreen';
 import { AnchorDetailScreen } from './screens/AnchorDetailScreen';
 import { ClusterDetailScreen } from './screens/ClusterDetailScreen';
@@ -31,11 +31,12 @@ import { toast } from './lib/toast';
 import { startScheduler, stopScheduler } from './services/scheduler.service';
 import { scheduleNativeNotifications } from './services/scheduler.native';
 
+const SCREEN_ROUTES = ['/home', '/planner', '/ask', '/graph', '/settings'] as const;
+
 function RootLayout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const isHome = location.pathname === '/home';
-  const isAsk = location.pathname === '/ask';
+  const isTopLevelScreen = SCREEN_ROUTES.some(r => location.pathname === r);
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   // Guard against starting a new recording while one is already active
@@ -102,75 +103,95 @@ function RootLayout() {
           zIndex: 200,
         }}
       />
-      {/* paddingTop clears the status bar; paddingBottom clears the bottom nav + home indicator */}
-      {/* Home and Ask are always mounted to preserve state across navigation */}
-      <div style={{
-        paddingTop: 'var(--safe-area-top)',
-        paddingBottom: 'calc(80px + var(--safe-area-bottom))',
-        display: isHome ? undefined : 'none',
-      }}>
-        <HomeScreen />
-      </div>
-      <div style={{
-        paddingTop: 'var(--safe-area-top)',
-        paddingBottom: 'calc(80px + var(--safe-area-bottom))',
-        display: isAsk ? undefined : 'none',
-      }}>
-        <AskScreen />
-      </div>
-      <div style={{
-        paddingTop: 'var(--safe-area-top)',
-        paddingBottom: 'calc(80px + var(--safe-area-bottom))',
-        display: (isHome || isAsk) ? 'none' : undefined,
-      }}>
-        <Outlet />
-      </div>
-      <ScrollRestoration />
-      <BottomNavigation
-        onAskLongPress={() => void handleAskLongPress()}
-        onAskLongPressRelease={() => void handleAskLongPressRelease()}
-      />
-      {/* Recording / transcribing indicator for the nav bar long-press flow */}
-      {(isRecording || isTranscribing) && (
-        <div
-          style={{
-            position: 'fixed',
-            bottom: 'calc(88px + var(--safe-area-bottom))',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '8px 18px',
-            backgroundColor: 'var(--surface-variant)',
-            borderRadius: '999px',
-            boxShadow: 'var(--shadow-2)',
-            zIndex: 101,
-            fontSize: '0.82rem',
-            color: 'var(--foreground)',
-            whiteSpace: 'nowrap',
-            animation: 'fade-in 0.15s ease',
-          }}
-        >
-          {isTranscribing ? (
-            <>
-              <Loader2 size={14} style={{ animation: 'spin 1s linear infinite', color: 'var(--primary-40)', flexShrink: 0 }} />
-              Transcribing…
-            </>
-          ) : (
-            <>
-              <span style={{
-                width: '8px', height: '8px', borderRadius: '50%',
-                backgroundColor: 'var(--danger)', flexShrink: 0,
-                animation: 'mic-pulse 1.4s ease-in-out infinite',
-                display: 'inline-block',
-              }} />
-              Release to send
-            </>
-          )}
+
+      {/* Swipe container for top-level screens */}
+      <SwipeTabContainer
+        routes={SCREEN_ROUTES}
+        screens={[
+          <div key="home" style={{ paddingTop: 'var(--safe-area-top)', paddingBottom: 'calc(80px + var(--safe-area-bottom))' }}>
+            <HomeScreen />
+          </div>,
+          <div key="planner" style={{ paddingTop: 'var(--safe-area-top)', paddingBottom: 'calc(80px + var(--safe-area-bottom))' }}>
+            <PlannerScreen />
+          </div>,
+          <div key="ask" style={{ paddingTop: 'var(--safe-area-top)', paddingBottom: 'calc(80px + var(--safe-area-bottom))' }}>
+            <AskScreen />
+          </div>,
+          <div key="graph" style={{ paddingTop: 'var(--safe-area-top)', paddingBottom: 'calc(80px + var(--safe-area-bottom))' }}>
+            <GraphScreen />
+          </div>,
+          <div key="settings" style={{ paddingTop: 'var(--safe-area-top)', paddingBottom: 'calc(80px + var(--safe-area-bottom))' }}>
+            <SettingsScreen />
+          </div>,
+        ]}
+      >
+        {/* Children rendered outside the strip (fixed position elements) */}
+        <BottomNavigation
+          onAskLongPress={() => void handleAskLongPress()}
+          onAskLongPressRelease={() => void handleAskLongPressRelease()}
+        />
+        {/* Recording / transcribing indicator for the nav bar long-press flow */}
+        {(isRecording || isTranscribing) && (
+          <div
+            style={{
+              position: 'fixed',
+              bottom: 'calc(88px + var(--safe-area-bottom))',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '8px 18px',
+              backgroundColor: 'var(--surface-variant)',
+              borderRadius: '999px',
+              boxShadow: 'var(--shadow-2)',
+              zIndex: 101,
+              fontSize: '0.82rem',
+              color: 'var(--foreground)',
+              whiteSpace: 'nowrap',
+              animation: 'fade-in 0.15s ease',
+            }}
+          >
+            {isTranscribing ? (
+              <>
+                <Loader2 size={14} style={{ animation: 'spin 1s linear infinite', color: 'var(--primary-40)', flexShrink: 0 }} />
+                Transcribing…
+              </>
+            ) : (
+              <>
+                <span style={{
+                  width: '8px', height: '8px', borderRadius: '50%',
+                  backgroundColor: 'var(--danger)', flexShrink: 0,
+                  animation: 'mic-pulse 1.4s ease-in-out infinite',
+                  display: 'inline-block',
+                }} />
+                Release to send
+              </>
+            )}
+          </div>
+        )}
+        <ToastContainer />
+      </SwipeTabContainer>
+
+      {/* Outlet for sub-screens (rendered on top of swipe container) */}
+      {!isTopLevelScreen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 50,
+          backgroundColor: 'var(--surface)',
+          paddingTop: 'var(--safe-area-top)',
+          paddingBottom: 'calc(80px + var(--safe-area-bottom))',
+          overflow: 'auto',
+        }}>
+          <Outlet />
         </div>
       )}
-      <ToastContainer />
+
+      <ScrollRestoration />
     </div>
   );
 }
@@ -199,11 +220,11 @@ const router = createBrowserRouter([
       { path: 'ask/:id', element: <PageTransition><QuestionDetailScreen /></PageTransition> },
       { path: 'anchor/:id', element: <PageTransition><AnchorDetailScreen /></PageTransition> },
       { path: 'cluster/:id', element: <PageTransition><ClusterDetailScreen /></PageTransition> },
-      { path: 'graph', element: <Suspense fallback={null}><PageTransition><GraphScreen /></PageTransition></Suspense> },
-      { path: 'planner', element: <PageTransition><PlannerScreen /></PageTransition> },
+      { path: 'graph', element: null },
+      { path: 'planner', element: null },
       { path: 'review', element: <PageTransition><ReviewScreen /></PageTransition> },
       { path: 'podcast', element: <PageTransition><PodcastScreen /></PageTransition> },
-      { path: 'settings', element: <PageTransition><SettingsScreen /></PageTransition> },
+      { path: 'settings', element: null },
       { path: '*', element: <Navigate to="/home" replace /> },
     ],
   },
