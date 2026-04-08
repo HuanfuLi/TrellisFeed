@@ -757,7 +757,9 @@ let cachedEdges: GraphEdge[] | null = null;
 export function GraphScreen() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const isVisible = pathname === '/graph';
+  // With the swipe strip, GraphScreen is always mounted at full width —
+  // no need for visibility gating (the old display:none 0-width bug no longer applies).
+  const isVisible = true;
   const [view, setView] = useState<'map' | 'inbox'>('map');
   const [nodes, setNodes] = useState<Question[]>(cachedNodes ?? []);
   const [edges, setEdges] = useState<GraphEdge[]>(cachedEdges ?? []);
