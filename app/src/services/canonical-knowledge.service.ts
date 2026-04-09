@@ -414,6 +414,433 @@ export function buildTreeContext(questions: Question[]): string {
   return lines.join('\n');
 }
 
+// ─── Incremental Pipeline Helpers ───────────────────────────────────────────
+
+const PIPELINE_SYSTEM_PROMPT =
+  'You are a knowledge classification assistant. You help organize questions into a hierarchical knowledge tree with branches (academic disciplines), clusters (sub-fields), and anchors (specific concepts). Follow the response format instructions exactly.';
+
+interface StepDecision {
+  isNew: boolean;
+  selectedIndex?: number; // 0-based
+  newName?: string;
+}
+
+export function parseStepResponse(raw: string, candidateCount: number): StepDecision {
+  const trimmed = raw.trim();
+
+  // Try JSON parse first
+  try {
+    const parsed = JSON.parse(trimmed);
+    if (parsed && parsed.index === 'NEW' && typeof parsed.name === 'string') {
+      return { isNew: true, newName: parsed.name.trim() };
+    }
+    if (parsed && typeof parsed.index === 'number') {
+      if (parsed.index >= 0 && parsed.index < candidateCount) {
+        return { isNew: false, selectedIndex: parsed.index };
+      }
+      throw new Error(`Invalid step response: "${raw}"`);
+    }
+  } catch (e) {
+    if (e instanceof SyntaxError) {
+      // Not JSON — try regex extraction below
+    } else {
+      throw e;
+    }
+  }
+
+  // Try extracting embedded JSON object
+  const jsonMatch = trimmed.match(/\{[\s\S]*?\}/);
+  if (jsonMatch) {
+    try {
+      const parsed = JSON.parse(jsonMatch[0]);
+      if (parsed && parsed.index === 'NEW' && typeof parsed.name === 'string') {
+        return { isNew: true, newName: parsed.name.trim() };
+      }
+      if (parsed && typeof parsed.index === 'number' && parsed.index >= 0 && parsed.index < candidateCount) {
+        return { isNew: false, selectedIndex: parsed.index };
+      }
+    } catch { /* not valid JSON object */ }
+  }
+
+  // Try bare integer extraction (reject if preceded by minus sign)
+  const intMatch = trimmed.match(/(?:^|[^-])\b(\d+)\b/);
+  if (intMatch) {
+    const num = parseInt(intMatch[1], 10);
+    if (num >= 0 && num < candidateCount) {
+      return { isNew: false, selectedIndex: num };
+    }
+  }
+
+  throw new Error(`Invalid step response: "${raw}"`);
+}
+
+export function buildStepPrompt(
+  level: 'branch' | 'cluster' | 'anchor',
+  candidates: Array<string | { id: string; name: string }>,
+): string {
+  if (candidates.length === 0) {
+    return `Select or create a ${level}.\n\nNo existing ${level}s yet — create a new one.\n\nRespond with {"index":"NEW","name":"<${level} name>"}.`;
+  }
+
+  const numbered = candidates
+    .map((c, i) => `${i}. ${typeof c === 'string' ? c : c.name}`)
+    .join('\n');
+
+  return `Select the best ${level} for this question, or create a new one if none fits.\n\nExisting ${level}s:\n${numbered}\n\nRespond with the index number (0-${candidates.length - 1}) to select an existing ${level}, or {"index":"NEW","name":"<${level} name>"} to create a new one.`;
+}
+
+export function extractUniqueBranches(allQuestions: Question[]): string[] {
+  const seen = new Set<string>();
+  for (const q of allQuestions) {
+    if (q.flagged === true) continue;
+    if (q.isClusterNode === true) continue;
+    if (q.isAnchorNode === true) continue;
+    const branch = q.branchLabel?.trim();
+    if (branch && !VAGUE_LABELS.has(branch)) {
+      seen.add(branch);
+    }
+  }
+  return Array.from(seen);
+}
+
+export function extractClustersUnderBranch(allQuestions: Question[], branchLabel: string): string[] {
+  const seen = new Set<string>();
+  for (const q of allQuestions) {
+    if (q.flagged === true) continue;
+    if (q.isClusterNode === true) continue;
+    if (q.isAnchorNode === true) continue;
+    if (q.branchLabel !== branchLabel) continue;
+    const cluster = q.clusterLabel?.trim();
+    if (cluster && !VAGUE_LABELS.has(cluster)) {
+      seen.add(cluster);
+    }
+  }
+  return Array.from(seen);
+}
+
+export function extractAnchorsUnderCluster(
+  allQuestions: Question[],
+  branchLabel: string,
+  clusterLabel: string,
+): Array<{ id: string; name: string }> {
+  const anchors: Array<{ id: string; name: string }> = [];
+  for (const q of allQuestions) {
+    if (q.isAnchorNode !== true) continue;
+    if (q.branchLabel !== branchLabel) continue;
+    if (q.clusterLabel !== clusterLabel) continue;
+    anchors.push({ id: q.id, name: q.title || q.content.slice(0, 40) });
+  }
+  return anchors;
+}
+
+// ─── Shared node-creation logic ─────────────────────────────────────────────
+
+async function commitClassificationResult(
+  question: Question,
+  result: ClassificationResult,
+  allQuestions: Question[],
+): Promise<void> {
+  // Import questionService lazily to avoid circular dependency
+  const { questionService } = await import('./question.service.ts');
+
+  // Use a mutable reference to allQuestions so anchor resolution sees newly created cluster
+  let freshQuestions: Question[] = allQuestions;
+
+  // --- Resolve or create cluster node ---
+  let clusterEntityId: string | undefined;
+
+  const existingCluster = freshQuestions.find(
+    q => q.isClusterNode === true &&
+      q.branchLabel === result.branchLabel &&
+      q.clusterLabel === result.clusterLabel
+  );
+
+  if (existingCluster) {
+    clusterEntityId = existingCluster.id;
+  } else {
+    const clusterNode: Question = {
+      id: `cluster-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      timestamp: Date.now(),
+      date: new Date().toISOString().slice(0, 10),
+      content: result.clusterLabel,
+      answer: '',
+      summary: result.clusterLabel,
+      title: result.clusterLabel,
+      keywords: [],
+      relatedQuestionIds: [],
+      categoryIds: [],
+      reviewSchedule: { nextReviewDate: '9999-12-31', reviewCount: 0, easeFactor: 2.5 },
+      createdAt: Date.now(),
+      aliases: [],
+      sourcePrompts: [],
+      sourceQuestionIds: [],
+      rootLabel: result.rootLabel,
+      branchLabel: result.branchLabel,
+      clusterLabel: result.clusterLabel,
+      nodeSummary: '',
+      isClusterNode: true,
+      qaCount: 0,
+    };
+    const CLUSTER_STORAGE_KEY = 'echolearn_questions';
+    try {
+      const storedRaw = localStorage.getItem(CLUSTER_STORAGE_KEY);
+      const store: Question[] = storedRaw ? JSON.parse(storedRaw) as Question[] : [];
+      store.unshift(clusterNode);
+      localStorage.setItem(CLUSTER_STORAGE_KEY, JSON.stringify(store));
+    } catch { /* storage error */ }
+    clusterEntityId = clusterNode.id;
+
+    // Refresh freshQuestions snapshot so anchor resolution sees the new cluster
+    freshQuestions = questionService.getAll();
+  }
+
+  // --- Resolve or create anchor node ---
+  let anchorId: string | undefined;
+
+  if (result.anchorId) {
+    // Verify the referenced anchor actually exists
+    const existingAnchor = freshQuestions.find(q => q.id === result.anchorId && q.isAnchorNode === true);
+    if (existingAnchor) {
+      anchorId = existingAnchor.id;
+      // Patch existing anchor with clusterNodeId if it doesn't have one
+      if (clusterEntityId && !existingAnchor.clusterNodeId) {
+        questionService.patchQuestion(existingAnchor.id, { clusterNodeId: clusterEntityId });
+      }
+    }
+  }
+
+  if (!anchorId) {
+    // Check if an anchor with the same name already exists under the same cluster
+    const existingByName = freshQuestions.find(
+      q => q.isAnchorNode === true &&
+        q.title?.toLowerCase() === result.anchorName.toLowerCase() &&
+        q.clusterLabel === result.clusterLabel
+    );
+
+    if (existingByName) {
+      anchorId = existingByName.id;
+      // Patch existing anchor with clusterNodeId if it doesn't have one
+      if (clusterEntityId && !existingByName.clusterNodeId) {
+        questionService.patchQuestion(existingByName.id, { clusterNodeId: clusterEntityId });
+      }
+    } else {
+      // Create a new anchor node
+      const anchorNode: Question = {
+        id: `anchor-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        timestamp: Date.now(),
+        date: new Date().toISOString().slice(0, 10),
+        content: result.anchorName,
+        answer: '',
+        summary: result.anchorName,
+        title: result.anchorName,
+        keywords: result.keyword ? [result.keyword] : [],
+        relatedQuestionIds: [],
+        categoryIds: [],
+        reviewSchedule: { nextReviewDate: '9999-12-31', reviewCount: 0, easeFactor: 2.5 },
+        createdAt: Date.now(),
+        aliases: [],
+        sourcePrompts: [],
+        sourceQuestionIds: [],
+        rootLabel: result.rootLabel,
+        branchLabel: result.branchLabel,
+        clusterLabel: result.clusterLabel,
+        nodeSummary: '',
+        isAnchorNode: true,
+        qaCount: 0,
+        clusterNodeId: clusterEntityId,
+      };
+
+      // Save anchor directly to localStorage (same storage key as questionService)
+      const ANCHOR_STORAGE_KEY = 'echolearn_questions';
+      try {
+        const storedRaw = localStorage.getItem(ANCHOR_STORAGE_KEY);
+        const store: Question[] = storedRaw ? JSON.parse(storedRaw) as Question[] : [];
+        store.unshift(anchorNode);
+        localStorage.setItem(ANCHOR_STORAGE_KEY, JSON.stringify(store));
+      } catch { /* storage error — anchor won't be created */ }
+
+      anchorId = anchorNode.id;
+    }
+  }
+
+  // --- Patch Q&A with labels and anchor attachment ---
+  const shortSummary = result.briefAnswer || question.shortSummary || question.summary || question.answer.slice(0, 200);
+  const summaryEntry = `[${question.id}] ${shortSummary.slice(0, 200)}`;
+
+  // Patch the Q&A node with classification labels and anchor parentId
+  questionService.patchQuestion(question.id, {
+    rootLabel: result.rootLabel,
+    branchLabel: result.branchLabel,
+    clusterLabel: result.clusterLabel,
+    placementReason: `Classified under ${result.branchLabel} > ${result.clusterLabel} > ${result.anchorName}`,
+    parentId: anchorId,
+    clusterNodeId: clusterEntityId,
+  });
+
+  // Update anchor: increment qaCount and append to nodeSummary
+  if (anchorId) {
+    const freshStore = questionService.getAll();
+    const anchor = freshStore.find(q => q.id === anchorId);
+    if (anchor) {
+      const currentSummary = anchor.nodeSummary || '';
+      const newSummary = currentSummary ? `${currentSummary}\n${summaryEntry}` : summaryEntry;
+      questionService.patchQuestion(anchorId, {
+        qaCount: (anchor.qaCount || 0) + 1,
+        nodeSummary: newSummary,
+        // Ensure anchor has correct labels (in case it was just created)
+        rootLabel: result.rootLabel,
+        branchLabel: result.branchLabel,
+        clusterLabel: result.clusterLabel,
+      });
+    }
+  }
+
+  // Update cluster entity: aggregate qaCount from all child anchors
+  if (clusterEntityId) {
+    const freshStore = questionService.getAll();
+    const childAnchors = freshStore.filter(q => q.isAnchorNode === true && q.clusterNodeId === clusterEntityId);
+    const totalQaCount = childAnchors.reduce((sum, a) => sum + (a.qaCount || 0), 0);
+    questionService.patchQuestion(clusterEntityId, {
+      qaCount: totalQaCount,
+    });
+  }
+}
+
+// ─── Incremental Pipeline ───────────────────────────────────────────────────
+
+interface PipelineMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+async function runStepWithRetry(
+  messages: PipelineMessage[],
+  candidateCount: number,
+  llmConfig: LLMConfig,
+): Promise<{ decision: StepDecision; rawResponse: string }> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const raw = await chatCompletion(
+        messages as Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
+        llmConfig,
+        { serviceName: 'classification', maxTokens: 100 },
+      );
+      const decision = parseStepResponse(raw, candidateCount);
+      return { decision, rawResponse: raw };
+    } catch (err) {
+      if (attempt === 0) continue; // retry once (D-08)
+      throw err; // second failure -> caller triggers fallback (D-09)
+    }
+  }
+  throw new Error('unreachable');
+}
+
+export async function classifyAndAnchorIncremental(
+  question: Question,
+  allQuestions: Question[],
+  llmConfig: LLMConfig,
+): Promise<void> {
+  try {
+    // 1. Build candidate lists
+    const branches = extractUniqueBranches(allQuestions);
+
+    // 2. Initialize message array (stable system prompt for KV cache)
+    const messages: PipelineMessage[] = [
+      { role: 'system', content: PIPELINE_SYSTEM_PROMPT },
+      { role: 'user', content: `Question to classify: "${question.content}"${question.title ? ` (titled: "${question.title}")` : ''}` },
+    ];
+
+    // 3. Step 1 — Branch selection
+    messages.push({ role: 'user', content: buildStepPrompt('branch', branches) });
+
+    let branchName: string;
+    let clusterName: string;
+    let anchorName: string;
+    let anchorId: string | undefined;
+
+    let step1: { decision: StepDecision; rawResponse: string };
+    try {
+      step1 = await runStepWithRetry(messages, branches.length, llmConfig);
+    } catch {
+      // Fallback to old classifyAndAnchor on failure
+      await classifyAndAnchor(question, allQuestions, llmConfig);
+      return;
+    }
+    // Push assistant response for KV cache continuity
+    messages.push({ role: 'assistant', content: step1.rawResponse });
+
+    if (step1.decision.isNew) {
+      // Short-circuit (D-06): new branch means everything is new
+      branchName = step1.decision.newName!;
+      clusterName = `${branchName} fundamentals`;
+      anchorName = question.title || question.content.slice(0, 40);
+    } else {
+      branchName = branches[step1.decision.selectedIndex!];
+
+      // 4. Step 2 — Cluster selection
+      const clusters = extractClustersUnderBranch(allQuestions, branchName);
+      messages.push({ role: 'user', content: buildStepPrompt('cluster', clusters) });
+
+      let step2: { decision: StepDecision; rawResponse: string };
+      try {
+        step2 = await runStepWithRetry(messages, clusters.length, llmConfig);
+      } catch {
+        await classifyAndAnchor(question, allQuestions, llmConfig);
+        return;
+      }
+      messages.push({ role: 'assistant', content: step2.rawResponse });
+
+      if (step2.decision.isNew) {
+        // Short-circuit: new cluster means anchor is also new
+        clusterName = step2.decision.newName!;
+        anchorName = question.title || question.content.slice(0, 40);
+      } else {
+        clusterName = clusters[step2.decision.selectedIndex!];
+
+        // 5. Step 3 — Anchor selection
+        const anchors = extractAnchorsUnderCluster(allQuestions, branchName, clusterName);
+        messages.push({ role: 'user', content: buildStepPrompt('anchor', anchors.map(a => a.name)) });
+
+        let step3: { decision: StepDecision; rawResponse: string };
+        try {
+          step3 = await runStepWithRetry(messages, anchors.length, llmConfig);
+        } catch {
+          await classifyAndAnchor(question, allQuestions, llmConfig);
+          return;
+        }
+
+        if (step3.decision.isNew) {
+          anchorName = step3.decision.newName!;
+          anchorId = undefined;
+        } else {
+          anchorName = anchors[step3.decision.selectedIndex!].name;
+          anchorId = anchors[step3.decision.selectedIndex!].id;
+        }
+      }
+    }
+
+    // 6. Commit all decisions (D-07) — no partial writes
+    const result: ClassificationResult = {
+      briefAnswer: '',
+      keyword: '',
+      rootLabel: 'Knowledge',
+      branchLabel: branchName,
+      clusterLabel: clusterName,
+      anchorName: anchorName,
+      anchorId: anchorId,
+    };
+
+    await commitClassificationResult(question, result, allQuestions);
+  } catch (err) {
+    console.warn('[EchoLearn] Incremental pipeline failed — falling back to single-call classification:', err instanceof Error ? err.message : err);
+    try {
+      await classifyAndAnchor(question, allQuestions, llmConfig);
+    } catch (fallbackErr) {
+      console.warn('[EchoLearn] Fallback classification also failed:', fallbackErr instanceof Error ? fallbackErr.message : fallbackErr);
+    }
+  }
+}
+
 export async function classifyAndAnchor(
   question: Question,
   allQuestions: Question[],
@@ -478,170 +905,7 @@ export async function classifyAndAnchor(
       };
     }
 
-    // Import questionService lazily to avoid circular dependency
-    const { questionService } = await import('./question.service.ts');
-
-    // Use a mutable reference to allQuestions so anchor resolution sees newly created cluster
-    let freshQuestions: Question[] = allQuestions;
-
-    // --- Resolve or create cluster node ---
-    let clusterEntityId: string | undefined;
-
-    const existingCluster = freshQuestions.find(
-      q => q.isClusterNode === true &&
-        q.branchLabel === result.branchLabel &&
-        q.clusterLabel === result.clusterLabel
-    );
-
-    if (existingCluster) {
-      clusterEntityId = existingCluster.id;
-    } else {
-      const clusterNode: Question = {
-        id: `cluster-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-        timestamp: Date.now(),
-        date: new Date().toISOString().slice(0, 10),
-        content: result.clusterLabel,
-        answer: '',
-        summary: result.clusterLabel,
-        title: result.clusterLabel,
-        keywords: [],
-        relatedQuestionIds: [],
-        categoryIds: [],
-        reviewSchedule: { nextReviewDate: '9999-12-31', reviewCount: 0, easeFactor: 2.5 },
-        createdAt: Date.now(),
-        aliases: [],
-        sourcePrompts: [],
-        sourceQuestionIds: [],
-        rootLabel: result.rootLabel,
-        branchLabel: result.branchLabel,
-        clusterLabel: result.clusterLabel,
-        nodeSummary: '',
-        isClusterNode: true,
-        qaCount: 0,
-      };
-      const CLUSTER_STORAGE_KEY = 'echolearn_questions';
-      try {
-        const storedRaw = localStorage.getItem(CLUSTER_STORAGE_KEY);
-        const store: Question[] = storedRaw ? JSON.parse(storedRaw) as Question[] : [];
-        store.unshift(clusterNode);
-        localStorage.setItem(CLUSTER_STORAGE_KEY, JSON.stringify(store));
-      } catch { /* storage error */ }
-      clusterEntityId = clusterNode.id;
-
-      // Refresh freshQuestions snapshot so anchor resolution sees the new cluster
-      freshQuestions = questionService.getAll();
-    }
-
-    // --- Resolve or create anchor node ---
-    let anchorId: string | undefined;
-
-    if (result.anchorId) {
-      // Verify the referenced anchor actually exists
-      const existingAnchor = freshQuestions.find(q => q.id === result.anchorId && q.isAnchorNode === true);
-      if (existingAnchor) {
-        anchorId = existingAnchor.id;
-        // Patch existing anchor with clusterNodeId if it doesn't have one
-        if (clusterEntityId && !existingAnchor.clusterNodeId) {
-          questionService.patchQuestion(existingAnchor.id, { clusterNodeId: clusterEntityId });
-        }
-      }
-    }
-
-    if (!anchorId) {
-      // Check if an anchor with the same name already exists under the same cluster
-      const existingByName = freshQuestions.find(
-        q => q.isAnchorNode === true &&
-          q.title?.toLowerCase() === result.anchorName.toLowerCase() &&
-          q.clusterLabel === result.clusterLabel
-      );
-
-      if (existingByName) {
-        anchorId = existingByName.id;
-        // Patch existing anchor with clusterNodeId if it doesn't have one
-        if (clusterEntityId && !existingByName.clusterNodeId) {
-          questionService.patchQuestion(existingByName.id, { clusterNodeId: clusterEntityId });
-        }
-      } else {
-        // Create a new anchor node
-        const anchorNode: Question = {
-          id: `anchor-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-          timestamp: Date.now(),
-          date: new Date().toISOString().slice(0, 10),
-          content: result.anchorName,
-          answer: '',
-          summary: result.anchorName,
-          title: result.anchorName,
-          keywords: result.keyword ? [result.keyword] : [],
-          relatedQuestionIds: [],
-          categoryIds: [],
-          reviewSchedule: { nextReviewDate: '9999-12-31', reviewCount: 0, easeFactor: 2.5 },
-          createdAt: Date.now(),
-          aliases: [],
-          sourcePrompts: [],
-          sourceQuestionIds: [],
-          rootLabel: result.rootLabel,
-          branchLabel: result.branchLabel,
-          clusterLabel: result.clusterLabel,
-          nodeSummary: '',
-          isAnchorNode: true,
-          qaCount: 0,
-          clusterNodeId: clusterEntityId,
-        };
-
-        // Save anchor directly to localStorage (same storage key as questionService)
-        const ANCHOR_STORAGE_KEY = 'echolearn_questions';
-        try {
-          const storedRaw = localStorage.getItem(ANCHOR_STORAGE_KEY);
-          const store: Question[] = storedRaw ? JSON.parse(storedRaw) as Question[] : [];
-          store.unshift(anchorNode);
-          localStorage.setItem(ANCHOR_STORAGE_KEY, JSON.stringify(store));
-        } catch { /* storage error — anchor won't be created */ }
-
-        anchorId = anchorNode.id;
-      }
-    }
-
-    // --- Patch Q&A with labels and anchor attachment ---
-    const shortSummary = result.briefAnswer || question.shortSummary || question.summary || question.answer.slice(0, 200);
-    const summaryEntry = `[${question.id}] ${shortSummary.slice(0, 200)}`;
-
-    // Patch the Q&A node with classification labels and anchor parentId
-    questionService.patchQuestion(question.id, {
-      rootLabel: result.rootLabel,
-      branchLabel: result.branchLabel,
-      clusterLabel: result.clusterLabel,
-      placementReason: `Classified under ${result.branchLabel} > ${result.clusterLabel} > ${result.anchorName}`,
-      parentId: anchorId,
-      clusterNodeId: clusterEntityId,
-    });
-
-    // Update anchor: increment qaCount and append to nodeSummary
-    if (anchorId) {
-      const freshStore = questionService.getAll();
-      const anchor = freshStore.find(q => q.id === anchorId);
-      if (anchor) {
-        const currentSummary = anchor.nodeSummary || '';
-        const newSummary = currentSummary ? `${currentSummary}\n${summaryEntry}` : summaryEntry;
-        questionService.patchQuestion(anchorId, {
-          qaCount: (anchor.qaCount || 0) + 1,
-          nodeSummary: newSummary,
-          // Ensure anchor has correct labels (in case it was just created)
-          rootLabel: result.rootLabel,
-          branchLabel: result.branchLabel,
-          clusterLabel: result.clusterLabel,
-        });
-      }
-    }
-
-    // Update cluster entity: aggregate qaCount from all child anchors
-    if (clusterEntityId) {
-      const freshStore = questionService.getAll();
-      const childAnchors = freshStore.filter(q => q.isAnchorNode === true && q.clusterNodeId === clusterEntityId);
-      const totalQaCount = childAnchors.reduce((sum, a) => sum + (a.qaCount || 0), 0);
-      questionService.patchQuestion(clusterEntityId, {
-        qaCount: totalQaCount,
-      });
-    }
+    await commitClassificationResult(question, result, allQuestions);
   } catch (err) {
     // Second call failed — Q&A keeps whatever labels it had (empty/undefined from first call).
     // Fallback: labels will be derived from keywords at display time via buildFallbackPlacement.
