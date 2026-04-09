@@ -1,5 +1,5 @@
 import { Capacitor, CapacitorHttp } from '@capacitor/core';
-import type { DailyPost, FlashCard, PostNarrativeMode, Question, ServiceResult, VideoMetadata } from '../types';
+import type { DailyPost, FlashCard, Question, ServiceResult, VideoMetadata } from '../types';
 import { today } from '../lib/date';
 import { settingsService } from './settings.service';
 import { chatCompletion } from '../providers/llm/index';
@@ -24,7 +24,6 @@ interface VideoCacheEntry {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const VIDEO_CACHE_KEY = 'echolearn_video_cache';
-const SHORTS_STORAGE_KEY = 'echolearn_short_posts';
 const YOUTUBE_SEARCH_URL = 'https://www.googleapis.com/youtube/v3/search';
 
 // Quota cost: 100 units per search call (YouTube Data API v3).
@@ -51,23 +50,6 @@ function writeVideoCache(posts: DailyPost[]): void {
   }
 }
 
-function readShortsCache(): DailyPost[] {
-  try {
-    const raw = localStorage.getItem(SHORTS_STORAGE_KEY);
-    if (!raw) return [];
-    const data = JSON.parse(raw) as { date: string; posts: DailyPost[] };
-    if (data.date !== today()) return [];
-    return data.posts;
-  } catch { return []; }
-}
-
-function writeShortsCache(posts: DailyPost[]): void {
-  try {
-    localStorage.setItem(SHORTS_STORAGE_KEY, JSON.stringify({ date: today(), posts }));
-  } catch {
-    // localStorage may be full; silently ignore
-  }
-}
 
 function decodeHtmlEntities(text: string): string {
   return text
@@ -133,6 +115,23 @@ function inferQuestionIdFromFlashcard(card: FlashCard): string | null {
   if (card.nodeId) return card.nodeId;
   if (card.id.startsWith('node-')) return card.id.slice('node-'.length);
   return null;
+}
+
+/** Probe hq720 thumbnail for portrait detection; fall back to API thumbnail. */
+function probePortrait(videoId: string, fallbackUrl: string): Promise<boolean> {
+  const hq720Url = `https://i.ytimg.com/vi/${videoId}/hq720.jpg`;
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve(img.naturalHeight > img.naturalWidth);
+    img.onerror = () => {
+      // hq720 not available — try the API-provided thumbnail as fallback
+      const fallback = new Image();
+      fallback.onload = () => resolve(fallback.naturalHeight > fallback.naturalWidth);
+      fallback.onerror = () => resolve(false);
+      fallback.src = fallbackUrl;
+    };
+    img.src = hq720Url;
+  });
 }
 
 // ─── Service ──────────────────────────────────────────────────────────────────
@@ -434,132 +433,6 @@ export const youtubeService = {
     return entry.posts ?? [];
   },
 
-  /**
-   * Search YouTube for short-form videos (Shorts) matching the given query.
-   * Appends ` #Shorts` to the query and filters to videos under 4 minutes.
-   *
-   * Quota cost: 100 units per call.
-   */
-  async searchShorts(
-    query: string,
-    maxResults = 2,
-  ): Promise<Array<{ videoId: string; title: string; channelTitle: string; thumbnailUrl: string }>> {
-    const apiKey = settingsService.getSync().youtube?.apiKey;
-    if (!apiKey) return [];
-
-    const shortsQuery = `${query} #Shorts`;
-    // Request extra results since we'll filter out non-Shorts (landscape videos under 4min)
-    const fetchCount = Math.min(maxResults * 3, 10);
-    const url =
-      `${YOUTUBE_SEARCH_URL}?part=snippet&type=video&videoEmbeddable=true` +
-      `&videoDuration=short&q=${encodeURIComponent(shortsQuery)}&maxResults=${fetchCount}` +
-      `&relevanceLanguage=en&safeSearch=strict&key=${apiKey}`;
-
-    try {
-      const res = await withTimeout(fetch(url), 10_000, null as unknown as Response);
-      if (!res || !res.ok) return [];
-
-      const data = await res.json() as {
-        items?: Array<{
-          id: { videoId?: string };
-          snippet?: { title?: string; channelTitle?: string };
-        }>;
-      };
-
-      const candidates = (data.items ?? [])
-        .map((item) => ({
-          videoId: item.id?.videoId ?? '',
-          title: item.snippet?.title ?? '',
-          channelTitle: item.snippet?.channelTitle ?? '',
-          thumbnailUrl: `https://img.youtube.com/vi/${item.id?.videoId}/maxresdefault.jpg`,
-        }))
-        .filter((v) => v.videoId);
-
-      // Verify each candidate is actually a Short by checking the /shorts/ URL.
-      // Non-Shorts return a redirect (3xx) to /watch; real Shorts return 200.
-      const verified: typeof candidates = [];
-      for (const v of candidates) {
-        if (verified.length >= maxResults) break;
-        try {
-          const check = await withTimeout(
-            fetch(`https://www.youtube.com/shorts/${v.videoId}`, { method: 'HEAD', redirect: 'manual' }),
-            5_000,
-            null as unknown as Response,
-          );
-          // status 200 = real Short; 3xx redirect = regular video
-          if (check && check.status === 200) verified.push(v);
-        } catch {
-          // Skip on network error
-        }
-      }
-      return verified;
-    } catch {
-      return [];
-    }
-  },
-
-  /**
-   * Generate short video posts from YouTube Shorts related to the given questions.
-   * Results are cached in localStorage under `echolearn_short_posts`.
-   */
-  async generateShortPosts(questions: Question[], count = 2): Promise<DailyPost[]> {
-    const apiKey = settingsService.getSync().youtube?.apiKey;
-    if (!apiKey) return [];
-
-    // Pick random questions to search for shorts
-    const shuffled = [...questions].sort(() => Math.random() - 0.5);
-    const searchQuestions = shuffled.slice(0, count);
-
-    const posts: DailyPost[] = [];
-    for (const q of searchQuestions) {
-      const searchTerm = q.title || q.content.slice(0, 60);
-      const results = await youtubeService.searchShorts(searchTerm, 1);
-      if (results.length === 0) continue;
-
-      const video = results[0];
-      const post: DailyPost = {
-        id: `short-${video.videoId}`,
-        date: today(),
-        title: video.title,
-        teaser: {
-          hook: q.title || q.content.slice(0, 80),
-          preview: '',
-        },
-        bodyMarkdown: '',
-        whyCare: '',
-        takeaway: '',
-        quickAskPrompts: [],
-        narrativeMode: 'mechanism-breakdown' as PostNarrativeMode,
-        contextLabel: video.channelTitle,
-        sourceType: 'short',
-        sourceQuestionIds: [q.id],
-        sourceQuestionTitles: [q.title || q.content.slice(0, 50)],
-        keywords: q.keywords.slice(0, 3),
-        generatedAt: Date.now(),
-        origin: 'ai',
-        presentationStyle: 'short',
-        videoMeta: {
-          videoId: video.videoId,
-          channelTitle: video.channelTitle,
-          thumbnailUrl: video.thumbnailUrl,
-          summary: q.shortSummary || q.summary?.slice(0, 200) || '',
-        },
-      };
-      posts.push(post);
-    }
-
-    writeShortsCache(posts);
-    return posts;
-  },
-
-  /**
-   * Read cached short video posts for today from localStorage.
-   * Returns empty array if cache is stale, missing, or corrupted.
-   */
-  getCachedShortPosts(): DailyPost[] {
-    return readShortsCache();
-  },
-
   // ─── Internal helpers ─────────────────────────────────────────────────────
 
   /**
@@ -624,6 +497,10 @@ export const youtubeService = {
 
       const bodyMarkdown = ''; // Deferred to on-enter streaming (POST-05)
 
+      // Probe hq720 thumbnail to determine portrait (short) vs landscape (video)
+      const isPortrait = await probePortrait(result.videoId, result.thumbnailUrl);
+      const videoType = isPortrait ? 'short' : 'video';
+
       const videoMeta: VideoMetadata = {
         videoId: result.videoId,
         channelTitle: result.channelTitle,
@@ -642,7 +519,7 @@ export const youtubeService = {
             .slice(0, 8);
 
       const post: DailyPost = {
-        id: `video-${result.videoId}`,
+        id: `${videoType}-${result.videoId}`,
         date: today(),
         title: result.title,
         teaser: {
@@ -655,13 +532,13 @@ export const youtubeService = {
         quickAskPrompts: [],
         narrativeMode: 'mechanism-breakdown',
         contextLabel: 'Video from YouTube',
-        sourceType: 'video',
+        sourceType: videoType,
         sourceQuestionIds: sourceIds,
         sourceQuestionTitles: sourceTitles,
         keywords,
         generatedAt: Date.now(),
         origin: 'ai',
-        presentationStyle: 'video',
+        presentationStyle: videoType,
         videoMeta,
       };
 

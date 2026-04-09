@@ -622,6 +622,7 @@ export type ErrorCode =
   | 'IN_PROGRESS'
   | 'TOO_FEW'
   | 'PARSE_ERROR'
+  | 'SEARCH_FAILED'
   | 'LLM_ERROR';
 
 export interface AskResult {

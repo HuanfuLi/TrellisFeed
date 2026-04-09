@@ -70,11 +70,6 @@ export function PostDetailScreen() {
   const [isLoadingCarousel, setIsLoadingCarousel] = useState(false);
   const [isRetryingImage, setIsRetryingImage] = useState(false);
 
-  // Essay generation state (connection posts only)
-  const [, setEssayStreaming] = useState('');
-  const [isGeneratingEssay, setIsGeneratingEssay] = useState(false);
-  const [essayError, setEssayError] = useState<string | null>(null);
-
   // On-enter essay generation state (for posts with empty bodyMarkdown)
   const [streamingBody, setStreamingBody] = useState('');
   const [isStreamingOnEnter, setIsStreamingOnEnter] = useState(false);
@@ -95,8 +90,7 @@ export function PostDetailScreen() {
     if (!id) return;
 
     let aborted = false;
-    setEssayError(null);
-    setEssayStreaming('');
+    setOnEnterError(null);
     setLoadingPost(true);
 
     const loaded = conceptFeedService.getPostById(id) ?? passedPost;
@@ -112,79 +106,54 @@ export function PostDetailScreen() {
     const discoverMeta = discoverMetaRef.current;
 
     if (connectionMeta) {
-      // Connection essay: stream from two source questions
+      // Create a skeleton post for the connection so the UI can render immediately
+      const skeleton: DailyPost = {
+        id,
+        date: new Date().toISOString().split('T')[0],
+        title: `${connectionMeta.conceptNounA} & ${connectionMeta.conceptNounB}`,
+        teaser: { hook: 'Generating connection...', preview: '' },
+        bodyMarkdown: '',
+        whyCare: '',
+        takeaway: '',
+        quickAskPrompts: [],
+        narrativeMode: 'Synthesis',
+        contextLabel: 'Connection',
+        sourceType: 'connection',
+        sourceQuestionIds: [connectionMeta.questionA.id, connectionMeta.questionB.id],
+        sourceQuestionTitles: [connectionMeta.questionA.title || 'Concept A', connectionMeta.questionB.title || 'Concept B'],
+        keywords: [],
+        generatedAt: Date.now(),
+        origin: 'ai',
+      };
+      setPost(skeleton);
       setLoadingPost(false);
-      setIsGeneratingEssay(true);
-
-      void (async () => {
-        let accumulated = '';
-        try {
-          for await (const chunk of conceptFeedService.generateConnectionPost(
-            connectionMeta.questionA,
-            connectionMeta.questionB,
-            connectionMeta.conceptNounA,
-            connectionMeta.conceptNounB,
-          )) {
-            if (aborted) return;
-            accumulated += chunk;
-            setEssayStreaming(accumulated);
-          }
-          if (aborted) return;
-          const saved = conceptFeedService.saveConnectionPost(
-            connectionMeta.questionA,
-            connectionMeta.questionB,
-            connectionMeta.conceptNounA,
-            connectionMeta.conceptNounB,
-            accumulated,
-          );
-          conceptFeedService.setConnectionPostId(connectionMeta.questionA.id, connectionMeta.questionB.id, saved.id);
-          setPost(saved);
-          setSession(sessionService.getOrCreatePostSession(saved, questionsRef.current));
-          setEssayStreaming('');
-        } catch (err) {
-          if (!aborted) {
-            setEssayError(err instanceof Error ? err.message : 'Generation failed. Check your AI settings.');
-          }
-        } finally {
-          if (!aborted) setIsGeneratingEssay(false);
-        }
-      })();
-
-      return () => { aborted = true; };
+      // Session will be created after the real post is saved in the next effect
+      return;
     }
 
     if (discoverMeta && id) {
-      // Discover essay: stream an exploratory post for a curiosity topic
+      // Create a skeleton post for the discovery so the UI can render immediately
+      const skeleton: DailyPost = {
+        id,
+        date: new Date().toISOString().split('T')[0],
+        title: discoverMeta.title,
+        teaser: { hook: `Exploring ${discoverMeta.concept}...`, preview: '' },
+        bodyMarkdown: '',
+        whyCare: '',
+        takeaway: '',
+        quickAskPrompts: [],
+        narrativeMode: 'Discovery',
+        contextLabel: 'Concept Discovery',
+        sourceType: 'ai',
+        sourceQuestionIds: [],
+        sourceQuestionTitles: [],
+        keywords: [discoverMeta.concept],
+        generatedAt: Date.now(),
+        origin: 'ai',
+      };
+      setPost(skeleton);
       setLoadingPost(false);
-      setIsGeneratingEssay(true);
-
-      void (async () => {
-        let accumulated = '';
-        try {
-          for await (const chunk of conceptFeedService.generateDiscoverPost(
-            discoverMeta.concept,
-            discoverMeta.title,
-          )) {
-            if (aborted) return;
-            accumulated += chunk;
-            setEssayStreaming(accumulated);
-          }
-          if (aborted) return;
-          // Use the URL id as stable post ID so revisits find it in cache
-          const saved = conceptFeedService.saveDiscoverPost(discoverMeta.concept, discoverMeta.title, accumulated, id);
-          setPost(saved);
-          setSession(sessionService.getOrCreatePostSession(saved, questionsRef.current));
-          setEssayStreaming('');
-        } catch (err) {
-          if (!aborted) {
-            setEssayError(err instanceof Error ? err.message : 'Generation failed. Check your AI settings.');
-          }
-        } finally {
-          if (!aborted) setIsGeneratingEssay(false);
-        }
-      })();
-
-      return () => { aborted = true; };
+      return;
     }
 
     setPost(null);
@@ -194,11 +163,8 @@ export function PostDetailScreen() {
   // On-enter essay generation: stream bodyMarkdown when post has empty body
   useEffect(() => {
     if (!post) return;
-    // Skip if post already has content (starter posts, cached essays, connection/discover)
+    // Skip if post already has content (starter posts, cached essays, shorts)
     if (post.bodyMarkdown && post.bodyMarkdown.trim() !== '') return;
-    // Skip connection and discover posts (they have their own generation flow)
-    if (post.sourceType === 'connection') return;
-    // Skip shorts (they play inline, no essay)
     if (post.sourceType === 'short') return;
 
     let aborted = false;
@@ -210,26 +176,73 @@ export function PostDetailScreen() {
     void (async () => {
       let accumulated = '';
       try {
-        for await (const chunk of generatePostEssay(post, questionsRef.current)) {
-          if (aborted) return;
-          accumulated += chunk;
-          setStreamingBody(accumulated);
+        const connectionMeta = connectionMetaRef.current;
+        const discoverMeta = discoverMetaRef.current;
+
+        // 1. Stream the body content from the appropriate generator
+        if (post.sourceType === 'connection' && connectionMeta) {
+          for await (const chunk of conceptFeedService.generateConnectionPost(
+            connectionMeta.questionA,
+            connectionMeta.questionB,
+            connectionMeta.conceptNounA,
+            connectionMeta.conceptNounB,
+          )) {
+            if (aborted) return;
+            accumulated += chunk;
+            setStreamingBody(accumulated);
+          }
+        } else if (discoverMeta && post.id.includes('-post-')) {
+          for await (const chunk of conceptFeedService.generateDiscoverPost(
+            discoverMeta.concept,
+            discoverMeta.title,
+          )) {
+            if (aborted) return;
+            accumulated += chunk;
+            setStreamingBody(accumulated);
+          }
+        } else {
+          for await (const chunk of generatePostEssay(post, questionsRef.current)) {
+            if (aborted) return;
+            accumulated += chunk;
+            setStreamingBody(accumulated);
+          }
         }
+
         if (aborted) return;
 
-        // Generate meta (whyCare, takeaway, quickAskPrompts) after body completes
+        // 2. Generate meta (whyCare, takeaway, quickAskPrompts) after body completes
         const meta = await generateEssayMeta(post, accumulated);
         if (aborted) return;
 
         const essay: EssayContent = { bodyMarkdown: accumulated, ...meta };
 
-        // Patch post in state
-        setPost(prev => prev ? { ...prev, ...essay } : prev);
+        // 3. Save the finalized post to the appropriate store/cache
+        let savedPost: DailyPost | null = null;
+        if (post.sourceType === 'connection' && connectionMeta) {
+          savedPost = conceptFeedService.saveConnectionPost(
+            connectionMeta.questionA,
+            connectionMeta.questionB,
+            connectionMeta.conceptNounA,
+            connectionMeta.conceptNounB,
+            accumulated,
+          );
+          conceptFeedService.setConnectionPostId(connectionMeta.questionA.id, connectionMeta.questionB.id, savedPost.id);
+        } else if (discoverMeta && post.id.includes('-post-')) {
+          savedPost = conceptFeedService.saveDiscoverPost(discoverMeta.concept, discoverMeta.title, accumulated, post.id);
+        } else {
+          patchPostEssayInCache(post.id, essay);
+          savedPost = { ...post, ...essay };
+        }
+
+        if (aborted) return;
+
+        // 4. Update state with finalized post and create session if needed
+        setPost(savedPost);
         setOnEnterMeta(meta);
         setStreamingBody('');
-
-        // Cache to localStorage
-        patchPostEssayInCache(post.id, essay);
+        if (savedPost && !session) {
+          setSession(sessionService.getOrCreatePostSession(savedPost, questionsRef.current));
+        }
       } catch (err) {
         if (!aborted) {
           setOnEnterError(err instanceof Error ? err.message : 'Essay generation failed. Check your AI settings.');
@@ -241,6 +254,7 @@ export function PostDetailScreen() {
 
     return () => { aborted = true; };
   }, [post?.id, post?.bodyMarkdown]); // eslint-disable-line react-hooks/exhaustive-deps
+
 
 
   // Fetch cached images for the carousel whenever the post changes.
@@ -374,77 +388,6 @@ export function PostDetailScreen() {
         />
         <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
         Loading post...
-      </div>
-    );
-  }
-
-  // Essay is being generated — show streaming content before the Q&A section is ready.
-  if (isGeneratingEssay || essayError) {
-    const connMeta = connectionMetaRef.current;
-    const discMeta = discoverMetaRef.current;
-    return (
-      <div style={{ padding: `calc(16px + ${HEADER_HEIGHT}px) 16px 104px`, maxWidth: '448px', margin: '0 auto' }}>
-        <Header
-          title="Post"
-          centered
-          left={
-            <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', padding: '12px', marginLeft: '-12px', color: 'var(--primary-40)', display: 'flex', alignItems: 'center' }}>
-              <ArrowLeft size={20} />
-            </button>
-          }
-        />
-
-        {/* Connection concept pills */}
-        {connMeta && (
-          <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', flexWrap: 'wrap' }}>
-            {[connMeta.conceptNounA, connMeta.conceptNounB].map((noun, i) => (
-              <span
-                key={i}
-                style={{
-                  padding: '6px 16px',
-                  borderRadius: '100px',
-                  backgroundColor: i === 0 ? 'var(--node-mint)' : 'var(--node-sky)',
-                  color: 'var(--foreground)',
-                  fontWeight: 700,
-                  fontSize: '0.875rem',
-                }}
-              >
-                {noun}
-              </span>
-            ))}
-          </div>
-        )}
-
-        {/* Discover title pill */}
-        {discMeta && (
-          <div style={{ marginBottom: '20px' }}>
-            <span style={{
-              padding: '6px 16px', borderRadius: '100px',
-              backgroundColor: 'var(--node-peach)',
-              color: 'var(--foreground)', fontWeight: 700, fontSize: '0.875rem',
-            }}>
-              {discMeta.title}
-            </span>
-          </div>
-        )}
-
-        {essayError ? (
-          <div style={{ padding: '20px', borderRadius: 'var(--radius-xl)', border: '1px solid var(--danger)', backgroundColor: 'var(--danger-light)', marginBottom: '16px' }}>
-            <p style={{ color: 'var(--danger-dark)', fontWeight: 600, marginBottom: '8px' }}>Generation failed</p>
-            <p style={{ color: 'var(--danger-dark)', fontSize: '0.875rem', marginBottom: '16px' }}>{essayError}</p>
-            <button
-              onClick={() => { setEssayError(null); navigate(0); }}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: 'var(--radius)', backgroundColor: 'var(--danger)', color: 'white', fontWeight: 600, fontSize: '0.875rem', border: 'none', cursor: 'pointer' }}
-            >
-              <RefreshCw size={14} /> Retry
-            </button>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px', padding: '60px 20px' }}>
-            <Loader2 size={28} style={{ animation: 'spin 1s linear infinite', color: 'var(--primary-40)' }} />
-            <p style={{ color: 'var(--muted-foreground)', fontSize: '0.95rem' }}>Generating Post...</p>
-          </div>
-        )}
       </div>
     );
   }

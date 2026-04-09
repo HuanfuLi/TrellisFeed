@@ -135,6 +135,7 @@ export function BottomNavigation({ onAskLongPress, onAskLongPressRelease }: Bott
 
   return (
     <nav
+      id="bottom-navigation"
       style={{
         position: 'fixed',
         bottom: 0,

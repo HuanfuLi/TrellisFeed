@@ -84,6 +84,19 @@
   /* Safe area fallback — handles both iOS (env) and custom Android (MainActivity injected) */
   --safe-area-top: env(safe-area-inset-top, var(--status-bar-height, 0px));
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+
+  /* Bottom navigation height (dynamic based on keyboard presence) */
+  --bottom-nav-height: calc(80px + var(--safe-area-bottom));
+}
+
+body.keyboard-open {
+  --bottom-nav-height: 0px;
+}
+
+body.keyboard-open #bottom-navigation {
+  transform: translateY(100%);
+  opacity: 0;
+  pointer-events: none;
 }
 
 .dark {

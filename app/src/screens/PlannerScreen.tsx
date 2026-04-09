@@ -375,7 +375,7 @@ export function PlannerScreen() {
     setIsSubmitting(true);
     try {
       const session = await diagnosticDialogueService.startSession(lastCheckInContent);
-      const followUp = await diagnosticDialogueService.generateFollowUp(session);
+      await diagnosticDialogueService.generateFollowUp(session);
       setDiagnosticSession({ ...session });
       setLastCheckInContent(null);
     } catch {
@@ -393,7 +393,7 @@ export function PlannerScreen() {
       if (updated.status === 'completed') {
         await handleDialogueDone();
       } else {
-        const followUp = await diagnosticDialogueService.generateFollowUp(updated);
+        await diagnosticDialogueService.generateFollowUp(updated);
         // generateFollowUp already pushes the assistant turn and persists
         setDiagnosticSession({ ...updated });
       }
@@ -485,10 +485,7 @@ export function PlannerScreen() {
     }
   };
 
-  const handleRegenerateMove = async (_moveId: string) => {
-    await conceptFeedService.generateMorePosts(questions);
-    refreshMoves();
-  };
+
 
   return (
     <div style={{ padding: `${HEADER_HEIGHT + 8}px 16px 96px`, maxWidth: '448px', margin: '0 auto' }}>

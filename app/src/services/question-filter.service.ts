@@ -18,17 +18,23 @@ const PATTERN_LIBRARY: PatternEntry[] = [
   // Social small talk (never learning questions)
   { pattern: /\b(how are you|how's it going|what's new|what's up|sup|how ya doin|how have you been|nice to meet|good to see|lovely day|how about you)\b/i, confidence: 0.9 },
 
-  // Meta-questions about the system
-  { pattern: /^(what (can|should|will) you|who (are|is) you|how (do|does|can) (you|this) work|tell me (about|who|what) (you|yourself)|what('?s| is| are) (your|the) (name|capabilities|purpose)|describe yourself|are you|can you (actually )?help)/i, confidence: 0.95 },
+  // Meta-questions about the system — broad catch for "what/who are you" variants
+  { pattern: /^(what\s+(can|should|will|do|is|are)\s+(you|this|the\s+system)|who\s+(is|are)\s+(you|this|the\s+system)|how\s+(do|does|can|will)\s+(you|this|the\s+system)\s+work|tell\s+(me|us)\s+(about|who)\s+(your|the|yourself)|what('?s| is| are)\s+(your|the)\s+(name|capabilities|purpose|role|goal|function)|describe\s+(yourself|your|the)\s+(system|ai|role)|are\s+you|can\s+you\s+(actually\s+)?help)/i, confidence: 0.95 },
+
+  // System prompt / instruction inquiries — catches leak attempts
+  { pattern: /\b(what\s+(is|are|was|were)\s+(your|the|this)\s+(system\s+)?(prompt|message|instruction|guideline|rule|context|background|constraint)s?|show\s+(me|us)\s+(your|the)\s+(system\s+)?(prompt|instruction|message)|reveal\s+(your|the)\s+(system\s+)?(prompt|instruction)|display\s+(your|the)\s+(system\s+)?(prompt|instruction)|print\s+(your|the)\s+(system\s+)?(prompt|instruction))\b/i, confidence: 0.92 },
+
+  // Jailbreak attempts / constraint-bypassing queries
+  { pattern: /\b(ignore\s+(the\s+)?(above|previous|prior)\s+(instruction|rule|prompt|constraint|guideline)|disregard|bypass|override|circumvent|pretend\s+(you\s+)?(are|were|can be)|roleplay\s+(as|like)\s+(?!an?[\s\w]*student)|act\s+as\s+(?!an?[\s\w]*student)(?!an?[\s\w]*user)|assume\s+(?:you\s+)?are|forget\s+(?:that\s+)?you|stop\s+being|no\s+longer|you\s+are\s+now|from\s+now\s+on\s+you|pretend\s+that\s+(?:my|previous)\s+(instruction|rule))\b/i, confidence: 0.90 },
 
   // Sarcasm, skepticism, and dismissive meta-commentary
-  { pattern: /\b(really\?|seriously\?|for real|come on|right\?|sure sure|yeah right|whatever|yikes|oh please|uh huh sure)/i, confidence: 0.85 },
+  { pattern: /\b(really\?|seriously\?|for real|come on|right\?|sure sure|yeah right|whatever|yikes|oh please|uh huh sure)\b/i, confidence: 0.85 },
 
   // Requests for jokes, entertainment, non-learning content
-  { pattern: /^(tell me a joke|make me laugh|give me a riddle|say something funny|tell me a story|write a poem)/i, confidence: 0.95 },
+  { pattern: /^(tell\s+(me|us)\s+a\s+(joke|riddle|funny.*story|story|poem|rhyme|haiku)|make\s+(me|us)\s+(laugh|smile)|give\s+(me|us)\s+a\s+(joke|riddle)|say\s+something\s+funny|write\s+a\s+(poem|story|song|rhyme|haiku))\b/i, confidence: 0.95 },
 
-  // Incomplete test messages
-  { pattern: /^(test|asdf|xyz|lol|haha|lmao|xd)/i, confidence: 0.85 },
+  // Incomplete test messages / spam
+  { pattern: /^(test|asdf|qwerty|xyz|lol|haha|lmao|xd|rofl|lmfao|wtf|omg|brb|gtg|afk|jk|smh|fml)\b/i, confidence: 0.85 },
 
   // Trivial acknowledgements and backchannels (word boundary — also catches punctuation variants)
   { pattern: /\b(ok|okay|alright|got it|i see|cool|right|yeah|yes|no|sure|thanks|thank you|np|yep|nope|uh huh|uh uh|mhm|mm|exactly|indeed|fine|whatever|absolutely|certainly|definitely|sounds good|for sure|totally|100)\b/i, confidence: 0.8 },

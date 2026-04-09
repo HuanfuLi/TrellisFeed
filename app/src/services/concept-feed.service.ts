@@ -431,7 +431,14 @@ function extractPosts(parsed: Array<Record<string, unknown>>, questions: Questio
       const sourceQuestionIds = Array.isArray(item.sourceQuestionIds)
         ? item.sourceQuestionIds.filter((value): value is string => typeof value === 'string' && byId.has(value)).slice(0, 4)
         : [];
-      const sourceQuestionTitles = sourceQuestionIds.map((id) => titleFor(byId.get(id)!));
+      const sourceQuestionTitles = [...new Set(sourceQuestionIds.map((id) => {
+        const question = byId.get(id)!;
+        if (question.parentId) {
+          const anchor = byId.get(question.parentId);
+          if (anchor?.isAnchorNode && anchor.title?.trim()) return anchor.title.trim();
+        }
+        return question.clusterLabel?.trim() || question.branchLabel?.trim() || titleFor(question);
+      }))];
       const teaserHook = typeof item.teaserHook === 'string' ? truncate(item.teaserHook, 110) : '';
       const teaserPreview = typeof item.teaserPreview === 'string' ? truncate(item.teaserPreview, 220) : '';
       const bodyMarkdown = typeof item.bodyMarkdown === 'string' ? item.bodyMarkdown.trim() : '';
@@ -521,7 +528,7 @@ function _backgroundGenerateVideos(): void {
   if (_videoBgRunning) return;
   if (youtubeService.getCachedVideoPosts().length > 0) return; // already cached for today
   _videoBgRunning = true;
-  youtubeService.generateVideoPosts(3).catch(() => {}).finally(() => { _videoBgRunning = false; });
+  youtubeService.generateVideoPosts(5).catch(() => {}).finally(() => { _videoBgRunning = false; });
 }
 
 /** Background text-art content generation for cache-hit paths. */
@@ -680,13 +687,6 @@ Return ONLY the single line, nothing else.`;
   });
 }
 
-let _shortsBgRunning = false;
-function _backgroundGenerateShorts(questions: Question[]): void {
-  if (_shortsBgRunning) return;
-  if (youtubeService.getCachedShortPosts().length > 0) return; // already cached for today
-  _shortsBgRunning = true;
-  youtubeService.generateShortPosts(questions, 2).catch(() => {}).finally(() => { _shortsBgRunning = false; });
-}
 
 // ─── News post helpers ──────────────────────────────────────────────────────
 
@@ -725,27 +725,7 @@ function interleaveNewsPosts(feedPosts: DailyPost[], news: DailyPost[]): DailyPo
   return result;
 }
 
-/**
- * Interleave video posts into AI posts. Inserts a video after every 2nd AI post.
- * Remaining video posts are appended at the end.
- * Per D-04: video posts mix into the existing feed, not a separate section.
- * @deprecated Use assignPresentationStyles instead.
- */
-function interleaveVideoPosts(aiPosts: DailyPost[], videoPosts: DailyPost[]): DailyPost[] {
-  if (videoPosts.length === 0) return aiPosts;
-  const result: DailyPost[] = [];
-  let vIdx = 0;
-  for (let i = 0; i < aiPosts.length; i++) {
-    result.push(aiPosts[i]);
-    // Insert a video post after every 2nd AI post
-    if ((i + 1) % 2 === 0 && vIdx < videoPosts.length) {
-      result.push(videoPosts[vIdx++]);
-    }
-  }
-  // Append remaining video posts at the end
-  while (vIdx < videoPosts.length) result.push(videoPosts[vIdx++]);
-  return result;
-}
+
 
 function toPostSnapshot(post: DailyPost): PostSnapshot {
   const { generatedAt, origin, ...snapshot } = post;
@@ -799,11 +779,8 @@ export const conceptFeedService = {
     const cached = loadCache();
     if (cached?.date === date && cached.fingerprint === fingerprint && cached.posts.length > 0) {
       const aiPosts = cached.posts.filter((p) => p.sourceType !== 'connection');
-      const videoPosts = youtubeService.getCachedVideoPosts();
-      const shortPosts = youtubeService.getCachedShortPosts();
-      const allVideos = [...videoPosts, ...shortPosts];
+      const allVideos = youtubeService.getCachedVideoPosts();
       _backgroundGenerateVideos();
-      _backgroundGenerateShorts(questions);
       _backgroundGenerateNews();
       const allStyled = aiPosts.length > 0 && aiPosts.every(p => p.presentationStyle);
       const styledResult = allStyled
@@ -820,11 +797,8 @@ export const conceptFeedService = {
     if (hasPostsForToday && cached.fingerprint !== fingerprint) {
       saveCache({ ...cached, fingerprint });
       const aiPosts = cached.posts.filter((p) => p.sourceType !== 'connection');
-      const videoPosts = youtubeService.getCachedVideoPosts();
-      const shortPosts = youtubeService.getCachedShortPosts();
-      const allVideos = [...videoPosts, ...shortPosts];
+      const allVideos = youtubeService.getCachedVideoPosts();
       _backgroundGenerateVideos();
-      _backgroundGenerateShorts(questions);
       _backgroundGenerateNews();
       const allStyled2 = aiPosts.length > 0 && aiPosts.every(p => p.presentationStyle);
       const styledResult2 = allStyled2
@@ -852,15 +826,12 @@ export const conceptFeedService = {
 
     saveCache({ date, fingerprint, posts: allPosts, connectionCards: generated.connectionCards });
 
-    const videoPosts = youtubeService.getCachedVideoPosts();
-    const shortPosts = youtubeService.getCachedShortPosts();
+    const allVideos = youtubeService.getCachedVideoPosts();
     _backgroundGenerateVideos();
-    _backgroundGenerateShorts(questions);
     _backgroundGenerateNews();
     const feedPosts = allPosts.filter((p) => p.sourceType !== 'connection');
     const unstyledPosts = feedPosts.filter(p => !p.presentationStyle);
     const alreadyStyled = feedPosts.filter(p => p.presentationStyle);
-    const allVideos = [...videoPosts, ...shortPosts];
     const newlyStyled = unstyledPosts.length > 0
       ? assignPresentationStyles(unstyledPosts, allVideos)
       : [...alreadyStyled, ...allVideos.map(p => ({ ...p, presentationStyle: (p.sourceType === 'short' ? 'short' : 'video') as PresentationStyle }))];
@@ -917,9 +888,7 @@ export const conceptFeedService = {
 
   getCachedDailyPosts(): DailyPost[] {
     const aiPosts = (loadCache()?.posts ?? []).filter((p) => p.sourceType !== 'connection');
-    const videoPosts = youtubeService.getCachedVideoPosts();
-    const shortPosts = youtubeService.getCachedShortPosts();
-    const allVideos = [...videoPosts, ...shortPosts];
+    const allVideos = youtubeService.getCachedVideoPosts();
     const allStyled = aiPosts.length > 0 && aiPosts.every(p => p.presentationStyle);
     const result = allStyled
       ? [...aiPosts, ...allVideos.map(p => ({ ...p, presentationStyle: (p.sourceType === 'short' ? 'short' : 'video') as PresentationStyle }))]

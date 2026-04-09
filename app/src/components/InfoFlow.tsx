@@ -113,60 +113,48 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
   const normalizedHook = normalizePlainText(post.teaser.hook);
   const normalizedPreview = normalizePlainText(post.teaser.preview);
 
-  return (
-    <div
-      className="flow-card-inner"
-      style={{
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        padding: isShortPost ? '0' : '16px 12px',
-        boxSizing: 'border-box',
-        background: isShortPost
-          ? 'var(--card)'
-          : 'radial-gradient(circle at top right, color-mix(in srgb, var(--primary-80) 55%, transparent), transparent 40%), var(--card)',
-      }}
-    >
-      {/* News card (D-09) — newspaper style */}
-      {isNewsPost && (
-        <div
-          onClick={() => onOpen(post.id, post)}
-          style={{
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-            padding: '24px 20px',
-            borderRadius: 'var(--radius-xl)',
-            backgroundColor: '#faf8f4',
-            border: '1px solid #e8e2d8',
-            cursor: 'pointer',
-            fontFamily: "Georgia, 'Times New Roman', 'Noto Serif', serif",
-            position: 'relative',
-            overflow: 'hidden',
-            animation: isActive ? 'card-slide-in 0.35s ease' : 'none',
-          }}
-        >
-          {/* Subtle dot grid background pattern */}
-          <div style={{
-            position: 'absolute',
-            inset: 0,
-            backgroundImage: 'radial-gradient(circle, #d4c9b8 0.5px, transparent 0.5px)',
-            backgroundSize: '20px 20px',
-            opacity: 0.15,
-            pointerEvents: 'none',
-          }} />
+  // News card (D-09) — newspaper style
+  if (isNewsPost) {
+    return (
+      <div
+        onClick={() => onOpen(post.id, post)}
+        style={{
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          padding: '0 0 16px 0',
+          borderRadius: 'var(--radius-xl)',
+          backgroundColor: '#faf8f4',
+          border: '1px solid #e8e2d8',
+          boxShadow: 'var(--shadow-2)',
+          cursor: 'pointer',
+          fontFamily: "Georgia, 'Times New Roman', 'Noto Serif', serif",
+          position: 'relative',
+          overflow: 'hidden',
+          animation: isActive ? 'card-slide-in 0.35s ease' : 'none',
+        }}
+      >
+        {/* Subtle dot grid background pattern */}
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          backgroundImage: 'radial-gradient(circle, #d4c9b8 0.5px, transparent 0.5px)',
+          backgroundSize: '20px 20px',
+          opacity: 0.15,
+          pointerEvents: 'none',
+        }} />
 
+        <div style={{ padding: '24px 20px 0', position: 'relative' }}>
           {/* Source attribution — uppercase, small */}
           {post.newsMeta?.sources?.[0] && (
             <span style={{
+              display: 'block',
               fontSize: '0.7rem',
               color: '#888',
               textTransform: 'uppercase',
               letterSpacing: '0.08em',
-              marginBottom: '12px',
+              marginBottom: '10px',
               fontFamily: 'system-ui, -apple-system, sans-serif',
-              position: 'relative',
             }}>
               {(() => {
                 try { return new URL(post.newsMeta.sources[0].url).hostname.replace('www.', ''); }
@@ -181,8 +169,7 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
             fontWeight: 700,
             lineHeight: 1.3,
             color: '#1a1a1a',
-            marginBottom: '10px',
-            position: 'relative',
+            marginBottom: '12px',
           }}>
             {normalizedTitle}
           </h3>
@@ -190,75 +177,82 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
           {/* Preview text */}
           <p style={{
             fontSize: '0.9rem',
-            lineHeight: 1.5,
+            lineHeight: 1.55,
             color: '#444',
-            position: 'relative',
-            flex: 1,
+            marginBottom: '20px',
           }}>
             {normalizedPreview}
           </p>
+        </div>
 
-          {/* Bottom rule line — newspaper divider */}
-          <div style={{
-            borderTop: '1px solid #d4c9b8',
-            marginTop: '16px',
-            paddingTop: '8px',
-            position: 'relative',
-          }}>
-            {/* Bottom tags */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-              <span style={{
-                fontSize: '0.65rem',
-                fontWeight: 700,
-                letterSpacing: '0.08em',
-                textTransform: 'uppercase',
-                color: '#6B4C35',
-                fontFamily: 'system-ui, -apple-system, sans-serif',
-                backgroundColor: 'rgba(107,76,53,0.08)',
-                padding: '3px 8px',
-                borderRadius: '100px',
-              }}>
-                NEWS
+        {/* Bottom rule line — newspaper divider */}
+        <div style={{
+          borderTop: '1px solid #d4c9b8',
+          padding: '12px 20px 0',
+          position: 'relative',
+        }}>
+          {/* Bottom tags */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+            <span style={{
+              fontSize: '0.65rem',
+              fontWeight: 700,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              color: '#6B4C35',
+              fontFamily: 'system-ui, -apple-system, sans-serif',
+              backgroundColor: 'rgba(107,76,53,0.08)',
+              padding: '3px 8px',
+              borderRadius: '100px',
+            }}>
+              NEWS
+            </span>
+            {post.sourceQuestionTitles?.slice(0, 1).map((title, idx) => (
+              <span
+                key={idx}
+                style={{
+                  fontSize: '0.65rem',
+                  color: '#999',
+                  fontFamily: 'system-ui, -apple-system, sans-serif',
+                  padding: '3px 8px',
+                  borderRadius: '100px',
+                  border: '1px solid #e8e2d8',
+                }}
+              >
+                {title}
               </span>
-              {post.sourceQuestionTitles?.slice(0, 1).map((title, idx) => (
-                <span
-                  key={idx}
-                  style={{
-                    fontSize: '0.65rem',
-                    color: '#999',
-                    fontFamily: 'system-ui, -apple-system, sans-serif',
-                    padding: '3px 8px',
-                    borderRadius: '100px',
-                    border: '1px solid #e8e2d8',
-                  }}
-                >
-                  {title}
-                </span>
-              ))}
-            </div>
+            ))}
           </div>
         </div>
-      )}
+      </div>
+    );
+  }
 
-      {!isNewsPost && <button
-        onClick={isShortPost ? undefined : () => onOpen(post.id, post)}
-        style={{
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: (image || isVideoPost || presentationStyle === 'text-art') ? 'space-between' : 'flex-start',
-          gap: '20px',
-          padding: isShortPost ? '0' : (image || isVideoPost || presentationStyle === 'text-art') ? '0 0 20px' : '20px 0',
-          borderRadius: 'var(--radius-xl)',
-          background: 'linear-gradient(180deg, color-mix(in srgb, var(--primary-80) 20%, var(--surface-container-high)), var(--surface-container-high))',
-          border: '1.5px solid color-mix(in srgb, var(--primary-40) 22%, var(--border))',
-          cursor: isShortPost ? 'default' : 'pointer',
-          transition: 'transform 0.18s ease, background 0.25s ease',
-          textAlign: 'left',
-          animation: isActive ? 'card-slide-in 0.35s ease' : 'none',
-          overflow: 'hidden',
-        }}
-      >
+  // Regular concept posts
+  return (
+    <button
+      onClick={isShortPost ? undefined : () => onOpen(post.id, post)}
+      style={{
+        height: '100%',
+        width: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: (image || isVideoPost || presentationStyle === 'text-art') ? 'space-between' : 'flex-start',
+        gap: '20px',
+        padding: isShortPost ? '0' : (image || isVideoPost || presentationStyle === 'text-art') ? '0 0 20px' : '20px 0',
+        borderRadius: 'var(--radius-xl)',
+        background: isShortPost
+          ? 'var(--card)'
+          : 'linear-gradient(180deg, color-mix(in srgb, var(--primary-80) 20%, var(--surface-container-high)), var(--surface-container-high))',
+        border: '1.5px solid color-mix(in srgb, var(--primary-40) 22%, var(--border))',
+        boxShadow: 'var(--shadow-2)',
+        cursor: isShortPost ? 'default' : 'pointer',
+        transition: 'transform 0.18s ease, background 0.25s ease',
+        textAlign: 'left',
+        animation: isActive ? 'card-slide-in 0.35s ease' : 'none',
+        overflow: 'hidden',
+      }}
+    >
+
         {/* Video card: show YouTube thumbnail with play overlay (D-08) */}
         {isVideoPost && post.videoMeta?.thumbnailUrl && (
           <div
@@ -484,26 +478,11 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
                   {title}
                 </span>
               ))}
-              {post.narrativeMode && post.narrativeMode !== 'starter' && (
-                <span
-                  style={{
-                    fontSize: '0.7rem',
-                    color: 'var(--muted-foreground)',
-                    backgroundColor: 'var(--surface)',
-                    border: '1px solid var(--border)',
-                    padding: '3px 8px',
-                    borderRadius: '100px',
-                    fontStyle: 'italic',
-                  }}
-                >
-                  {post.narrativeMode.replace(/-/g, ' ')}
-                </span>
-              )}
             </div>
-          </div>
-        )}
-      </button>}
-    </div>
+            </div>
+            )}
+            </button>
+
   );
 }
 
@@ -557,9 +536,12 @@ function ConnectionCard({ conceptNounA, conceptNounB, bridgeInsight, cosineSimil
         boxSizing: 'border-box',
         cursor: 'pointer',
         userSelect: 'none',
-        background: 'none',
-        border: 'none',
+        backgroundColor: 'var(--card)',
+        borderRadius: 'var(--radius-xl)',
+        border: '1.5px solid var(--border)',
+        boxShadow: 'var(--shadow-2)',
         textAlign: 'left',
+        overflow: 'hidden',
       }}
     >
       {/* Bridge insight — primary hook */}
@@ -642,6 +624,9 @@ function MilestoneCard({ item, isActive }: { item: BlindboxItem; isActive: boole
         padding: '32px 28px',
         boxSizing: 'border-box',
         background: MILESTONE_BG[item.type],
+        borderRadius: 'var(--radius-xl)',
+        boxShadow: 'var(--shadow-3)',
+        overflow: 'hidden',
         animation: isActive ? 'milestone-pop 0.4s cubic-bezier(0.34,1.56,0.64,1)' : 'none',
       }}
     >
@@ -786,34 +771,28 @@ export function ImmersiveInfoFlow({ items, onOpenConnection, onClose, onOpenPost
         }}
       >
         {items.map((item, index) => (
-          <div
-            key={index}
-            data-flow-card=""
-            style={{
-              height: '100svh',
-              scrollSnapAlign: 'start',
-              scrollSnapStop: 'always',
-              display: 'flex',
-              flexDirection: 'column',
-              padding: '64px 16px 24px',
-              boxSizing: 'border-box',
-              maxWidth: '480px',
-              margin: '0 auto',
-              width: '100%',
-            }}
-          >
             <div
+              key={index}
+              data-flow-card=""
               style={{
-                flex: 1,
-                borderRadius: 'var(--radius-xl)',
-                backgroundColor: 'var(--surface)',
-                border: item.kind === 'milestone' ? 'none' : '1px solid var(--border)',
-                boxShadow: index === activeIndex ? 'var(--shadow-3)' : 'var(--shadow-1)',
-                overflow: 'hidden',
-                transition: 'box-shadow 0.3s',
-                position: 'relative',
+                height: '100svh',
+                scrollSnapAlign: 'start',
+                scrollSnapStop: 'always',
+                display: 'flex',
+                flexDirection: 'column',
+                padding: '64px 16px 24px',
+                boxSizing: 'border-box',
+                maxWidth: '480px',
+                margin: '0 auto',
+                width: '100%',
               }}
             >
+              <div
+                style={{
+                  flex: 1,
+                  position: 'relative',
+                }}
+              >
               {item.kind === 'concept' ? (
                 <ConceptCard post={item.post} feedIndex={index} isActive={index === activeIndex} onOpen={onOpenPost} />
               ) : item.kind === 'connection' ? (
@@ -940,18 +919,9 @@ export function InlineInfoFlow({ items, onOpenConnection, showConnectionScores =
               key={index}
               data-feed-id={itemId}
               style={{
-                borderRadius: 'var(--radius-xl)',
-                backgroundColor: item.kind === 'milestone' ? 'transparent' : 'var(--card)',
-                border:
-                  item.kind === 'concept'
-                    ? '1.5px solid color-mix(in srgb, var(--primary-40) 30%, var(--border))'
-                    : item.kind === 'milestone'
-                      ? 'none'
-                      : '1.5px solid var(--border)',
-                boxShadow: item.kind === 'milestone' ? 'var(--shadow-3)' : 'var(--shadow-2)',
-                overflow: 'hidden',
+                position: 'relative',
                 minHeight: item.kind === 'concept'
-                  ? (item.post.presentationStyle === 'image-less' || item.post.presentationStyle === 'image' || !item.post.presentationStyle ? 'auto' : '320px')
+                  ? (item.post.presentationStyle === 'news' || item.post.presentationStyle === 'image-less' || item.post.presentationStyle === 'image' || !item.post.presentationStyle ? 'auto' : '320px')
                   : item.kind === 'milestone' ? '200px' : '280px',
               }}
             >
