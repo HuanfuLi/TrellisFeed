@@ -573,12 +573,12 @@ Plans:
 
 **Depends on:** Phase 22
 
-**Plans:** 3 plans (2 waves)
+**Plans:** 3/3 plans complete
 
 Plans:
-- [ ] 23-01-PLAN.md -- Pipeline helpers + classifyAndAnchorIncremental function (PIPE-01..07)
-- [ ] 23-02-PLAN.md -- Rate limiter service + type extensions + Settings Usage UI (RATE-01..06)
-- [ ] 23-03-PLAN.md -- Wire pipeline + rate limiter into callers (useQuestions, question.service, AskScreen)
+- [x] 23-01-PLAN.md -- Pipeline helpers + classifyAndAnchorIncremental function (PIPE-01..07)
+- [x] 23-02-PLAN.md -- Rate limiter service + type extensions + Settings Usage UI (RATE-01..06)
+- [x] 23-03-PLAN.md -- Wire pipeline + rate limiter into callers (useQuestions, question.service, AskScreen)
 
 **Success Criteria:**
 1. Classification uses 3-step incremental pipeline with KV cache-friendly append-only messages
