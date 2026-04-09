@@ -552,6 +552,44 @@ Plans:
 - [x] 22-01-PLAN.md — Pure swipe logic functions + tests + SwipeTabContainer + context
 - [x] 22-02-PLAN.md — App.tsx restructuring + BottomNavigation tracking + gesture conflict attributes + visual verification
 
+### Phase 23: Incremental Mindmap Classification with KV Cache and Ask Rate Limiter
+
+**Goal:** Replace the single-call mindmap classification with an incremental 3-step LLM pipeline (branch -> cluster -> anchor) that leverages KV cache for cost efficiency at scale. Add a configurable monthly rate limiter for user Q&A streaming requests on the Ask screen.
+
+**Requirements:**
+- PIPE-01: 3-step sequential LLM pipeline (branch -> cluster -> anchor) with append-only conversation threading
+- PIPE-02: Index-based selection format (bare integer or {"index":"NEW","name":"..."})
+- PIPE-03: Stable system prompt (no dynamic content) for KV cache maximization
+- PIPE-04: Short-circuit on NEW -- skip remaining steps, create downstream nodes in code
+- PIPE-05: Retry failed step once, then fall back to existing single-call classifyAndAnchor
+- PIPE-06: No partial commits -- collect all 3 decisions before creating/attaching nodes
+- PIPE-07: Old classifyAndAnchor kept as fallback, not removed
+- RATE-01: Monthly quota model tracking askStreaming requests per calendar month
+- RATE-02: Only counts user Q&A streaming requests (not system LLM calls)
+- RATE-03: Off by default (0 = unlimited)
+- RATE-04: Combined "Usage" section in Settings (renamed from "Token Usage") with count, limit, reset date
+- RATE-05: Inline banner in Ask screen at 80%+ of limit
+- RATE-06: Hard block when limit reached -- send button disabled
+
+**Depends on:** Phase 22
+
+**Plans:** 3 plans (2 waves)
+
+Plans:
+- [ ] 23-01-PLAN.md -- Pipeline helpers + classifyAndAnchorIncremental function (PIPE-01..07)
+- [ ] 23-02-PLAN.md -- Rate limiter service + type extensions + Settings Usage UI (RATE-01..06)
+- [ ] 23-03-PLAN.md -- Wire pipeline + rate limiter into callers (useQuestions, question.service, AskScreen)
+
+**Success Criteria:**
+1. Classification uses 3-step incremental pipeline with KV cache-friendly append-only messages
+2. Short-circuit on NEW skips remaining steps
+3. Failed pipeline falls back to existing single-call classifyAndAnchor
+4. Monthly rate limiter tracks and optionally caps askStreaming requests
+5. Settings "Usage" section shows monthly count, limit, token usage
+6. Ask screen shows warning at 80%+, blocks at 100% with disabled send button
+7. No regression in existing ask flow, mindmap rendering, or settings functionality
+
+
 ---
 
 _Created: 2026-03-26 | v1.1 Roadmap | 16 phases | 91 requirements mapped_
