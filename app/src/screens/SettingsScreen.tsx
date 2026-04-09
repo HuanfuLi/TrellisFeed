@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Brain, Volume2, Network, Radio, BookOpen, Palette, RotateCcw, CheckCircle, XCircle, Shield, Download, Upload, Trash2, Sparkles, Loader2, Image, CalendarClock, BarChart3, Youtube, Globe } from 'lucide-react';
 import { tokenUsageReporter, type ServiceAggregate } from '../services/token-usage.service';
+import { getRateLimitStatus } from '../services/ask-rate-limiter.service';
 import { plannerAutoGenService } from '../services/plannerAutoGen.service';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -156,6 +157,8 @@ export function SettingsScreen() {
   const [cacheStats, setCacheStats] = useState(() => imageGenerationService.getCacheStats());
   const [isClearingCache, setIsClearingCache] = useState(false);
   const [tokenUsage, setTokenUsage] = useState<Record<string, ServiceAggregate>>(() => tokenUsageReporter.getByService());
+  const [askMonthlyLimit, setAskMonthlyLimit] = useState<number>(settings.preferences.askMonthlyLimit ?? 0);
+  const rateLimitStatus = getRateLimitStatus(askMonthlyLimit);
 
   const noKeyRequired = (p: LLMConfig['provider']) => p === 'local' || p === 'lmstudio';
 
@@ -324,6 +327,13 @@ export function SettingsScreen() {
     // Re-bootstrap providers with new keys.
     bootstrapImageGeneration();
     toast('Image generation settings saved.', 'success');
+  };
+
+  const handleAskLimitChange = (value: string) => {
+    const num = Math.max(0, parseInt(value, 10) || 0);
+    setAskMonthlyLimit(num);
+    const updated = { ...settings, preferences: { ...settings.preferences, askMonthlyLimit: num } };
+    settingsService.set('preferences', updated.preferences);
   };
 
   const refreshTokenUsage = () => setTokenUsage(tokenUsageReporter.getByService());
@@ -1122,12 +1132,39 @@ export function SettingsScreen() {
         </div>
       </Card>
 
-      {/* Token Usage */}
-      <SectionHeader icon={<BarChart3 size={20} />} title="Token Usage" />
+      {/* Usage */}
+      <SectionHeader icon={<BarChart3 size={20} />} title="Usage" />
       <Card style={{ marginBottom: '8px' }}>
         <p style={{ fontSize: '0.8rem', color: 'var(--muted-foreground)', marginBottom: '12px', lineHeight: 1.5 }}>
-          LLM API token usage per service. Data from provider responses.
+          Monthly question limit and LLM API token usage.
         </p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', padding: '12px', background: 'var(--surface-variant)', borderRadius: 'var(--radius-xl)' }}>
+          <div>
+            <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>Monthly Question Limit</div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', marginTop: '2px' }}>
+              {askMonthlyLimit === 0
+                ? 'Unlimited (no cap)'
+                : `${rateLimitStatus.count} / ${askMonthlyLimit} this month`}
+            </div>
+            {askMonthlyLimit > 0 && (
+              <div style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)', marginTop: '2px' }}>
+                Resets {rateLimitStatus.resetDate}
+              </div>
+            )}
+          </div>
+          <input
+            type="number"
+            min="0"
+            value={askMonthlyLimit}
+            onChange={(e) => handleAskLimitChange(e.target.value)}
+            style={{
+              width: '80px', padding: '6px 8px', borderRadius: 'var(--radius-xl)',
+              border: '1px solid var(--border)', background: 'var(--surface)',
+              fontSize: '0.85rem', textAlign: 'center',
+            }}
+            placeholder="0"
+          />
+        </div>
         {Object.keys(tokenUsage).length === 0 ? (
           <p style={{ fontSize: '0.85rem', color: 'var(--muted-foreground)', fontStyle: 'italic' }}>No usage data recorded yet.</p>
         ) : (

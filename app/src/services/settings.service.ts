@@ -50,6 +50,7 @@ const defaultSettings: AppSettings = {
     language: 'en',
     onboardingCompleted: false,
     aiConsentGiven: false,
+    askMonthlyLimit: 0,
   },
   imageGeneration: {
     nanoBananaApiKey: '',

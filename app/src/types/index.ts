@@ -291,6 +291,8 @@ export interface AppPreferences {
   onboardingCompleted: boolean;
   /** Explicit user consent to transmit questions to the configured AI provider. Required by App Store / Play Store AI policies. */
   aiConsentGiven?: boolean;
+  /** Monthly cap on user Q&A requests. 0 = unlimited (default). */
+  askMonthlyLimit?: number;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
