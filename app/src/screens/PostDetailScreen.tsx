@@ -89,7 +89,6 @@ export function PostDetailScreen() {
   useEffect(() => {
     if (!id) return;
 
-    let aborted = false;
     setOnEnterError(null);
     setLoadingPost(true);
 
@@ -116,7 +115,7 @@ export function PostDetailScreen() {
         whyCare: '',
         takeaway: '',
         quickAskPrompts: [],
-        narrativeMode: 'Synthesis',
+        narrativeMode: 'contrast',
         contextLabel: 'Connection',
         sourceType: 'connection',
         sourceQuestionIds: [connectionMeta.questionA.id, connectionMeta.questionB.id],
@@ -142,9 +141,9 @@ export function PostDetailScreen() {
         whyCare: '',
         takeaway: '',
         quickAskPrompts: [],
-        narrativeMode: 'Discovery',
+        narrativeMode: 'mechanism-breakdown',
         contextLabel: 'Concept Discovery',
-        sourceType: 'ai',
+        sourceType: 'mixed',
         sourceQuestionIds: [],
         sourceQuestionTitles: [],
         keywords: [discoverMeta.concept],
