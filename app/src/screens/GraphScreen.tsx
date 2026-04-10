@@ -3,12 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import MindElixir from 'mind-elixir';
 import 'mind-elixir/style';
 import type { MindElixirData, MindElixirInstance, NodeObj } from 'mind-elixir';
-import { ArrowLeft, RefreshCw, GitBranch, Plus, X, ChevronRight, Undo2, FoldVertical, UnfoldVertical } from 'lucide-react';
+import { ArrowLeft, RefreshCw, GitBranch, X, ChevronRight, FoldVertical, UnfoldVertical } from 'lucide-react';
 import type { Question } from '../types';
 import { graphService } from '../services/graph.service';
 import { toast } from '../lib/toast';
 import { Header, HEADER_HEIGHT } from '../components/ui/Header';
-import { buildAnchorReflectionTree, reorganizeMindmap, revertReorganization, hasReorgBackup, isReorgInProgress } from '../services/canonical-knowledge.service';
+import { buildAnchorReflectionTree, reorganizeMindmap, isReorgInProgress } from '../services/canonical-knowledge.service';
 import { settingsService } from '../services/settings.service';
 import { eventBus } from '../lib/event-bus';
 
@@ -426,326 +426,6 @@ function MasterMap({ nodes, edges, onNodeClick, isVisible }: MasterMapProps & { 
 
 // ─── Card Stack Inbox (View 2) ────────────────────────────────────────────────
 
-const NODE_COLORS = [
-  'var(--node-mint)',
-  'var(--node-salmon)',
-  'var(--node-lilac)',
-  'var(--node-peach)',
-  'var(--node-sky)',
-];
-
-interface CardStackInboxProps {
-  unlinked: Question[];
-  allNodes: Question[];
-  onLink: (sourceId: string, targetId: string) => Promise<void>;
-  onCreateDomain: (sourceId: string) => void;
-  onClose: () => void;
-}
-
-function CardStackInbox({ unlinked, allNodes, onLink, onCreateDomain, onClose }: CardStackInboxProps) {
-  const [stackIndex, setStackIndex] = useState(0);
-  const [recommended, setRecommended] = useState<Question[]>([]);
-  const [dragging, setDragging] = useState(false);
-  const [dragPos, setDragPos] = useState({ x: 0, y: 0 });
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const [dropTarget, setDropTarget] = useState<string | null>(null);
-  // Hierarchical drill-down
-  const [currentParentId, setCurrentParentId] = useState<string | null>(null);
-  const [navHistory, setNavHistory] = useState<Array<string | null>>([]);
-  // New branch modal
-  const [branchModalSourceId, setBranchModalSourceId] = useState<string | null>(null);
-  const [branchName, setBranchName] = useState('');
-  const cardRef = useRef<HTMLDivElement>(null);
-  const dropZoneRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  // 800 ms hover-to-drill timer
-  const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastHoveredRef = useRef<string | null>(null);
-
-  const activeNode = unlinked[stackIndex] ?? null;
-
-  const currentParentName = currentParentId
-    ? (allNodes.find((n) => n.id === currentParentId)?.title ?? allNodes.find((n) => n.id === currentParentId)?.content ?? 'Parent')
-    : null;
-
-  // Build bucket list: children of currentParent padded with similar nodes to reach 4
-  useEffect(() => {
-    if (!activeNode) return;
-    const children = graphService.getChildren(currentParentId).filter((n) => n.id !== activeNode.id);
-    if (children.length >= 4) {
-      setRecommended(children.slice(0, 4));
-      return;
-    }
-    const similar = graphService.getSimilarNodes(activeNode.id, 4)
-      .filter((n) => !children.find((c) => c.id === n.id));
-    setRecommended([...children, ...similar].slice(0, 4));
-  }, [activeNode, allNodes, currentParentId]);
-
-  const refreshRecommendations = () => {
-    if (!activeNode) return;
-    const children = graphService.getChildren(currentParentId).filter((n) => n.id !== activeNode.id);
-    const allSimilar = graphService.getSimilarNodes(activeNode.id, allNodes.length)
-      .filter((n) => !children.find((c) => c.id === n.id));
-    const shuffled = [...allSimilar].sort(() => Math.random() - 0.5);
-    setRecommended([...children, ...shuffled].slice(0, 4));
-  };
-
-  const drillInto = (nodeId: string) => {
-    setNavHistory((h) => [...h, currentParentId]);
-    setCurrentParentId(nodeId);
-  };
-
-  const drillBack = () => {
-    const prev = navHistory[navHistory.length - 1] ?? null;
-    setNavHistory((h) => h.slice(0, -1));
-    setCurrentParentId(prev);
-  };
-
-  const handleDragStart = (e: React.PointerEvent<HTMLDivElement>) => {
-    setDragging(true);
-    setDragStart({ x: e.clientX, y: e.clientY });
-    setDragPos({ x: 0, y: 0 });
-    setDropTarget(null);
-    lastHoveredRef.current = null;
-    (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
-  };
-
-  const handleDragMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!dragging) return;
-    setDragPos({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
-    let found: string | null = null;
-    for (const [key, el] of Object.entries(dropZoneRefs.current)) {
-      if (!el) continue;
-      const rect = el.getBoundingClientRect();
-      if (e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom) {
-        found = key;
-        break;
-      }
-    }
-    setDropTarget(found);
-
-    // 800 ms hover-to-drill: if hovering a node bucket (not special zones), drill into it
-    if (found !== lastHoveredRef.current) {
-      if (hoverTimerRef.current) { clearTimeout(hoverTimerRef.current); hoverTimerRef.current = null; }
-      lastHoveredRef.current = found;
-      if (found && found !== 'new-domain' && found !== 'back') {
-        hoverTimerRef.current = setTimeout(() => { drillInto(found); }, 800);
-      }
-    }
-  };
-
-  const handleDragEnd = async () => {
-    if (hoverTimerRef.current) { clearTimeout(hoverTimerRef.current); hoverTimerRef.current = null; }
-    if (!dragging || !activeNode) return;
-    setDragging(false);
-    setDragPos({ x: 0, y: 0 });
-    const target = dropTarget;
-    setDropTarget(null);
-    lastHoveredRef.current = null;
-
-    if (target === 'new-domain') {
-      setBranchModalSourceId(activeNode.id);
-      setBranchName(activeNode.title ?? activeNode.content.slice(0, 40));
-    } else if (target === 'back') {
-      drillBack();
-    } else if (target) {
-      graphService.moveToParent(activeNode.id, target);
-      await onLink(activeNode.id, target);
-      advanceStack();
-    }
-  };
-
-  const handleBranchConfirm = () => {
-    if (!branchModalSourceId) return;
-    const trimmed = branchName.trim();
-    if (trimmed) graphService.moveToParent(branchModalSourceId, currentParentId);
-    onCreateDomain(branchModalSourceId);
-    setBranchModalSourceId(null);
-    setBranchName('');
-    advanceStack();
-  };
-
-  const advanceStack = () => setStackIndex((i) => i + 1);
-
-  if (!activeNode) {
-    return (
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px', padding: '32px', textAlign: 'center' }}>
-        <p style={{ fontSize: '2rem' }}>✅</p>
-        <p style={{ fontWeight: 700, fontSize: '1.1rem' }}>All nodes linked!</p>
-        <p style={{ color: 'var(--muted-foreground)', fontSize: '0.875rem' }}>Your knowledge graph is fully connected.</p>
-        <button onClick={onClose} style={{ marginTop: '12px', padding: '10px 28px', borderRadius: '100px', backgroundColor: 'var(--primary-40)', color: 'white', fontWeight: 600, border: 'none', cursor: 'pointer' }}>
-          Back to Graph
-        </button>
-      </div>
-    );
-  }
-
-  const remaining = unlinked.length - stackIndex;
-
-  return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '16px', padding: '0 0 16px' }}>
-      {/* New branch name modal */}
-      {branchModalSourceId && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 300, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
-          <div style={{ backgroundColor: 'var(--surface)', borderRadius: 'var(--radius-xl)', padding: '24px', width: '100%', maxWidth: '340px', boxShadow: 'var(--shadow-3)' }}>
-            <p style={{ fontWeight: 700, fontSize: '1.05rem', marginBottom: '6px' }}>Create New Domain</p>
-            <p style={{ fontSize: '0.8rem', color: 'var(--muted-foreground)', marginBottom: '16px' }}>Name this root concept. It will anchor a new branch in your knowledge graph.</p>
-            <input
-              autoFocus
-              value={branchName}
-              onChange={(e) => setBranchName(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleBranchConfirm(); }}
-              placeholder="e.g. Machine Learning, Physics…"
-              style={{ width: '100%', padding: '10px 14px', borderRadius: 'var(--radius)', border: '1.5px solid var(--border)', backgroundColor: 'var(--surface-variant)', color: 'var(--foreground)', fontSize: '0.95rem', marginBottom: '16px', boxSizing: 'border-box' }}
-            />
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button onClick={() => { setBranchModalSourceId(null); setBranchName(''); }} style={{ flex: 1, padding: '10px', borderRadius: '100px', border: '1px solid var(--border)', backgroundColor: 'transparent', color: 'var(--muted-foreground)', fontSize: '0.875rem', cursor: 'pointer' }}>
-                Cancel
-              </button>
-              <button onClick={handleBranchConfirm} style={{ flex: 1, padding: '10px', borderRadius: '100px', backgroundColor: 'var(--primary-40)', color: 'white', fontWeight: 600, fontSize: '0.875rem', border: 'none', cursor: 'pointer' }}>
-                Create
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-        <button
-          onClick={onClose}
-          style={{ background: 'none', border: 'none', padding: '12px', marginLeft: '-12px', color: 'var(--primary-40)', display: 'flex', alignItems: 'center' }}
-        >
-          <ArrowLeft size={20} />
-        </button>
-        <button onClick={refreshRecommendations} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: '100px', border: '1px solid var(--border)', backgroundColor: 'var(--surface-variant)', color: 'var(--foreground)', fontSize: '0.8rem', cursor: 'pointer' }}>
-          <RefreshCw size={14} /> Shuffle
-        </button>
-      </div>
-      <div>
-        <p style={{ fontWeight: 700, fontSize: '1rem' }}>Repair Structure</p>
-        {currentParentName ? (
-          <p style={{ fontSize: '0.8rem', color: 'var(--primary-40)', fontWeight: 600 }}>
-            Inside: {currentParentName}
-          </p>
-        ) : (
-          <p style={{ fontSize: '0.8rem', color: 'var(--muted-foreground)' }}>{remaining} nodes still need placement repair</p>
-        )}
-      </div>
-
-      <div style={{ position: 'relative', zIndex: 10 }}>
-        <div
-          ref={cardRef}
-          onPointerDown={handleDragStart}
-          onPointerMove={handleDragMove}
-          onPointerUp={handleDragEnd}
-          style={{
-            padding: '20px',
-            borderRadius: 'var(--radius-xl)',
-            backgroundColor: 'var(--surface)',
-            border: `2px solid ${dropTarget ? 'var(--primary-40)' : 'var(--border)'}`,
-            boxShadow: dragging ? 'var(--shadow-3)' : 'var(--shadow-2)',
-            cursor: dragging ? 'grabbing' : 'grab',
-            transform: dragging ? `translate(${dragPos.x}px, ${dragPos.y}px) rotate(${dragPos.x * 0.02}deg) scale(1.04)` : 'none',
-            transition: dragging ? 'none' : 'transform 0.25s, box-shadow 0.25s',
-            userSelect: 'none',
-            touchAction: 'none',
-          }}
-        >
-          <p style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--muted-foreground)', marginBottom: '8px', letterSpacing: '0.08em' }}>REPAIR PLACEMENT</p>
-          <p style={{ fontWeight: 700, fontSize: '1.05rem', marginBottom: '6px', color: 'var(--foreground)' }}>{activeNode.title ?? activeNode.content}</p>
-          {activeNode.keywords.length > 0 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '8px' }}>
-              {activeNode.keywords.slice(0, 4).map((k) => (
-                <span key={k} style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '100px', backgroundColor: 'var(--surface-variant)', color: 'var(--muted-foreground)', border: '1px solid var(--border)' }}>{k}</span>
-              ))}
-            </div>
-          )}
-        </div>
-        {remaining > 1 && (
-          <div style={{ position: 'absolute', top: '6px', left: '8px', right: '8px', height: '100%', borderRadius: 'var(--radius-xl)', backgroundColor: 'var(--surface-variant)', border: '1px solid var(--border)', zIndex: -1, opacity: 0.6 }} />
-        )}
-        {remaining > 2 && (
-          <div style={{ position: 'absolute', top: '12px', left: '16px', right: '16px', height: '100%', borderRadius: 'var(--radius-xl)', backgroundColor: 'var(--surface-variant)', border: '1px solid var(--border)', zIndex: -2, opacity: 0.35 }} />
-        )}
-      </div>
-
-      {/* Breadcrumb "Back" drop-zone — visible when drilled into a node */}
-      {navHistory.length > 0 && (
-        <div
-          ref={(el) => { dropZoneRefs.current['back'] = el; }}
-          onClick={drillBack}
-          style={{
-            padding: '10px 16px',
-            borderRadius: 'var(--radius-xl)',
-            border: `2px solid ${dropTarget === 'back' ? 'var(--primary-40)' : 'var(--border)'}`,
-            backgroundColor: dropTarget === 'back' ? 'color-mix(in srgb, var(--primary-40) 12%, var(--surface))' : 'var(--surface-variant)',
-            display: 'flex', alignItems: 'center', gap: '8px',
-            cursor: 'pointer', transition: 'all 0.15s',
-            transform: dropTarget === 'back' ? 'scale(1.02)' : 'scale(1)',
-          }}
-        >
-          <span style={{ fontSize: '1.1rem' }}>↖</span>
-          <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--foreground)' }}>
-            Back to {navHistory.length === 1 ? 'Root' : (allNodes.find((n) => n.id === navHistory[navHistory.length - 1])?.title ?? 'Parent')}
-          </span>
-        </div>
-      )}
-
-      <div>
-        <p style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--muted-foreground)', marginBottom: '8px' }}>Drop onto an existing concept to link:</p>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-          {recommended.map((node, idx) => {
-            const isTarget = dropTarget === node.id;
-            return (
-              <div
-                key={node.id}
-                ref={(el) => { dropZoneRefs.current[node.id] = el; }}
-                style={{
-                  padding: '12px',
-                  borderRadius: 'var(--radius-xl)',
-                  backgroundColor: isTarget ? 'color-mix(in srgb, var(--primary-40) 20%, var(--surface-variant))' : 'var(--surface-variant)',
-                  border: `2px solid ${isTarget ? 'var(--primary-40)' : 'var(--border)'}`,
-                  transition: 'all 0.15s',
-                  transform: isTarget ? 'scale(1.08)' : 'scale(1)',
-                  boxShadow: isTarget ? '0 0 0 3px color-mix(in srgb, var(--primary-40) 25%, transparent)' : 'none',
-                }}
-              >
-                <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: NODE_COLORS[idx % NODE_COLORS.length], marginBottom: '6px' }} />
-                <p style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--foreground)', lineHeight: 1.3 }}>
-                  {(node.title ?? node.content).length > 40 ? (node.title ?? node.content).slice(0, 37) + '…' : node.title ?? node.content}
-                </p>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      <div
-        ref={(el) => { dropZoneRefs.current['new-domain'] = el; }}
-        style={{
-          padding: '16px',
-          borderRadius: 'var(--radius-xl)',
-          border: `2px dashed ${dropTarget === 'new-domain' ? 'var(--primary-40)' : 'var(--border)'}`,
-          backgroundColor: dropTarget === 'new-domain' ? 'color-mix(in srgb, var(--primary-40) 10%, var(--surface))' : 'transparent',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-          transition: 'all 0.15s',
-          transform: dropTarget === 'new-domain' ? 'scale(1.02)' : 'scale(1)',
-        }}
-      >
-        <Plus size={20} color="var(--muted-foreground)" />
-        <div>
-          <p style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--foreground)' }}>New Domain / Category</p>
-          <p style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>Drop here to create a root node</p>
-        </div>
-      </div>
-
-      <button onClick={advanceStack} style={{ width: '100%', padding: '10px', borderRadius: '100px', border: '1px solid var(--border)', backgroundColor: 'transparent', color: 'var(--muted-foreground)', fontSize: '0.875rem', cursor: 'pointer' }}>
-        Skip for now
-      </button>
-    </div>
-  );
-}
 
 // ─── Module-level cache (survives unmount, no flicker on re-visit) ───────────
 
@@ -759,15 +439,11 @@ export function GraphScreen() {
   // With the swipe strip, GraphScreen is always mounted at full width —
   // keeping it visible prevents it from disappearing during horizontal swiping.
   const isVisible = true;
-  const [view, setView] = useState<'map' | 'inbox'>('map');
   const [nodes, setNodes] = useState<Question[]>(cachedNodes ?? []);
   const [edges, setEdges] = useState<GraphEdge[]>(cachedEdges ?? []);
-  const [unlinked, setUnlinked] = useState<Question[]>([]);
   const [selectedNode, setSelectedNode] = useState<Question | null>(null);
   const [reorganizing, setReorganizing] = useState(isReorgInProgress);
   const [showReorgConfirm, setShowReorgConfirm] = useState(false);
-  const [showRevertConfirm, setShowRevertConfirm] = useState(false);
-  const [canRevert, setCanRevert] = useState(hasReorgBackup);
 
   const reload = useCallback(() => {
     void graphService.getGraph().then(({ nodes: n, edges: e }) => {
@@ -775,8 +451,6 @@ export function GraphScreen() {
       cachedEdges = e;
       setNodes(n);
       setEdges(e);
-      setUnlinked(graphService.getUnlinkedNodes());
-      setCanRevert(hasReorgBackup());
       setReorganizing(isReorgInProgress());
     });
   }, []);
@@ -794,30 +468,16 @@ export function GraphScreen() {
     const unsub2 = eventBus.subscribe('REORG_FAILED', (event) => {
       setReorganizing(false);
       toast(event.payload.error || 'Reorganization failed', 'error');
-      setCanRevert(hasReorgBackup());
     });
     const unsub3 = eventBus.subscribe('REORG_STARTED', () => {
       setReorganizing(true);
     });
-    return () => { unsub1(); unsub2(); unsub3(); };
+    // Reload graph when classification completes (new/updated nodes in the tree)
+    const unsub4 = eventBus.subscribe('GRAPH_UPDATED', () => {
+      reload();
+    });
+    return () => { unsub1(); unsub2(); unsub3(); unsub4(); };
   }, [reload]);
-
-  const handleLink = useCallback(
-    async (sourceId: string, targetId: string) => {
-      await graphService.linkNodes(sourceId, targetId);
-      reload();
-      toast('Nodes linked!', 'success');
-    },
-    [reload],
-  );
-
-  const handleCreateDomain = useCallback(
-    (sourceId: string) => {
-      toast(`"${nodes.find((n) => n.id === sourceId)?.title ?? 'Node'}" set as root.`, 'success');
-      reload();
-    },
-    [nodes, reload],
-  );
 
   const handleReorganize = useCallback(() => {
     setShowReorgConfirm(false);
@@ -828,24 +488,7 @@ export function GraphScreen() {
     void reorganizeMindmap(settings.llm);
   }, []);
 
-  const handleRevert = useCallback(() => {
-    setShowRevertConfirm(false);
-    const result = revertReorganization();
-    if (result.success) {
-      toast('Map reverted to previous structure', 'success');
-      setSelectedNode(null);
-      reload();
-    } else {
-      toast(result.error?.message || 'Revert failed', 'error');
-    }
-  }, [reload]);
-
-  // Scroll to top whenever the view switches so Repair doesn't inherit
-  // the map's scroll position and vice-versa.
   const containerRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    containerRef.current?.parentElement?.scrollTo({ top: 0, behavior: 'instant' });
-  }, [view]);
 
   const hasQaNodes = nodes.some((n) => !n.isAnchorNode && !n.isClusterNode && n.flagged !== true);
 
@@ -858,7 +501,6 @@ export function GraphScreen() {
             <p style={{ fontWeight: 700, fontSize: '1.05rem', marginBottom: '6px' }}>Reorganize Map</p>
             <p style={{ fontSize: '0.85rem', color: 'var(--muted-foreground)', marginBottom: '16px', lineHeight: 1.5 }}>
               This will reorganize your entire knowledge map using AI. Your Q&As, review schedules, and flashcards will be preserved — only the hierarchy structure will change.
-              {'\n\n'}You can revert to the current structure afterwards if needed.
             </p>
             <div style={{ display: 'flex', gap: '8px' }}>
               <button onClick={() => setShowReorgConfirm(false)} style={{ flex: 1, padding: '10px', borderRadius: '100px', border: '1px solid var(--border)', backgroundColor: 'transparent', color: 'var(--muted-foreground)', fontSize: '0.875rem', cursor: 'pointer' }}>
@@ -872,109 +514,38 @@ export function GraphScreen() {
         </div>
       )}
 
-      {/* Revert confirmation dialog */}
-      {showRevertConfirm && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 300, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
-          <div style={{ backgroundColor: 'var(--surface)', borderRadius: 'var(--radius-xl)', padding: '24px', width: '100%', maxWidth: '340px', boxShadow: 'var(--shadow-3)' }}>
-            <p style={{ fontWeight: 700, fontSize: '1.05rem', marginBottom: '6px' }}>Revert Map</p>
-            <p style={{ fontSize: '0.85rem', color: 'var(--muted-foreground)', marginBottom: '16px', lineHeight: 1.5 }}>
-              Revert to the previous map structure? This will undo the last reorganization.
-            </p>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button onClick={() => setShowRevertConfirm(false)} style={{ flex: 1, padding: '10px', borderRadius: '100px', border: '1px solid var(--border)', backgroundColor: 'transparent', color: 'var(--muted-foreground)', fontSize: '0.875rem', cursor: 'pointer' }}>
-                Cancel
-              </button>
-              <button onClick={handleRevert} style={{ flex: 1, padding: '10px', borderRadius: '100px', backgroundColor: 'var(--primary-40)', color: 'white', fontWeight: 600, fontSize: '0.875rem', border: 'none', cursor: 'pointer' }}>
-                Revert
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       <Header
         title="Mind Map"
         right={
-          view === 'map' ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              {canRevert && (
-                <button
-                  onClick={() => setShowRevertConfirm(true)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '5px',
-                    padding: '8px 12px',
-                    borderRadius: '100px',
-                    backgroundColor: 'transparent',
-                    color: 'var(--muted-foreground)',
-                    fontWeight: 600,
-                    fontSize: '0.8rem',
-                    border: '1px solid var(--border)',
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  <Undo2 size={14} />
-                  Revert
-                </button>
-              )}
-              {hasQaNodes && (
-                <button
-                  onClick={() => !reorganizing && setShowReorgConfirm(true)}
-                  disabled={reorganizing}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '5px',
-                    padding: '8px 12px',
-                    borderRadius: '100px',
-                    backgroundColor: 'var(--surface-variant)',
-                    color: 'var(--foreground)',
-                    fontWeight: 600,
-                    fontSize: '0.8rem',
-                    border: '1px solid var(--border)',
-                    cursor: reorganizing ? 'not-allowed' : 'pointer',
-                    whiteSpace: 'nowrap',
-                    opacity: reorganizing ? 0.6 : 1,
-                  }}
-                >
-                  <RefreshCw size={14} style={reorganizing ? { animation: 'spin 1.5s linear infinite' } : undefined} />
-                  {reorganizing ? 'Reorganizing...' : 'Reorganize'}
-                  {reorganizing && <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>}
-                </button>
-              )}
-              {unlinked.length > 0 && (
-                <button
-                  onClick={() => setView('inbox')}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '8px 14px',
-                    borderRadius: '100px',
-                    backgroundColor: 'var(--primary-40)',
-                    color: 'white',
-                    fontWeight: 600,
-                    fontSize: '0.8rem',
-                    border: 'none',
-                    cursor: 'pointer',
-                    boxShadow: 'var(--shadow-1)',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  <Plus size={14} />
-                  Repair {unlinked.length}
-                </button>
-              )}
-            </div>
+          hasQaNodes ? (
+            <button
+              onClick={() => !reorganizing && setShowReorgConfirm(true)}
+              disabled={reorganizing}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                padding: '8px 12px',
+                borderRadius: '100px',
+                backgroundColor: 'var(--surface-variant)',
+                color: 'var(--foreground)',
+                fontWeight: 600,
+                fontSize: '0.8rem',
+                border: '1px solid var(--border)',
+                cursor: reorganizing ? 'not-allowed' : 'pointer',
+                whiteSpace: 'nowrap',
+                opacity: reorganizing ? 0.6 : 1,
+              }}
+            >
+              <RefreshCw size={14} style={reorganizing ? { animation: 'spin 1.5s linear infinite' } : undefined} />
+              {reorganizing ? 'Reorganizing...' : 'Reorganize'}
+              {reorganizing && <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>}
+            </button>
           ) : undefined
         }
       />
 
-      {view === 'map' ? (
-        <>
-          <MasterMap nodes={nodes} edges={edges} onNodeClick={setSelectedNode} isVisible={isVisible} />
+      <MasterMap nodes={nodes} edges={edges} onNodeClick={setSelectedNode} isVisible={isVisible} />
 
           {selectedNode && (
             <div
@@ -1054,16 +625,6 @@ export function GraphScreen() {
               </div>
             </div>
           )}
-        </>
-      ) : (
-        <CardStackInbox
-          unlinked={unlinked}
-          allNodes={nodes}
-          onLink={handleLink}
-          onCreateDomain={handleCreateDomain}
-          onClose={() => setView('map')}
-        />
-      )}
     </div>
   );
 }

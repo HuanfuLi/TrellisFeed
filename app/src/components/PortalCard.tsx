@@ -3,11 +3,9 @@
  *
  * Displays a topic portal card with:
  *  - Topic name and description
- *  - Three tappable content type indicators (Flashcards / Posts / Questions)
  *  - Primary CTA button using moveNavigator
  *  - Skip action
  *
- * Replaces flat MoveCard / ChunkCard suggestions in PlannerScreen.
  * Phase 20: Orchestration Strategy & Diagnostic Dialogue
  */
 
@@ -15,8 +13,6 @@ import { BookOpen, FileText, HelpCircle, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { PlannedMove, PlannedMoveType } from '../types';
 import { navigateToMove } from '../lib/moveNavigator';
-import { flashcardService } from '../services/flashcard.service';
-import { questionService } from '../services/question.service';
 
 // ── Move type display config (reused from MoveCard) ─────────────────────────
 
@@ -53,9 +49,6 @@ export interface PortalCardData {
   conceptId: string;
   title: string;
   description: string;
-  relatedPosts: number;
-  relatedFlashcards: number;
-  relatedQuestions: number;
   primaryAction: PlannedMoveType;
   move: PlannedMove;
 }
@@ -69,47 +62,15 @@ interface PortalCardProps {
 
 // ── buildPortalData helper ───────────────────────────────────────────────────
 
-/**
- * Aggregates content counts for a given concept from flashcards, questions,
- * and daily posts (localStorage). Returns a PortalCardData object without
- * move or primaryAction set (caller must attach these).
- */
 export function buildPortalData(
   conceptId: string,
   title: string,
   reason: string,
 ): Omit<PortalCardData, 'move' | 'primaryAction'> {
-  // Count flashcards linked to this concept
-  const relatedFlashcards = flashcardService.getAll().filter(
-    (c) => c.nodeId === conceptId,
-  ).length;
-
-  // Count questions that match this concept directly or via relatedQuestionIds
-  const relatedQuestions = questionService.getAll().filter(
-    (q) => q.id === conceptId || (q.relatedQuestionIds && q.relatedQuestionIds.includes(conceptId)),
-  ).length;
-
-  // Count daily posts from localStorage (avoid importing conceptFeedService to prevent circular deps)
-  let relatedPosts = 0;
-  try {
-    const raw = localStorage.getItem('echolearn_daily_posts');
-    if (raw) {
-      const posts = JSON.parse(raw) as Array<{ sourceQuestionIds?: string[] }>;
-      relatedPosts = posts.filter(
-        (p) => p.sourceQuestionIds && p.sourceQuestionIds.includes(conceptId),
-      ).length;
-    }
-  } catch {
-    relatedPosts = 0;
-  }
-
   return {
     conceptId,
     title,
     description: reason,
-    relatedPosts,
-    relatedFlashcards,
-    relatedQuestions,
   };
 }
 
@@ -132,33 +93,6 @@ export function PortalCard({ data, onAccept, onDismiss, onNavigate }: PortalCard
     });
   };
 
-  const handleFlashcardClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    navigate('/review', { state: { nodeId: data.conceptId, fromScreen: 'planner' } });
-  };
-
-  const handlePostClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    // Navigate to closest post for this concept
-    try {
-      const raw = localStorage.getItem('echolearn_daily_posts');
-      if (raw) {
-        const posts = JSON.parse(raw) as Array<{ id: string; sourceQuestionIds?: string[] }>;
-        const match = posts.find((p) => p.sourceQuestionIds?.includes(data.conceptId));
-        if (match) {
-          navigate(`/posts/${match.id}`);
-          return;
-        }
-      }
-    } catch { /* fallback below */ }
-    navigate('/home');
-  };
-
-  const handleQuestionClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    navigate(`/ask/${data.conceptId}`);
-  };
-
   return (
     <div
       style={{
@@ -170,7 +104,7 @@ export function PortalCard({ data, onAccept, onDismiss, onNavigate }: PortalCard
         marginBottom: '10px',
       }}
     >
-      {/* Top row: icon + title + type badge */}
+      {/* Top row: icon + type badge */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
         <span style={{ color: config.color, display: 'flex' }}>{config.icon}</span>
         <span style={{
@@ -198,57 +132,6 @@ export function PortalCard({ data, onAccept, onDismiss, onNavigate }: PortalCard
       }}>
         {data.description}
       </p>
-
-      {/* Content type indicators */}
-      <div style={{ display: 'flex', gap: '12px', marginBottom: '12px' }}>
-        <button
-          onClick={handleFlashcardClick}
-          style={{
-            display: 'flex', alignItems: 'center', gap: '4px',
-            padding: '4px 8px', borderRadius: '8px',
-            backgroundColor: data.relatedFlashcards > 0
-              ? 'color-mix(in srgb, var(--node-mint) 15%, transparent)'
-              : 'var(--surface-variant)',
-            border: 'none', cursor: 'pointer',
-            color: 'var(--foreground)', fontSize: '0.75rem',
-          }}
-        >
-          <BookOpen size={14} color="var(--node-mint)" />
-          <span style={{ fontWeight: 500 }}>{data.relatedFlashcards}</span>
-        </button>
-
-        <button
-          onClick={handlePostClick}
-          style={{
-            display: 'flex', alignItems: 'center', gap: '4px',
-            padding: '4px 8px', borderRadius: '8px',
-            backgroundColor: data.relatedPosts > 0
-              ? 'color-mix(in srgb, var(--node-sky) 15%, transparent)'
-              : 'var(--surface-variant)',
-            border: 'none', cursor: 'pointer',
-            color: 'var(--foreground)', fontSize: '0.75rem',
-          }}
-        >
-          <FileText size={14} color="var(--node-sky)" />
-          <span style={{ fontWeight: 500 }}>{data.relatedPosts}</span>
-        </button>
-
-        <button
-          onClick={handleQuestionClick}
-          style={{
-            display: 'flex', alignItems: 'center', gap: '4px',
-            padding: '4px 8px', borderRadius: '8px',
-            backgroundColor: data.relatedQuestions > 0
-              ? 'color-mix(in srgb, var(--node-lilac) 15%, transparent)'
-              : 'var(--surface-variant)',
-            border: 'none', cursor: 'pointer',
-            color: 'var(--foreground)', fontSize: '0.75rem',
-          }}
-        >
-          <HelpCircle size={14} color="var(--node-lilac)" />
-          <span style={{ fontWeight: 500 }}>{data.relatedQuestions}</span>
-        </button>
-      </div>
 
       {/* Bottom row: CTA + Skip */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

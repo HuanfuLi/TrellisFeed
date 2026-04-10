@@ -704,6 +704,10 @@ async function commitClassificationResult(
       qaCount: totalQaCount,
     });
   }
+
+  // Notify subscribers that the knowledge graph has been updated
+  const { eventBus } = await import('../lib/event-bus.ts');
+  eventBus.emit({ type: 'GRAPH_UPDATED' });
 }
 
 // ─── Incremental Pipeline ───────────────────────────────────────────────────

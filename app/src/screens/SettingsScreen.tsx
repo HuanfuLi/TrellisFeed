@@ -157,7 +157,7 @@ export function SettingsScreen() {
   const [cacheStats, setCacheStats] = useState(() => imageGenerationService.getCacheStats());
   const [isClearingCache, setIsClearingCache] = useState(false);
   const [tokenUsage, setTokenUsage] = useState<Record<string, ServiceAggregate>>(() => tokenUsageReporter.getByService());
-  const [askMonthlyLimit, setAskMonthlyLimit] = useState<number>(settings.preferences.askMonthlyLimit ?? 0);
+  const [askMonthlyLimit, setAskMonthlyLimit] = useState<number>(settingsService.getSync().preferences.askMonthlyLimit ?? 0);
   const rateLimitStatus = getRateLimitStatus(askMonthlyLimit);
 
   const noKeyRequired = (p: LLMConfig['provider']) => p === 'local' || p === 'lmstudio';
@@ -332,8 +332,8 @@ export function SettingsScreen() {
   const handleAskLimitChange = (value: string) => {
     const num = Math.max(0, parseInt(value, 10) || 0);
     setAskMonthlyLimit(num);
-    const updated = { ...settings, preferences: { ...settings.preferences, askMonthlyLimit: num } };
-    settingsService.set('preferences', updated.preferences);
+    const current = settingsService.getSync();
+    settingsService.set('preferences', { ...current.preferences, askMonthlyLimit: num });
   };
 
   const refreshTokenUsage = () => setTokenUsage(tokenUsageReporter.getByService());
