@@ -82,6 +82,18 @@
 ## Future Requirements (Deferred)
 
 These may be considered for v1.2+:
+
+### Deferred from v1.1
+
+- [ ] **IMAGE-04**: User can trigger image regeneration if unsatisfied with quality _(deferred from v1.1 Phase 9)_
+- [ ] **IMAGE-05**: Image generation failures are handled gracefully _(deferred from v1.1 Phase 9)_
+- [ ] **PLANNER-04**: User can retry/regenerate suggestions with "Retry" button _(deferred from v1.1 Phase 11)_
+- [ ] **CARDS-01**: System provides 3+ distinct visual designs for milestone cards _(deferred from v1.1 Phase 11)_
+- [ ] **CARDS-02**: Cards alternate or shuffle designs to prevent visual fatigue _(deferred from v1.1 Phase 11)_
+- [ ] **CARDS-03**: All card designs maintain accessibility and readability standards _(deferred from v1.1 Phase 11)_
+
+### Future Ideas
+
 - [ ] **EXTENDED-01**: User can customize image generation styles (e.g., "always infographs" preference)
 - [ ] **EXTENDED-02**: Planner suggestions show confidence scores
 - [ ] **EXTENDED-03**: Posts support video backgrounds (animated SVG or short video clips)
@@ -102,8 +114,16 @@ These may be considered for v1.2+:
 
 | Phase | Requirements | Status |
 |-------|--------------|--------|
-| (To be filled by roadmapper) | — | Pending |
+| 7 — Post Feed Redesign | FEED-01..06, IMAGE-01..03 | Complete |
+| 8 — Post Detail & Infinite Scroll | FEED-04..06 | Complete |
+| 9 — Image Regeneration & Error Handling | IMAGE-04, IMAGE-05 | Skipped — deferred to v1.2 |
+| 10 — Planner Auto-Suggestions | PLANNER-01..03, PLANNER-05 | Complete |
+| 11 — Planner Retry & Milestone Cards | PLANNER-04, CARDS-01..03 | Skipped — deferred to v1.2 |
+| 12 — Portal Navigation & Rich Moves | PLANNER-06, NAV-01, NAV-02 | Complete |
+| 13 — Planner Redesign | PLANNER-05 (enhanced) | Complete |
+| 14 — Knowledge Graph Classification | GRAPH-01..06 | Complete |
+| 15 — Cluster Detail System | CLUSTER-01..06 | Complete |
 
 ---
 
-_Last updated: 2026-03-26 — v1.1 requirements defined_
+_Last updated: 2026-04-10 — deferred requirements added to Future section_
