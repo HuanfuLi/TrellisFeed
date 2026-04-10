@@ -1,9 +1,9 @@
 ---
 phase: 23
 slug: incremental-mindmap-classification-with-kv-cache-and-ask-rate-limiter
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: complete
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-04-09
 ---
 
@@ -40,9 +40,12 @@ Note: The test runner currently has a pre-existing module resolution error. New 
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 23-01-01 | 01 | 1 | — | unit | `npm test` | ❌ W0 | ⬜ pending |
-| 23-01-02 | 01 | 1 | — | unit | `npm test` | ❌ W0 | ⬜ pending |
-| 23-02-01 | 02 | 2 | — | unit | `npm test` | ❌ W0 | ⬜ pending |
+| 23-01-T1 | 01 | 1 | PIPE-01..07 | unit | `cd app && node --test tests/canonical-knowledge-pipeline.test.mjs` | app/tests/canonical-knowledge-pipeline.test.mjs | green |
+| 23-01-T2 | 01 | 1 | PIPE-01..07 | unit | `cd app && node --test tests/canonical-knowledge-pipeline.test.mjs` | app/tests/canonical-knowledge-pipeline.test.mjs | green |
+| 23-02-T1 | 02 | 1 | RATE-01..06 | unit | `cd app && node --test tests/ask-rate-limiter.test.mjs` | app/tests/ask-rate-limiter.test.mjs | green |
+| 23-02-T2 | 02 | 1 | RATE-04 | tsc | `cd app && npx tsc --noEmit` | — | green |
+| 23-03-T1 | 03 | 2 | PIPE-01,07,RATE-01,02 | tsc | `cd app && npx tsc --noEmit` | — | green |
+| 23-03-T2 | 03 | 2 | RATE-04..06 | tsc | `cd app && npx tsc --noEmit` | — | green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -50,8 +53,8 @@ Note: The test runner currently has a pre-existing module resolution error. New 
 
 ## Wave 0 Requirements
 
-- [ ] `tests/services/canonical-knowledge-pipeline.test.mjs` — stubs for pipeline parsing, short-circuit, retry, fallback
-- [ ] `tests/services/ask-rate-limiter.test.mjs` — stubs for rate limit status, reset, increment, unlimited mode
+- [x] `tests/services/canonical-knowledge-pipeline.test.mjs` — 15 tests, all passing (confirmed in 23-VERIFICATION.md)
+- [x] `tests/services/ask-rate-limiter.test.mjs` — 8 tests, all passing (confirmed in 23-VERIFICATION.md)
 
 *Existing infrastructure covers test runner. New test files needed for new services.*
 
@@ -70,11 +73,11 @@ Note: The test runner currently has a pre-existing module resolution error. New 
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 5s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 5s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** approved (2026-04-10)
