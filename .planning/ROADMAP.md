@@ -601,11 +601,12 @@ Plans:
 - PORTAL-01, PORTAL-02, PORTAL-03: Verify PortalCard implementation (Phase 20)
 - POST-02: Verify PostDetailScreen on-enter streaming (Phase 21)
 
-**Tasks:**
-1. Create Phase 20 VERIFICATION.md (verify all must-haves against codebase) + 20-04-SUMMARY.md
-2. Create Phase 21 VERIFICATION.md (verify all must-haves against codebase) + 21-03-SUMMARY.md
-3. Complete Phase 23 VALIDATION.md (Nyquist compliance)
-4. Update REQUIREMENTS.md — defer IMAGE-04/05, PLANNER-04, CARDS-01..03 to v1.2
+**Plans:** 3 plans (1 wave)
+
+Plans:
+- [ ] 24-01-PLAN.md — Phase 20 VERIFICATION.md + 20-04-SUMMARY.md (DIAG-02, PORTAL-01..03)
+- [ ] 24-02-PLAN.md — Phase 21 VERIFICATION.md + 21-03-SUMMARY.md (POST-02)
+- [ ] 24-03-PLAN.md — Phase 23 VALIDATION.md completion + REQUIREMENTS.md deferrals
 
 **Success Criteria:**
 1. Phase 20 VERIFICATION.md exists with status: passed or human_needed
