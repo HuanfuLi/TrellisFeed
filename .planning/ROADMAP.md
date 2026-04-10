@@ -590,6 +590,30 @@ Plans:
 7. No regression in existing ask flow, mindmap rendering, or settings functionality
 
 
+### Phase 24: Retroactive Verification & Documentation Gap Closure
+
+**Goal:** Close audit gaps by creating missing VERIFICATION.md files for phases 20 and 21, generating missing SUMMARYs (20-04, 21-03), completing Phase 23 Nyquist validation, and deferring out-of-scope requirements to v1.2.
+
+**Gap Closure:** Closes gaps from v1.1-MILESTONE-AUDIT.md
+
+**Requirements:**
+- DIAG-02: Verify DiagnosticChat wired to PlannerScreen (Phase 20)
+- PORTAL-01, PORTAL-02, PORTAL-03: Verify PortalCard implementation (Phase 20)
+- POST-02: Verify PostDetailScreen on-enter streaming (Phase 21)
+
+**Tasks:**
+1. Create Phase 20 VERIFICATION.md (verify all must-haves against codebase) + 20-04-SUMMARY.md
+2. Create Phase 21 VERIFICATION.md (verify all must-haves against codebase) + 21-03-SUMMARY.md
+3. Complete Phase 23 VALIDATION.md (Nyquist compliance)
+4. Update REQUIREMENTS.md — defer IMAGE-04/05, PLANNER-04, CARDS-01..03 to v1.2
+
+**Success Criteria:**
+1. Phase 20 VERIFICATION.md exists with status: passed or human_needed
+2. Phase 21 VERIFICATION.md exists with status: passed or human_needed
+3. Phase 23 VALIDATION.md has nyquist_compliant: true
+4. REQUIREMENTS.md deferred items moved to Future section
+5. Re-audit passes with no requirement gaps
+
 ---
 
-_Created: 2026-03-26 | v1.1 Roadmap | 16 phases | 91 requirements mapped_
+_Created: 2026-03-26 | v1.1 Roadmap | 17 phases | 91 requirements mapped_

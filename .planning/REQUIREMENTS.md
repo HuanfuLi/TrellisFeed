@@ -16,14 +16,14 @@
 - [x] **IMAGE-01**: System integrates Nano Banana API for AI image generation
 - [x] **IMAGE-02**: System integrates Gemini API as fallback image generation provider
 - [x] **IMAGE-03**: Images are cached locally to prevent re-generation on app restart
-- [ ] **IMAGE-04**: User can trigger image regeneration if unsatisfied with quality
-- [ ] **IMAGE-05**: Image generation failures are handled gracefully (error states, retry options)
+- [ ] ~~**IMAGE-04**: User can trigger image regeneration if unsatisfied with quality~~ _(deferred to v1.2)_
+- [ ] ~~**IMAGE-05**: Image generation failures are handled gracefully (error states, retry options)~~ _(deferred to v1.2)_
 
 ### Planner Auto-Suggestions (PLANNER)
 - [x] **PLANNER-01**: When Knowledge Graph has 5+ nodes AND Planner is empty, system auto-generates "Suggested Moves"
 - [x] **PLANNER-02**: Auto-generated suggestions appear on Planner screen without user intervention
 - [x] **PLANNER-03**: Suggestions regenerate daily (after podcast time) automatically
-- [ ] **PLANNER-04**: User can retry/regenerate suggestions with "Retry" button if unsatisfied
+- [ ] ~~**PLANNER-04**: User can retry/regenerate suggestions with "Retry" button if unsatisfied~~ _(deferred to v1.2)_
 - [x] **PLANNER-05**: Suggestion algorithm considers trajectory: review performance, question frequency, engagement patterns
 - [x] **PLANNER-06**: Suggestions link directly to Posts, Questions, or Review sessions (rich "Moves")
 
@@ -32,9 +32,9 @@
 - [x] **NAV-02**: Navigation preserves history stack so back button returns to the originating screen (Planner or Explore)
 
 ### Milestone Card Variety (CARDS)
-- [ ] **CARDS-01**: System provides 3+ distinct visual designs for milestone cards
-- [ ] **CARDS-02**: Cards alternate or shuffle designs to prevent visual fatigue
-- [ ] **CARDS-03**: All card designs maintain accessibility and readability standards
+- [ ] ~~**CARDS-01**: System provides 3+ distinct visual designs for milestone cards~~ _(deferred to v1.2 — Phase 11 skipped, superseded by Phase 13)_
+- [ ] ~~**CARDS-02**: Cards alternate or shuffle designs to prevent visual fatigue~~ _(deferred to v1.2)_
+- [ ] ~~**CARDS-03**: All card designs maintain accessibility and readability standards~~ _(deferred to v1.2)_
 
 ### Knowledge Graph Classification (GRAPH)
 - [x] **GRAPH-01**: Classification uses a dedicated second LLM call (fired only after filterQuestion confirms Q&A enters mindmap), keeping answer generation and placement decisions separate
