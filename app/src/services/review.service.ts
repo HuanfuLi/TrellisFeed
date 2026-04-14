@@ -63,6 +63,19 @@ export const reviewService = {
       questionService.patchQuestion(card.nodeId, { lastReviewedAt: Date.now() });
     }
     eventBus.emit({ type: 'REVIEW_SUBMITTED', payload: { questionId: card.nodeId ?? cardId, rating } });
+
+    // Bridge to REVIEW_COMPLETED with resolved anchorId for Trellis hero (Phase 25, per D-48)
+    const resolvedQuestionId = card.nodeId ?? cardId;
+    let resolvedAnchorId: string | undefined;
+    try {
+      const allQs = questionService.getAll();
+      const q = allQs.find((x) => x.id === resolvedQuestionId);
+      resolvedAnchorId = q?.anchorId ?? q?.parentId;
+    } catch {
+      // question lookup is best-effort; anchorId stays undefined
+    }
+    eventBus.emit({ type: 'REVIEW_COMPLETED', payload: { questionId: resolvedQuestionId, anchorId: resolvedAnchorId } });
+
     return { success: true, data: newSchedule };
   },
 

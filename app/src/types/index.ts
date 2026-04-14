@@ -661,4 +661,7 @@ export type AppEvent =
   | { type: 'REORG_STARTED' }
   | { type: 'REORG_COMPLETED'; payload: { anchorCount: number; clusterCount: number } }
   | { type: 'REORG_FAILED'; payload: { error: string } }
+  | { type: 'REVIEW_COMPLETED'; payload: { questionId: string; anchorId?: string } }
+  | { type: 'CLASSIFICATION_COMPLETED'; payload: { anchorId: string; anchorName: string } }
+  | { type: 'ANCHOR_DELETED'; payload: { anchorId: string } }
   | { type: 'NEWS_POSTS_READY'; payload: { posts: DailyPost[] } };
