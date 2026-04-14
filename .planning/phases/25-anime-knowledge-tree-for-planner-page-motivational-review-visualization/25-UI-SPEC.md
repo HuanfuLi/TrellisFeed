@@ -1,10 +1,11 @@
 ---
 phase: 25
 slug: anime-knowledge-tree-for-planner-page-motivational-review-visualization
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-04-10
+reviewed_at: 2026-04-14T00:00:00Z
 ---
 
 # Phase 25 — UI Design Contract
