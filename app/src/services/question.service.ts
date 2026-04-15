@@ -486,6 +486,18 @@ export const questionService = {
     return loadStore(opts);
   },
 
+  /**
+   * Return pruned (archived) anchor nodes only.
+   * Per D-16, pruning flips flagged=true on anchor Q&As; filtering requires BOTH
+   * flagged AND isAnchorNode because regular Q&As flagged for off-topic reasons
+   * should not appear in the pruned section.
+   */
+  getPrunedQuestions(): Question[] {
+    return loadStore({ includeFlagged: true }).filter(
+      (q) => q.flagged === true && q.isAnchorNode === true,
+    );
+  },
+
   updateReviewSchedule(questionId: string, schedule: Question['reviewSchedule']): void {
     const store = loadStore({ includeFlagged: true });
     const idx = store.findIndex((q) => q.id === questionId);
