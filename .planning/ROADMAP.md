@@ -649,13 +649,13 @@ Plans:
 
 **Requirements**: D-01 through D-23 (from CONTEXT.md)
 **Depends on:** Phase 25
-**Plans:** 3/4 plans executed
+**Plans:** 4/4 plans complete
 
 Plans:
 - [x] 26-01-PLAN.md — Foundation: credits service, HARVEST_COMPLETED event, BottomSheet component, getPrunedQuestions
 - [x] 26-02-PLAN.md — TrellisStatusPanel (3-column counts + glow) + header fruit counter + harvest flow with confetti
 - [x] 26-03-PLAN.md — Node actions: heal (review + podcast), re-plant (schedule reset + post), prune (archive + animation) + pruned section
-- [ ] 26-04-PLAN.md — Suggested moves refactor: remove suggestedChunks, trellis-health-driven priority ordering, autoGen dedup
+- [x] 26-04-PLAN.md — Suggested moves refactor: remove suggestedChunks, trellis-health-driven priority ordering, autoGen dedup
 
 ---
 

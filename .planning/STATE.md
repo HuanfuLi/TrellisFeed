@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
 status: Executing Phase 26
-stopped_at: Completed 26-03-PLAN.md
-last_updated: "2026-04-15T06:03:20.004Z"
+stopped_at: Completed 26-04-PLAN.md (Phase 26 all plans done)
+last_updated: "2026-04-15T06:08:58.045Z"
 progress:
   total_phases: 20
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 28
-  completed_plans: 26
+  completed_plans: 27
 ---
 
 # Project State: Milestone 1.1
@@ -24,7 +24,7 @@ Enhance user engagement through rich post formats (Rednote-style), smarter miles
 
 ## Current Phase
 
-Phase 26 — Trellis Harvest Panel, Dying/Dead Node Actions, and Suggested Moves Refactor (Plan 03 of 04 complete)
+Phase 26 — Trellis Harvest Panel, Dying/Dead Node Actions, and Suggested Moves Refactor (Plan 04 of 04 complete — phase ready for verification)
 
 ## Roadmap
 
@@ -36,6 +36,16 @@ Phase 26 — Trellis Harvest Panel, Dying/Dead Node Actions, and Suggested Moves
 - **Phase 12:** Portal Navigation & Rich Moves Linking (12-01-PLAN.md — COMPLETE, 12-02-PLAN.md — COMPLETE)
 - **Phase 13:** Planner Redesign (13-01-PLAN.md — COMPLETE)
 - **Phase 14:** Knowledge Graph Classification & Anchor Nodes (14-01-PLAN.md — COMPLETE, 14-02-PLAN.md — COMPLETE, 14-03-PLAN.md — COMPLETE, 14-04-PLAN.md — COMPLETE)
+
+## Latest Decisions (Phase 26-04)
+
+- [Phase 26-04] PlannerScreen Suggested Moves refactored to trellis-first ordering: dead (Re-plant) → dying (Heal) → filtered autoGen; suggestedChunks/ChunkCard system deleted entirely (D-22)
+- [Phase 26-04] dyingDeadIds Set built per render filters autoMoves by conceptId — deterministic dedup (D-23) without service-layer changes to plannerAutoGen
+- [Phase 26-04] deadNodes/dyingNodes/filteredAutoMoves derived as plain const (no useMemo) — cheap filters on small layout.nodes list, correct re-derivation on every render
+- [Phase 26-04] visibleAutoMoves uses `Math.max(0, TOP_N - trellisCount)` to keep TOP_N total visible across priority groups (never negative)
+- [Phase 26-04] usePlanner hook marked @deprecated (not deleted) — retains compatibility for lingering imports while signalling removal intent
+- [Phase 26-04] Skip-all button gated on filteredAutoMoves.length (not autoMoves.length) so it hides when only trellis rows remain — trellis rows require explicit Heal/Prune/Re-plant per D-11..D-18
+- [Phase 26-04] Ripe fruits (leafState === 'fruit') excluded from Suggested Moves by filter construction — harvesting remains exclusive to TrellisStatusPanel (D-21)
 
 ## Latest Decisions (Phase 26-03)
 
@@ -102,7 +112,7 @@ Phase 26 — Trellis Harvest Panel, Dying/Dead Node Actions, and Suggested Moves
 ## Last Session
 
 Completed Phase 26 Plan 02 (26-02-PLAN.md) — TrellisStatusPanel (3-column fruit/dying/dead counts + bottom sheets), harvest flow (clear blossom dates + credits + fly-to-counter + confetti), Planner header fruit counter pill
-**Stopped At:** Completed 26-03-PLAN.md
+**Stopped At:** Completed 26-04-PLAN.md (Phase 26 all plans done)
 **Date:** 2026-04-15
 
 ## Latest Decisions (Phase 25)
