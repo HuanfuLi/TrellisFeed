@@ -130,8 +130,8 @@ export function TrellisStatusPanel({ nodes, onCreditsChange, counterRef }: Trell
   const handlePrune = (node: TrellisAnchorNode) => {
     const id = node.anchor.id;
     setPruningId(id);
-    // Let the CSS animation play (scissors cut ~0.3s, leaf fall ~0.5s) before
-    // flipping the flagged field and refreshing state.
+    // Let the CSS animation play (scissors cut ~0.5s, leaf fall starts at 0.5s, ends at 1.0s)
+    // before flipping the flagged field and refreshing state.
     window.setTimeout(() => {
       trellisActionsService.prune(id);
       refreshPrunedNodes();
@@ -139,7 +139,7 @@ export function TrellisStatusPanel({ nodes, onCreditsChange, counterRef }: Trell
       toast('Pruned - moved to archive', 'success');
       // Close sheet so the user sees the pruned badge update in the panel area
       setActiveSheet(null);
-    }, 800);
+    }, 1000);
   };
 
   const handleUnprune = (q: Question) => {
@@ -220,7 +220,7 @@ export function TrellisStatusPanel({ nodes, onCreditsChange, counterRef }: Trell
           backgroundColor: 'var(--surface-variant)',
           border: '1px solid var(--border)',
           marginBottom: '8px',
-          animation: isPruning ? 'prune-fall 0.5s ease-in 0.3s forwards' : undefined,
+          animation: isPruning ? 'prune-fall 0.5s ease-in 0.5s forwards' : undefined,
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -277,9 +277,11 @@ export function TrellisStatusPanel({ nodes, onCreditsChange, counterRef }: Trell
             }}
           >
             <Scissors
-              size={14}
+              size={16}
               style={{
-                animation: isPruning ? 'prune-cut 0.3s ease-in-out forwards' : undefined,
+                animation: isPruning ? 'prune-cut 0.5s ease-in-out forwards' : undefined,
+                transformOrigin: 'center',
+                display: 'inline-block',
               }}
             />
             Prune
@@ -302,9 +304,12 @@ export function TrellisStatusPanel({ nodes, onCreditsChange, counterRef }: Trell
           100% { transform: translate(var(--fly-dx), var(--fly-dy)) scale(0.4); opacity: 0; }
         }
         @keyframes prune-cut {
-          0%   { transform: rotate(0); }
-          50%  { transform: rotate(-25deg); }
-          100% { transform: rotate(0); }
+          0%, 100% { transform: rotate(0) scale(1); }
+          15%      { transform: rotate(-35deg) scale(1.15); }
+          30%      { transform: rotate(0) scale(1); }
+          45%      { transform: rotate(-35deg) scale(1.15); }
+          60%      { transform: rotate(0) scale(1); }
+          75%      { transform: rotate(-20deg) scale(1.1); }
         }
         @keyframes prune-fall {
           0%   { transform: translateY(0); opacity: 1; }
