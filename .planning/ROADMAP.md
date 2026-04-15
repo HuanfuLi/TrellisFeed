@@ -621,7 +621,7 @@ Plans:
 
 **Requirements**: PHASE-25-WAVE-0, PHASE-25-DATA-LAYER, PHASE-25-VARIANT-C, PHASE-25-VARIANT-A, PHASE-25-VARIANT-V, PHASE-25-POLISH-AND-INTEGRATION (internal phase-local IDs — no ROADMAP-level requirement tracking since this phase is additive motivational UX with goal as the success criterion)
 **Depends on:** Phase 24
-**Plans:** 2/6 plans executed
+**Plans:** 2/6 plans executed (25-02 paused at checkpoint)
 
 Plans:
 - [x] 25-00-PLAN.md — Wave 0 foundations: AppEvent types (REVIEW_COMPLETED/CLASSIFICATION_COMPLETED/ANCHOR_DELETED), blossom-date persistence service, asset directory with AI-prompt README, REVIEW_COMPLETED bridge in review.service.ts

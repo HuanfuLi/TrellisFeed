@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
 status: In Progress
-stopped_at: Completed 25-01-PLAN.md
-last_updated: "2026-04-15T00:01:03.257Z"
+stopped_at: Paused at 25-02-PLAN.md checkpoint (human-verify)
+last_updated: "2026-04-15T00:10:36Z"
 progress:
   total_phases: 19
   completed_phases: 5
@@ -169,6 +169,13 @@ Completed Phase 25 Plan 00 (25-00-PLAN.md) — Wave 0 Foundations
 - [Phase 16-01] sessionHistory parameter is optional — all existing callers not passing it continue to work unchanged
 - [Phase 16-01] priorMessages uses slice(0,-1) to exclude just-appended user message preventing LLM duplication
 - [Phase 16-01] historyMessages conversion maps SessionMessage type field (user/ai) to ChatMessage role field (user/assistant) for KV-cache threading
+
+## Latest Decisions (Phase 25-02)
+
+- [Phase 25-02] Anchor display name uses title ?? content ?? 'anchor' fallback (Question type has no name field)
+- [Phase 25-02] esbuild-based tsx loader hooks for unit testing pure functions from .tsx files with node --test
+- [Phase 25-02] TrellisHero renders as topmost content in PlannerScreen above Review Banner
+- [Phase 25-02] Ambient sway threshold set to 20 leaves; above threshold only 1-in-3 leaves sway
 
 ## Accumulated Context
 
