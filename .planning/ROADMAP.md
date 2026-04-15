@@ -643,6 +643,16 @@ Plans:
 - [x] 25-04-PLAN.md — Variant V (loop video + SVG) with useVideoPauseGuard hook (IntersectionObserver + visibilitychange) and poster fallback
 - [x] 25-05-PLAN.md — Route-aware sway gate + end-to-end review->leaf smoke test + manual QA checklist + final human-verify checkpoint
 
+### Phase 26: Trellis harvest panel, dying/dead node actions, and suggested moves refactor to reflect trellis status
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 25
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 26 to break down)
+
 ---
 
 _Created: 2026-03-26 | v1.1 Roadmap | 17 phases | 91 requirements mapped_

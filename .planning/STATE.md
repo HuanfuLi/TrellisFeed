@@ -195,3 +195,4 @@ Completed Phase 25 Plan 00 (25-00-PLAN.md) — Wave 0 Foundations
 - Phase 19 added: Web Search Integration for Ask and Feed
 - Phase 20 added: Orchestration Strategy & Diagnostic Dialogue (from original Milestone 2 ROADMAP.md Phases 17-18, renumbered)
 - Phase 22 added: Swipe navigation between first-level screens
+- Phase 26 added: Trellis harvest panel, dying/dead node actions, and suggested moves refactor to reflect trellis status
