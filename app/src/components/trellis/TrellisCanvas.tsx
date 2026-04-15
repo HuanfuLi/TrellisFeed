@@ -6,24 +6,19 @@ import { TrellisLeaf } from './TrellisLeaf.tsx';
 
 export interface TrellisCanvasProps {
   layout: TrellisLayout;
-  onLeafTap: (anchorId: string, clientX: number, clientY: number) => void;
-  heroRef: React.RefObject<HTMLDivElement | null>;
   ambientEnabled: boolean;
 }
 
-// D-55 threshold lowered from 50 to 20 per RESEARCH Open Question #4 + phase_structure_guidance.
 const AMBIENT_SWAY_THRESHOLD = 20;
 
-export function TrellisCanvas({ layout, onLeafTap, ambientEnabled }: TrellisCanvasProps) {
+export function TrellisCanvas({ layout, ambientEnabled }: TrellisCanvasProps) {
   const { vines, nodes } = layout;
   const leafCount = nodes.length;
   const swayEnabled = leafCount <= AMBIENT_SWAY_THRESHOLD;
-  // If > threshold, sway only 1 in 3 leaves (deterministic by index)
   const leafSwayMask = useMemo(() => {
     if (swayEnabled) return (_: number) => true;
     return (i: number) => i % 3 === 0;
   }, [swayEnabled]);
-  // Route-aware gate: fully disable sway when Planner is not the active route (D-53)
   const effectiveSway = ambientEnabled ? leafSwayMask : (_: number) => false;
 
   return (
@@ -36,8 +31,8 @@ export function TrellisCanvas({ layout, onLeafTap, ambientEnabled }: TrellisCanv
       role="img"
       aria-label="Knowledge garden — your review health visualization"
     >
-      {/* Vines — D-46 draw-on per-branch staggered 200ms */}
-      <g style={{ pointerEvents: 'none' }}>
+      {/* Vines — staggered draw-on animation */}
+      <g>
         {vines.map((v, i) => (
           <motion.path
             key={v.branchId}
@@ -53,8 +48,8 @@ export function TrellisCanvas({ layout, onLeafTap, ambientEnabled }: TrellisCanv
           />
         ))}
       </g>
-      {/* Branch lines connecting vine to leaf */}
-      <g style={{ pointerEvents: 'none' }}>
+      {/* Short branch stems from vine to leaf */}
+      <g>
         {nodes.map((n) => (
           <line
             key={`stem-${n.anchor.id}`}
@@ -67,21 +62,19 @@ export function TrellisCanvas({ layout, onLeafTap, ambientEnabled }: TrellisCanv
           />
         ))}
       </g>
-      {/* Leaves */}
-      <g style={{ pointerEvents: 'auto' }}>
+      {/* Leaves / blossoms / fruits */}
+      <g>
         {nodes.map((n, i) => (
           <TrellisLeaf
             key={n.anchor.id}
-            anchorId={n.anchor.id}
-            anchorName={n.anchor.title ?? n.anchor.content ?? 'anchor'}
             x={n.layoutPosition.x}
             y={n.layoutPosition.y}
-            stemAngle={n.stemAngle}
+            tangentAngle={n.tangentAngle}
+            side={n.side}
             state={n.leafState}
-            qaCount={n.qaChildren.length}
-            onTap={onLeafTap}
+            shapeVariant={n.shapeVariant}
             ambientSway={effectiveSway(i)}
-            animationDelay={0.8 + i * 0.05} // leaves pop after vines finish drawing
+            animationDelay={0.8 + i * 0.05}
           />
         ))}
       </g>

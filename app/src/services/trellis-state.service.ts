@@ -15,10 +15,11 @@ export interface TrellisAnchorNode {
   branchLabel: string;
   branchId: string;
   branchIndex: number;
-  vinePosition: { t: number };
   layoutPosition: { x: number; y: number };
   vineAttach: { x: number; y: number };
-  stemAngle: number;
+  tangentAngle: number; // vine direction at attachment (degrees)
+  side: number;         // +1 or -1 (which side of vine)
+  shapeVariant: number; // 0-2, for blossom/fruit variety
   blossomSinceDate?: string;
 }
 
@@ -102,7 +103,7 @@ function buildDevTrellisState(): TrellisLayout {
 
   const nodes: TrellisAnchorNode[] = ALL_LEAF_STATES.map((state, i) => {
     const vine = i < 4 ? vineA : vineB;
-    const fakeId = `dev-${state}`;
+    const fakeId = `dev-${state}-${i}`;
     const leafPos = getLeafPosition(fakeId, vine.spec);
     return {
       anchor: { id: fakeId, content: state, title: state.charAt(0).toUpperCase() + state.slice(1), keywords: [], relatedQuestionIds: [], categoryIds: [], reviewSchedule: { nextReviewDate: '', reviewCount: 0, easeFactor: 2.5 }, createdAt: 0 } as Question,
@@ -111,10 +112,11 @@ function buildDevTrellisState(): TrellisLayout {
       branchLabel: vine.branchLabel,
       branchId: vine.branchId,
       branchIndex: vine.branchIndex,
-      vinePosition: { t: leafPos.t },
       layoutPosition: { x: leafPos.x, y: leafPos.y },
       vineAttach: { x: leafPos.vineX, y: leafPos.vineY },
-      stemAngle: leafPos.stemAngle,
+      tangentAngle: leafPos.tangentAngle,
+      side: leafPos.side,
+      shapeVariant: i % 3,
     };
   });
 
@@ -198,10 +200,11 @@ export function buildTrellisState(questions: Question[]): TrellisLayout {
             branchLabel: branch.branchLabel,
             branchId,
             branchIndex: vine.branchIndex,
-            vinePosition: { t: leafPos.t },
             layoutPosition: { x: leafPos.x, y: leafPos.y },
             vineAttach: { x: leafPos.vineX, y: leafPos.vineY },
-            stemAngle: leafPos.stemAngle,
+            tangentAngle: leafPos.tangentAngle,
+            side: leafPos.side,
+            shapeVariant: hashStr(anchor.id) % 3,
             blossomSinceDate: blossomDates[anchor.id],
           });
         });
@@ -226,10 +229,11 @@ export function buildTrellisState(questions: Question[]): TrellisLayout {
             branchLabel: branch.branchLabel,
             branchId,
             branchIndex: vine.branchIndex,
-            vinePosition: { t: leafPos.t },
             layoutPosition: { x: leafPos.x, y: leafPos.y },
             vineAttach: { x: leafPos.vineX, y: leafPos.vineY },
-            stemAngle: leafPos.stemAngle,
+            tangentAngle: leafPos.tangentAngle,
+            side: leafPos.side,
+            shapeVariant: hashStr(q.id) % 3,
             blossomSinceDate: blossomDates[q.id],
           });
         });
