@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useTrellisData } from '../../state/useTrellisData.ts';
 import { TrellisCanvas } from './TrellisCanvas.tsx';
 import { TrellisTooltip } from './TrellisTooltip.tsx';
@@ -19,6 +20,8 @@ function readInitialVariant(): TrellisVariant {
 
 export function TrellisHero() {
   const { layout } = useTrellisData();
+  const location = useLocation();
+  const isPlannerActive = location.pathname === '/planner' || location.pathname.startsWith('/planner/');
   const [variant, setVariant] = useState<TrellisVariant>(readInitialVariant);
   const [tooltipState, setTooltipState] = useState<null | { anchorId: string; x: number; y: number }>(null);
   const heroRef = useRef<HTMLDivElement>(null);
@@ -91,7 +94,7 @@ export function TrellisHero() {
       {variant === 'C' && <TrellisBackgroundC />}
 
       {/* SVG canvas (vines + leaves) */}
-      {!isEmpty && <TrellisCanvas layout={layout} onLeafTap={handleLeafTap} heroRef={heroRef} />}
+      {!isEmpty && <TrellisCanvas layout={layout} onLeafTap={handleLeafTap} heroRef={heroRef} ambientEnabled={isPlannerActive} />}
 
       {/* Empty state overlay */}
       {isEmpty && <TrellisEmptyState />}

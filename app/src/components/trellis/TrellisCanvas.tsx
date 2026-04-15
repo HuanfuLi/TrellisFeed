@@ -8,12 +8,13 @@ export interface TrellisCanvasProps {
   layout: TrellisLayout;
   onLeafTap: (anchorId: string, clientX: number, clientY: number) => void;
   heroRef: React.RefObject<HTMLDivElement | null>;
+  ambientEnabled: boolean;
 }
 
 // D-55 threshold lowered from 50 to 20 per RESEARCH Open Question #4 + phase_structure_guidance.
 const AMBIENT_SWAY_THRESHOLD = 20;
 
-export function TrellisCanvas({ layout, onLeafTap }: TrellisCanvasProps) {
+export function TrellisCanvas({ layout, onLeafTap, ambientEnabled }: TrellisCanvasProps) {
   const { vines, nodes } = layout;
   const leafCount = nodes.length;
   const swayEnabled = leafCount <= AMBIENT_SWAY_THRESHOLD;
@@ -22,6 +23,8 @@ export function TrellisCanvas({ layout, onLeafTap }: TrellisCanvasProps) {
     if (swayEnabled) return (_: number) => true;
     return (i: number) => i % 3 === 0;
   }, [swayEnabled]);
+  // Route-aware gate: fully disable sway when Planner is not the active route (D-53)
+  const effectiveSway = ambientEnabled ? leafSwayMask : (_: number) => false;
 
   return (
     <svg
@@ -62,7 +65,7 @@ export function TrellisCanvas({ layout, onLeafTap }: TrellisCanvasProps) {
             state={n.leafState}
             qaCount={n.qaChildren.length}
             onTap={onLeafTap}
-            ambientSway={leafSwayMask(i)}
+            ambientSway={effectiveSway(i)}
             animationDelay={0.8 + i * 0.05} // leaves pop after vines finish drawing
           />
         ))}
