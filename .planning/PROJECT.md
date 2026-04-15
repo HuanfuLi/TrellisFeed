@@ -52,4 +52,6 @@ This document evolves at phase transitions and milestone boundaries.
 
 **Phase 23 complete (2026-04-09):** Incremental Classification Pipeline + Ask Rate Limiter — replaced single-call classification with 3-step branch→cluster→anchor pipeline using append-only messages for KV cache efficiency. Added configurable monthly rate limiter with Settings UI, inline warning/error banners, and send button disable at limit.
 
-_Last updated: 2026-04-09 — Phase 23 complete_
+**Phase 26 complete (2026-04-15):** Trellis Harvest Panel + Node Actions + Suggested Moves Refactor — Planner now shows a flat 3-column status panel (Dying | Fruit | Dead) with Fruit as a centered harvest button (direct tap, fly-to-counter + confetti, credits persisted). Suggested Moves refactored to be trellis-health-driven (dead → dying → filtered autoGen); heal, re-plant, and prune actions live directly on the rows. Re-plant reuses the "Learn as Post" flow (fire-and-forget, bumps node to dying state). PrunedSection archive at page bottom. UX simplified from the originally-planned bottom-sheet design per user feedback (D-09/D-14/D-17 voided, D-13 modified — see `.planning/phases/26-*/26-ADDENDUM.md`). Also landed cross-cutting fix: BottomNavigation tap = instant transport (reverted from Phase 22's animated jump), finger-swipe keeps the spring; all 5 first-level screens always mounted + always visible.
+
+_Last updated: 2026-04-15 — Phase 26 complete_
