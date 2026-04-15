@@ -27,6 +27,7 @@ const STREAM_TIMEOUT_MS = 120_000;    // 120 s for full streaming response
 export interface CompletionOptions {
   maxTokens?: number;
   serviceName?: string;
+  jsonMode?: boolean;
 }
 
 export async function chatCompletion(messages: ChatMessage[], config: LLMConfig, options?: CompletionOptions): Promise<string> {
@@ -117,7 +118,8 @@ async function localPost(
 async function openAICompletion(messages: ChatMessage[], config: LLMConfig, maxTokens = 4096, options?: CompletionOptions): Promise<string> {
   const isLocal = config.provider === 'local' || config.provider === 'lmstudio';
   const url = `${openAIBaseUrl(config)}/v1/chat/completions`;
-  const body = { model: config.model, messages, max_tokens: maxTokens, stream: false };
+  const body: Record<string, unknown> = { model: config.model, messages, max_tokens: maxTokens, stream: false };
+  if (options?.jsonMode) body.response_format = { type: 'json_object' };
 
   const response = isLocal
     ? await localPost(url, body)
@@ -168,6 +170,11 @@ async function claudeCompletion(messages: ChatMessage[], config: LLMConfig, maxT
     .filter((m) => m.role !== 'system')
     .map((m) => ({ role: m.role, content: m.content }));
 
+  // JSON-mode prefill: Claude continues the assistant response from `{`, guaranteeing a JSON object.
+  if (options?.jsonMode) {
+    userMessages.push({ role: 'assistant', content: '{' });
+  }
+
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -188,7 +195,8 @@ async function claudeCompletion(messages: ChatMessage[], config: LLMConfig, maxT
   if (usage && options?.serviceName) {
     tokenUsageReporter.record({ serviceName: options.serviceName, ...usage, provider: config.provider });
   }
-  return (data.content as Array<{ text: string }>)[0].text;
+  const text = (data.content as Array<{ text: string }>)[0].text;
+  return options?.jsonMode ? '{' + text : text;
 }
 
 async function* claudeStream(messages: ChatMessage[], config: LLMConfig, options?: CompletionOptions): AsyncGenerator<string> {
@@ -225,7 +233,7 @@ async function* claudeStream(messages: ChatMessage[], config: LLMConfig, options
 
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta';
 
-function toGeminiPayload(messages: ChatMessage[], maxTokens = 4096) {
+function toGeminiPayload(messages: ChatMessage[], maxTokens = 4096, jsonMode = false) {
   const system = messages.find((m) => m.role === 'system')?.content;
   const contents = messages
     .filter((m) => m.role !== 'system')
@@ -236,7 +244,10 @@ function toGeminiPayload(messages: ChatMessage[], maxTokens = 4096) {
   return {
     contents,
     ...(system ? { systemInstruction: { parts: [{ text: system }] } } : {}),
-    generationConfig: { maxOutputTokens: maxTokens },
+    generationConfig: {
+      maxOutputTokens: maxTokens,
+      ...(jsonMode ? { responseMimeType: 'application/json' } : {}),
+    },
   };
 }
 
@@ -245,7 +256,7 @@ async function geminiCompletion(messages: ChatMessage[], config: LLMConfig, maxT
   const response = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': config.apiKey ?? '' },
-    body: JSON.stringify(toGeminiPayload(messages, maxTokens)),
+    body: JSON.stringify(toGeminiPayload(messages, maxTokens, options?.jsonMode ?? false)),
     signal: timeoutSignal(COMPLETION_TIMEOUT_MS),
   });
   if (!response.ok) {
