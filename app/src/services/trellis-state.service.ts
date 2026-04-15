@@ -3,7 +3,7 @@ import { buildAnchorReflectionTree } from './canonical-knowledge.service.ts';
 import {
   getBlossomDates, setBlossomDate, clearBlossomDate,
 } from './trellis-blossom-dates.service.ts';
-import { generateVinePath, getLeafPosition, getVineColor, type VinePathSpec } from './trellis-layout.service.ts';
+import { generateVinePath, getLeafPosition, getVineColor, hashStr, type VinePathSpec } from './trellis-layout.service.ts';
 import { flashcardService } from './flashcard.service.ts';
 
 export type LeafState = 'bud' | 'green' | 'yellow' | 'falling' | 'fallen' | 'blossom' | 'fruit';
