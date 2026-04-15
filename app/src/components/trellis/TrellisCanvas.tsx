@@ -72,7 +72,7 @@ export function TrellisCanvas({ layout, ambientEnabled }: TrellisCanvasProps) {
             tangentAngle={n.tangentAngle}
             side={n.side}
             state={n.leafState}
-            shapeVariant={n.shapeVariant}
+            botanicalCategory={n.botanicalCategory}
             ambientSway={effectiveSway(i)}
             animationDelay={0.8 + i * 0.05}
           />

@@ -19,7 +19,7 @@ export interface TrellisAnchorNode {
   vineAttach: { x: number; y: number };
   tangentAngle: number; // vine direction at attachment (degrees)
   side: number;         // +1 or -1 (which side of vine)
-  shapeVariant: number; // 0-2, for blossom/fruit variety
+  botanicalCategory: number; // 0-7, index into BOTANICAL_CATEGORIES
   blossomSinceDate?: string;
 }
 
@@ -93,20 +93,33 @@ export function computeLeafState(
 
 const ALL_LEAF_STATES: LeafState[] = ['bud', 'green', 'yellow', 'falling', 'fallen', 'blossom', 'fruit'];
 
-// Dev mode: generate synthetic nodes showing all 7 leaf states on 2 vines
+// Dev mode: show all 8 botanical categories across blossom + fruit states,
+// plus a few leaf states. 3 vines for visual spread.
 function buildDevTrellisState(): TrellisLayout {
-  const branchA = { branchId: 'dev::branch-a', branchLabel: 'Branch A', branchIndex: 0 };
-  const branchB = { branchId: 'dev::branch-b', branchLabel: 'Branch B', branchIndex: 1 };
-  const vineA = { ...branchA, spec: generateVinePath(branchA.branchId, 0, 2), color: getVineColor(branchA.branchId) };
-  const vineB = { ...branchB, spec: generateVinePath(branchB.branchId, 1, 2), color: getVineColor(branchB.branchId) };
-  const vines = [vineA, vineB];
+  const vineCount = 3;
+  const vineDefs = Array.from({ length: vineCount }, (_, i) => {
+    const id = `dev::vine-${i}`;
+    return { branchId: id, branchLabel: `Vine ${i + 1}`, branchIndex: i,
+      spec: generateVinePath(id, i, vineCount), color: getVineColor(id) };
+  });
 
-  const nodes: TrellisAnchorNode[] = ALL_LEAF_STATES.map((state, i) => {
-    const vine = i < 4 ? vineA : vineB;
-    const fakeId = `dev-${state}-${i}`;
+  // Show: 8 blossoms (one per category) + 8 fruits + some leaf states
+  const devEntries: Array<{ state: LeafState; cat: number }> = [
+    // Blossoms — all 8 categories
+    ...Array.from({ length: 8 }, (_, i) => ({ state: 'blossom' as LeafState, cat: i })),
+    // Fruits — all 8 categories
+    ...Array.from({ length: 8 }, (_, i) => ({ state: 'fruit' as LeafState, cat: i })),
+    // Leaf states sampled
+    { state: 'bud', cat: 0 }, { state: 'green', cat: 2 }, { state: 'yellow', cat: 4 },
+    { state: 'falling', cat: 6 }, { state: 'fallen', cat: 1 },
+  ];
+
+  const nodes: TrellisAnchorNode[] = devEntries.map(({ state, cat }, i) => {
+    const vine = vineDefs[i % vineCount];
+    const fakeId = `dev-${state}-cat${cat}-${i}`;
     const leafPos = getLeafPosition(fakeId, vine.spec);
     return {
-      anchor: { id: fakeId, content: state, title: state.charAt(0).toUpperCase() + state.slice(1), keywords: [], relatedQuestionIds: [], categoryIds: [], reviewSchedule: { nextReviewDate: '', reviewCount: 0, easeFactor: 2.5 }, createdAt: 0 } as Question,
+      anchor: { id: fakeId, content: state, title: `${state} (cat ${cat})`, keywords: [], relatedQuestionIds: [], categoryIds: [], reviewSchedule: { nextReviewDate: '', reviewCount: 0, easeFactor: 2.5 }, createdAt: 0 } as Question,
       qaChildren: [],
       leafState: state,
       branchLabel: vine.branchLabel,
@@ -116,11 +129,11 @@ function buildDevTrellisState(): TrellisLayout {
       vineAttach: { x: leafPos.vineX, y: leafPos.vineY },
       tangentAngle: leafPos.tangentAngle,
       side: leafPos.side,
-      shapeVariant: i % 3,
+      botanicalCategory: cat,
     };
   });
 
-  return { nodes, vines };
+  return { nodes, vines: vineDefs };
 }
 
 // Build full trellis state: returns layout for all branches + state-computed anchor nodes.
@@ -204,7 +217,7 @@ export function buildTrellisState(questions: Question[]): TrellisLayout {
             vineAttach: { x: leafPos.vineX, y: leafPos.vineY },
             tangentAngle: leafPos.tangentAngle,
             side: leafPos.side,
-            shapeVariant: hashStr(anchor.id) % 3,
+            botanicalCategory: hashStr(anchor.id) % 8,
             blossomSinceDate: blossomDates[anchor.id],
           });
         });
@@ -233,7 +246,7 @@ export function buildTrellisState(questions: Question[]): TrellisLayout {
             vineAttach: { x: leafPos.vineX, y: leafPos.vineY },
             tangentAngle: leafPos.tangentAngle,
             side: leafPos.side,
-            shapeVariant: hashStr(q.id) % 3,
+            botanicalCategory: hashStr(q.id) % 8,
             blossomSinceDate: blossomDates[q.id],
           });
         });
