@@ -6,6 +6,7 @@ import { TrellisEmptyState } from './TrellisEmptyState.tsx';
 import { TrellisVariantPicker } from './TrellisVariantPicker.tsx';
 import { TrellisBackgroundA } from './variants/TrellisBackgroundA.tsx';
 import { TrellisBackgroundC } from './variants/TrellisBackgroundC.tsx';
+import { TrellisBackgroundV } from './variants/TrellisBackgroundV.tsx';
 import type { TrellisVariant } from './types.ts';
 
 const VARIANT_KEY = 'trellis_variant_dev';
@@ -89,7 +90,7 @@ export function TrellisHero() {
       {/* Background layer per variant */}
       {variant === 'A' && <TrellisBackgroundA />}
       {variant === 'C' && <TrellisBackgroundC />}
-      {/* Variant V plugs in via 25-04 */}
+      {variant === 'V' && <TrellisBackgroundV />}
 
       {/* SVG canvas (vines + leaves) */}
       {!isEmpty && <TrellisCanvas layout={layout} onLeafTap={handleLeafTap} heroRef={heroRef} />}

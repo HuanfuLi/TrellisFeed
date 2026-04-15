@@ -28,7 +28,7 @@ export function shouldPauseVideo(
  * - `video.play()` can throw DOMException (iOS autoplay gate); wrap in .catch.
  */
 export function useVideoPauseGuard(
-  videoRef: React.RefObject<HTMLVideoElement>,
+  videoRef: React.RefObject<HTMLVideoElement | null>,
   enabled: boolean,
 ): void {
   const isIntersectingRef = useRef<boolean>(false);
