@@ -6,7 +6,7 @@ import type { VinePathSpec } from '../../services/trellis-layout.service.ts';
 
 export type { TrellisLayout, TrellisAnchorNode, LeafState, VinePathSpec };
 
-export type TrellisVariant = 'A' | 'C' | 'V';
+export type TrellisVariant = 'A' | 'C';
 
 export interface TrellisBackgroundProps {
   // Common background props all three variants satisfy

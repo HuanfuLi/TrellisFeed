@@ -8,7 +8,7 @@ export interface TrellisVariantPickerProps {
 export function TrellisVariantPicker({ variant, onChange }: TrellisVariantPickerProps) {
   if (!import.meta.env.DEV) return null;
   const cycle = () => {
-    const next: Record<TrellisVariant, TrellisVariant> = { A: 'C', C: 'V', V: 'A' };
+    const next: Record<TrellisVariant, TrellisVariant> = { A: 'C', C: 'A' };
     const v = next[variant];
     try { localStorage.setItem('trellis_variant_dev', v); } catch { /* ignore */ }
     onChange(v);
