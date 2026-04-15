@@ -621,11 +621,11 @@ Plans:
 
 **Requirements**: PHASE-25-WAVE-0, PHASE-25-DATA-LAYER, PHASE-25-VARIANT-C, PHASE-25-VARIANT-A, PHASE-25-VARIANT-V, PHASE-25-POLISH-AND-INTEGRATION (internal phase-local IDs — no ROADMAP-level requirement tracking since this phase is additive motivational UX with goal as the success criterion)
 **Depends on:** Phase 24
-**Plans:** 6 plans in 5 waves
+**Plans:** 2/6 plans executed
 
 Plans:
-- [ ] 25-00-PLAN.md — Wave 0 foundations: AppEvent types (REVIEW_COMPLETED/CLASSIFICATION_COMPLETED/ANCHOR_DELETED), blossom-date persistence service, asset directory with AI-prompt README, REVIEW_COMPLETED bridge in review.service.ts
-- [ ] 25-01-PLAN.md — Data layer: seeded mulberry32 PRNG + vine/leaf layout + state aggregation (worst-child-wins) + useTrellisData hook with eventBus subscriptions
+- [x] 25-00-PLAN.md — Wave 0 foundations: AppEvent types (REVIEW_COMPLETED/CLASSIFICATION_COMPLETED/ANCHOR_DELETED), blossom-date persistence service, asset directory with AI-prompt README, REVIEW_COMPLETED bridge in review.service.ts
+- [x] 25-01-PLAN.md — Data layer: seeded mulberry32 PRNG + vine/leaf layout + state aggregation (worst-child-wins) + useTrellisData hook with eventBus subscriptions
 - [ ] 25-02-PLAN.md — Variant C (pure SVG, no asset dependency): TrellisHero + TrellisCanvas + TrellisLeaf + TrellisTooltip + TrellisEmptyState + TrellisVariantPicker + PlannerScreen integration + human-verify checkpoint
 - [ ] 25-03-PLAN.md — Variant A (static image + SVG) with graceful fallback when .webp asset absent
 - [ ] 25-04-PLAN.md — Variant V (loop video + SVG) with useVideoPauseGuard hook (IntersectionObserver + visibilitychange) and poster fallback
