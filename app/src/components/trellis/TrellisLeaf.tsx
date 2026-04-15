@@ -29,6 +29,7 @@ export interface TrellisLeafProps {
   anchorName: string;
   x: number;
   y: number;
+  stemAngle: number; // degrees — direction from leaf center toward vine
   state: LeafState;
   qaCount: number;
   onTap: (anchorId: string, centerClientX: number, centerClientY: number) => void;
@@ -162,8 +163,11 @@ function FruitShape({ color, vein }: { color: string; vein: string }) {
   );
 }
 
+// Scale factor: shapes are authored in a ~30px bounding box, need ~54px for 800×400 viewBox
+const LEAF_SCALE = 1.8;
+
 export function TrellisLeaf(props: TrellisLeafProps) {
-  const { anchorId, anchorName, x, y, state, qaCount, onTap, ambientSway, animationDelay = 0 } = props;
+  const { anchorId, anchorName, x, y, stemAngle, state, qaCount, onTap, ambientSway, animationDelay = 0 } = props;
   const color = LEAF_STATE_COLOR[state];
   const vein = LEAF_VEIN_COLOR[state];
   const half = LEAF_HIT_TARGET_PX / 2;
@@ -185,6 +189,10 @@ export function TrellisLeaf(props: TrellisLeafProps) {
     case 'fruit':   shape = <FruitShape color={color} vein={vein} />; break;
   }
 
+  // Stems in local coords point toward +y (down = 90°).
+  // Rotate so stem faces the vine attachment point.
+  const stemRotation = stemAngle - 90;
+
   return (
     <g
       role="button"
@@ -199,7 +207,7 @@ export function TrellisLeaf(props: TrellisLeafProps) {
       <rect x={-half} y={-half} width={LEAF_HIT_TARGET_PX} height={LEAF_HIT_TARGET_PX} fill="transparent" style={{ pointerEvents: 'all' }} />
       <motion.g
         initial={{ scale: 0, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1, rotate: ambientSway ? [0, 2, -2, 0] : 0 }}
+        animate={{ scale: LEAF_SCALE, opacity: 1, rotate: ambientSway ? [stemRotation, stemRotation + 3, stemRotation - 3, stemRotation] : stemRotation }}
         transition={ambientSway
           ? { scale: { type: 'spring', stiffness: 260, damping: 18, delay: animationDelay }, opacity: { duration: 0.3, delay: animationDelay }, rotate: { duration: 3, repeat: Infinity, ease: 'easeInOut' } }
           : { type: 'spring', stiffness: 260, damping: 18, delay: animationDelay }}

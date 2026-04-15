@@ -53,6 +53,20 @@ export function TrellisCanvas({ layout, onLeafTap, ambientEnabled }: TrellisCanv
           />
         ))}
       </g>
+      {/* Branch lines connecting vine to leaf */}
+      <g style={{ pointerEvents: 'none' }}>
+        {nodes.map((n) => (
+          <line
+            key={`stem-${n.anchor.id}`}
+            x1={n.vineAttach.x} y1={n.vineAttach.y}
+            x2={n.layoutPosition.x} y2={n.layoutPosition.y}
+            stroke={vines.find((v) => v.branchId === n.branchId)?.color ?? '#6B8E5A'}
+            strokeWidth={1.5}
+            strokeLinecap="round"
+            opacity={0.6}
+          />
+        ))}
+      </g>
       {/* Leaves */}
       <g style={{ pointerEvents: 'auto' }}>
         {nodes.map((n, i) => (
@@ -62,6 +76,7 @@ export function TrellisCanvas({ layout, onLeafTap, ambientEnabled }: TrellisCanv
             anchorName={n.anchor.title ?? n.anchor.content ?? 'anchor'}
             x={n.layoutPosition.x}
             y={n.layoutPosition.y}
+            stemAngle={n.stemAngle}
             state={n.leafState}
             qaCount={n.qaChildren.length}
             onTap={onLeafTap}

@@ -62,17 +62,24 @@ export function cubicBezierPoint(
   return { x, y };
 }
 
-export function getLeafPosition(anchorId: string, vineSpec: VinePathSpec): { x: number; y: number; t: number } {
+export function getLeafPosition(anchorId: string, vineSpec: VinePathSpec): {
+  x: number; y: number; t: number;
+  vineX: number; vineY: number; stemAngle: number;
+} {
   const rng = mulberry32(hashStr(anchorId));
   const t = 0.15 + rng() * 0.75; // avoid extreme vine ends
   const jitterX = (rng() - 0.5) * 30;
   const jitterY = (rng() - 0.5) * 20;
-  const { x, y } = cubicBezierPoint(t,
+  const { x: vineX, y: vineY } = cubicBezierPoint(t,
     vineSpec.p0x, vineSpec.p0y,
     vineSpec.p1x, vineSpec.p1y,
     vineSpec.p2x, vineSpec.p2y,
     vineSpec.p3x, vineSpec.p3y);
-  return { x: x + jitterX, y: y + jitterY, t };
+  const leafX = vineX + jitterX;
+  const leafY = vineY + jitterY;
+  // Angle from leaf center back toward vine attachment point
+  const stemAngle = Math.atan2(vineY - leafY, vineX - leafX) * (180 / Math.PI);
+  return { x: leafX, y: leafY, t, vineX, vineY, stemAngle };
 }
 
 // Deterministic branch color: natural green/brown tones for organic vine look

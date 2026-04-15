@@ -17,6 +17,8 @@ export interface TrellisAnchorNode {
   branchIndex: number;
   vinePosition: { t: number };
   layoutPosition: { x: number; y: number };
+  vineAttach: { x: number; y: number };
+  stemAngle: number;
   blossomSinceDate?: string;
 }
 
@@ -162,6 +164,8 @@ export function buildTrellisState(questions: Question[]): TrellisLayout {
             branchIndex: vine.branchIndex,
             vinePosition: { t: leafPos.t },
             layoutPosition: { x: leafPos.x, y: leafPos.y },
+            vineAttach: { x: leafPos.vineX, y: leafPos.vineY },
+            stemAngle: leafPos.stemAngle,
             blossomSinceDate: blossomDates[anchor.id],
           });
         });
@@ -188,6 +192,8 @@ export function buildTrellisState(questions: Question[]): TrellisLayout {
             branchIndex: vine.branchIndex,
             vinePosition: { t: leafPos.t },
             layoutPosition: { x: leafPos.x, y: leafPos.y },
+            vineAttach: { x: leafPos.vineX, y: leafPos.vineY },
+            stemAngle: leafPos.stemAngle,
             blossomSinceDate: blossomDates[q.id],
           });
         });
