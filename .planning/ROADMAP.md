@@ -645,13 +645,17 @@ Plans:
 
 ### Phase 26: Trellis harvest panel, dying/dead node actions, and suggested moves refactor to reflect trellis status
 
-**Goal:** [To be planned]
-**Requirements**: TBD
+**Goal:** Deliver a 3-column status panel between the trellis hero and suggested moves on PlannerScreen that surfaces actionable trellis states: harvest ripe fruits (earn credits), heal dying nodes (review + podcast), and re-plant dead nodes (post + flashcard review). Refactor suggested moves to be trellis-health-driven with autoGen as supplement. Add fruit credit counter to Planner header. Add pruning (soft-delete + archive) for unwanted dying/dead nodes.
+
+**Requirements**: D-01 through D-23 (from CONTEXT.md)
 **Depends on:** Phase 25
-**Plans:** 0 plans
+**Plans:** 4 plans (4 waves)
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 26 to break down)
+- [ ] 26-01-PLAN.md — Foundation: credits service, HARVEST_COMPLETED event, BottomSheet component, getPrunedQuestions
+- [ ] 26-02-PLAN.md — TrellisStatusPanel (3-column counts + glow) + header fruit counter + harvest flow with confetti
+- [ ] 26-03-PLAN.md — Node actions: heal (review + podcast), re-plant (schedule reset + post), prune (archive + animation) + pruned section
+- [ ] 26-04-PLAN.md — Suggested moves refactor: remove suggestedChunks, trellis-health-driven priority ordering, autoGen dedup
 
 ---
 
