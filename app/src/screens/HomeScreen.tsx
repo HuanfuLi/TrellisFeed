@@ -11,6 +11,7 @@ import { useQuestions } from '../state/useQuestions';
 import { useReview } from '../state/useReview';
 import { usePodcast } from '../state/usePodcast';
 import { plannerService } from '../services/planner.service';
+import { plannerAutoGenService } from '../services/plannerAutoGen.service';
 import { settingsService } from '../services/settings.service';
 import { conceptFeedService } from '../services/concept-feed.service';
 import { eventBus } from '../lib/event-bus';
@@ -52,7 +53,7 @@ export function HomeScreen() {
     if (questionsLoading) return;
 
     const refreshPlannerSummary = () => {
-      setActiveChunkCount(plannerService.getActiveChunks().length);
+      setSuggestedMoveCount(plannerAutoGenService.getMoves().length + plannerService.getSuggestedChunks().length);
     };
 
     const refreshFeed = () => {
@@ -358,7 +359,7 @@ export function HomeScreen() {
     });
   };
 
-  const [activeChunkCount, setActiveChunkCount] = useState(0);
+  const [suggestedMoveCount, setSuggestedMoveCount] = useState(0);
 
   return (
     <>
@@ -422,8 +423,8 @@ export function HomeScreen() {
               <CheckSquare size={28} color="var(--bento-card-text)" style={{ marginBottom: '12px' }} />
               <h4 style={{ marginBottom: '8px', color: 'var(--bento-card-text)' }}>Planner</h4>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                <p style={{ fontSize: '1.875rem', fontWeight: 600, color: 'var(--bento-card-text)' }}>{activeChunkCount}</p>
-                <p style={{ fontSize: '0.875rem', color: 'var(--bento-card-text-muted)' }}>{activeChunkCount === 1 ? 'active chunk' : 'active chunks'}</p>
+                <p style={{ fontSize: '1.875rem', fontWeight: 600, color: 'var(--bento-card-text)' }}>{suggestedMoveCount}</p>
+                <p style={{ fontSize: '0.875rem', color: 'var(--bento-card-text-muted)' }}>{suggestedMoveCount === 1 ? 'suggestion' : 'suggestions'}</p>
               </div>
             </Card>
           </button>
