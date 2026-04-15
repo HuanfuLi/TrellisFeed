@@ -157,19 +157,20 @@ export function SwipeTabContainer({ screens, routes, children }: SwipeTabContain
   }, [routes, navigate, stripX, location.pathname]);
 
   // ── navigateToTab (called by BottomNavigation tap) ──────────────────────
+  // Instant transport (pre-phase-22 behavior). The animated multi-tab jump was
+  // fragile and flickery in practice; tapping a nav button now snaps the strip
+  // to the target in a single frame. Finger-swipe still uses the spring animation
+  // via onPanEnd — this only affects taps.
   const navigateToTab = useCallback((targetIndex: number) => {
     if (targetIndex === activeIndexRef.current) return;
     if (targetIndex < 0 || targetIndex >= routes.length) return;
 
     animControlsRef.current?.stop();
+    animControlsRef.current = null;
+    animatingRef.current = false;
 
     activeIndexRef.current = targetIndex;
-    animatingRef.current = true;
-
-    animControlsRef.current = animate(stripX, -(targetIndex * screenWidthRef.current), {
-      ...SPRING,
-      onComplete: () => { animatingRef.current = false; },
-    });
+    stripX.set(-(targetIndex * screenWidthRef.current));
 
     navigate(routes[targetIndex]);
   }, [routes, navigate, stripX]);
