@@ -1,34 +1,19 @@
-// Per CONTEXT D-07/D-08/D-10: 3-column status panel showing fruit/dying/dead counts
-// derived from TrellisAnchorNode.leafState. Fruit column glows when count > 0 (D-05).
-// Tapping a column opens a bottom sheet listing affected nodes (D-09). Fruit sheet
-// exposes Harvest All which clears blossom dates, accumulates credits, emits
-// HARVEST_COMPLETED, flies fruit particles to the header counter, and fires confetti
-// (D-02, D-03, D-06). Inline styles only — project convention.
+// Simplified status panel (v2): 3 counters in order Dying | Fruit | Dead, with the
+// center Fruit column styled as the primary Harvest action. Tapping Fruit harvests
+// directly (no bottom sheet) — cherry particles fly to the header counter and a
+// confetti burst fires on completion. Dying / Dead columns are non-interactive
+// displays; their actions live in the Suggested Moves list below.
 //
-// Plan 26-03 additions:
-// - Dying sheet items expose Heal + Prune actions (D-11, D-15)
-// - Dead sheet items expose Re-plant + Prune actions (D-13, D-15)
-// - Prune animation: scissors rotate → node card falls + fades (D-17)
-// - Pruned section below the 3-column panel with Restore / Delete forever (D-16, D-18)
+// Removed in v2: bottom sheets, dying/dead sheet rows, prune animation on sheet
+// items, navigate hook. Prune is still reachable from Suggested Moves rows.
 
 import { useRef, useState } from 'react';
 import type { CSSProperties, RefObject } from 'react';
-import { useNavigate } from 'react-router-dom';
-import {
-  Cherry,
-  Leaf,
-  XCircle,
-  Heart,
-  Scissors,
-  Sprout,
-} from 'lucide-react';
-import { BottomSheet } from '../ui/BottomSheet';
+import { Cherry, Leaf, XCircle } from 'lucide-react';
 import { Confetti } from '../Confetti';
 import { clearBlossomDate } from '../../services/trellis-blossom-dates.service';
 import { trellisCreditsService } from '../../services/trellis-credits.service';
-import { trellisActionsService } from '../../services/trellis-actions.service';
 import { eventBus } from '../../lib/event-bus';
-import { toast } from '../../lib/toast';
 import type { TrellisAnchorNode } from '../../services/trellis-state.service';
 
 interface TrellisStatusPanelProps {
@@ -36,8 +21,6 @@ interface TrellisStatusPanelProps {
   onCreditsChange: (total: number) => void;
   counterRef: RefObject<HTMLSpanElement | null>;
 }
-
-type SheetKey = 'fruit' | 'dying' | 'dead' | null;
 
 interface FlyParticle {
   id: number;
@@ -48,21 +31,12 @@ interface FlyParticle {
 const FRUIT_COLOR = '#E8A838';
 const DYING_COLOR = '#D4A017';
 const DEAD_COLOR = '#9E9E9E';
-const HEAL_COLOR = 'var(--node-mint, #8BC9A8)';
-const REPLANT_COLOR = '#4FB3A0';
-
-function anchorLabel(node: TrellisAnchorNode): string {
-  const q = node.anchor;
-  return q.title ?? q.content ?? 'anchor';
-}
 
 export function TrellisStatusPanel({ nodes, onCreditsChange, counterRef }: TrellisStatusPanelProps) {
-  const navigate = useNavigate();
-  const [activeSheet, setActiveSheet] = useState<SheetKey>(null);
   const [flyParticles, setFlyParticles] = useState<FlyParticle[]>([]);
   const [showConfetti, setShowConfetti] = useState(false);
-  const [pruningId, setPruningId] = useState<string | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const fruitRef = useRef<HTMLButtonElement>(null);
 
   const fruitNodes = nodes.filter((n) => n.leafState === 'fruit');
   const dyingNodes = nodes.filter((n) => n.leafState === 'yellow' || n.leafState === 'falling');
@@ -76,19 +50,18 @@ export function TrellisStatusPanel({ nodes, onCreditsChange, counterRef }: Trell
     const newTotal = trellisCreditsService.add(count);
     onCreditsChange(newTotal);
     eventBus.emit({ type: 'HARVEST_COMPLETED', payload: { count } });
-    setActiveSheet(null);
 
-    const panelEl = panelRef.current;
+    const fruitEl = fruitRef.current;
     const counterEl = counterRef.current;
-    if (panelEl && counterEl) {
-      const panelRect = panelEl.getBoundingClientRect();
-      const panelCenterX = panelRect.left + panelRect.width / 2;
-      const panelCenterY = panelRect.top + panelRect.height / 2;
+    if (fruitEl && counterEl) {
+      const fruitRect = fruitEl.getBoundingClientRect();
+      const fruitCenterX = fruitRect.left + fruitRect.width / 2;
+      const fruitCenterY = fruitRect.top + fruitRect.height / 2;
       const counterRect = counterEl.getBoundingClientRect();
       const counterCenterX = counterRect.left + counterRect.width / 2;
       const counterCenterY = counterRect.top + counterRect.height / 2;
-      const dx = counterCenterX - panelCenterX;
-      const dy = counterCenterY - panelCenterY;
+      const dx = counterCenterX - fruitCenterX;
+      const dy = counterCenterY - fruitCenterY;
       const particleCount = Math.min(count, 8);
       const particles: FlyParticle[] = Array.from({ length: particleCount }, (_, i) => ({
         id: Date.now() + i,
@@ -103,37 +76,6 @@ export function TrellisStatusPanel({ nodes, onCreditsChange, counterRef }: Trell
     window.setTimeout(() => setShowConfetti(false), 1200 + 3500);
   };
 
-  const handleHeal = (node: TrellisAnchorNode) => {
-    const name = anchorLabel(node);
-    const qaIds = node.qaChildren.map((q) => q.id);
-    const result = trellisActionsService.heal(node.anchor.id, name, qaIds);
-    setActiveSheet(null);
-    navigate(result.navigateTo, { state: result.state });
-  };
-
-  const handleReplant = async (node: TrellisAnchorNode) => {
-    const qaIds = node.qaChildren.map((q) => q.id);
-    const result = await trellisActionsService.replant(node.anchor.id, node.anchor, qaIds);
-    toast('Schedule reset - review to revive', 'success');
-    setActiveSheet(null);
-    navigate(result.navigateTo, { state: result.state });
-  };
-
-  const handlePrune = (node: TrellisAnchorNode) => {
-    const id = node.anchor.id;
-    setPruningId(id);
-    // Let the CSS animation play (scissors cut ~0.5s, leaf fall starts at 0.5s, ends at 1.0s)
-    // before flipping the flagged field and refreshing state. PrunedSection listens
-    // for ANCHOR_DELETED and refreshes itself; the trellis recompute also clears
-    // this node from the dying/dead columns automatically.
-    window.setTimeout(() => {
-      trellisActionsService.prune(id);
-      setPruningId(null);
-      toast('Pruned - moved to archive', 'success');
-      setActiveSheet(null);
-    }, 1000);
-  };
-
   const columnBase: CSSProperties = {
     flex: 1,
     display: 'flex',
@@ -144,16 +86,7 @@ export function TrellisStatusPanel({ nodes, onCreditsChange, counterRef }: Trell
     borderRadius: 'var(--radius-xl)',
     backgroundColor: 'var(--surface-variant)',
     border: '1px solid var(--border)',
-    cursor: 'pointer',
   };
-
-  const fruitGlow: CSSProperties =
-    fruitNodes.length > 0
-      ? {
-          boxShadow: '0 0 12px rgba(232,168,56,0.35)',
-          animation: 'status-glow 3s ease-in-out infinite',
-        }
-      : {};
 
   const countTextStyle: CSSProperties = {
     fontSize: '0.95rem',
@@ -168,132 +101,35 @@ export function TrellisStatusPanel({ nodes, onCreditsChange, counterRef }: Trell
     marginLeft: '2px',
   };
 
-  const actionBtnBase: CSSProperties = {
-    display: 'inline-flex',
+  const fruitButtonStyle: CSSProperties = {
+    flex: 1,
+    display: 'flex',
     alignItems: 'center',
-    gap: '6px',
-    padding: '8px 12px',
-    borderRadius: '10px',
+    justifyContent: 'center',
+    gap: '8px',
+    padding: '12px',
+    borderRadius: 'var(--radius-xl)',
     border: 'none',
-    fontSize: '0.82rem',
+    backgroundColor: fruitNodes.length > 0 ? FRUIT_COLOR : 'var(--surface-variant)',
+    color: fruitNodes.length > 0 ? 'white' : 'var(--muted-foreground)',
+    fontSize: '0.9rem',
     fontWeight: 600,
-    cursor: 'pointer',
-    color: 'white',
-  };
-
-  const renderActionableItem = (
-    node: TrellisAnchorNode,
-    leadIcon: React.ReactNode,
-    leadColor: string,
-    primaryAction: { label: string; icon: React.ReactNode; color: string; onClick: () => void },
-  ) => {
-    const isPruning = pruningId === node.anchor.id;
-    return (
-      <div
-        key={node.anchor.id}
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '8px',
-          padding: '10px 12px',
-          borderRadius: 'var(--radius-xl)',
-          backgroundColor: 'var(--surface-variant)',
-          border: '1px solid var(--border)',
-          marginBottom: '8px',
-          animation: isPruning ? 'prune-fall 0.5s ease-in 0.5s forwards' : undefined,
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span style={{ color: leadColor, display: 'flex', flexShrink: 0 }}>{leadIcon}</span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p
-              style={{
-                margin: 0,
-                fontSize: '0.88rem',
-                fontWeight: 500,
-                color: 'var(--foreground)',
-                overflow: 'hidden',
-                whiteSpace: 'nowrap',
-                textOverflow: 'ellipsis',
-              }}
-            >
-              {anchorLabel(node)}
-            </p>
-            <p
-              style={{
-                margin: '2px 0 0',
-                fontSize: '0.72rem',
-                color: 'var(--muted-foreground)',
-                overflow: 'hidden',
-                whiteSpace: 'nowrap',
-                textOverflow: 'ellipsis',
-              }}
-            >
-              {node.branchLabel}
-            </p>
-          </div>
-        </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button
-            className="active-squish"
-            onClick={primaryAction.onClick}
-            disabled={isPruning}
-            style={{ ...actionBtnBase, backgroundColor: primaryAction.color, flex: 1 }}
-          >
-            {primaryAction.icon}
-            {primaryAction.label}
-          </button>
-          <button
-            className="active-squish"
-            onClick={() => handlePrune(node)}
-            disabled={isPruning}
-            aria-label="Prune"
-            style={{
-              ...actionBtnBase,
-              backgroundColor: 'var(--surface)',
-              color: 'var(--muted-foreground)',
-              border: '1px solid var(--border)',
-              padding: '8px 10px',
-            }}
-          >
-            <Scissors
-              size={16}
-              style={{
-                animation: isPruning ? 'prune-cut 0.5s ease-in-out forwards' : undefined,
-                transformOrigin: 'center',
-                display: 'inline-block',
-              }}
-            />
-            Prune
-          </button>
-        </div>
-      </div>
-    );
+    cursor: fruitNodes.length > 0 ? 'pointer' : 'default',
+    boxShadow: fruitNodes.length > 0 ? '0 2px 10px rgba(232,168,56,0.35)' : 'none',
+    animation: fruitNodes.length > 0 ? 'status-glow 3s ease-in-out infinite' : undefined,
   };
 
   return (
     <div style={{ position: 'relative' }}>
       <style>{`
         @keyframes status-glow {
-          0%, 100% { box-shadow: 0 0 8px rgba(232,168,56,0.25); }
-          50%      { box-shadow: 0 0 16px rgba(232,168,56,0.45); }
+          0%, 100% { box-shadow: 0 2px 8px rgba(232,168,56,0.3); }
+          50%      { box-shadow: 0 2px 18px rgba(232,168,56,0.55); }
         }
         @keyframes fruit-fly {
           0%   { transform: translate(0, 0) scale(1); opacity: 1; }
           80%  { opacity: 1; }
           100% { transform: translate(var(--fly-dx), var(--fly-dy)) scale(0.4); opacity: 0; }
-        }
-        @keyframes prune-cut {
-          0%, 100% { transform: rotate(0) scale(1); }
-          15%      { transform: rotate(-35deg) scale(1.15); }
-          30%      { transform: rotate(0) scale(1); }
-          45%      { transform: rotate(-35deg) scale(1.15); }
-          60%      { transform: rotate(0) scale(1); }
-          75%      { transform: rotate(-20deg) scale(1.1); }
-        }
-        @keyframes prune-fall {
-          0%   { transform: translateY(0); opacity: 1; }
-          100% { transform: translateY(60px); opacity: 0; }
         }
       `}</style>
 
@@ -303,178 +139,47 @@ export function TrellisStatusPanel({ nodes, onCreditsChange, counterRef }: Trell
           display: 'flex',
           gap: '12px',
           padding: '12px 16px',
+          alignItems: 'stretch',
         }}
       >
-        {/* Fruits */}
-        <div
-          onClick={() => setActiveSheet('fruit')}
-          style={{ ...columnBase, ...fruitGlow }}
-        >
-          <Cherry size={18} color={FRUIT_COLOR} />
-          <span style={countTextStyle}>{fruitNodes.length}</span>
-          <span style={labelTextStyle}>Fruits</span>
-        </div>
-
-        {/* Dying */}
-        <div onClick={() => setActiveSheet('dying')} style={columnBase}>
+        {/* Dying — display only */}
+        <div style={columnBase}>
           <Leaf size={18} color={DYING_COLOR} />
           <span style={countTextStyle}>{dyingNodes.length}</span>
           <span style={labelTextStyle}>Dying</span>
         </div>
 
-        {/* Dead */}
-        <div onClick={() => setActiveSheet('dead')} style={columnBase}>
+        {/* Fruit — primary harvest action */}
+        <button
+          ref={fruitRef}
+          onClick={handleHarvest}
+          disabled={fruitNodes.length === 0}
+          className={fruitNodes.length > 0 ? 'active-squish' : undefined}
+          style={fruitButtonStyle}
+          aria-label={`Harvest ${fruitNodes.length} fruit`}
+        >
+          <Cherry size={18} />
+          <span style={{ fontSize: '0.95rem', fontWeight: 700 }}>{fruitNodes.length}</span>
+          <span style={{ fontSize: '0.78rem', fontWeight: 600, opacity: 0.9 }}>
+            {fruitNodes.length > 0 ? 'Harvest' : 'Fruits'}
+          </span>
+        </button>
+
+        {/* Dead — display only */}
+        <div style={columnBase}>
           <XCircle size={18} color={DEAD_COLOR} />
           <span style={countTextStyle}>{deadNodes.length}</span>
           <span style={labelTextStyle}>Dead</span>
         </div>
       </div>
 
-      {/* Fruit bottom sheet */}
-      <BottomSheet
-        open={activeSheet === 'fruit'}
-        onClose={() => setActiveSheet(null)}
-        title="Ripe Fruits"
-      >
-        {fruitNodes.length === 0 ? (
-          <p style={{ fontSize: '0.85rem', color: 'var(--muted-foreground)', margin: 0 }}>
-            Nothing ripe right now. Keep reviewing your strongest anchors to grow fruit.
-          </p>
-        ) : (
-          <>
-            <button
-              onClick={handleHarvest}
-              className="active-squish"
-              style={{
-                width: '100%',
-                padding: '12px 16px',
-                borderRadius: '12px',
-                backgroundColor: FRUIT_COLOR,
-                color: 'white',
-                border: 'none',
-                fontSize: '0.92rem',
-                fontWeight: 600,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px',
-                marginBottom: '16px',
-              }}
-            >
-              <Cherry size={16} />
-              Harvest All ({fruitNodes.length})
-            </button>
-            {fruitNodes.map((n) => (
-              <div
-                key={n.anchor.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  padding: '10px 12px',
-                  borderRadius: 'var(--radius-xl)',
-                  backgroundColor: 'var(--surface-variant)',
-                  border: '1px solid var(--border)',
-                  marginBottom: '8px',
-                }}
-              >
-                <span style={{ color: FRUIT_COLOR, display: 'flex', flexShrink: 0 }}>
-                  <Cherry size={16} />
-                </span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p
-                    style={{
-                      margin: 0,
-                      fontSize: '0.88rem',
-                      fontWeight: 500,
-                      color: 'var(--foreground)',
-                      overflow: 'hidden',
-                      whiteSpace: 'nowrap',
-                      textOverflow: 'ellipsis',
-                    }}
-                  >
-                    {anchorLabel(n)}
-                  </p>
-                  <p
-                    style={{
-                      margin: '2px 0 0',
-                      fontSize: '0.72rem',
-                      color: 'var(--muted-foreground)',
-                      overflow: 'hidden',
-                      whiteSpace: 'nowrap',
-                      textOverflow: 'ellipsis',
-                    }}
-                  >
-                    {n.branchLabel}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </>
-        )}
-      </BottomSheet>
-
-      {/* Dying bottom sheet (D-11, D-15: Heal + Prune) */}
-      <BottomSheet
-        open={activeSheet === 'dying'}
-        onClose={() => setActiveSheet(null)}
-        title="Dying Anchors"
-      >
-        {dyingNodes.length === 0 ? (
-          <p style={{ fontSize: '0.85rem', color: 'var(--muted-foreground)', margin: 0 }}>
-            No anchors are dying — your trellis is healthy.
-          </p>
-        ) : (
-          dyingNodes.map((n) =>
-            renderActionableItem(
-              n,
-              <Leaf size={16} />,
-              DYING_COLOR,
-              {
-                label: 'Heal',
-                icon: <Heart size={14} />,
-                color: HEAL_COLOR,
-                onClick: () => handleHeal(n),
-              },
-            ),
-          )
-        )}
-      </BottomSheet>
-
-      {/* Dead bottom sheet (D-13, D-15: Re-plant + Prune) */}
-      <BottomSheet
-        open={activeSheet === 'dead'}
-        onClose={() => setActiveSheet(null)}
-        title="Dead Anchors"
-      >
-        {deadNodes.length === 0 ? (
-          <p style={{ fontSize: '0.85rem', color: 'var(--muted-foreground)', margin: 0 }}>
-            Nothing has died yet. Keep reviewing to keep your trellis alive.
-          </p>
-        ) : (
-          deadNodes.map((n) =>
-            renderActionableItem(
-              n,
-              <XCircle size={16} />,
-              DEAD_COLOR,
-              {
-                label: 'Re-plant',
-                icon: <Sprout size={14} />,
-                color: REPLANT_COLOR,
-                onClick: () => { void handleReplant(n); },
-              },
-            ),
-          )
-        )}
-      </BottomSheet>
-
       {/* Fly-to-counter particles */}
-      {flyParticles.length > 0 && panelRef.current && (
+      {flyParticles.length > 0 && fruitRef.current && (
         <div
           style={{
             position: 'fixed',
-            top: panelRef.current.getBoundingClientRect().top + panelRef.current.getBoundingClientRect().height / 2,
-            left: panelRef.current.getBoundingClientRect().left + panelRef.current.getBoundingClientRect().width / 2,
+            top: fruitRef.current.getBoundingClientRect().top + fruitRef.current.getBoundingClientRect().height / 2,
+            left: fruitRef.current.getBoundingClientRect().left + fruitRef.current.getBoundingClientRect().width / 2,
             pointerEvents: 'none',
             zIndex: 8000,
           }}

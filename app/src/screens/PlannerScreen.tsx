@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   RefreshCw, Loader2,
-  ChevronDown, ChevronUp, Cherry, Sprout, Heart,
+  ChevronDown, ChevronUp, Cherry, Sprout, Heart, Scissors,
 } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
@@ -85,6 +85,11 @@ export function PlannerScreen() {
       node.qaChildren.map((q) => q.id),
     );
     navigate(result.navigateTo, { state: result.state });
+  };
+
+  const handlePrune = (anchorId: string) => {
+    trellisActionsService.prune(anchorId);
+    toast('Pruned — moved to archive', 'success');
   };
 
   return (
@@ -193,6 +198,20 @@ export function PlannerScreen() {
                       Dead — tap to re-plant
                     </p>
                   </div>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handlePrune(node.anchor.id); }}
+                    aria-label="Prune"
+                    title="Prune — move to archive"
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                      width: 32, height: 32, borderRadius: 8,
+                      backgroundColor: 'transparent',
+                      border: '1px solid var(--border)',
+                      color: 'var(--muted-foreground)', cursor: 'pointer',
+                    }}
+                  >
+                    <Scissors size={14} />
+                  </button>
                   <Badge color="red">Re-plant</Badge>
                 </div>
               );
@@ -227,6 +246,20 @@ export function PlannerScreen() {
                       Dying — tap to heal
                     </p>
                   </div>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handlePrune(node.anchor.id); }}
+                    aria-label="Prune"
+                    title="Prune — move to archive"
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                      width: 32, height: 32, borderRadius: 8,
+                      backgroundColor: 'transparent',
+                      border: '1px solid var(--border)',
+                      color: 'var(--muted-foreground)', cursor: 'pointer',
+                    }}
+                  >
+                    <Scissors size={14} />
+                  </button>
                   <Badge color="yellow">Heal</Badge>
                 </div>
               );
