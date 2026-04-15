@@ -78,21 +78,23 @@ export function generateVinePath(
   const rng = mulberry32(hashStr(branchId));
   const baseX = (viewBoxW / (totalBranches + 1)) * (branchIndex + 1);
 
-  // Vine height fraction: 1 node → 15%, 5 → 40%, 10 → 65%, 20+ → 90%
-  const heightFrac = Math.min(0.9, 0.12 + 0.04 * nodeCount);
-  const numSegments = Math.max(2, Math.min(5, Math.round(heightFrac * 6)));
-  const groundY = viewBoxH * 0.94;
-  const topY = groundY - heightFrac * (viewBoxH * 0.88);
+  // Vine height: fraction of usable canvas (ground to ceiling).
+  // 1 node → 20% height, 5 → 50%, 10 → 75%, 20+ → 95%
+  const heightFrac = Math.min(0.95, 0.15 + 0.04 * nodeCount);
+  const numSegments = Math.max(2, Math.min(6, Math.ceil(heightFrac * 6)));
+  const groundY = viewBoxH * 0.95;  // vine starts near bottom
+  const ceilingY = viewBoxH * 0.05;  // max vine reach
+  const topY = groundY - heightFrac * (groundY - ceilingY);
 
   // Generate waypoints from bottom to top
   const waypoints: Array<{ x: number; y: number }> = [];
   for (let i = 0; i <= numSegments; i++) {
     const frac = i / numSegments;
     const y = groundY - frac * (groundY - topY);
-    // S-curve wobble: alternating left-right displacement
-    const wobbleAmp = 40 + rng() * 60;
+    // S-curve wobble: scaled to viewBox width
+    const wobbleAmp = (25 + rng() * 40) * (viewBoxW / 600);
     const direction = (i % 2 === 0 ? 1 : -1) * (rng() > 0.5 ? 1 : -1);
-    const x = baseX + direction * wobbleAmp * Math.sin(frac * Math.PI) + (rng() - 0.5) * 20;
+    const x = baseX + direction * wobbleAmp * Math.sin(frac * Math.PI) + (rng() - 0.5) * 15;
     waypoints.push({ x, y });
   }
 
