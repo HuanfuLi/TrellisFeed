@@ -1,8 +1,8 @@
 // Seeded deterministic layout utilities for the Phase 25 Trellis hero.
-// All positions are in a 800x400 viewBox (2:1) matching UI-SPEC.
+// 1:1 square viewBox for maximum screen coverage.
 
-export const TRELLIS_VIEWBOX_W = 800;
-export const TRELLIS_VIEWBOX_H = 400;
+export const TRELLIS_VIEWBOX_W = 600;
+export const TRELLIS_VIEWBOX_H = 600;
 
 // mulberry32 — canonical 32-bit PRNG (per RESEARCH Pattern 1, source bryc/jshash/PRNGs.md)
 export function mulberry32(seed: number): () => number {
@@ -65,21 +65,24 @@ function segmentLength(s: VineSegment, samples = 20): number {
   return len;
 }
 
-// Generate organic multi-segment vine: 3-5 cubic bezier curves with S-shape wobble
+// Generate organic multi-segment vine: height scales with nodeCount.
+// A branch with 1-2 nodes gets a short vine; 20+ nodes reaches the top.
 export function generateVinePath(
   branchId: string,
   branchIndex: number,
   totalBranches: number,
+  nodeCount: number = 5,
   viewBoxW: number = TRELLIS_VIEWBOX_W,
   viewBoxH: number = TRELLIS_VIEWBOX_H,
 ): VinePathSpec {
   const rng = mulberry32(hashStr(branchId));
   const baseX = (viewBoxW / (totalBranches + 1)) * (branchIndex + 1);
 
-  // Number of segments: 3-5 for organic feel
-  const numSegments = 3 + Math.floor(rng() * 3);
-  const groundY = viewBoxH * 0.92;
-  const topY = viewBoxH * 0.06 + rng() * viewBoxH * 0.08;
+  // Vine height fraction: 1 node → 15%, 5 → 40%, 10 → 65%, 20+ → 90%
+  const heightFrac = Math.min(0.9, 0.12 + 0.04 * nodeCount);
+  const numSegments = Math.max(2, Math.min(5, Math.round(heightFrac * 6)));
+  const groundY = viewBoxH * 0.94;
+  const topY = groundY - heightFrac * (viewBoxH * 0.88);
 
   // Generate waypoints from bottom to top
   const waypoints: Array<{ x: number; y: number }> = [];

@@ -17,7 +17,7 @@ export function TrellisHero() {
       style={{
         position: 'relative',
         width: '100%',
-        height: 'clamp(200px, 50vw, 250px)',
+        aspectRatio: '1 / 1',
         marginBottom: 24,
         overflow: 'hidden',
         borderRadius: 'var(--radius-xl)',

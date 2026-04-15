@@ -97,10 +97,11 @@ const ALL_LEAF_STATES: LeafState[] = ['bud', 'green', 'yellow', 'falling', 'fall
 // plus a few leaf states. 3 vines for visual spread.
 function buildDevTrellisState(): TrellisLayout {
   const vineCount = 3;
+  const nodesPerVine = [8, 7, 6]; // varying sizes for height demo
   const vineDefs = Array.from({ length: vineCount }, (_, i) => {
     const id = `dev::vine-${i}`;
     return { branchId: id, branchLabel: `Vine ${i + 1}`, branchIndex: i,
-      spec: generateVinePath(id, i, vineCount), color: getVineColor(id) };
+      spec: generateVinePath(id, i, vineCount, nodesPerVine[i]), color: getVineColor(id) };
   });
 
   // Show: 8 blossoms (one per category) + 8 fruits + some leaf states
@@ -167,12 +168,14 @@ export function buildTrellisState(questions: Question[]): TrellisLayout {
     }
   } catch { /* flashcard service unavailable — fall back to question data */ }
 
-  // Flat list of all (branchId, branchLabel, branchIndex) entries across all roots.
-  const branches: Array<{ branchId: string; branchLabel: string; branchIndex: number }> = [];
+  // Flat list of all (branchId, branchLabel, branchIndex, nodeCount) entries across all roots.
+  const branches: Array<{ branchId: string; branchLabel: string; branchIndex: number; nodeCount: number }> = [];
   tree.forEach((root) => {
     root.branches.forEach((branch) => {
       const branchId = `${root.rootLabel}::${branch.branchLabel}`;
-      branches.push({ branchId, branchLabel: branch.branchLabel, branchIndex: branches.length });
+      let count = 0;
+      branch.clusters.forEach((c) => { count += c.anchors.length + c.legacyNodes.length; });
+      branches.push({ branchId, branchLabel: branch.branchLabel, branchIndex: branches.length, nodeCount: count });
     });
   });
 
@@ -181,7 +184,7 @@ export function buildTrellisState(questions: Question[]): TrellisLayout {
     branchId: b.branchId,
     branchLabel: b.branchLabel,
     branchIndex: b.branchIndex,
-    spec: generateVinePath(b.branchId, b.branchIndex, totalBranches),
+    spec: generateVinePath(b.branchId, b.branchIndex, totalBranches, b.nodeCount),
     color: getVineColor(b.branchId),
   }));
 
