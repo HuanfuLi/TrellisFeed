@@ -621,7 +621,7 @@ Plans:
 
 **Requirements**: PHASE-25-WAVE-0, PHASE-25-DATA-LAYER, PHASE-25-VARIANT-C, PHASE-25-VARIANT-A, PHASE-25-VARIANT-V, PHASE-25-POLISH-AND-INTEGRATION (internal phase-local IDs — no ROADMAP-level requirement tracking since this phase is additive motivational UX with goal as the success criterion)
 **Depends on:** Phase 24
-**Plans:** 5/6 plans executed
+**Plans:** 6/6 plans executed
 
 Plans:
 - [x] 25-00-PLAN.md — Wave 0 foundations: AppEvent types (REVIEW_COMPLETED/CLASSIFICATION_COMPLETED/ANCHOR_DELETED), blossom-date persistence service, asset directory with AI-prompt README, REVIEW_COMPLETED bridge in review.service.ts
@@ -629,7 +629,7 @@ Plans:
 - [x] 25-02-PLAN.md — Variant C (pure SVG, no asset dependency): TrellisHero + TrellisCanvas + TrellisLeaf + TrellisTooltip + TrellisEmptyState + TrellisVariantPicker + PlannerScreen integration + human-verify checkpoint
 - [x] 25-03-PLAN.md — Variant A (static image + SVG) with graceful fallback when .webp asset absent
 - [x] 25-04-PLAN.md — Variant V (loop video + SVG) with useVideoPauseGuard hook (IntersectionObserver + visibilitychange) and poster fallback
-- [ ] 25-05-PLAN.md — Route-aware sway gate + end-to-end review→leaf smoke test + manual QA checklist + final human-verify checkpoint
+- [x] 25-05-PLAN.md — Route-aware sway gate + end-to-end review->leaf smoke test + manual QA checklist + final human-verify checkpoint
 
 ---
 
