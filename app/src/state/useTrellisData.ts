@@ -33,11 +33,13 @@ export function useTrellisData(): UseTrellisDataResult {
     const unsubReview = eventBus.subscribe('REVIEW_COMPLETED', () => recompute());
     const unsubClass = eventBus.subscribe('CLASSIFICATION_COMPLETED', () => recompute());
     const unsubDelete = eventBus.subscribe('ANCHOR_DELETED', () => recompute());
+    const unsubHarvest = eventBus.subscribe('HARVEST_COMPLETED', () => recompute());
     return () => {
       mountedRef.current = false;
       unsubReview();
       unsubClass();
       unsubDelete();
+      unsubHarvest();
     };
   }, [recompute]);
 

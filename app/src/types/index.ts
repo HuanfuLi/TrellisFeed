@@ -666,4 +666,5 @@ export type AppEvent =
   | { type: 'REVIEW_COMPLETED'; payload: { questionId: string; anchorId?: string } }
   | { type: 'CLASSIFICATION_COMPLETED'; payload: { anchorId: string; anchorName: string } }
   | { type: 'ANCHOR_DELETED'; payload: { anchorId: string } }
+  | { type: 'HARVEST_COMPLETED'; payload: { count: number } }
   | { type: 'NEWS_POSTS_READY'; payload: { posts: DailyPost[] } };
