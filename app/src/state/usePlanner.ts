@@ -1,3 +1,9 @@
+/**
+ * @deprecated Phase 26 D-22: suggestedChunks were removed from PlannerScreen in
+ * favor of trellis-health-driven suggested moves (see PlannerScreen.tsx + Plan 26-04).
+ * This hook has no remaining consumers and is retained only to avoid breaking
+ * any external imports. Safe to delete once no references surface.
+ */
 import { useState, useCallback, useEffect } from 'react';
 import type { PlannerChunk } from '../types';
 import { plannerService } from '../services/planner.service';
