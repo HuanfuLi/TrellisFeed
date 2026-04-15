@@ -17,13 +17,13 @@ created: 2026-04-09
 
 | Property | Value |
 |----------|-------|
-| **Framework** | Node.js built-in `node:test` |
-| **Config file** | none (invoked via `npm test`) |
-| **Quick run command** | `npm test` (from `app/`) |
-| **Full suite command** | `npm test` |
+| **Framework** | Node.js built-in `node:test` via `tsx` loader |
+| **Config file** | none |
+| **Quick run command** | `cd app && npx tsx --test tests/*.test.mjs` |
+| **Full suite command** | `cd app && npx tsx --test tests/*.test.mjs` |
 | **Estimated runtime** | ~5 seconds |
 
-Note: The test runner currently has a pre-existing module resolution error. New tests should use `.test.mjs` pattern.
+Note: Tests must be run via `npx tsx --test` because test files import directly from `.ts` source. `npm test` (which uses plain `node --test`) fails on imports of TypeScript modules — separate concern, not fixed here.
 
 ---
 
@@ -40,9 +40,9 @@ Note: The test runner currently has a pre-existing module resolution error. New 
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 23-01-T1 | 01 | 1 | PIPE-01..07 | unit | `cd app && node --test tests/canonical-knowledge-pipeline.test.mjs` | app/tests/canonical-knowledge-pipeline.test.mjs | green |
-| 23-01-T2 | 01 | 1 | PIPE-01..07 | unit | `cd app && node --test tests/canonical-knowledge-pipeline.test.mjs` | app/tests/canonical-knowledge-pipeline.test.mjs | green |
-| 23-02-T1 | 02 | 1 | RATE-01..06 | unit | `cd app && node --test tests/ask-rate-limiter.test.mjs` | app/tests/ask-rate-limiter.test.mjs | green |
+| 23-01-T1 | 01 | 1 | PIPE-01..07 | unit | `cd app && npx tsx --test tests/canonical-knowledge-pipeline.test.mjs` | app/tests/canonical-knowledge-pipeline.test.mjs | green |
+| 23-01-T2 | 01 | 1 | PIPE-01..07 | unit | `cd app && npx tsx --test tests/canonical-knowledge-pipeline.test.mjs` | app/tests/canonical-knowledge-pipeline.test.mjs | green |
+| 23-02-T1 | 02 | 1 | RATE-01..06 | unit | `cd app && npx tsx --test tests/ask-rate-limiter.test.mjs` | app/tests/ask-rate-limiter.test.mjs | green |
 | 23-02-T2 | 02 | 1 | RATE-04 | tsc | `cd app && npx tsc --noEmit` | — | green |
 | 23-03-T1 | 03 | 2 | PIPE-01,07,RATE-01,02 | tsc | `cd app && npx tsc --noEmit` | — | green |
 | 23-03-T2 | 03 | 2 | RATE-04..06 | tsc | `cd app && npx tsc --noEmit` | — | green |
@@ -53,8 +53,8 @@ Note: The test runner currently has a pre-existing module resolution error. New 
 
 ## Wave 0 Requirements
 
-- [x] `tests/services/canonical-knowledge-pipeline.test.mjs` — 15 tests, all passing (confirmed in 23-VERIFICATION.md)
-- [x] `tests/services/ask-rate-limiter.test.mjs` — 8 tests, all passing (confirmed in 23-VERIFICATION.md)
+- [x] `app/tests/canonical-knowledge-pipeline.test.mjs` — 15 tests, all passing (confirmed in 23-VERIFICATION.md)
+- [x] `app/tests/ask-rate-limiter.test.mjs` — 8 tests, all passing (confirmed in 23-VERIFICATION.md)
 
 *Existing infrastructure covers test runner. New test files needed for new services.*
 
@@ -81,3 +81,18 @@ Note: The test runner currently has a pre-existing module resolution error. New 
 - [x] `nyquist_compliant: true` set in frontmatter
 
 **Approval:** approved (2026-04-10)
+
+---
+
+## Validation Audit 2026-04-14
+
+| Metric | Count |
+|--------|-------|
+| Gaps found | 2 |
+| Resolved | 2 |
+| Escalated | 0 |
+
+**Findings:**
+- Documented `node --test` command failed for `canonical-knowledge-pipeline.test.mjs` (imports `.ts` source) — fixed to `npx tsx --test`.
+- Wave 0 paths referenced non-existent `tests/services/` subdir — corrected to `app/tests/`.
+- Re-verified: 23 tests pass (15 pipeline + 8 rate-limiter), `tsc --noEmit` clean.
