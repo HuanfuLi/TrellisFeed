@@ -251,16 +251,31 @@ export function ReviewScreen() {
   const moveState = parseMoveNavigationState(location.state);
   const linkedResource = moveState?.linkedResource;
 
+  // Dedupe flashcards by normalized content signature. Legacy asks sometimes
+  // produced identical cards under the same nodeId (e.g. 17 dupes of a
+  // "Spaced Repetition" card). First occurrence wins.
+  const dedupeCards = (cards: FlashCard[]): FlashCard[] => {
+    const seen = new Set<string>();
+    const out: FlashCard[] = [];
+    for (const c of cards) {
+      const sig = `${c.front.trim().toLowerCase()}|${c.back.trim().toLowerCase()}`;
+      if (seen.has(sig)) continue;
+      seen.add(sig);
+      out.push(c);
+    }
+    return out;
+  };
+
   // Anchor review: when navigated from AnchorDetailScreen, filter to that anchor's Q&As
   const anchorReview = (location.state as { anchorReview?: { anchorId: string; qaIds: string[]; title: string } } | null)?.anchorReview;
   const anchorFilteredItems = anchorReview
-    ? allCards.filter((card) => anchorReview.qaIds.some((qaId) => card.nodeId === qaId))
+    ? dedupeCards(allCards.filter((card) => anchorReview.qaIds.some((qaId) => card.nodeId === qaId)))
     : null;
 
   // Cluster review: when navigated from ClusterDetailScreen, filter to all Q&As across child anchors
   const clusterReview = (location.state as { clusterReview?: { clusterId: string; qaIds: string[]; title: string } } | null)?.clusterReview;
   const clusterFilteredItems = clusterReview
-    ? allCards.filter((card) => clusterReview.qaIds.some((qaId) => card.nodeId === qaId))
+    ? dedupeCards(allCards.filter((card) => clusterReview.qaIds.some((qaId) => card.nodeId === qaId)))
     : null;
 
   // When coming from a move with conceptId, filter cards to show only that concept
