@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, memo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { parseMoveNavigationState } from '../lib/moveNavigator';
 import { ArrowLeft, Pin, BookOpen, Trash2, Check, X, GitBranch } from 'lucide-react';
 import { Flashcard } from '../components/Flashcard';
@@ -23,6 +24,7 @@ const LibraryCard = memo(function LibraryCard({
   onTogglePin: (id: string) => void;
   onDelete: (id: string) => void;
 }) {
+  const { t } = useTranslation();
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const btnBase: React.CSSProperties = {
@@ -66,7 +68,7 @@ const LibraryCard = memo(function LibraryCard({
               marginBottom: '6px',
             }}
           >
-            Q
+            {t('review.library.cardQ')}
           </p>
           <p style={{ fontSize: '0.9375rem', fontWeight: 500, lineHeight: 1.45 }}>{card.front}</p>
         </div>
@@ -76,7 +78,7 @@ const LibraryCard = memo(function LibraryCard({
           {/* Pin button — always visible */}
           <button
             onClick={() => onTogglePin(card.id)}
-            title={card.pinned ? 'Unpin' : 'Pin — review every day'}
+            title={card.pinned ? t('review.library.unpinTitle') : t('review.library.pinTitle')}
             style={{
               ...btnBase,
               backgroundColor: card.pinned ? 'var(--primary-40)' : 'transparent',
@@ -91,7 +93,7 @@ const LibraryCard = memo(function LibraryCard({
           {!confirmDelete ? (
             <button
               onClick={() => setConfirmDelete(true)}
-              title="Delete card"
+              title={t('review.library.deleteTitle')}
               style={{
                 ...btnBase,
                 backgroundColor: 'transparent',
@@ -105,7 +107,7 @@ const LibraryCard = memo(function LibraryCard({
             <>
               <button
                 onClick={() => setConfirmDelete(false)}
-                title="Cancel"
+                title={t('review.library.cancelTitle')}
                 style={{
                   ...btnBase,
                   backgroundColor: 'transparent',
@@ -117,7 +119,7 @@ const LibraryCard = memo(function LibraryCard({
               </button>
               <button
                 onClick={() => onDelete(card.id)}
-                title="Confirm delete"
+                title={t('review.library.confirmDeleteTitle')}
                 style={{
                   ...btnBase,
                   backgroundColor: 'var(--danger)',
@@ -146,7 +148,7 @@ const LibraryCard = memo(function LibraryCard({
             marginBottom: '6px',
           }}
         >
-          A
+          {t('review.library.cardA')}
         </p>
         <p style={{ fontSize: '0.9375rem', color: 'var(--foreground)', lineHeight: 1.55 }}>{card.back}</p>
       </div>
@@ -155,6 +157,7 @@ const LibraryCard = memo(function LibraryCard({
 });
 
 function ReviewMiniMap({ map }: { map: DailyReviewMap }) {
+  const { t } = useTranslation();
   const visibleRoots = useMemo(() => map.roots
     .map((root) => ({
       ...root,
@@ -187,16 +190,16 @@ function ReviewMiniMap({ map }: { map: DailyReviewMap }) {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <GitBranch size={16} color="var(--primary-40)" />
-          <p style={{ fontWeight: 700, fontSize: '0.92rem' }}>Today&apos;s Review Map</p>
+          <p style={{ fontWeight: 700, fontSize: '0.92rem' }}>{t('review.miniMap.title')}</p>
         </div>
         <span style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>
-          {map.revealedCount} / {map.totalDue} revealed
+          {t('review.miniMap.revealedCount', { revealed: map.revealedCount, total: map.totalDue })}
         </span>
       </div>
 
       {visibleRoots.length === 0 ? (
         <p style={{ fontSize: '0.84rem', lineHeight: 1.55, color: 'var(--muted-foreground)' }}>
-          Your mini map starts empty, then grows as each card becomes part of today&apos;s review path.
+          {t('review.miniMap.emptyHint')}
         </p>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -245,6 +248,7 @@ function ReviewMiniMap({ map }: { map: DailyReviewMap }) {
 export function ReviewScreen() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useTranslation();
   const { items, allCards, isLoading, submitReview, skipReview, togglePin, deleteCard } = useReview();
 
   // Extract move navigation context (when navigated from a suggested move)
@@ -301,9 +305,9 @@ export function ReviewScreen() {
   useEffect(() => {
     if (done && reviewed > 0) {
       setShowConfetti(true);
-      toast('All reviews done for today! 🎉', 'success');
+      toast(t('review.session.completedToast'), 'success');
     }
-  }, [done, reviewed]);
+  }, [done, reviewed, t]);
 
   useEffect(() => {
     if (!showConfetti) return;
@@ -334,10 +338,10 @@ export function ReviewScreen() {
     questionService.patchQuestion(question.id, recordStructuralSignalPatch(question, signal));
     toast(
       signal === 'sameIdea'
-        ? 'Saved: this card feels like the same idea.'
+        ? t('review.session.signalToastSameIdea')
         : signal === 'connect'
-          ? 'Saved: this card should stay connected.'
-          : 'Saved: this feels like a deeper refinement.',
+          ? t('review.session.signalToastConnect')
+          : t('review.session.signalToastRefine'),
       'success',
     );
   };
@@ -398,7 +402,7 @@ export function ReviewScreen() {
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--muted-foreground)', fontSize: '0.875rem' }}>
             <BookOpen size={16} />
-            {allCards.length} card{allCards.length !== 1 ? 's' : ''}
+            {allCards.length === 1 ? t('review.library.cardCountOne', { count: allCards.length }) : t('review.library.cardCountOther', { count: allCards.length })}
             {pinnedCount > 0 && (
               <span
                 style={{
@@ -417,16 +421,16 @@ export function ReviewScreen() {
           </div>
         </div>
 
-        <h2 style={{ marginBottom: '6px' }}>All Flashcards</h2>
+        <h2 style={{ marginBottom: '6px' }}>{t('review.library.heading')}</h2>
         <p style={{ color: 'var(--muted-foreground)', fontSize: '0.875rem', marginBottom: '24px' }}>
           {pinnedCount > 0
-            ? `${pinnedCount} pinned · added to review every day`
-            : 'Pin cards to add them to your daily review queue.'}
+            ? t('review.library.descriptionPinned', { count: pinnedCount })
+            : t('review.library.descriptionUnpinned')}
         </p>
 
         {allCards.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--muted-foreground)' }}>
-            <p>No flashcards yet. Start a conversation to generate some!</p>
+            <p>{t('review.library.empty')}</p>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -442,7 +446,7 @@ export function ReviewScreen() {
                   gap: '4px',
                 }}
               >
-                <Pin size={11} fill="currentColor" /> Pinned
+                <Pin size={11} fill="currentColor" /> {t('review.library.pinnedLabel')}
               </p>
             )}
             {sorted.map((card, idx) => {
@@ -462,7 +466,7 @@ export function ReviewScreen() {
                         marginTop: '8px',
                       }}
                     >
-                      All Cards
+                      {t('review.library.allCardsLabel')}
                     </p>
                   )}
                   <LibraryCard card={card} onTogglePin={togglePin} onDelete={deleteCard} />
@@ -479,7 +483,7 @@ export function ReviewScreen() {
   if (isLoading) {
     return (
       <div style={{ padding: '24px 16px', maxWidth: '448px', margin: '0 auto', textAlign: 'center' }}>
-        <p style={{ color: 'var(--muted-foreground)' }}>Loading review items...</p>
+        <p style={{ color: 'var(--muted-foreground)' }}>{t('review.loading')}</p>
       </div>
     );
   }
@@ -487,6 +491,9 @@ export function ReviewScreen() {
   // ── All Done ────────────────────────────────────────────────────────────────
   if (done || reviewItems.length === 0) {
     const avgRating = reviewed > 0 ? (totalRatings / reviewed).toFixed(1) : '—';
+    const finishedMessage = reviewed > 0
+      ? (reviewed === 1 ? t('review.done.finishedOne', { count: reviewed }) : t('review.done.finishedOther', { count: reviewed }))
+      : t('review.done.noneDue');
     return (
       <div style={{ padding: '24px 16px 96px', maxWidth: '448px', margin: '0 auto' }}>
         <Confetti active={showConfetti} />
@@ -509,22 +516,20 @@ export function ReviewScreen() {
           }}
         >
           <p style={{ fontSize: '3rem', marginBottom: '16px' }}>🎉</p>
-          <h2 style={{ marginBottom: '8px' }}>All Done!</h2>
+          <h2 style={{ marginBottom: '8px' }}>{t('review.done.heading')}</h2>
           <p style={{ color: 'var(--muted-foreground)', marginBottom: '24px' }}>
-            {reviewed > 0
-              ? `Great work! You reviewed ${reviewed} card${reviewed !== 1 ? 's' : ''} today.`
-              : 'No cards due today — come back tomorrow!'}
+            {finishedMessage}
           </p>
 
           {reviewed > 0 && (
             <div style={{ display: 'flex', justifyContent: 'center', gap: '32px', marginBottom: '32px' }}>
               <div>
                 <p style={{ fontSize: '2rem', fontWeight: 600, color: 'var(--primary-40)' }}>{reviewed}</p>
-                <p style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>Reviewed</p>
+                <p style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>{t('review.done.reviewed')}</p>
               </div>
               <div>
                 <p style={{ fontSize: '2rem', fontWeight: 600, color: 'var(--primary-40)' }}>{avgRating}</p>
-                <p style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>Avg rating</p>
+                <p style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>{t('review.done.avgRating')}</p>
               </div>
             </div>
           )}
@@ -552,7 +557,7 @@ export function ReviewScreen() {
             }}
           >
             <BookOpen size={18} />
-            All Flashcards
+            {t('review.done.allFlashcardsCta')}
             <span
               style={{
                 padding: '2px 8px',
@@ -584,7 +589,7 @@ export function ReviewScreen() {
             marginBottom: '8px',
             paddingLeft: '4px',
           }}>
-            Suggested move: {moveState.move.title}
+            {t('review.session.moveBreadcrumb', { title: moveState.move.title })}
           </div>
         )}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
@@ -595,7 +600,7 @@ export function ReviewScreen() {
             <ArrowLeft size={20} />
           </button>
           <span style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>
-            {reviewed} / {total} reviewed
+            {t('review.session.progress', { reviewed, total })}
           </span>
         </div>
         <ProgressBar value={progress} />
@@ -622,13 +627,13 @@ export function ReviewScreen() {
 
       <div style={{ padding: '0 16px', marginTop: '14px' }}>
         <p style={{ fontSize: '0.74rem', color: 'var(--muted-foreground)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          Shape the map
+          {t('review.session.shapeMapHeading')}
         </p>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           {[
-            { id: 'sameIdea', label: 'Same idea' },
-            { id: 'connect', label: 'Keep connected' },
-            { id: 'refine', label: 'Feels deeper' },
+            { id: 'sameIdea', label: t('review.session.signalSameIdea') },
+            { id: 'connect', label: t('review.session.signalConnect') },
+            { id: 'refine', label: t('review.session.signalRefine') },
           ].map((action) => (
             <button
               key={action.id}
@@ -647,7 +652,7 @@ export function ReviewScreen() {
           ))}
         </div>
         <p style={{ fontSize: '0.78rem', lineHeight: 1.5, color: 'var(--muted-foreground)', marginTop: '10px' }}>
-          Review is also how you co-create the mindmap. As you rate cards and nudge these relationships, the graph learns how your knowledge fits together.
+          {t('review.session.shapeMapDescription')}
         </p>
       </div>
 
@@ -657,7 +662,7 @@ export function ReviewScreen() {
           onClick={handleSkip}
           style={{ color: 'var(--muted-foreground)', background: 'none', fontSize: '0.875rem' }}
         >
-          Skip for now
+          {t('review.session.skip')}
         </button>
       </div>
     </div>

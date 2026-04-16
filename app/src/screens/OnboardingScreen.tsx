@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Brain, Key, Zap, Shield, Smartphone, Cloud, Lock } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { useSettings } from '../state/useSettings';
@@ -19,6 +20,7 @@ const LOCALE_OPTIONS: readonly { code: SupportedLocale; label: string }[] = [
 
 export function OnboardingScreen() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { set } = useSettings();
   const [step, setStep] = useState<Step>('welcome');
   const [consentChecked, setConsentChecked] = useState(false);
@@ -78,9 +80,9 @@ export function OnboardingScreen() {
   };
 
   const providers: { value: LLMConfig['provider']; label: string; description: string }[] = [
-    { value: 'openai', label: 'OpenAI', description: 'GPT-4o and other OpenAI models' },
-    { value: 'claude', label: 'Claude (Anthropic)', description: 'Claude Sonnet and Opus models' },
-    { value: 'local', label: 'Local LLM', description: 'Ollama, LM Studio, etc.' },
+    { value: 'openai', label: t('onboarding.llm.providers.openaiLabel'), description: t('onboarding.llm.providers.openaiDesc') },
+    { value: 'claude', label: t('onboarding.llm.providers.claudeLabel'), description: t('onboarding.llm.providers.claudeDesc') },
+    { value: 'local', label: t('onboarding.llm.providers.localLabel'), description: t('onboarding.llm.providers.localDesc') },
   ];
 
   return (
@@ -114,16 +116,16 @@ export function OnboardingScreen() {
             >
               <Brain size={40} color="white" />
             </div>
-            <h1 style={{ marginBottom: '12px' }}>Welcome to EchoLearn</h1>
+            <h1 style={{ marginBottom: '12px' }}>{t('onboarding.welcome.title')}</h1>
             <p style={{ color: 'var(--muted-foreground)', marginBottom: '40px', lineHeight: 1.6 }}>
-              Your personal AI-powered learning companion. Ask anything, review with spaced repetition, and listen to daily podcasts of your knowledge.
+              {t('onboarding.welcome.body')}
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '32px', textAlign: 'left' }}>
               {[
-                { icon: <MessageBubble />, title: 'Ask Anything', desc: 'Get AI-powered answers stored as structured knowledge' },
-                { icon: <RepeatIcon />, title: 'Spaced Repetition', desc: 'Review cards at optimal intervals to maximize retention' },
-                { icon: <HeadphonesIcon />, title: 'Daily Podcasts', desc: 'Listen to summaries of your learning while on the go' },
+                { icon: <MessageBubble />, title: t('onboarding.welcome.featureAskTitle'), desc: t('onboarding.welcome.featureAskDesc') },
+                { icon: <RepeatIcon />, title: t('onboarding.welcome.featureReviewTitle'), desc: t('onboarding.welcome.featureReviewDesc') },
+                { icon: <HeadphonesIcon />, title: t('onboarding.welcome.featurePodcastTitle'), desc: t('onboarding.welcome.featurePodcastDesc') },
               ].map(({ icon, title, desc }) => (
                 <div key={title} style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
                   <div style={{
@@ -142,12 +144,12 @@ export function OnboardingScreen() {
               ))}
             </div>
 
-            <Button fullWidth onClick={() => setStep('language')}>Get Started</Button>
+            <Button fullWidth onClick={() => setStep('language')}>{t('onboarding.welcome.getStarted')}</Button>
             <button
               onClick={() => void handleSkip(false)}
               style={{ display: 'block', width: '100%', marginTop: '12px', padding: '12px', background: 'none', color: 'var(--muted-foreground)', fontSize: '0.875rem' }}
             >
-              Skip for now
+              {t('onboarding.welcome.skip')}
             </button>
           </div>
         )}
@@ -213,10 +215,10 @@ export function OnboardingScreen() {
             </button>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
               <Shield size={24} color="var(--primary-40)" />
-              <h2>Data &amp; Privacy</h2>
+              <h2>{t('onboarding.consent.title')}</h2>
             </div>
             <p style={{ color: 'var(--muted-foreground)', marginBottom: '20px' }}>
-              EchoLearn is a privacy-first app. Here's exactly what happens with your data:
+              {t('onboarding.consent.intro')}
             </p>
 
             {/* Data flow info rows */}
@@ -224,15 +226,15 @@ export function OnboardingScreen() {
               {[
                 {
                   icon: <Smartphone size={18} color="var(--primary-40)" />,
-                  text: 'All notes, flashcards, and planner data are stored locally on your device only.',
+                  text: t('onboarding.consent.rowLocal'),
                 },
                 {
                   icon: <Cloud size={18} color="var(--primary-40)" />,
-                  text: 'When you ask a question, it is sent directly to your configured AI provider (e.g., OpenAI, Anthropic) using only your own API key.',
+                  text: t('onboarding.consent.rowCloud'),
                 },
                 {
                   icon: <Lock size={18} color="var(--primary-40)" />,
-                  text: 'EchoLearn never transmits your data to any EchoLearn server. There is no EchoLearn backend.',
+                  text: t('onboarding.consent.rowNoServer'),
                 },
               ].map(({ icon, text }) => (
                 <div key={text} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', padding: '12px', backgroundColor: 'var(--surface-variant)', borderRadius: 'var(--radius)' }}>
@@ -264,18 +266,18 @@ export function OnboardingScreen() {
                 style={{ marginTop: '2px', flexShrink: 0, accentColor: 'var(--primary-40)', width: '16px', height: '16px' }}
               />
               <span style={{ fontSize: '0.875rem', lineHeight: 1.5 }}>
-                I understand and agree that my questions will be sent to my configured AI provider using my own API key.
+                {t('onboarding.consent.consent')}
               </span>
             </label>
 
             <Button fullWidth onClick={() => setStep('llm')} disabled={!consentChecked}>
-              Continue
+              {t('onboarding.consent.continue')}
             </Button>
             <button
               onClick={() => void handleSkip(false)}
               style={{ display: 'block', width: '100%', marginTop: '12px', padding: '12px', background: 'none', color: 'var(--muted-foreground)', fontSize: '0.875rem' }}
             >
-              Skip — I'll use EchoLearn without AI features
+              {t('onboarding.consent.skip')}
             </button>
           </div>
         )}
@@ -291,14 +293,14 @@ export function OnboardingScreen() {
             </button>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
               <Key size={24} color="var(--primary-40)" />
-              <h2>Configure LLM</h2>
+              <h2>{t('onboarding.llm.title')}</h2>
             </div>
             <p style={{ color: 'var(--muted-foreground)', marginBottom: '24px' }}>
-              Choose your AI provider and enter your API key to get started.
+              {t('onboarding.llm.intro')}
             </p>
 
             <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '8px' }}>Provider</label>
+              <label style={{ display: 'block', marginBottom: '8px' }}>{t('onboarding.llm.providerLabel')}</label>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {providers.map((p) => (
                   <button
@@ -321,7 +323,7 @@ export function OnboardingScreen() {
 
             <div style={{ marginBottom: '24px' }}>
               <label style={{ display: 'block', marginBottom: '8px' }}>
-                API Key {provider === 'local' && <span style={{ color: 'var(--muted-foreground)', fontWeight: 400 }}>(optional)</span>}
+                {t('onboarding.llm.apiKeyLabel')} {provider === 'local' && <span style={{ color: 'var(--muted-foreground)', fontWeight: 400 }}>{t('onboarding.llm.apiKeyOptional')}</span>}
               </label>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 16px', backgroundColor: 'var(--surface-variant)', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
                 <Zap size={16} color="var(--muted-foreground)" />
@@ -329,24 +331,24 @@ export function OnboardingScreen() {
                   type="password"
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
-                  placeholder={provider === 'local' ? 'No key needed for local' : 'sk-...'}
+                  placeholder={provider === 'local' ? t('onboarding.llm.apiKeyPlaceholderLocal') : t('onboarding.llm.apiKeyPlaceholderCloud')}
                   style={{ flex: 1, background: 'none', color: 'var(--foreground)' }}
                 />
               </div>
               {/* §2.2 note: In native builds, use iOS Keychain / Android Keystore to store this key */}
               <p style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', marginTop: '6px' }}>
-                Your key is stored locally on this device and sent only to your chosen provider.
+                {t('onboarding.llm.apiKeyHint')}
               </p>
             </div>
 
             <Button fullWidth onClick={() => void handleContinue()} disabled={isSaving}>
-              {isSaving ? 'Saving...' : 'Continue'}
+              {isSaving ? t('onboarding.llm.saving') : t('onboarding.llm.continue')}
             </Button>
             <button
               onClick={() => void handleSkip(true)}
               style={{ display: 'block', width: '100%', marginTop: '12px', padding: '12px', background: 'none', color: 'var(--muted-foreground)', fontSize: '0.875rem' }}
             >
-              Skip for now
+              {t('onboarding.llm.skip')}
             </button>
           </div>
         )}

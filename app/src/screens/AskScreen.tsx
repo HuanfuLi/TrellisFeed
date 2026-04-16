@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Menu, SquarePen, Trash2, Flag, X, Check, Search } from 'lucide-react';
+import i18n from '../locales';
 import { ChatMessage } from '../components/ChatMessage';
 import { ChatInput } from '../components/ChatInput';
 import { useQuestions } from '../state/useQuestions';
@@ -21,12 +23,12 @@ import { getRateLimitStatus, type RateLimitStatus } from '../services/ask-rate-l
 import { toast } from '../lib/toast';
 import { Header, HEADER_HEIGHT } from '../components/ui/Header';
 
-const SUGGESTED_PROMPTS = [
-  'What is spaced repetition and why does it work?',
-  'Explain the Feynman technique in simple terms',
-  'How do I build a consistent daily learning habit?',
-  "What's the most effective way to retain information long-term?",
-];
+const SUGGESTED_PROMPT_KEYS = [
+  'ask.suggestedPrompts.spacedRepetition',
+  'ask.suggestedPrompts.feynman',
+  'ask.suggestedPrompts.dailyHabit',
+  'ask.suggestedPrompts.retention',
+] as const;
 
 // Transient streaming overlay — not persisted
 interface StreamingOverlay {
@@ -122,6 +124,7 @@ function startNewSession(current: ChatSession): ChatSession {
 export function AskScreen() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useTranslation();
   const { askStreaming, questions } = useQuestions();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [anchorMsgId, setAnchorMsgId] = useState<string | null>(null);
@@ -255,7 +258,7 @@ export function AskScreen() {
 
         const aiContent = question
           ? question.answer
-          : lastContent || 'Something went wrong. Please try again.';
+          : lastContent || t('ask.genericError');
 
         const related = question
           ? questions.filter((q) => question.relatedQuestionIds.includes(q.id)).map((q) => q.summary)
@@ -301,12 +304,12 @@ export function AskScreen() {
         }
       } catch (error) {
         setStreaming(null);
-        toast(error instanceof Error ? error.message : 'Failed to continue this conversation.', 'error');
+        toast(error instanceof Error ? error.message : t('ask.streamFailed'), 'error');
       } finally {
         generatingRef.current = false;
       }
     },
-    [askStreaming, questions, webSearchEnabled],
+    [askStreaming, questions, webSearchEnabled, t],
   );
 
   const handleSend = useCallback(
@@ -401,7 +404,7 @@ export function AskScreen() {
     };
     sessionService.save(updated);
     setSession(updated);
-    toast('Response deleted.', 'success');
+    toast(i18n.t('ask.responseDeleted'), 'success');
   }, []);
 
   const handleNewChat = useCallback(() => {
@@ -446,14 +449,14 @@ export function AskScreen() {
       void questionService.delete(questionId);
     }
     setConfirmFlagId(null);
-    toast('Response removed from your data.', 'success');
+    toast(i18n.t('ask.responseRemoved'), 'success');
   }, []);
 
   const handleQuestionOverride = useCallback((questionId: string, shouldSave: boolean) => {
     if (shouldSave) {
       // Remove the flag so the question becomes eligible for knowledge graph ingestion
       questionService.patchQuestion(questionId, { flagged: false });
-      toast('Question saved to knowledge base', 'success');
+      toast(i18n.t('ask.questionSaved'), 'success');
     }
     // If not saving, keep as-is (flagged=true) — question won't ingest to knowledge graph
   }, []);
@@ -474,12 +477,12 @@ export function AskScreen() {
     <div style={{ height: 'calc(100dvh - var(--safe-area-top) - var(--bottom-nav-height))', display: 'flex', flexDirection: 'column', maxWidth: '448px', margin: '0 auto', position: 'relative', overflow: 'hidden' }}>
       {/* Fixed Header */}
       <Header
-        title={session.title || 'Ask'}
+        title={session.title || t('ask.title')}
         centered
         left={
           <button
             onClick={() => { setShowHistory(true); setHistorySearch(''); }}
-            title="History"
+            title={t('ask.historyButtonTitle')}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -499,7 +502,7 @@ export function AskScreen() {
         right={
           <button
             onClick={handleNewChat}
-            title="New Chat"
+            title={t('ask.newChatTitle')}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -533,11 +536,11 @@ export function AskScreen() {
             }}
           >
             <p style={{ fontSize: '0.72rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--muted-foreground)', marginBottom: '4px' }}>
-              Post thread
+              {t('ask.postThread')}
             </p>
             <p style={{ fontWeight: 700, marginBottom: '4px' }}>{session.origin.postTitle}</p>
             <p style={{ color: 'var(--muted-foreground)', fontSize: '0.85rem' }}>
-              Continuing from a post-origin Q&A thread.
+              {t('ask.postThreadContinuing')}
             </p>
           </div>
         )}
@@ -547,18 +550,20 @@ export function AskScreen() {
             <ChatMessage
               messageId="welcome"
               type="ai"
-              content="Hi! I'm your AI learning companion. Ask me anything to build your knowledge base."
+              content={t('ask.welcome')}
               relatedKnowledge={[]}
               onKnowledgeClick={() => { }}
             />
             <div style={{ padding: '4px 4px 0' }}>
               <p style={{ fontSize: '0.78rem', color: 'var(--muted-foreground)', marginBottom: '10px', paddingLeft: '4px' }}>
-                Try asking:
+                {t('ask.tryAsking')}
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
-                {SUGGESTED_PROMPTS.map((prompt) => (
+                {SUGGESTED_PROMPT_KEYS.map((promptKey) => {
+                  const prompt = t(promptKey);
+                  return (
                   <button
-                    key={prompt}
+                    key={promptKey}
                     onClick={() => void handleSend(prompt)}
                     style={{
                       textAlign: 'left',
@@ -583,13 +588,14 @@ export function AskScreen() {
                   >
                     {prompt}
                   </button>
-                ))}
+                  );
+                })}
               </div>
 
               {questions.length > 0 && (
                 <>
                   <p style={{ fontSize: '0.78rem', color: 'var(--muted-foreground)', marginBottom: '10px', paddingLeft: '4px' }}>
-                    Recent Questions:
+                    {t('ask.recentQuestions')}
                   </p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     {questions.slice(0, 3).map((q) => (
@@ -686,19 +692,19 @@ export function AskScreen() {
               <div style={{ display: 'flex', justifyContent: 'flex-start', paddingLeft: '8px', marginTop: '-8px', marginBottom: '12px' }}>
                 {confirmFlagId === message.id ? (
                   <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                    <span style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)' }}>Remove this response?</span>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)' }}>{t('ask.responseRemovedConfirmPrompt')}</span>
                     <button
                       onClick={() => setConfirmFlagId(null)}
-                      title="Cancel"
-                      aria-label="Cancel"
+                      title={t('ask.cancelAria')}
+                      aria-label={t('ask.cancelAria')}
                       style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--border)', background: 'none', cursor: 'pointer', color: 'var(--muted-foreground)', display: 'flex', alignItems: 'center' }}
                     >
                       <X size={14} />
                     </button>
                     <button
                       onClick={() => handleFlagConfirm(message.id)}
-                      title="Confirm remove"
-                      aria-label="Confirm remove"
+                      title={t('ask.confirmRemoveAria')}
+                      aria-label={t('ask.confirmRemoveAria')}
                       style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--danger)', background: 'none', cursor: 'pointer', color: 'var(--danger)', display: 'flex', alignItems: 'center' }}
                     >
                       <Check size={14} />
@@ -707,8 +713,8 @@ export function AskScreen() {
                 ) : (
                   <button
                     onClick={() => setConfirmFlagId(message.id)}
-                    title="Flag this response"
-                    aria-label="Flag this response"
+                    title={t('ask.flagTitle')}
+                    aria-label={t('ask.flagTitle')}
                     style={{ padding: '10px', borderRadius: '8px', border: 'none', background: 'none', cursor: 'pointer', color: 'var(--muted-foreground)', opacity: 0.45, display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.7rem' }}
                   >
                     <Flag size={12} />
@@ -732,14 +738,14 @@ export function AskScreen() {
           border: `1px solid ${rateLimitStatus.canAsk ? 'var(--warning-border, #ffeeba)' : 'var(--error-border, #f5c6cb)'}`,
         }}>
           {rateLimitStatus.canAsk
-            ? `Approaching monthly limit (${rateLimitStatus.count}/${settingsService.getSync().preferences.askMonthlyLimit ?? 0}). Resets ${rateLimitStatus.resetDate}.`
-            : `Monthly limit reached. Resets ${rateLimitStatus.resetDate}.`}
+            ? t('ask.rateLimitApproaching', { count: rateLimitStatus.count, limit: settingsService.getSync().preferences.askMonthlyLimit ?? 0, resetDate: rateLimitStatus.resetDate })
+            : t('ask.rateLimitReached', { resetDate: rateLimitStatus.resetDate })}
         </div>
       )}
 
       <ChatInput
         onSend={handleSend}
-        placeholder="Ask anything..."
+        placeholder={t('ask.inputPlaceholder')}
         disabled={!!streaming || editingMessageId !== null || !rateLimitStatus.canAsk}
         webSearchEnabled={webSearchEnabled}
         onToggleWebSearch={() => setWebSearchEnabled(prev => !prev)}
@@ -785,7 +791,7 @@ export function AskScreen() {
                 justifyContent: 'space-between',
               }}
             >
-              <h2 style={{ fontSize: '1.1rem', fontWeight: 700 }}>History</h2>
+              <h2 style={{ fontSize: '1.1rem', fontWeight: 700 }}>{t('ask.historyTitle')}</h2>
               <button
                 onClick={() => setShowHistory(false)}
                 style={{
@@ -800,7 +806,7 @@ export function AskScreen() {
                   cursor: 'pointer',
                   color: 'var(--muted-foreground)',
                 }}
-                aria-label="Close history"
+                aria-label={t('ask.closeHistoryAria')}
               >
                 <X size={18} />
               </button>
@@ -822,7 +828,7 @@ export function AskScreen() {
                 <Search size={16} style={{ color: 'var(--muted-foreground)', flexShrink: 0 }} />
                 <input
                   type="text"
-                  placeholder="Search chats..."
+                  placeholder={t('ask.searchChatsPlaceholder')}
                   value={historySearch}
                   onChange={(e) => setHistorySearch(e.target.value)}
                   style={{
@@ -858,7 +864,7 @@ export function AskScreen() {
                 }}
               >
                 <SquarePen size={16} />
-                New Chat
+                {t('ask.newChatButton')}
               </button>
             </div>
 
@@ -866,7 +872,7 @@ export function AskScreen() {
             <div style={{ flex: 1, overflowY: 'auto', padding: '4px 0' }}>
               {historySessions.length === 0 ? (
                 <p style={{ padding: '16px', color: 'var(--muted-foreground)', fontSize: '0.875rem', textAlign: 'center' }}>
-                  No chat history yet.
+                  {t('ask.noHistory')}
                 </p>
               ) : (
                 historySessions
@@ -910,16 +916,16 @@ export function AskScreen() {
                             whiteSpace: 'nowrap',
                           }}
                         >
-                          {s.title || 'New conversation'}
+                          {s.title || t('ask.newConversation')}
                         </p>
                         <p style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>
-                          {formatDate(s.updatedAt)} · {s.messages.length} message{s.messages.length !== 1 ? 's' : ''}
-                          {s.origin?.type === 'post' ? ' · post thread' : ''}
+                          {formatDate(s.updatedAt)} · {s.messages.length === 1 ? t('ask.messageCountOne', { count: s.messages.length }) : t('ask.messageCountOther', { count: s.messages.length })}
+                          {s.origin?.type === 'post' ? t('ask.postThreadSuffix') : ''}
                         </p>
                       </button>
                       <button
                         onClick={(e) => handleDeleteSession(s.id, e)}
-                        title="Delete conversation"
+                        title={t('ask.deleteConversationTitle')}
                         style={{
                           flexShrink: 0,
                           padding: '12px',

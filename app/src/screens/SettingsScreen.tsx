@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Brain, Volume2, Network, Radio, BookOpen, Palette, RotateCcw, CheckCircle, XCircle, Shield, Download, Upload, Trash2, Sparkles, Loader2, Image, CalendarClock, BarChart3, Youtube, Globe } from 'lucide-react';
 import { tokenUsageReporter, type ServiceAggregate } from '../services/token-usage.service';
 import { getRateLimitStatus } from '../services/ask-rate-limiter.service';
@@ -121,6 +122,7 @@ function TextInput({ value, onChange, onBlur, type = 'text', placeholder }: { va
 }
 
 export function SettingsScreen() {
+  const { t } = useTranslation();
   const [testResult, setTestResult] = useState<Record<string, string | null>>({});
   const [isTesting, setIsTesting] = useState<Record<string, boolean>>({});
 
@@ -204,7 +206,7 @@ export function SettingsScreen() {
     setIsTesting((prev) => ({ ...prev, llm: false }));
     setTestResult((prev) => ({
       ...prev,
-      llm: result.ok ? `✓ ${result.latencyMs}ms` : `✗ ${result.error ?? 'Failed'}`,
+      llm: result.ok ? `✓ ${result.latencyMs}ms` : `✗ ${result.error ?? t('settings.test.defaultFailed')}`,
     }));
     setTimeout(() => setTestResult((prev) => ({ ...prev, llm: null })), 5000);
   };
@@ -222,12 +224,12 @@ export function SettingsScreen() {
       const latencyMs = Date.now() - start;
       setTestResult((prev) => ({
         ...prev,
-        embedding: Array.isArray(vec) && vec.length > 0 ? `✓ ${latencyMs}ms (${vec.length}d)` : '✗ Empty vector returned',
+        embedding: Array.isArray(vec) && vec.length > 0 ? `✓ ${latencyMs}ms (${vec.length}d)` : t('settings.test.emptyVector'),
       }));
     } catch (err) {
       setTestResult((prev) => ({
         ...prev,
-        embedding: `✗ ${err instanceof Error ? err.message : 'Failed'}`,
+        embedding: `✗ ${err instanceof Error ? err.message : t('settings.test.defaultFailed')}`,
       }));
     } finally {
       setIsTesting((prev) => ({ ...prev, embedding: false }));
@@ -248,7 +250,7 @@ export function SettingsScreen() {
     setIsTesting((prev) => ({ ...prev, tts: false }));
     setTestResult((prev) => ({
       ...prev,
-      tts: result.ok ? `✓ ${result.latencyMs}ms` : `✗ ${result.error ?? 'Failed'}`,
+      tts: result.ok ? `✓ ${result.latencyMs}ms` : `✗ ${result.error ?? t('settings.test.defaultFailed')}`,
     }));
     setTimeout(() => setTestResult((prev) => ({ ...prev, tts: null })), 5000);
   };
@@ -258,22 +260,22 @@ export function SettingsScreen() {
     const next = !aiConsent;
     await settingsService.set('preferences', { ...prefs, aiConsentGiven: next });
     setAiConsent(next);
-    toast(next ? 'AI transmission enabled.' : 'AI transmission disabled.', 'success');
+    toast(next ? t('settings.toast.aiConsentOn') : t('settings.toast.aiConsentOff'), 'success');
   };
 
   const handleDeleteApiKeys = async () => {
-    if (!confirm('Delete all stored API keys? This will disable AI and TTS features until you re-enter your keys.')) return;
+    if (!confirm(t('settings.confirm.deleteApiKeys'))) return;
     const nextLlm = { ...llm, apiKey: '', isConfigured: noKeyRequired(llm.provider) };
     const nextTts = { ...tts, apiKey: '', isConfigured: tts.provider === 'gptsovits' ? !!tts.baseUrl : false };
     await settingsService.set('llm', nextLlm);
     await settingsService.set('tts', nextTts);
     setLlm(nextLlm);
     setTts(nextTts);
-    toast('All API keys deleted.', 'success');
+    toast(t('settings.toast.apiKeysDeleted'), 'success');
   };
 
   const handleClearAllData = () => {
-    if (!confirm('Delete ALL data?\n\nThis removes every question, flashcard, session, planner entry, and podcast. Settings are kept.\n\nThis cannot be undone.')) return;
+    if (!confirm(t('settings.confirm.clearAllData'))) return;
     // Clear all echolearn_ keys from localStorage (except settings)
     const keys = Object.keys(localStorage).filter((k) => k.startsWith('echolearn_') && k !== 'echolearn_settings');
     for (const k of keys) localStorage.removeItem(k);
@@ -288,7 +290,7 @@ export function SettingsScreen() {
     void imageGenerationService.clearImageCache();
     // Clear SQLite tables (Android native) — fire-and-forget before reload
     void clearAllTables().finally(() => {
-      toast('All data cleared — reloading…', 'success');
+      toast(t('settings.toast.dataCleared'), 'success');
       setTimeout(() => window.location.reload(), 800);
     });
   };
@@ -303,7 +305,7 @@ export function SettingsScreen() {
   };
 
   const handleReset = async () => {
-    if (confirm('Reset all settings to defaults?')) {
+    if (confirm(t('settings.confirm.reset'))) {
       await settingsService.reset();
       const s = settingsService.getSync();
       setLlm(s.llm);
@@ -326,7 +328,7 @@ export function SettingsScreen() {
     await settingsService.set('imageGeneration', current);
     // Re-bootstrap providers with new keys.
     bootstrapImageGeneration();
-    toast('Image generation settings saved.', 'success');
+    toast(t('settings.toast.imageGenSaved'), 'success');
   };
 
   const handleAskLimitChange = (value: string) => {
@@ -340,16 +342,16 @@ export function SettingsScreen() {
   const handleClearTokenUsage = () => {
     tokenUsageReporter.clear();
     setTokenUsage({});
-    toast('Token usage data cleared.', 'success');
+    toast(t('settings.toast.tokenUsageCleared'), 'success');
   };
 
   const handleClearImageCache = async () => {
-    if (!confirm('Clear all cached post images? They will be regenerated on next view.')) return;
+    if (!confirm(t('settings.confirm.clearImageCache'))) return;
     setIsClearingCache(true);
     await imageGenerationService.clearImageCache();
     setCacheStats(imageGenerationService.getCacheStats());
     setIsClearingCache(false);
-    toast('Image cache cleared.', 'success');
+    toast(t('settings.toast.imageCacheCleared'), 'success');
   };
 
   const handleTestImageConnection = async () => {
@@ -361,18 +363,18 @@ export function SettingsScreen() {
 
     if (imageGen.nanoBananaApiKey.trim()) {
       const nb = new NanoBananaProvider(imageGen.nanoBananaApiKey);
-      const r = await nb.generate('A small coloured circle on white background.', 'photo', opts);
-      results.push(`NanoBanana: ${r.success ? '✓ OK' : (r.error?.message ?? 'failed')}`);
+      const r = await nb.generate(t('settings.test.testPrompt'), 'photo', opts);
+      results.push(r.success ? t('settings.test.nanoBananaOk') : t('settings.test.nanoBananaFail', { error: r.error?.message ?? t('settings.test.defaultFailed').toLowerCase() }));
     }
 
     if (imageGen.geminiApiKey.trim()) {
       const g = new GeminiProvider(imageGen.geminiApiKey);
-      const r = await g.generate('A small coloured circle on white background.', 'photo', opts);
-      results.push(`Gemini: ${r.success ? '✓ OK' : (r.error?.message ?? 'failed')}`);
+      const r = await g.generate(t('settings.test.testPrompt'), 'photo', opts);
+      results.push(r.success ? t('settings.test.geminiOk') : t('settings.test.geminiFail', { error: r.error?.message ?? t('settings.test.defaultFailed').toLowerCase() }));
     }
 
     if (results.length === 0) {
-      setTestResult((prev) => ({ ...prev, imageGen: '✗ No API keys configured' }));
+      setTestResult((prev) => ({ ...prev, imageGen: t('settings.test.noKeys') }));
     } else {
       const allOk = results.every((r) => r.includes('✓'));
       setTestResult((prev) => ({ ...prev, imageGen: (allOk ? '✓ ' : '✗ ') + results.join(' | ') }));
@@ -389,12 +391,12 @@ export function SettingsScreen() {
 
   return (
     <div style={{ padding: `${HEADER_HEIGHT + 8}px 16px 96px`, maxWidth: '448px', margin: '0 auto' }}>
-      <Header title="Settings" />
+      <Header title={t('settings.title')} />
 
       {/* LLM Section */}
-      <SectionHeader icon={<Brain size={20} />} title="Language Model" />
+      <SectionHeader icon={<Brain size={20} />} title={t('settings.sections.languageModel')} />
       <Card style={{ marginBottom: '8px' }}>
-        <SettingRow label="Provider">
+        <SettingRow label={t('settings.fields.provider')}>
           <SelectInput
             value={llm.provider}
             onChange={(v) => {
@@ -411,43 +413,43 @@ export function SettingsScreen() {
               saveLlm(next);
             }}
             options={[
-              { value: 'openai', label: 'OpenAI' },
-              { value: 'claude', label: 'Claude' },
-              { value: 'gemini', label: 'Gemini' },
-              { value: 'lmstudio', label: 'LM Studio' },
-              { value: 'local', label: 'Local (Ollama)' },
+              { value: 'openai', label: t('settings.providerLabels.openai') },
+              { value: 'claude', label: t('settings.providerLabels.claude') },
+              { value: 'gemini', label: t('settings.providerLabels.gemini') },
+              { value: 'lmstudio', label: t('settings.providerLabels.lmstudio') },
+              { value: 'local', label: t('settings.providerLabels.localOllama') },
             ]}
           />
         </SettingRow>
         {!noKeyRequired(llm.provider) && (
-          <SettingRow label="API Key">
+          <SettingRow label={t('settings.fields.apiKey')}>
             <TextInput
               type="password"
               value={llm.apiKey ?? ''}
               onChange={(v) => setLlm((prev) => ({ ...prev, apiKey: v }))}
               onBlur={() => saveLlm()}
               placeholder={
-                llm.provider === 'claude' ? 'sk-ant-...' :
-                  llm.provider === 'gemini' ? 'AIza...' :
-                    'sk-...'
+                llm.provider === 'claude' ? t('settings.placeholders.claudeKey') :
+                  llm.provider === 'gemini' ? t('settings.placeholders.geminiKey') :
+                    t('settings.placeholders.apiKey')
               }
             />
           </SettingRow>
         )}
         {(llm.provider === 'local' || llm.provider === 'lmstudio') && (
           <SettingRow
-            label="Base URL"
-            description={llm.provider === 'lmstudio' ? 'LM Studio server URL' : 'Ollama server URL'}
+            label={t('settings.fields.baseUrl')}
+            description={llm.provider === 'lmstudio' ? t('settings.descriptions.lmStudioServer') : t('settings.descriptions.ollamaServer')}
           >
             <TextInput
               value={llm.baseUrl ?? ''}
               onChange={(v) => setLlm((prev) => ({ ...prev, baseUrl: v }))}
               onBlur={() => saveLlm()}
-              placeholder={llm.provider === 'lmstudio' ? 'http://localhost:1234' : 'http://localhost:11434/v1'}
+              placeholder={llm.provider === 'lmstudio' ? t('settings.placeholders.lmStudioUrl') : t('settings.placeholders.ollamaUrl')}
             />
           </SettingRow>
         )}
-        <SettingRow label="Model">
+        <SettingRow label={t('settings.fields.model')}>
           <TextInput
             value={llm.model}
             onChange={(v) => setLlm((prev) => ({ ...prev, model: v }))}
@@ -461,14 +463,14 @@ export function SettingsScreen() {
           />
         </SettingRow>
         <div style={{ display: 'flex', gap: '8px', paddingTop: '12px', alignItems: 'center' }}>
-          <Button size="sm" onClick={() => { saveLlm(); toast('LLM settings saved.', 'success'); }} variant="secondary">Save</Button>
+          <Button size="sm" onClick={() => { saveLlm(); toast(t('settings.toast.llmSaved'), 'success'); }} variant="secondary">{t('settings.buttons.save')}</Button>
           <Button
             size="sm"
             variant="outline"
             onClick={handleTestLLM}
             loading={isTesting['llm']}
           >
-            Test
+            {t('settings.buttons.test')}
           </Button>
           {testResult['llm'] && (
             <span style={{
@@ -488,13 +490,12 @@ export function SettingsScreen() {
       </Card>
 
       {/* Embedding Model Section */}
-      <SectionHeader icon={<Sparkles size={20} />} title="Embedding Model" />
+      <SectionHeader icon={<Sparkles size={20} />} title={t('settings.sections.embeddingModel')} />
       <Card style={{ marginBottom: '8px' }}>
         <p style={{ fontSize: '0.8rem', color: 'var(--muted-foreground)', marginBottom: '12px', lineHeight: 1.5 }}>
-          Used for semantic similarity between concepts. Powers connection card quality.
-          Separate from the LLM — Anthropic has no embedding model.
+          {t('settings.descriptions.embeddingBlurb')}
         </p>
-        <SettingRow label="Provider">
+        <SettingRow label={t('settings.fields.provider')}>
           <SelectInput
             value={embedding.provider}
             onChange={(v) => {
@@ -510,38 +511,38 @@ export function SettingsScreen() {
               saveEmbedding(next);
             }}
             options={[
-              { value: 'openai',   label: 'OpenAI' },
-              { value: 'google',   label: 'Google' },
-              { value: 'local',    label: 'Local (Ollama)' },
-              { value: 'lmstudio', label: 'LM Studio' },
+              { value: 'openai',   label: t('settings.providerLabels.openai') },
+              { value: 'google',   label: t('settings.providerLabels.google') },
+              { value: 'local',    label: t('settings.providerLabels.localOllama') },
+              { value: 'lmstudio', label: t('settings.providerLabels.lmstudio') },
             ]}
           />
         </SettingRow>
         {embedding.provider !== 'local' && embedding.provider !== 'lmstudio' && (
-          <SettingRow label="API Key">
+          <SettingRow label={t('settings.fields.apiKey')}>
             <TextInput
               type="password"
               value={embedding.apiKey ?? ''}
               onChange={(v) => setEmbedding((prev) => ({ ...prev, apiKey: v }))}
               onBlur={() => saveEmbedding()}
-              placeholder={embedding.provider === 'google' ? 'AIza...' : 'sk-...'}
+              placeholder={embedding.provider === 'google' ? t('settings.placeholders.geminiKey') : t('settings.placeholders.apiKey')}
             />
           </SettingRow>
         )}
         {(embedding.provider === 'local' || embedding.provider === 'lmstudio') && (
           <SettingRow
-            label="Base URL"
-            description={embedding.provider === 'lmstudio' ? 'LM Studio server URL' : 'Ollama server URL'}
+            label={t('settings.fields.baseUrl')}
+            description={embedding.provider === 'lmstudio' ? t('settings.descriptions.lmStudioServer') : t('settings.descriptions.ollamaServer')}
           >
             <TextInput
               value={embedding.baseUrl ?? ''}
               onChange={(v) => setEmbedding((prev) => ({ ...prev, baseUrl: v }))}
               onBlur={() => saveEmbedding()}
-              placeholder={embedding.provider === 'lmstudio' ? 'http://localhost:1234' : 'http://localhost:11434'}
+              placeholder={embedding.provider === 'lmstudio' ? t('settings.placeholders.lmStudioUrl') : t('settings.placeholders.ollamaPlainUrl')}
             />
           </SettingRow>
         )}
-        <SettingRow label="Model ID">
+        <SettingRow label={t('settings.fields.modelId')}>
           <TextInput
             value={embedding.model}
             onChange={(v) => setEmbedding((prev) => ({ ...prev, model: v }))}
@@ -554,23 +555,23 @@ export function SettingsScreen() {
             }
           />
         </SettingRow>
-        <SettingRow label="Dimensions" description="Optional: reduce output size (OpenAI only)">
+        <SettingRow label={t('settings.fields.dimensions')} description={t('settings.descriptions.dimensionsOptional')}>
           <TextInput
             value={String(embedding.dimensions ?? '')}
             onChange={(v) => setEmbedding((prev) => ({ ...prev, dimensions: v ? parseInt(v) || undefined : undefined }))}
             onBlur={() => saveEmbedding()}
-            placeholder="256"
+            placeholder={t('settings.placeholders.dimensions')}
           />
         </SettingRow>
         <div style={{ display: 'flex', gap: '8px', paddingTop: '12px', alignItems: 'center' }}>
-          <Button size="sm" variant="secondary" onClick={() => { saveEmbedding(); toast('Embedding settings saved.', 'success'); }}>Save</Button>
+          <Button size="sm" variant="secondary" onClick={() => { saveEmbedding(); toast(t('settings.toast.embeddingSaved'), 'success'); }}>{t('settings.buttons.save')}</Button>
           <Button
             size="sm"
             variant="outline"
             onClick={handleTestEmbedding}
             loading={isTesting['embedding']}
           >
-            Test
+            {t('settings.buttons.test')}
           </Button>
           {testResult['embedding'] && (
             <span style={{
@@ -595,11 +596,11 @@ export function SettingsScreen() {
           borderTop: '1px solid var(--border)',
         }}>
           <p style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--muted-foreground)', marginBottom: '12px' }}>
-            Debug
+            {t('settings.debug')}
           </p>
           <SettingRow
-            label="Similarity Threshold"
-            description={`${embeddingDebug.similarityThreshold.toFixed(2)} — minimum cosine score for connection cards`}
+            label={t('settings.fields.similarityThreshold')}
+            description={t('settings.descriptions.similarityThreshold', { score: embeddingDebug.similarityThreshold.toFixed(2) })}
           >
             <input
               type="range"
@@ -615,7 +616,7 @@ export function SettingsScreen() {
               style={{ width: '120px', accentColor: 'var(--primary-40)', cursor: 'pointer' }}
             />
           </SettingRow>
-          <SettingRow label="Show Similarity Scores" description="Display cosine score on connection cards">
+          <SettingRow label={t('settings.fields.showSimilarityScores')} description={t('settings.descriptions.showScoresHint')}>
             <MaterialSwitch
               checked={embeddingDebug.showScores}
               onChange={() => {
@@ -629,9 +630,9 @@ export function SettingsScreen() {
       </Card>
 
       {/* TTS Section */}
-      <SectionHeader icon={<Volume2 size={20} />} title="Text-to-Speech & Speech Recognition" />
+      <SectionHeader icon={<Volume2 size={20} />} title={t('settings.sections.tts')} />
       <Card style={{ marginBottom: '8px' }}>
-        <SettingRow label="Provider">
+        <SettingRow label={t('settings.fields.provider')}>
           <SelectInput
             value={tts.provider}
             onChange={(v) => {
@@ -646,36 +647,36 @@ export function SettingsScreen() {
               saveTts(next);
             }}
             options={[
-              { value: 'openai', label: 'OpenAI TTS' },
-              { value: 'gptsovits', label: 'GPT-SoVITS' },
+              { value: 'openai', label: t('settings.providerLabels.openaiTts') },
+              { value: 'gptsovits', label: t('settings.providerLabels.gptsovits') },
             ]}
           />
         </SettingRow>
         {tts.provider === 'openai' && (
           <SettingRow
-            label="API Key"
-            description={!tts.apiKey && llm.apiKey ? '✓ Using your LLM API key' : undefined}
+            label={t('settings.fields.apiKey')}
+            description={!tts.apiKey && llm.apiKey ? t('settings.descriptions.ttsUsingLlmKey') : undefined}
           >
             <TextInput
               type="password"
               value={tts.apiKey ?? ''}
               onChange={(v) => setTts((prev) => ({ ...prev, apiKey: v }))}
               onBlur={() => saveTts()}
-              placeholder={llm.apiKey ? '(using LLM key)' : 'sk-...'}
+              placeholder={llm.apiKey ? t('settings.placeholders.openaiTtsFallback') : t('settings.placeholders.apiKey')}
             />
           </SettingRow>
         )}
         {tts.provider === 'gptsovits' && (
-          <SettingRow label="Server URL" description="GPT-SoVITS local server">
+          <SettingRow label={t('settings.fields.serverUrl')} description={t('settings.descriptions.ttsServer')}>
             <TextInput
               value={tts.baseUrl ?? ''}
               onChange={(v) => setTts((prev) => ({ ...prev, baseUrl: v }))}
               onBlur={() => saveTts()}
-              placeholder="http://localhost:9880"
+              placeholder={t('settings.placeholders.gptsovitsUrl')}
             />
           </SettingRow>
         )}
-        <SettingRow label="Voice">
+        <SettingRow label={t('settings.fields.voice')}>
           <SelectInput
             value={tts.voice}
             onChange={(v) => {
@@ -684,22 +685,22 @@ export function SettingsScreen() {
               saveTts(next);
             }}
             options={[
-              { value: 'alloy', label: 'Alloy' },
-              { value: 'nova', label: 'Nova' },
-              { value: 'shimmer', label: 'Shimmer' },
-              { value: 'echo', label: 'Echo' },
+              { value: 'alloy', label: t('settings.voices.alloy') },
+              { value: 'nova', label: t('settings.voices.nova') },
+              { value: 'shimmer', label: t('settings.voices.shimmer') },
+              { value: 'echo', label: t('settings.voices.echo') },
             ]}
           />
         </SettingRow>
         <div style={{ display: 'flex', gap: '8px', paddingTop: '12px', alignItems: 'center' }}>
-          <Button size="sm" onClick={() => { saveTts(); toast('TTS settings saved.', 'success'); }} variant="secondary">Save</Button>
+          <Button size="sm" onClick={() => { saveTts(); toast(t('settings.toast.ttsSaved'), 'success'); }} variant="secondary">{t('settings.buttons.save')}</Button>
           <Button
             size="sm"
             variant="outline"
             onClick={handleTestTTS}
             loading={isTesting['tts']}
           >
-            Test
+            {t('settings.buttons.test')}
           </Button>
           {testResult['tts'] && (
             <span style={{
@@ -721,16 +722,16 @@ export function SettingsScreen() {
       {/* ZeroTier Section — only relevant for local model providers */}
       {noKeyRequired(llm.provider) && (
         <>
-          <SectionHeader icon={<Network size={20} />} title="ZeroTier Network" />
+          <SectionHeader icon={<Network size={20} />} title={t('settings.sections.zerotier')} />
           <Card style={{ marginBottom: '8px' }}>
             <p style={{ fontSize: '0.8rem', color: 'var(--muted-foreground)', marginBottom: '12px' }}>
-              Connect to a ZeroTier virtual LAN to reach a remote {llm.provider === 'lmstudio' ? 'LM Studio' : 'Ollama'} server.
+              {t('settings.descriptions.zerotierBlurb', { server: llm.provider === 'lmstudio' ? t('settings.descriptions.zerotierLmstudio') : t('settings.descriptions.zerotierOllama') })}
             </p>
-            <SettingRow label="Network ID">
+            <SettingRow label={t('settings.fields.networkId')}>
               <TextInput
                 value={ztNetworkId}
                 onChange={setZtNetworkId}
-                placeholder="e.g. 8056c2e21c000001"
+                placeholder={t('settings.placeholders.ztNetworkId')}
               />
             </SettingRow>
             <div style={{ display: 'flex', gap: '8px', paddingTop: '12px' }}>
@@ -738,14 +739,14 @@ export function SettingsScreen() {
                 size="sm"
                 onClick={async () => {
                   await settingsService.set('zerotier', { networkId: ztNetworkId, isConnected: false });
-                  toast('ZeroTier settings saved.', 'success');
+                  toast(t('settings.toast.zerotierSaved'), 'success');
                 }}
                 variant="secondary"
               >
-                Save
+                {t('settings.buttons.save')}
               </Button>
               <span style={{ display: 'flex', alignItems: 'center', fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>
-                {settingsService.getSync().zerotier.isConnected ? '● Connected' : '○ Disconnected'}
+                {settingsService.getSync().zerotier.isConnected ? t('settings.zerotier.connected') : t('settings.zerotier.disconnected')}
               </span>
             </div>
           </Card>
@@ -753,9 +754,9 @@ export function SettingsScreen() {
       )}
 
       {/* Image Generation Section */}
-      <SectionHeader icon={<Image size={20} />} title="Image Generation" />
+      <SectionHeader icon={<Image size={20} />} title={t('settings.sections.imageGeneration')} />
       <Card style={{ marginBottom: '8px' }}>
-        <SettingRow label="Image Generation" description="Generate AI images for feed posts">
+        <SettingRow label={t('settings.fields.imageGeneration')} description={t('settings.descriptions.imageGenToggle')}>
           <MaterialSwitch
             checked={imageGen.enabled ?? true}
             onChange={() => {
@@ -766,9 +767,9 @@ export function SettingsScreen() {
           />
         </SettingRow>
         <p style={{ fontSize: '0.8rem', color: 'var(--muted-foreground)', marginBottom: '12px', lineHeight: 1.5 }}>
-          AI-generated images for feed posts. Add API keys to enable real generation; mock placeholders are used when keys are absent.
+          {t('settings.descriptions.imageGenBlurb')}
         </p>
-        <SettingRow label="Primary Provider" description="Which provider to use first when generating images">
+        <SettingRow label={t('settings.fields.primaryProvider')} description={t('settings.descriptions.imageGenPrimary')}>
           <SelectInput
             value={imageGen.primaryProvider ?? 'auto'}
             onChange={(v) => {
@@ -777,44 +778,44 @@ export function SettingsScreen() {
               void saveImageGen(next);
             }}
             options={[
-              { value: 'auto', label: 'Auto (use available keys)' },
-              { value: 'nanoBanana', label: 'Nano Banana (primary)' },
-              { value: 'gemini', label: 'Gemini' },
+              { value: 'auto', label: t('settings.providerLabels.autoKeys') },
+              { value: 'nanoBanana', label: t('settings.providerLabels.nanoBananaPrimary') },
+              { value: 'gemini', label: t('settings.providerLabels.geminiProvider') },
             ]}
           />
         </SettingRow>
-        <SettingRow label="Nano Banana API Key" description="Primary image provider (nanobanana.ai)">
+        <SettingRow label={t('settings.fields.nanoBananaApiKey')} description={t('settings.descriptions.nanoBanana')}>
           <TextInput
             type="password"
             value={imageGen.nanoBananaApiKey}
             onChange={(v) => setImageGen((prev) => ({ ...prev, nanoBananaApiKey: v }))}
             onBlur={() => void saveImageGen()}
-            placeholder="nb-..."
+            placeholder={t('settings.placeholders.nanoBananaKey')}
           />
         </SettingRow>
-        <SettingRow label="Gemini API Key" description="Fallback image provider (Google)">
+        <SettingRow label={t('settings.fields.geminiApiKey')} description={t('settings.descriptions.geminiFallback')}>
           <TextInput
             type="password"
             value={imageGen.geminiApiKey}
             onChange={(v) => setImageGen((prev) => ({ ...prev, geminiApiKey: v }))}
             onBlur={() => void saveImageGen()}
-            placeholder="AIza..."
+            placeholder={t('settings.placeholders.geminiKey')}
           />
         </SettingRow>
-        <SettingRow label="Gemini Model" description="Model name from Google's documentation">
+        <SettingRow label={t('settings.fields.geminiModel')} description={t('settings.descriptions.geminiModelHint')}>
           <TextInput
             value={imageGen.geminiModel ?? 'gemini-3.1-flash-image-preview'}
             onChange={(v) => setImageGen((prev) => ({ ...prev, geminiModel: v }))}
             onBlur={() => void saveImageGen()}
-            placeholder="gemini-3.1-flash-image-preview"
+            placeholder={t('settings.placeholders.geminiModel')}
           />
         </SettingRow>
-        <SettingRow label="Cache Limit (MB)" description="Max local image cache size">
+        <SettingRow label={t('settings.fields.cacheLimit')} description={t('settings.descriptions.cacheLimitHint')}>
           <TextInput
             value={String(imageGen.maxCacheSizeMb)}
             onChange={(v) => setImageGen((prev) => ({ ...prev, maxCacheSizeMb: parseInt(v) || 50 }))}
             onBlur={() => void saveImageGen()}
-            placeholder="50"
+            placeholder={t('settings.placeholders.maxCacheSize')}
           />
         </SettingRow>
 
@@ -829,12 +830,12 @@ export function SettingsScreen() {
           }}
         >
           <p style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '8px' }}>
-            Cache Stats
+            {t('settings.cacheStats.title')}
           </p>
           <div style={{ display: 'flex', gap: '16px', fontSize: '0.82rem', color: 'var(--foreground)', flexWrap: 'wrap' }}>
-            <span><strong>{cacheStats.itemCount}</strong> images cached</span>
-            <span><strong>{formatBytes(cacheStats.totalSizeBytes)}</strong> used</span>
-            <span>limit: <strong>{imageGen.maxCacheSizeMb} MB</strong></span>
+            <span>{t('settings.cacheStats.imagesCached', { count: cacheStats.itemCount })}</span>
+            <span>{t('settings.cacheStats.used', { size: formatBytes(cacheStats.totalSizeBytes) })}</span>
+            <span>{t('settings.cacheStats.limit', { mb: imageGen.maxCacheSizeMb })}</span>
           </div>
         </div>
 
@@ -844,7 +845,7 @@ export function SettingsScreen() {
             variant="secondary"
             onClick={() => void saveImageGen()}
           >
-            Save
+            {t('settings.buttons.save')}
           </Button>
           <Button
             size="sm"
@@ -854,7 +855,7 @@ export function SettingsScreen() {
             style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}
           >
             {isTesting['imageGen'] ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : null}
-            Test
+            {t('settings.buttons.test')}
           </Button>
           <Button
             size="sm"
@@ -864,7 +865,7 @@ export function SettingsScreen() {
             style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}
           >
             {isClearingCache ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : null}
-            Clear Cache
+            {t('settings.buttons.clearCache')}
           </Button>
         </div>
         {testResult['imageGen'] && (
@@ -884,18 +885,18 @@ export function SettingsScreen() {
       </Card>
 
       {/* YouTube Section */}
-      <SectionHeader icon={<Youtube size={20} />} title="YouTube Videos" />
+      <SectionHeader icon={<Youtube size={20} />} title={t('settings.sections.youtube')} />
       <Card style={{ marginBottom: '8px' }}>
         <p style={{ fontSize: '0.8rem', color: 'var(--muted-foreground)', marginBottom: '12px', lineHeight: 1.5 }}>
-          Enable video posts in the feed. Get your API key from Google Cloud Console and enable YouTube Data API v3.
+          {t('settings.descriptions.youtubeBlurb')}
         </p>
-        <SettingRow label="API Key" description="YouTube Data API v3 key">
+        <SettingRow label={t('settings.fields.apiKey')} description={t('settings.descriptions.youtubeApiKey')}>
           <TextInput
             type="password"
             value={youtubeApiKey}
             onChange={(v) => setYoutubeApiKey(v)}
             onBlur={() => void settingsService.set('youtube', { apiKey: youtubeApiKey })}
-            placeholder="YouTube Data API v3 key"
+            placeholder={t('settings.descriptions.youtubeApiKey')}
           />
         </SettingRow>
         <div style={{ paddingTop: '12px' }}>
@@ -904,25 +905,25 @@ export function SettingsScreen() {
             variant="secondary"
             onClick={async () => {
               await settingsService.set('youtube', { apiKey: youtubeApiKey });
-              toast('YouTube settings saved.', 'success');
+              toast(t('settings.toast.youtubeSaved'), 'success');
             }}
           >
-            Save
+            {t('settings.buttons.save')}
           </Button>
         </div>
       </Card>
 
       {/* Web Search Section */}
-      <SectionHeader icon={<Globe size={20} />} title="Web Search" />
+      <SectionHeader icon={<Globe size={20} />} title={t('settings.sections.webSearch')} />
       <Card style={{ marginBottom: '8px' }}>
         <p style={{ fontSize: '0.8rem', color: 'var(--muted-foreground)', marginBottom: '12px', lineHeight: 1.5 }}>
-          Enable web search in Ask screen and news posts in the feed. Get your API key from{' '}
+          {t('settings.descriptions.webSearchBlurb1')}{' '}
           <a href="https://tavily.com" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary-40)' }}>
             tavily.com
           </a>{' '}
-          (1,000 free searches/month).
+          {t('settings.descriptions.webSearchBlurb2')}
         </p>
-        <SettingRow label="API Key" description="Tavily Search API key">
+        <SettingRow label={t('settings.fields.apiKey')} description={t('settings.descriptions.tavilyApiKey')}>
           <TextInput
             type="password"
             value={tavilyApiKey}
@@ -937,28 +938,28 @@ export function SettingsScreen() {
             variant="secondary"
             onClick={async () => {
               await settingsService.set('webSearch', { tavilyApiKey });
-              toast('Web search settings saved.', 'success');
+              toast(t('settings.toast.webSearchSaved'), 'success');
             }}
           >
-            Save
+            {t('settings.buttons.save')}
           </Button>
         </div>
       </Card>
 
       {/* Podcast Settings */}
-      <SectionHeader icon={<Radio size={20} />} title="Podcast" />
+      <SectionHeader icon={<Radio size={20} />} title={t('settings.sections.podcast')} />
       <Card style={{ marginBottom: '8px' }}>
-        <SettingRow label="Auto-Generate" description="Generate podcast automatically at preset time">
+        <SettingRow label={t('settings.fields.autoGenerate')} description={t('settings.descriptions.podcastAutoGenerate')}>
           <MaterialSwitch
             checked={podcastAutoGenerate}
             onChange={() => setPodcastAutoGenerate((v) => !v)}
           />
         </SettingRow>
-        <SettingRow label="Sleep Time" description="When to generate daily podcast">
-          <TextInput type="time" value={podcastSleepTime} onChange={setPodcastSleepTime} placeholder="22:00" />
+        <SettingRow label={t('settings.fields.sleepTime')} description={t('settings.descriptions.podcastSleepTime')}>
+          <TextInput type="time" value={podcastSleepTime} onChange={setPodcastSleepTime} placeholder={t('settings.placeholders.sleepTime')} />
         </SettingRow>
-        <SettingRow label="Advance Minutes" description="Minutes before sleep to generate">
-          <TextInput value={podcastAdvance} onChange={setPodcastAdvance} placeholder="60" />
+        <SettingRow label={t('settings.fields.advanceMinutes')} description={t('settings.descriptions.podcastAdvance')}>
+          <TextInput value={podcastAdvance} onChange={setPodcastAdvance} placeholder={t('settings.placeholders.advance')} />
         </SettingRow>
         <div style={{ paddingTop: '12px' }}>
           <Button
@@ -971,30 +972,30 @@ export function SettingsScreen() {
                 advanceMinutes: Number.isNaN(parseInt(podcastAdvance)) ? 60 : parseInt(podcastAdvance),
               });
               if (result.success) {
-                toast('Podcast settings saved.', 'success');
+                toast(t('settings.toast.podcastSaved'), 'success');
                 void scheduleNativeNotifications(); // Reschedule with new times
               } else {
-                toast(result.error?.message || 'Failed to save settings.', 'error');
+                toast(result.error?.message || t('settings.toast.podcastSaveFailed'), 'error');
               }
             }}
           >
-            Save
+            {t('settings.buttons.save')}
           </Button>
         </div>
       </Card>
 
       {/* Review Settings */}
-      <SectionHeader icon={<BookOpen size={20} />} title="Review" />
+      <SectionHeader icon={<BookOpen size={20} />} title={t('settings.sections.review')} />
       <Card style={{ marginBottom: '8px' }}>
-        <SettingRow label="Notifications">
+        <SettingRow label={t('settings.fields.notifications')}>
           <MaterialSwitch
             checked={reviewNotif}
             onChange={() => setReviewNotif((v) => !v)}
           />
         </SettingRow>
         {reviewNotif && (
-          <SettingRow label="Reminder Time">
-            <TextInput type="time" value={reviewReminderTime} onChange={setReviewReminderTime} placeholder="09:00" />
+          <SettingRow label={t('settings.fields.reminderTime')}>
+            <TextInput type="time" value={reviewReminderTime} onChange={setReviewReminderTime} placeholder={t('settings.placeholders.reminder')} />
           </SettingRow>
         )}
         <div style={{ paddingTop: '12px' }}>
@@ -1007,27 +1008,27 @@ export function SettingsScreen() {
                 notificationsEnabled: reviewNotif,
                 reminderTime: reviewReminderTime,
               });
-              toast('Review settings saved.', 'success');
+              toast(t('settings.toast.reviewSaved'), 'success');
               void scheduleNativeNotifications(); // Reschedule with new times
             }}
           >
-            Save
+            {t('settings.buttons.save')}
           </Button>
         </div>
       </Card>
 
       {/* Planner Auto-Suggestions */}
-      <SectionHeader icon={<CalendarClock size={20} />} title="Planner" />
+      <SectionHeader icon={<CalendarClock size={20} />} title={t('settings.sections.planner')} />
       <Card style={{ marginBottom: '8px' }}>
-        <SettingRow label="Daily Auto-Refresh" description="Refresh suggestions once per day">
+        <SettingRow label={t('settings.fields.dailyAutoRefresh')} description={t('settings.descriptions.plannerAutoRefresh')}>
           <MaterialSwitch
             checked={plannerRefreshEnabled}
             onChange={() => savePlannerRefreshEnabled(!plannerRefreshEnabled)}
           />
         </SettingRow>
         {plannerRefreshEnabled && (
-          <SettingRow label="Preferred Refresh Time" description="Default: 8:00 AM; also triggers after podcast">
-            <TextInput type="time" value={plannerRefreshTime} onChange={savePlannerRefreshTime} placeholder="08:00" />
+          <SettingRow label={t('settings.fields.preferredRefreshTime')} description={t('settings.descriptions.plannerRefreshTime')}>
+            <TextInput type="time" value={plannerRefreshTime} onChange={savePlannerRefreshTime} placeholder={t('settings.placeholders.plannerRefresh')} />
           </SettingRow>
         )}
         <div style={{ paddingTop: '12px', display: 'flex', gap: '8px' }}>
@@ -1044,13 +1045,13 @@ export function SettingsScreen() {
                     .slice(0, 20)
                     .map((q) => q.summary || q.content)
                     .join('. ');
-                  const checkInText = `I want to revisit and deepen my understanding of: ${summaryLines}. I'm curious about connections between these topics and want to explore areas that feel fuzzy.`;
+                  const checkInText = t('settings.planner.checkIn', { summary: summaryLines });
                   await plannerService.submitCheckIn(checkInText);
                 }
                 await plannerAutoGenService.generateAndStoreSuggestions(true);
-                toast('Planner refreshed!', 'success');
+                toast(t('settings.toast.plannerRefreshed'), 'success');
               } catch {
-                toast('Refresh failed', 'error');
+                toast(t('settings.toast.plannerRefreshFailed'), 'error');
               } finally {
                 setIsRefreshingPlanner(false);
               }
@@ -1061,79 +1062,78 @@ export function SettingsScreen() {
               ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
               : <Sparkles size={16} />
             }
-            {isRefreshingPlanner ? 'Generating...' : 'Generate Planner'}
+            {isRefreshingPlanner ? t('settings.buttons.generating') : t('settings.buttons.generatePlanner')}
           </Button>
         </div>
       </Card>
 
       {/* App Preferences */}
-      <SectionHeader icon={<Palette size={20} />} title="Appearance" />
+      <SectionHeader icon={<Palette size={20} />} title={t('settings.sections.appearance')} />
       <Card style={{ marginBottom: '8px' }}>
-        <SettingRow label="Theme">
+        <SettingRow label={t('settings.fields.theme')}>
           <SelectInput
             value={theme}
             onChange={async (v) => {
-              const t = v as AppSettings['preferences']['theme'];
-              setTheme(t);
-              applyTheme(t);
+              const nextTheme = v as AppSettings['preferences']['theme'];
+              setTheme(nextTheme);
+              applyTheme(nextTheme);
               const prefs = settingsService.getSync().preferences;
-              await settingsService.set('preferences', { ...prefs, theme: t });
+              await settingsService.set('preferences', { ...prefs, theme: nextTheme });
             }}
             options={[
-              { value: 'light', label: 'Light' },
-              { value: 'dark', label: 'Dark' },
-              { value: 'system', label: 'System' },
+              { value: 'light', label: t('settings.themes.light') },
+              { value: 'dark', label: t('settings.themes.dark') },
+              { value: 'system', label: t('settings.themes.system') },
             ]}
           />
         </SettingRow>
       </Card>
 
       {/* Privacy & Data Section */}
-      <SectionHeader icon={<Shield size={20} />} title="Privacy & Data" />
+      <SectionHeader icon={<Shield size={20} />} title={t('settings.sections.privacy')} />
       <Card style={{ marginBottom: '8px' }}>
         <p style={{ fontSize: '0.8rem', color: 'var(--muted-foreground)', marginBottom: '12px', lineHeight: 1.5 }}>
-          EchoLearn is local-first. All notes, flashcards, and sessions are stored only on this device.
-          No EchoLearn server ever receives your data.
+          {t('settings.descriptions.privacyBlurb')}
         </p>
         <SettingRow
-          label="AI Data Transmission"
-          description="Allow questions to be sent to your configured AI provider"
+          label={t('settings.fields.aiDataTransmission')}
+          description={t('settings.descriptions.aiConsentHint')}
         >
           <MaterialSwitch checked={aiConsent} onChange={() => void handleToggleAiConsent()} />
         </SettingRow>
         <div style={{ paddingTop: '12px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          <Button variant="secondary" size="sm" onClick={() => toast('Exporting data...', 'info')} style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-            <Download size={16} /> Export Data
+          <Button variant="secondary" size="sm" onClick={() => toast(t('settings.toast.exporting'), 'info')} style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+            <Download size={16} /> {t('settings.buttons.exportData')}
           </Button>
-          <Button variant="secondary" size="sm" onClick={() => toast('Importing data...', 'info')} style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-            <Upload size={16} /> Import Data
+          <Button variant="secondary" size="sm" onClick={() => toast(t('settings.toast.importing'), 'info')} style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+            <Upload size={16} /> {t('settings.buttons.importData')}
           </Button>
           <Button variant="danger" size="sm" onClick={() => void handleDeleteApiKeys()}>
-            Delete API Keys
+            {t('settings.buttons.deleteApiKeys')}
           </Button>
         </div>
       </Card>
 
       {/* Developer / Debug */}
-      <SectionHeader icon={<Trash2 size={20} />} title="Developer" />
+      <SectionHeader icon={<Trash2 size={20} />} title={t('settings.sections.developer')} />
       <Card style={{ marginBottom: '8px' }}>
         <p style={{ fontSize: '0.8rem', color: 'var(--muted-foreground)', marginBottom: '16px', lineHeight: 1.5 }}>
-          Debug tools for development. Destructive actions cannot be undone.
+          {t('settings.descriptions.developerBlurb')}
         </p>
-        <SettingRow label="Trellis Dev Mode">
+        <SettingRow label={t('settings.fields.trellisDevMode')}>
           <MaterialSwitch
             checked={localStorage.getItem('trellis_dev_mode') === 'true'}
             onChange={() => {
               const next = localStorage.getItem('trellis_dev_mode') === 'true' ? 'false' : 'true';
               localStorage.setItem('trellis_dev_mode', next);
-              toast(next === 'true' ? 'Trellis dev mode on — showing all leaf states' : 'Trellis dev mode off');
+              toast(next === 'true' ? t('settings.toast.trellisDevOn') : t('settings.toast.trellisDevOff'));
               // Force re-render so the switch updates
               setReviewNotif((v) => { setTimeout(() => setReviewNotif(v), 0); return !v; });
             }}
           />
         </SettingRow>
         <p style={{ fontSize: '0.72rem', color: 'var(--muted-foreground)', marginTop: '-8px', marginBottom: '16px', lineHeight: 1.4 }}>
-          Shows all 7 leaf states (bud, green, yellow, falling, fallen, blossom, fruit) on dummy nodes for visual debugging.
+          {t('settings.descriptions.trellisDevModeHint')}
         </p>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           <Button
@@ -1142,28 +1142,28 @@ export function SettingsScreen() {
             onClick={handleClearAllData}
             style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}
           >
-            <Trash2 size={16} /> Clear All Data
+            <Trash2 size={16} /> {t('settings.buttons.clearAllData')}
           </Button>
         </div>
       </Card>
 
       {/* Usage */}
-      <SectionHeader icon={<BarChart3 size={20} />} title="Usage" />
+      <SectionHeader icon={<BarChart3 size={20} />} title={t('settings.sections.usage')} />
       <Card style={{ marginBottom: '8px' }}>
         <p style={{ fontSize: '0.8rem', color: 'var(--muted-foreground)', marginBottom: '12px', lineHeight: 1.5 }}>
-          Monthly question limit and LLM API token usage.
+          {t('settings.descriptions.usageBlurb')}
         </p>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', padding: '12px', background: 'var(--surface-variant)', borderRadius: 'var(--radius-xl)' }}>
           <div>
-            <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>Monthly Question Limit</div>
+            <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{t('settings.usageTable.monthlyLimit')}</div>
             <div style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', marginTop: '2px' }}>
               {askMonthlyLimit === 0
-                ? 'Unlimited (no cap)'
-                : `${rateLimitStatus.count} / ${askMonthlyLimit} this month`}
+                ? t('settings.usageTable.unlimited')
+                : t('settings.usageTable.usedThisMonth', { count: rateLimitStatus.count, limit: askMonthlyLimit })}
             </div>
             {askMonthlyLimit > 0 && (
               <div style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)', marginTop: '2px' }}>
-                Resets {rateLimitStatus.resetDate}
+                {t('settings.usageTable.resets', { date: rateLimitStatus.resetDate })}
               </div>
             )}
           </div>
@@ -1177,22 +1177,22 @@ export function SettingsScreen() {
               border: '1px solid var(--border)', background: 'var(--surface)',
               fontSize: '0.85rem', textAlign: 'center',
             }}
-            placeholder="0"
+            placeholder={t('settings.placeholders.askLimit')}
           />
         </div>
         {Object.keys(tokenUsage).length === 0 ? (
-          <p style={{ fontSize: '0.85rem', color: 'var(--muted-foreground)', fontStyle: 'italic' }}>No usage data recorded yet.</p>
+          <p style={{ fontSize: '0.85rem', color: 'var(--muted-foreground)', fontStyle: 'italic' }}>{t('settings.usageTable.empty')}</p>
         ) : (
           <>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', fontSize: '0.8rem', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ borderBottom: '2px solid var(--border)', textAlign: 'left' }}>
-                    <th style={{ padding: '6px 8px' }}>Service</th>
-                    <th style={{ padding: '6px 8px', textAlign: 'right' }}>Prompt</th>
-                    <th style={{ padding: '6px 8px', textAlign: 'right' }}>Completion</th>
-                    <th style={{ padding: '6px 8px', textAlign: 'right' }}>Total</th>
-                    <th style={{ padding: '6px 8px', textAlign: 'right' }}>Calls</th>
+                    <th style={{ padding: '6px 8px' }}>{t('settings.usageTable.service')}</th>
+                    <th style={{ padding: '6px 8px', textAlign: 'right' }}>{t('settings.usageTable.prompt')}</th>
+                    <th style={{ padding: '6px 8px', textAlign: 'right' }}>{t('settings.usageTable.completion')}</th>
+                    <th style={{ padding: '6px 8px', textAlign: 'right' }}>{t('settings.usageTable.total')}</th>
+                    <th style={{ padding: '6px 8px', textAlign: 'right' }}>{t('settings.usageTable.calls')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1209,7 +1209,7 @@ export function SettingsScreen() {
                     ))}
                   {/* Totals row */}
                   <tr style={{ borderTop: '2px solid var(--border)', fontWeight: 600 }}>
-                    <td style={{ padding: '6px 8px' }}>Total</td>
+                    <td style={{ padding: '6px 8px' }}>{t('settings.usageTable.totalRow')}</td>
                     <td style={{ padding: '6px 8px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
                       {Object.values(tokenUsage).reduce((s, a) => s + a.promptTokens, 0).toLocaleString()}
                     </td>
@@ -1229,25 +1229,25 @@ export function SettingsScreen() {
           </>
         )}
         <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-          <Button size="sm" variant="secondary" onClick={refreshTokenUsage}>Refresh</Button>
-          <Button size="sm" variant="danger" onClick={handleClearTokenUsage}>Clear</Button>
+          <Button size="sm" variant="secondary" onClick={refreshTokenUsage}>{t('settings.buttons.refresh')}</Button>
+          <Button size="sm" variant="danger" onClick={handleClearTokenUsage}>{t('settings.buttons.clear')}</Button>
         </div>
       </Card>
 
       {/* Reset & About */}
       <div style={{ marginTop: '32px', textAlign: 'center' }}>
         <p style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)', marginBottom: '8px' }}>
-          EchoLearn v1.0.0
+          {t('settings.about.version')}
         </p>
         <button
-          onClick={() => toast('Licenses modal coming soon', 'info')}
+          onClick={() => toast(t('settings.about.licenseSoon'), 'info')}
           style={{ background: 'none', border: 'none', color: 'var(--primary-40)', cursor: 'pointer', fontSize: '0.875rem', marginBottom: '24px' }}
         >
-          View Licenses &rarr;
+          {t('settings.buttons.viewLicenses')}
         </button>
         <br />
         <Button variant="danger" size="sm" onClick={handleReset} style={{ display: 'inline-flex', gap: '6px', alignItems: 'center', justifyContent: 'center' }}>
-          <RotateCcw size={16} /> Reset to Defaults
+          <RotateCcw size={16} /> {t('settings.buttons.reset')}
         </Button>
       </div>
     </div>

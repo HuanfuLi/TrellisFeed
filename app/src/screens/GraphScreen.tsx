@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import MindElixir from 'mind-elixir';
 import 'mind-elixir/style';
 import type { MindElixirData, MindElixirInstance, NodeObj } from 'mind-elixir';
 import { ArrowLeft, RefreshCw, GitBranch, X, ChevronRight, FoldVertical, UnfoldVertical } from 'lucide-react';
+import i18n from '../locales';
 import type { Question } from '../types';
 import { graphService } from '../services/graph.service';
 import { toast } from '../lib/toast';
@@ -33,7 +35,7 @@ function truncate(s: string, n: number): string {
 function buildMindElixirData(nodes: Question[]): MindElixirData {
   const rootObj: NodeObj = {
     id: 'root-knowledge',
-    topic: 'Knowledge',
+    topic: i18n.t('graph.rootLabel'),
     children: [],
     expanded: true,
   };
@@ -206,6 +208,7 @@ function setAllExpanded(node: NodeObj, expanded: boolean): void {
 }
 
 function MasterMap({ nodes, edges, onNodeClick, isVisible }: MasterMapProps & { isVisible: boolean }) {
+  const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const instanceRef = useRef<MindElixirInstance | null>(null);
   const initCompletedRef = useRef(false);
@@ -363,8 +366,8 @@ function MasterMap({ nodes, edges, onNodeClick, isVisible }: MasterMapProps & { 
         }}
       >
         <GitBranch size={48} style={{ opacity: 0.3 }} />
-        <p style={{ fontWeight: 600 }}>Your knowledge reflection map is empty.</p>
-        <p style={{ fontSize: '0.875rem' }}>Ask questions and review ideas to let the structure emerge.</p>
+        <p style={{ fontWeight: 600 }}>{t('graph.empty.heading')}</p>
+        <p style={{ fontSize: '0.875rem' }}>{t('graph.empty.body')}</p>
       </div>
     );
   }
@@ -397,7 +400,7 @@ function MasterMap({ nodes, edges, onNodeClick, isVisible }: MasterMapProps & { 
       <div ref={containerRef} data-no-swipe-nav="true" style={{ width: '100%', height: '100%' }} />
       <button
         onClick={handleToggleExpand}
-        title={allExpanded ? 'Collapse all' : 'Expand all'}
+        title={allExpanded ? t('graph.toggleCollapseTitle') : t('graph.toggleExpandTitle')}
         style={{
           position: 'absolute',
           bottom: '12px',
@@ -436,6 +439,7 @@ let cachedEdges: GraphEdge[] | null = null;
 
 export function GraphScreen() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   // With the swipe strip, GraphScreen is always mounted at full width —
   // keeping it visible prevents it from disappearing during horizontal swiping.
   const isVisible = true;
@@ -462,12 +466,12 @@ export function GraphScreen() {
     const unsub1 = eventBus.subscribe('REORG_COMPLETED', (event) => {
       setReorganizing(false);
       setSelectedNode(null);
-      toast(`Map reorganized: ${event.payload.clusterCount} clusters, ${event.payload.anchorCount} concepts`, 'success');
+      toast(t('graph.toast.reorganized', { clusterCount: event.payload.clusterCount, anchorCount: event.payload.anchorCount }), 'success');
       reload();
     });
     const unsub2 = eventBus.subscribe('REORG_FAILED', (event) => {
       setReorganizing(false);
-      toast(event.payload.error || 'Reorganization failed', 'error');
+      toast(event.payload.error || t('graph.toast.reorganizeFailed'), 'error');
     });
     const unsub3 = eventBus.subscribe('REORG_STARTED', () => {
       setReorganizing(true);
@@ -477,16 +481,16 @@ export function GraphScreen() {
       reload();
     });
     return () => { unsub1(); unsub2(); unsub3(); unsub4(); };
-  }, [reload]);
+  }, [reload, t]);
 
   const handleReorganize = useCallback(() => {
     setShowReorgConfirm(false);
-    toast('Reorganizing your knowledge map...', 'info');
+    toast(t('graph.toast.reorganizing'), 'info');
 
     const settings = settingsService.getSync();
     // Fire-and-forget — events handle state updates across navigation
     void reorganizeMindmap(settings.llm);
-  }, []);
+  }, [t]);
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -498,16 +502,16 @@ export function GraphScreen() {
       {showReorgConfirm && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 300, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
           <div style={{ backgroundColor: 'var(--surface)', borderRadius: 'var(--radius-xl)', padding: '24px', width: '100%', maxWidth: '340px', boxShadow: 'var(--shadow-3)' }}>
-            <p style={{ fontWeight: 700, fontSize: '1.05rem', marginBottom: '6px' }}>Reorganize Map</p>
+            <p style={{ fontWeight: 700, fontSize: '1.05rem', marginBottom: '6px' }}>{t('graph.reorganizeModal.title')}</p>
             <p style={{ fontSize: '0.85rem', color: 'var(--muted-foreground)', marginBottom: '16px', lineHeight: 1.5 }}>
-              This will reorganize your entire knowledge map using AI. Your Q&As, review schedules, and flashcards will be preserved — only the hierarchy structure will change.
+              {t('graph.reorganizeModal.description')}
             </p>
             <div style={{ display: 'flex', gap: '8px' }}>
               <button onClick={() => setShowReorgConfirm(false)} style={{ flex: 1, padding: '10px', borderRadius: '100px', border: '1px solid var(--border)', backgroundColor: 'transparent', color: 'var(--muted-foreground)', fontSize: '0.875rem', cursor: 'pointer' }}>
-                Cancel
+                {t('graph.reorganizeModal.cancel')}
               </button>
               <button onClick={handleReorganize} style={{ flex: 1, padding: '10px', borderRadius: '100px', backgroundColor: 'var(--primary-40)', color: 'white', fontWeight: 600, fontSize: '0.875rem', border: 'none', cursor: 'pointer' }}>
-                Reorganize
+                {t('graph.reorganizeModal.confirm')}
               </button>
             </div>
           </div>
@@ -515,7 +519,7 @@ export function GraphScreen() {
       )}
 
       <Header
-        title="Mind Map"
+        title={t('graph.headerTitle')}
         right={
           hasQaNodes ? (
             <button
@@ -538,7 +542,7 @@ export function GraphScreen() {
               }}
             >
               <RefreshCw size={14} style={reorganizing ? { animation: 'spin 1.5s linear infinite' } : undefined} />
-              {reorganizing ? 'Reorganizing...' : 'Reorganize'}
+              {reorganizing ? t('graph.reorganizingButton') : t('graph.reorganizeButton')}
               {reorganizing && <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>}
             </button>
           ) : undefined
@@ -564,17 +568,17 @@ export function GraphScreen() {
             >
               {selectedNode.isClusterNode && (
                 <p style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--primary-40)', marginBottom: '4px' }}>
-                  KNOWLEDGE CLUSTER — {(() => {
+                  {(() => {
                     const childAnchorCount = nodes.filter(
                       n => n.isAnchorNode === true && n.clusterNodeId === selectedNode.id
                     ).length;
-                    return `${childAnchorCount} concepts, ${selectedNode.qaCount || 0} Q&As`;
+                    return t('graph.selected.clusterBadge', { anchorCount: childAnchorCount, qaCount: selectedNode.qaCount || 0 });
                   })()}
                 </p>
               )}
               {selectedNode.isAnchorNode && (
                 <p style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--primary-40)', marginBottom: '4px' }}>
-                  CONCEPT ANCHOR — {selectedNode.qaCount || 0} Q&As
+                  {t('graph.selected.anchorBadge', { count: selectedNode.qaCount || 0 })}
                 </p>
               )}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
@@ -591,7 +595,7 @@ export function GraphScreen() {
                 );
                 if (childAnchors.length > 0) {
                   const anchorNames = childAnchors.slice(0, 4).map(a => a.title || a.content).join(', ');
-                  const suffix = childAnchors.length > 4 ? ` +${childAnchors.length - 4} more` : '';
+                  const suffix = childAnchors.length > 4 ? t('graph.selected.anchorMoreSuffix', { count: childAnchors.length - 4 }) : '';
                   return (
                     <p style={{ fontSize: '0.8rem', color: 'var(--muted-foreground)', lineHeight: 1.5 }}>
                       {anchorNames}{suffix}
@@ -616,10 +620,10 @@ export function GraphScreen() {
               )}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '8px' }}>
                 <p style={{ fontSize: '0.72rem', color: 'var(--muted-foreground)' }}>
-                  {selectedNode.relatedQuestionIds.length} connections
+                  {t('graph.selected.connectionsCount', { count: selectedNode.relatedQuestionIds.length })}
                 </p>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: 'var(--primary-40)', fontWeight: 600 }}>
-                  <span>View details</span>
+                  <span>{t('graph.selected.viewDetails')}</span>
                   <ChevronRight size={14} />
                 </div>
               </div>

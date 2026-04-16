@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Play, Pause, Radio, RefreshCw, RotateCcw, RotateCw, ChevronRight, Trash2, Check, X, List, BookOpen } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
@@ -18,6 +19,7 @@ import type { DailyPodcast, Question } from '../types';
 export function PodcastScreen() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useTranslation();
   const {
     podcasts,
     isLoading,
@@ -92,7 +94,7 @@ export function PodcastScreen() {
     // Check if already in today's podcast
     const existing = podcastService.getTodayConceptIds(today());
     if (existing.includes(conceptId)) {
-      toast('This concept is already in today\'s podcast.', 'info');
+      toast(t('podcast.toast.conceptAlreadyIn'), 'info');
       setInsertHandled(true);
       return;
     }
@@ -104,20 +106,20 @@ export function PodcastScreen() {
       setInsertConcept(concept);
     }
     setInsertHandled(true);
-  }, [moveState, insertHandled]);
+  }, [moveState, insertHandled, t]);
 
   const handleConfirmInsert = () => {
     if (!insertConcept) return;
     const added = podcastService.addConceptToPodcast(today(), insertConcept.id);
     if (added) {
       void loadConcepts();
-      toast('Concept added to today\'s podcast. Regenerate to update the script.', 'success');
+      toast(t('podcast.toast.conceptAddedToPodcast'), 'success');
     } else {
       // No podcast — add directly to the live list; it'll be included at generation
       setTodayConcepts((prev) =>
         prev.some((c) => c.id === insertConcept.id) ? prev : [...prev, insertConcept],
       );
-      toast('Concept added to review list.', 'success');
+      toast(t('podcast.toast.conceptAddedToList'), 'success');
     }
     setInsertConcept(null);
   };
@@ -147,7 +149,7 @@ export function PodcastScreen() {
       setPlaybackProgress(0);
     };
     audio.onerror = () => {
-      toast('Audio unavailable — try regenerating.', 'error');
+      toast(t('podcast.toast.audioUnavailable'), 'error');
       setIsPlaying(false);
       audioRef.current = null;
     };
@@ -249,11 +251,11 @@ export function PodcastScreen() {
           </button>
           <div style={{ flex: 1 }} />
           <p style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>
-            {isToday(selected.date) ? 'Today' : formatDateLabel(selected.date)}
+            {isToday(selected.date) ? t('podcast.player.todayLabel') : formatDateLabel(selected.date)}
           </p>
         </div>
         <div style={{ flex: 1, overflowY: 'auto', padding: '24px 16px 48px', maxWidth: '448px', width: '100%', margin: '0 auto' }}>
-          <h3 style={{ marginBottom: '16px' }}>Script</h3>
+          <h3 style={{ marginBottom: '16px' }}>{t('podcast.player.scriptHeading')}</h3>
           <p style={{ fontSize: '0.9375rem', lineHeight: 1.85, color: 'var(--foreground)', whiteSpace: 'pre-wrap' }}>
             {selected.script}
           </p>
@@ -272,12 +274,12 @@ export function PodcastScreen() {
         >
           <ArrowLeft size={20} />
         </button>
-        <h2 style={{ marginBottom: '16px' }}>All Podcasts</h2>
+        <h2 style={{ marginBottom: '16px' }}>{t('podcast.allPodcasts')}</h2>
 
         {isLoading ? (
-          <p style={{ color: 'var(--muted-foreground)' }}>Loading...</p>
+          <p style={{ color: 'var(--muted-foreground)' }}>{t('podcast.loading')}</p>
         ) : podcasts.length === 0 ? (
-          <p style={{ color: 'var(--muted-foreground)', fontSize: '0.875rem' }}>No podcasts yet. Generate your first one!</p>
+          <p style={{ color: 'var(--muted-foreground)', fontSize: '0.875rem' }}>{t('podcast.emptyList')}</p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {podcasts.map((pod) => (
@@ -300,10 +302,10 @@ export function PodcastScreen() {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ fontWeight: 500, marginBottom: '2px' }}>
-                      {isToday(pod.date) ? 'Today' : formatDateLabel(pod.date)}
+                      {isToday(pod.date) ? t('podcast.player.todayLabel') : formatDateLabel(pod.date)}
                     </p>
                     <p style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>
-                      {pod.questionIds.length} concepts · {formatDuration(pod.duration)}
+                      {t('podcast.player.conceptsDuration', { count: pod.questionIds.length, duration: formatDuration(pod.duration) })}
                     </p>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
@@ -312,7 +314,7 @@ export function PodcastScreen() {
                       <>
                         <button
                           onClick={(e) => { e.stopPropagation(); setConfirmDeletePodcastId(null); }}
-                          title="Cancel delete"
+                          title={t('podcast.player.cancelDelete')}
                           style={{
                             width: '44px', height: '44px', borderRadius: '50%',
                             backgroundColor: 'transparent', color: 'var(--muted-foreground)',
@@ -329,7 +331,7 @@ export function PodcastScreen() {
                             if (selectedId === pod.id) setSelectedId(null);
                             void deletePodcast(pod.id);
                           }}
-                          title="Confirm delete"
+                          title={t('podcast.player.confirmDelete')}
                           style={{
                             width: '44px', height: '44px', borderRadius: '50%',
                             backgroundColor: 'color-mix(in srgb, var(--danger) 12%, transparent)', color: 'var(--danger)',
@@ -343,7 +345,7 @@ export function PodcastScreen() {
                     ) : (
                       <button
                         onClick={(e) => { e.stopPropagation(); setConfirmDeletePodcastId(pod.id); }}
-                        title="Delete podcast"
+                        title={t('podcast.player.deleteTitle')}
                         style={{
                           width: '44px', height: '44px', borderRadius: '50%',
                           backgroundColor: 'transparent', color: 'var(--muted-foreground)',
@@ -382,7 +384,7 @@ export function PodcastScreen() {
         </button>
         <button
           onClick={() => setShowAllPodcasts(true)}
-          title="All Podcasts"
+          title={t('podcast.historyTitle')}
           style={{
             display: 'flex', alignItems: 'center', gap: '6px',
             padding: '6px 12px', borderRadius: '100px',
@@ -394,12 +396,12 @@ export function PodcastScreen() {
           }}
         >
           <List size={14} />
-          History
+          {t('podcast.historyButton')}
         </button>
       </div>
       <div style={{ marginBottom: '24px' }}>
-        <h1 style={{ marginBottom: '2px' }}>Podcasts</h1>
-        <p style={{ color: 'var(--muted-foreground)', fontSize: '0.875rem' }}>Your daily learning summaries</p>
+        <h1 style={{ marginBottom: '2px' }}>{t('podcast.title')}</h1>
+        <p style={{ color: 'var(--muted-foreground)', fontSize: '0.875rem' }}>{t('podcast.subtitle')}</p>
       </div>
 
       {/* Concept insertion banner from Planner */}
@@ -410,7 +412,7 @@ export function PodcastScreen() {
           background: 'linear-gradient(135deg, color-mix(in srgb, var(--primary-40) 8%, var(--surface)), var(--surface))',
         }}>
           <p style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--primary-40)', marginBottom: '8px' }}>
-            Add to podcast?
+            {t('podcast.insertBanner.label')}
           </p>
           <p style={{ fontSize: '0.95rem', fontWeight: 600, marginBottom: '4px' }}>
             {insertConcept.title ?? insertConcept.content.slice(0, 60)}
@@ -428,7 +430,7 @@ export function PodcastScreen() {
                 fontWeight: 600, fontSize: '0.875rem', border: 'none', cursor: 'pointer',
               }}
             >
-              Add to review list
+              {t('podcast.insertBanner.addToReview')}
             </button>
             <button
               onClick={handleRejectInsert}
@@ -440,7 +442,7 @@ export function PodcastScreen() {
                 border: '1px solid var(--border)', cursor: 'pointer',
               }}
             >
-              Skip
+              {t('podcast.insertBanner.skip')}
             </button>
           </div>
         </Card>
@@ -452,9 +454,9 @@ export function PodcastScreen() {
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '12px' }}>
             <div>
               <p style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>
-                {isToday(selected.date) ? 'Today' : formatDateLabel(selected.date)}
+                {isToday(selected.date) ? t('podcast.player.todayLabel') : formatDateLabel(selected.date)}
               </p>
-              <h3 style={{ marginBottom: '4px' }}>Daily Recap</h3>
+              <h3 style={{ marginBottom: '4px' }}>{t('podcast.player.dailyRecap')}</h3>
               {selected.duration && (
                 <p style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>{formatDuration(selected.duration)}</p>
               )}
@@ -467,7 +469,7 @@ export function PodcastScreen() {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '24px' }}>
             <button
               onClick={() => handleSeek(-10)}
-              title="Rewind 10 seconds"
+              title={t('podcast.player.rewindTitle')}
               style={{
                 width: '44px', height: '44px', borderRadius: '50%',
                 backgroundColor: 'transparent', color: 'var(--foreground)',
@@ -493,7 +495,7 @@ export function PodcastScreen() {
 
             <button
               onClick={() => handleSeek(10)}
-              title="Forward 10 seconds"
+              title={t('podcast.player.forwardTitle')}
               style={{
                 width: '44px', height: '44px', borderRadius: '50%',
                 backgroundColor: 'transparent', color: 'var(--foreground)',
@@ -514,7 +516,7 @@ export function PodcastScreen() {
                 onClick={() => generatePodcast(selected.date, todayConcepts.map((c) => c.id))}
                 style={{ gap: '6px' } as React.CSSProperties}
               >
-                <RefreshCw size={14} /> Regenerate audio
+                <RefreshCw size={14} /> {t('podcast.player.regenerateAudio')}
               </Button>
             </div>
           )}
@@ -531,7 +533,7 @@ export function PodcastScreen() {
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
                 <p style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Script Preview
+                  {t('podcast.player.scriptPreview')}
                 </p>
                 <ChevronRight size={14} color="var(--muted-foreground)" />
               </div>
@@ -548,21 +550,21 @@ export function PodcastScreen() {
         <Card style={{ marginBottom: '24px', textAlign: 'center' }}>
           <Radio size={32} color="var(--primary-40)" style={{ margin: '0 auto 12px' }} />
           <h4 style={{ marginBottom: '8px' }}>
-            {todayPodcast?.status === 'failed' ? 'Podcast generation failed' : 'No podcast for today'}
+            {todayPodcast?.status === 'failed' ? t('podcast.generateCard.failedTitle') : t('podcast.generateCard.noneTitle')}
           </h4>
           <p style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)', marginBottom: '16px' }}>
             {todayPodcast?.status === 'failed'
-              ? (todayPodcast.error ?? 'Something went wrong. Try again.')
-              : 'Generate a podcast reviewing your due concepts.'}
+              ? (todayPodcast.error ?? t('podcast.generateCard.failedDescription'))
+              : t('podcast.generateCard.noneDescription')}
           </p>
           {isGenerating ? (
             <div>
               <ProgressBar value={generationProgress} style={{ marginBottom: '8px' } as React.CSSProperties} />
-              <p style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>Generating... {generationProgress}%</p>
+              <p style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>{t('podcast.generateCard.progressText', { progress: generationProgress })}</p>
             </div>
           ) : (
             <Button onClick={() => generatePodcast(today(), todayConcepts.map((c) => c.id))} fullWidth>
-              {todayPodcast?.status === 'failed' ? 'Retry Generation' : 'Generate Today\'s Podcast'}
+              {todayPodcast?.status === 'failed' ? t('podcast.generateCard.retryButton') : t('podcast.generateCard.generateButton')}
             </Button>
           )}
         </Card>
@@ -570,10 +572,10 @@ export function PodcastScreen() {
 
       {todayPodcast?.status === 'generating' && (
         <Card style={{ marginBottom: '24px' }}>
-          <h4 style={{ marginBottom: '8px' }}>Generating today's podcast...</h4>
+          <h4 style={{ marginBottom: '8px' }}>{t('podcast.generateCard.generatingTitle')}</h4>
           <ProgressBar value={todayPodcast.progress ?? generationProgress} />
           <p style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)', marginTop: '8px' }}>
-            {todayPodcast.progress ?? generationProgress}% complete
+            {t('podcast.generateCard.progressSuffix', { progress: todayPodcast.progress ?? generationProgress })}
           </p>
         </Card>
       )}
@@ -582,21 +584,21 @@ export function PodcastScreen() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <BookOpen size={16} color="var(--primary-40)" />
-          <h4 style={{ margin: 0 }}>Knowledge Today</h4>
+          <h4 style={{ margin: 0 }}>{t('podcast.knowledgeToday.heading')}</h4>
         </div>
         <span style={{ fontSize: '0.78rem', color: 'var(--muted-foreground)' }}>
-          {todayConcepts.length} concept{todayConcepts.length !== 1 ? 's' : ''}
+          {todayConcepts.length === 1 ? t('podcast.knowledgeToday.countOne', { count: todayConcepts.length }) : t('podcast.knowledgeToday.countOther', { count: todayConcepts.length })}
         </span>
       </div>
 
       {conceptsLoading ? (
-        <p style={{ color: 'var(--muted-foreground)', fontSize: '0.875rem' }}>Loading concepts...</p>
+        <p style={{ color: 'var(--muted-foreground)', fontSize: '0.875rem' }}>{t('podcast.loadingConcepts')}</p>
       ) : todayConcepts.length === 0 ? (
         <Card style={{ textAlign: 'center', padding: '24px' }}>
           <p style={{ fontSize: '1.2rem', marginBottom: '6px' }}>📚</p>
-          <p style={{ fontWeight: 600, marginBottom: '4px' }}>No concepts due today</p>
+          <p style={{ fontWeight: 600, marginBottom: '4px' }}>{t('podcast.emptyConcepts.title')}</p>
           <p style={{ fontSize: '0.82rem', color: 'var(--muted-foreground)' }}>
-            Keep reviewing flashcards — concepts will appear here when due.
+            {t('podcast.emptyConcepts.body')}
           </p>
         </Card>
       ) : (
@@ -609,7 +611,7 @@ export function PodcastScreen() {
                 key={concept.id}
                 question={concept}
                 onClick={() => navigate(`/ask/${concept.id}`)}
-                badge={isWeak ? { label: 'Weak', color: 'var(--danger)' } : undefined}
+                badge={isWeak ? { label: t('podcast.knowledgeToday.weakBadge'), color: 'var(--danger)' } : undefined}
               />
             );
           })}

@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { BookOpen, CheckSquare, Headphones } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
@@ -30,6 +31,7 @@ const MILESTONE_POOL: BlindboxItem[] = [
 export function HomeScreen() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useTranslation();
   const { questions, isLoading: questionsLoading } = useQuestions();
   const { reviewCount } = useReview();
   const { getPodcastForDate } = usePodcast();
@@ -44,8 +46,8 @@ export function HomeScreen() {
   const questionsRef = useRef<Question[]>(questions);
   questionsRef.current = questions;
 
-  const t = today();
-  const todayPodcast = getPodcastForDate(t);
+  const todayDate = today();
+  const todayPodcast = getPodcastForDate(todayDate);
 
   useEffect(() => {
     // Don't fetch posts until questions have finished loading — running with
@@ -128,13 +130,13 @@ export function HomeScreen() {
         );
         setDailyPosts((prev) => [...prev, ...newPosts]);
       } else {
-        toast('No more posts to generate right now', 'info');
+        toast(t('home.toast.noMorePosts'), 'info');
       }
     } finally {
       isLoadingMoreRef.current = false;
       setIsLoadingMore(false);
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- questionsRef + isLoadingMoreRef are refs
+  }, [t]); // eslint-disable-line react-hooks/exhaustive-deps -- questionsRef + isLoadingMoreRef are refs
 
   // Stable ref so the touch effect can always call the latest handleLoad
   const handleLoadRef = useRef(handleLoad);
@@ -396,10 +398,10 @@ export function HomeScreen() {
               onPointerLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
             >
               <BookOpen size={28} color="var(--bento-card-text)" style={{ marginBottom: '12px' }} />
-              <h4 style={{ marginBottom: '8px', color: 'var(--bento-card-text)' }}>Flashcard</h4>
+              <h4 style={{ marginBottom: '8px', color: 'var(--bento-card-text)' }}>{t('home.bento.flashcardTitle')}</h4>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
                 <p style={{ fontSize: '1.875rem', fontWeight: 600, color: 'var(--bento-card-text)' }}>{reviewCount}</p>
-                <p style={{ fontSize: '0.875rem', color: 'var(--bento-card-text-muted)' }}>due</p>
+                <p style={{ fontSize: '0.875rem', color: 'var(--bento-card-text-muted)' }}>{t('home.bento.flashcardDue')}</p>
               </div>
             </Card>
           </button>
@@ -421,10 +423,10 @@ export function HomeScreen() {
               onPointerLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
             >
               <CheckSquare size={28} color="var(--bento-card-text)" style={{ marginBottom: '12px' }} />
-              <h4 style={{ marginBottom: '8px', color: 'var(--bento-card-text)' }}>Planner</h4>
+              <h4 style={{ marginBottom: '8px', color: 'var(--bento-card-text)' }}>{t('home.bento.plannerTitle')}</h4>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
                 <p style={{ fontSize: '1.875rem', fontWeight: 600, color: 'var(--bento-card-text)' }}>{suggestedMoveCount}</p>
-                <p style={{ fontSize: '0.875rem', color: 'var(--bento-card-text-muted)' }}>{suggestedMoveCount === 1 ? 'suggestion' : 'suggestions'}</p>
+                <p style={{ fontSize: '0.875rem', color: 'var(--bento-card-text-muted)' }}>{suggestedMoveCount === 1 ? t('home.bento.suggestionCountOne') : t('home.bento.suggestionCountOther')}</p>
               </div>
             </Card>
           </button>
@@ -447,19 +449,19 @@ export function HomeScreen() {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
                   <Headphones size={28} color="var(--bento-card-text)" style={{ marginBottom: '8px' }} />
-                  <h4 style={{ color: 'var(--bento-card-text)', marginBottom: '4px' }}>Today's Podcast</h4>
+                  <h4 style={{ color: 'var(--bento-card-text)', marginBottom: '4px' }}>{t('home.bento.podcastTitle')}</h4>
                   <p style={{ fontSize: '0.875rem', color: 'var(--bento-card-text-muted)' }}>
                     {todayPodcast
                       ? todayPodcast.status === 'ready'
-                        ? `Ready · ${Math.round((todayPodcast.duration ?? 0) / 60)} min`
+                        ? t('home.bento.podcastReady', { minutes: Math.round((todayPodcast.duration ?? 0) / 60) })
                         : todayPodcast.status === 'generating'
-                          ? `Generating... ${todayPodcast.progress ?? 0}%`
-                          : 'Generation failed'
-                      : 'Not yet generated'}
+                          ? t('home.bento.podcastGenerating', { progress: todayPodcast.progress ?? 0 })
+                          : t('home.bento.podcastFailed')
+                      : t('home.bento.podcastNotGenerated')}
                   </p>
                 </div>
                 <Badge color={todayPodcast?.status === 'ready' ? 'green' : 'gray'}>
-                  {todayPodcast?.status ?? 'pending'}
+                  {todayPodcast?.status ?? t('home.bento.podcastStatusPending')}
                 </Badge>
               </div>
             </Card>

@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   RefreshCw, Loader2,
   ChevronDown, ChevronUp, Cherry, Sprout, Heart, Scissors,
@@ -30,6 +31,7 @@ function EmptySectionHint({ text }: { text: string }) {
 
 export function PlannerScreen() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { moves: autoMoves, isRefreshing, accept: acceptMove, dismiss: dismissMove, skipAll, refresh: refreshMoves } = usePlannerAutoGen();
   useDailyRefresh(); // Mount to activate PODCAST_GENERATION_COMPLETED → refresh subscription
   const { layout } = useTrellisData();
@@ -61,7 +63,7 @@ export function PlannerScreen() {
 
   const handleSkipAll = () => {
     skipAll();
-    toast('Suggestions cleared');
+    toast(t('planner.toast.suggestionsCleared'));
   };
 
   const handleReplant = (node: typeof deadNodes[number]) => {
@@ -74,7 +76,7 @@ export function PlannerScreen() {
   };
 
   const handleHeal = (node: typeof dyingNodes[number]) => {
-    const name = node.anchor.title ?? node.anchor.content ?? 'Untitled';
+    const name = node.anchor.title ?? node.anchor.content ?? t('planner.deadFallback');
     const result = trellisActionsService.heal(
       node.anchor.id,
       name,
@@ -85,13 +87,13 @@ export function PlannerScreen() {
 
   const handlePrune = (anchorId: string) => {
     trellisActionsService.prune(anchorId);
-    toast('Pruned — moved to archive', 'success');
+    toast(t('planner.toast.pruned'), 'success');
   };
 
   return (
     <div style={{ padding: `${HEADER_HEIGHT + 8}px 16px 96px`, maxWidth: '448px', margin: '0 auto' }}>
       <Header
-        title="Planner"
+        title={t('planner.title')}
         right={
           <div
             style={{
@@ -125,14 +127,14 @@ export function PlannerScreen() {
       {/* ── Suggested Moves (trellis-first) ───────────────────────────── */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', marginTop: '24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <h2 style={{ fontSize: '1rem', fontWeight: 600 }}>Suggested Moves</h2>
+          <h2 style={{ fontSize: '1rem', fontWeight: 600 }}>{t('planner.suggestedMoves')}</h2>
           {totalSuggestions > 0 && <Badge color="gray">{totalSuggestions}</Badge>}
         </div>
         <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
           <button
             onClick={() => void refreshMoves()}
             disabled={isRefreshing}
-            title="Refresh suggestions"
+            title={t('planner.refreshTitle')}
             className="active-squish"
             style={{
               width: '28px', height: '28px', borderRadius: '50%',
@@ -162,12 +164,12 @@ export function PlannerScreen() {
 
       {showAutoMoves && (
         totalSuggestions === 0 ? (
-          <EmptySectionHint text="No suggestions right now — tap refresh to check for new moves." />
+          <EmptySectionHint text={t('planner.emptyHint')} />
         ) : (
           <>
             {/* D-20: Dead nodes first (highest priority — re-plant) */}
             {deadNodes.map((node) => {
-              const name = node.anchor.title ?? node.anchor.content ?? 'Untitled';
+              const name = node.anchor.title ?? node.anchor.content ?? t('planner.deadFallback');
               return (
                 <div
                   key={`dead-${node.anchor.id}`}
@@ -191,13 +193,13 @@ export function PlannerScreen() {
                       fontSize: '0.78rem', color: 'var(--muted-foreground)',
                       marginTop: '1px', lineHeight: 1.35,
                     }}>
-                      Dead — tap to re-plant
+                      {t('planner.deadRowSubtitle')}
                     </p>
                   </div>
                   <button
                     onClick={(e) => { e.stopPropagation(); handlePrune(node.anchor.id); }}
-                    aria-label="Prune"
-                    title="Prune — move to archive"
+                    aria-label={t('planner.pruneAria')}
+                    title={t('planner.pruneTitle')}
                     style={{
                       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                       width: 32, height: 32, borderRadius: 8,
@@ -208,14 +210,14 @@ export function PlannerScreen() {
                   >
                     <Scissors size={14} />
                   </button>
-                  <Badge color="red">Re-plant</Badge>
+                  <Badge color="red">{t('planner.replantBadge')}</Badge>
                 </div>
               );
             })}
 
             {/* D-20: Dying nodes second (heal) */}
             {dyingNodes.map((node) => {
-              const name = node.anchor.title ?? node.anchor.content ?? 'Untitled';
+              const name = node.anchor.title ?? node.anchor.content ?? t('planner.deadFallback');
               return (
                 <div
                   key={`dying-${node.anchor.id}`}
@@ -239,13 +241,13 @@ export function PlannerScreen() {
                       fontSize: '0.78rem', color: 'var(--muted-foreground)',
                       marginTop: '1px', lineHeight: 1.35,
                     }}>
-                      Dying — tap to heal
+                      {t('planner.dyingRowSubtitle')}
                     </p>
                   </div>
                   <button
                     onClick={(e) => { e.stopPropagation(); handlePrune(node.anchor.id); }}
-                    aria-label="Prune"
-                    title="Prune — move to archive"
+                    aria-label={t('planner.pruneAria')}
+                    title={t('planner.pruneTitle')}
                     style={{
                       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                       width: 32, height: 32, borderRadius: 8,
@@ -256,7 +258,7 @@ export function PlannerScreen() {
                   >
                     <Scissors size={14} />
                   </button>
-                  <Badge color="yellow">Heal</Badge>
+                  <Badge color="yellow">{t('planner.healBadge')}</Badge>
                 </div>
               );
             })}
@@ -289,7 +291,7 @@ export function PlannerScreen() {
                 }}
               >
                 <ChevronDown size={14} />
-                Show all {totalSuggestions} suggestions
+                {t('planner.showAllSuggestions', { count: totalSuggestions })}
               </button>
             )}
             {showAllSuggestions && totalSuggestions > TOP_N && (
@@ -304,7 +306,7 @@ export function PlannerScreen() {
                 }}
               >
                 <ChevronUp size={14} />
-                Show less
+                {t('planner.showLess')}
               </button>
             )}
             {filteredAutoMoves.length > 0 && (
@@ -316,7 +318,7 @@ export function PlannerScreen() {
                   fontSize: '0.78rem', marginBottom: '4px',
                 }}
               >
-                Skip all suggestions
+                {t('planner.skipAllSuggestions')}
               </button>
             )}
           </>
