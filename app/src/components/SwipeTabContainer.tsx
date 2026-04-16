@@ -26,6 +26,7 @@ import {
   computeDragOffset,
   resolveCommitIndex,
   shouldBlockGesture,
+  computeTargetX,
 } from '../lib/swipe-tab-logic';
 
 interface SwipeTabContainerProps {
@@ -90,16 +91,53 @@ export function SwipeTabContainer({ screens, routes, children }: SwipeTabContain
     };
   }, []);
 
+  // ── Viewport resize re-sync (Phase 28 D-05) ─────────────────────────────
+  // Without this, a keyboard open/close, device rotation, or browser-UI
+  // expand/collapse leaves `screenWidthRef` stale — subsequent route syncs
+  // use the old width and the strip ends up pointing at a non-existent slot
+  // (e.g. -1374px on a 375px viewport after a resize). Refresh the width
+  // and re-snap whenever the visual viewport changes. Skip while
+  // mid-gesture or mid-animation so we never fight an in-flight motion.
+  useEffect(() => {
+    const resync = () => {
+      screenWidthRef.current = getScreenWidth();
+      const midGesture = lockAxisRef.current === 'x';
+      if (!animatingRef.current && !midGesture) {
+        stripX.set(computeTargetX(activeIndexRef.current, screenWidthRef.current));
+      }
+    };
+    window.addEventListener('resize', resync);
+    window.visualViewport?.addEventListener('resize', resync);
+    return () => {
+      window.removeEventListener('resize', resync);
+      window.visualViewport?.removeEventListener('resize', resync);
+    };
+  }, [stripX]);
+
   // ── Route sync (back button, programmatic navigate, initial load) ───────
   // useLayoutEffect prevents one-frame flash before paint
   useLayoutEffect(() => {
+    // Always refresh width first — a resize event may have fired in the
+    // same tick the user navigated, and we want route-sync to land on the
+    // current viewport, not a stale one.
+    screenWidthRef.current = getScreenWidth();
     const idx = routes.indexOf(location.pathname);
     if (idx !== -1 && idx !== activeIndexRef.current) {
       activeIndexRef.current = idx;
       // Snap immediately — don't interfere with an in-progress animation
       // (navigateToTab / onPanEnd already animate to the correct position)
       if (!animatingRef.current) {
-        stripX.set(-(idx * screenWidthRef.current));
+        stripX.set(computeTargetX(idx, screenWidthRef.current));
+      }
+    }
+    // Dev invariant (Phase 28 D-05): catch regressions where stripX drifts
+    // from its expected position after a route change. Warn only in dev;
+    // production builds strip the branch.
+    if (import.meta.env.DEV && !animatingRef.current) {
+      const expected = computeTargetX(activeIndexRef.current, screenWidthRef.current);
+      if (Math.abs(stripX.get() - expected) > 2) {
+        // eslint-disable-next-line no-console
+        console.warn('[SwipeTabContainer] stripX drift', { actual: stripX.get(), expected });
       }
     }
   }, [location.pathname, routes, stripX]);

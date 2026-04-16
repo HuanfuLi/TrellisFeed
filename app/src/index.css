@@ -91,6 +91,24 @@
 
   /* Bottom navigation height (dynamic based on keyboard presence) */
   --bottom-nav-height: calc(80px + var(--safe-area-bottom));
+
+  /* ─── Spacing scale (Phase 28 D-26) ──────────────────────────────────── */
+  /* 4-grid spacing tokens. Additive — existing hardcoded pixel values are */
+  /* migrated incrementally; no mass refactor in this phase.               */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 20px;
+  --space-2xl: 24px;
+  --space-3xl: 32px;
+
+  /* Canonical sub-screen bottom padding — accounts for BottomNavigation + */
+  /* device safe-area inset (iOS home-indicator, Android gesture zone).    */
+  --bottom-nav-safe: calc(80px + var(--safe-area-bottom));
+
+  /* Canonical between-sections vertical gap for page-level rhythm. */
+  --section-gap: 24px;
 }
 
 /* Locale-specific --font-sans overrides (D-23) — kept un-layered so data-locale cascade wins. */

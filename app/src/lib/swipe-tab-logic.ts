@@ -111,3 +111,17 @@ export function shouldBlockGesture(state: {
 }): boolean {
   return state.keyboardOpen || state.gestureBlocked;
 }
+
+/**
+ * Computes the absolute strip x position for a given screen index and viewport width. (Phase 28 D-05)
+ *
+ * Pure helper surfaced so the resize listener + dev invariant in SwipeTabContainer
+ * can share the same arithmetic without embedding a magic formula.
+ *
+ * @param index - Active screen index (0-based)
+ * @param width - Current viewport width in pixels
+ * @returns Strip translate-x value (negative or zero)
+ */
+export function computeTargetX(index: number, width: number): number {
+  return -index * width;
+}
