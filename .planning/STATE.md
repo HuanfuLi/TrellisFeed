@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
 status: Executing Phase 28
-stopped_at: Completed 27-01-PLAN.md
-last_updated: "2026-04-16T08:29:24.588Z"
+stopped_at: Completed 27-03-PLAN.md
+last_updated: "2026-04-16T08:36:49.000Z"
 progress:
   total_phases: 22
   completed_phases: 6
   total_plans: 35
-  completed_plans: 28
+  completed_plans: 29
 ---
 
 # Project State: Milestone 1.1
@@ -24,7 +24,7 @@ Enhance user engagement through rich post formats (Rednote-style), smarter miles
 
 ## Current Phase
 
-Phase 27 — Add i18n/L10n support (Plan 01 of 07 complete — Foundation + Wave 0 landed)
+Phase 27 — Add i18n/L10n support (Plan 03 of 07 complete — UI root wiring + onboarding language step landed in parallel with 02/06)
 
 ## Roadmap
 
@@ -36,6 +36,23 @@ Phase 27 — Add i18n/L10n support (Plan 01 of 07 complete — Foundation + Wave
 - **Phase 12:** Portal Navigation & Rich Moves Linking (12-01-PLAN.md — COMPLETE, 12-02-PLAN.md — COMPLETE)
 - **Phase 13:** Planner Redesign (13-01-PLAN.md — COMPLETE)
 - **Phase 14:** Knowledge Graph Classification & Anchor Nodes (14-01-PLAN.md — COMPLETE, 14-02-PLAN.md — COMPLETE, 14-03-PLAN.md — COMPLETE, 14-04-PLAN.md — COMPLETE)
+
+## Latest Decisions (Phase 27-03)
+
+- [Phase 27-03] CSS `--font-sans` CSS variable added alongside legacy `--font-family` (non-breaking); body font-family in `@layer base` now reads `var(--font-sans)` so locale cascade flows to body + inherited descendants
+- [Phase 27-03] `:root[data-locale="zh"]` / `:root[data-locale="ja"]` overrides kept UN-LAYERED (outside any @layer directive) so Tailwind 4's cascade always resolves them over `@layer base` defaults — mitigates RESEARCH.md Pitfall 4 without !important
+- [Phase 27-03] zh font stack: `system-ui, -apple-system, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif`; ja: `system-ui, -apple-system, 'Hiragino Sans', 'Yu Gothic', Meiryo, sans-serif`; es reuses :root default (Latin stack); no webfont downloads
+- [Phase 27-03] `LOCALE_CHANGED` added to `AppEvent` union at line 663 of `types/index.ts` (between `TTS_CONFIG_CHANGED` and `ZEROTIER_STATUS_CHANGED` — settings-subsystem grouping); payload `{ locale: SupportedLocale }` — Plan 04 mid-stream abort dependency
+- [Phase 27-03] OnboardingScreen Step union extended: `'welcome' | 'language' | 'consent' | 'llm'`; language step inserted between welcome and consent
+- [Phase 27-03] LOCALE_OPTIONS readonly tuple hoisted to module scope — autonym labels: English / 简体中文 / Español / 日本語
+- [Phase 27-03] Header shown in all 4 scripts (`Language / 语言 / Idioma / 言語`) so user recognizes step regardless of current i18n state
+- [Phase 27-03] `selectedLocale` state seeded via `useState` lazy initializer from `i18n.language` (synchronous) + refined via `useEffect(detectDeviceLocale)` (async) — first paint highlights a real option, no 1-frame FOUC
+- [Phase 27-03] `handleConfirmLanguage`: `i18n.changeLanguage(locale)` awaited → `eventBus.emit LOCALE_CHANGED` → `setStep('consent')` — event emit AFTER i18n state coherent
+- [Phase 27-03] NO mid-step localStorage write in handleConfirmLanguage (single write path via handleSkip/handleContinue) — avoids orphaned preferences if user force-quits mid-onboarding
+- [Phase 27-03] handleSkip + handleContinue write both `locale: selectedLocale` AND `language: selectedLocale` (legacy back-compat per Plan 01 migration contract) to preferences
+- [Phase 27-03] Consent step back button routes to `language` (not `welcome`) — user who picked a language can revisit without reseeing splash
+- [Phase 27-03] Types test expanded: added `LOCALE_CHANGED` subscribe/emit test to `tests/types.appevent.test.mjs` (mirrors existing REVIEW_COMPLETED/CLASSIFICATION_COMPLETED/ANCHOR_DELETED tests)
+- [Phase 27-03] Ran in parallel with 27-02 and 27-06 executors using `--no-verify` commits; only staged files touched by this plan
 
 ## Latest Decisions (Phase 27-01)
 
@@ -140,8 +157,8 @@ Phase 27 — Add i18n/L10n support (Plan 01 of 07 complete — Foundation + Wave
 
 ## Last Session
 
-Completed Phase 27 Plan 01 (27-01-PLAN.md) — i18next + react-i18next + @capacitor/device installed; sync init from main.tsx; UserPreferences.locale + legacy language migration; 11 Wave 0 test files (21 cases pass in ~280ms)
-**Stopped At:** Completed 27-01-PLAN.md
+Completed Phase 27 Plan 03 (27-03-PLAN.md) — UI root wiring: CSS `--font-sans` swap via `:root[data-locale]` (D-23 zh/ja overrides); `LOCALE_CHANGED` registered in AppEvent union (D-22 wiring for Plan 04); OnboardingScreen gains `language` step between welcome and consent with 4-autonym picker + auto-highlight via `detectDeviceLocale()` (D-18). Ran parallel with 27-02/27-06.
+**Stopped At:** Completed 27-03-PLAN.md
 **Date:** 2026-04-16
 
 ## Latest Decisions (Phase 25)
