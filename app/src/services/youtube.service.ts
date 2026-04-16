@@ -5,6 +5,7 @@ import { settingsService } from './settings.service';
 import { chatCompletion } from '../providers/llm/index';
 import { flashcardService } from './flashcard.service';
 import { questionService } from './question.service';
+import { buildYoutubeSearchUrl } from './youtube-locale-url';
 
 // ─── Local Types ──────────────────────────────────────────────────────────────
 
@@ -24,7 +25,6 @@ interface VideoCacheEntry {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const VIDEO_CACHE_KEY = 'echolearn_video_cache';
-const YOUTUBE_SEARCH_URL = 'https://www.googleapis.com/youtube/v3/search';
 
 // Quota cost: 100 units per search call (YouTube Data API v3).
 // Keep this in mind when calling searchVideos in batch.
@@ -156,10 +156,9 @@ export const youtubeService = {
       };
     }
 
-    const url =
-      `${YOUTUBE_SEARCH_URL}?part=snippet&type=video&videoEmbeddable=true` +
-      `&q=${encodeURIComponent(query)}&maxResults=${maxResults}` +
-      `&relevanceLanguage=en&safeSearch=strict&key=${apiKey}`;
+    // D-14: URL now includes locale-aware hl / regionCode / relevanceLanguage
+    // params via the shared buildYoutubeSearchUrl helper.
+    const url = buildYoutubeSearchUrl({ query, maxResults, apiKey });
 
     try {
       const response = await withTimeout(fetch(url), 10_000, null as unknown as Response);

@@ -1,4 +1,19 @@
-import type { TTSConfig } from '../../types';
+import i18next from 'i18next';
+import type { TTSConfig, SupportedLocale } from '../../types';
+
+// ─── Locale-aware TTS voice (D-13) ────────────────────────────────────────────
+// When the user has the default 'alloy' voice, pick a locale-appropriate
+// voice. If the user explicitly chose another voice in SettingsScreen, respect
+// that regardless of locale.
+// NOTE: `LOCALE_VOICE_FALLBACK` is duplicated across providers (llm/tts) to
+// keep each provider JSON-free so `node --test` on Node 25 can import them
+// without JSON-import-attribute errors on src/locales/*.json.
+const LOCALE_VOICE_FALLBACK: Record<SupportedLocale, string> = {
+  en: 'alloy',
+  zh: 'nova',
+  es: 'nova',
+  ja: 'nova',
+};
 
 function timeoutSignal(ms: number): AbortSignal {
   const ac = new AbortController();
@@ -7,8 +22,18 @@ function timeoutSignal(ms: number): AbortSignal {
   return ac.signal;
 }
 
+function resolveVoice(config: TTSConfig): string {
+  const lng = i18next.language as SupportedLocale;
+  const locale: SupportedLocale = lng in LOCALE_VOICE_FALLBACK ? lng : 'en';
+  // Respect user override: any voice other than the default 'alloy' means
+  // the user intentionally picked it in SettingsScreen — don't override.
+  if (config.voice && config.voice !== 'alloy') return config.voice;
+  return LOCALE_VOICE_FALLBACK[locale];
+}
+
 export async function synthesize(text: string, config: TTSConfig): Promise<string> {
   const baseUrl = config.baseUrl?.replace(/\/$/, '') || 'https://api.openai.com';
+  const voice = resolveVoice(config);
   const response = await window.fetch(`${baseUrl}/v1/audio/speech`, {
     method: 'POST',
     headers: {
@@ -18,7 +43,7 @@ export async function synthesize(text: string, config: TTSConfig): Promise<strin
     body: JSON.stringify({
       model: 'tts-1',
       input: text,
-      voice: config.voice,
+      voice,
       speed: config.speed,
     }),
     signal: timeoutSignal(60_000),
