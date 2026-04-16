@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
 status: Executing Phase 27
-stopped_at: Completed 27-05-PLAN.md
-last_updated: "2026-04-16T12:43:36.000Z"
+stopped_at: Completed 27-04-PLAN.md
+last_updated: "2026-04-16T13:00:07.633Z"
 progress:
   total_phases: 22
   completed_phases: 6
   total_plans: 35
-  completed_plans: 32
+  completed_plans: 33
 ---
 
 # Project State: Milestone 1.1
@@ -24,7 +24,24 @@ Enhance user engagement through rich post formats (Rednote-style), smarter miles
 
 ## Current Phase
 
-Phase 27 — Add i18n/L10n support (Plan 05 of 07 complete — all 13 screen-level files in app/src/screens/ now t()-driven with 464 new keys across 11 screen namespaces; 5 of 7 plans done: 01, 02, 03, 05, 06; remaining: 04 (useQuestions mid-stream abort + Settings switcher), 07 (Sonnet subagent translation + UAT))
+Phase 27 — Add i18n/L10n support (Plan 04 of 07 complete — SettingsScreen locale switcher live (D-19); LOCALE_CHANGED aborts in-flight LLM streams via shared AbortController + composeSignal plumbing across all 7 provider fetch sites; useQuestions guards Pass 1 + Pass 2 + pre-persistence with 6 aborted checks and toasts on abort (D-22). 6 of 7 plans done: 01, 02, 03, 04, 05, 06; remaining: 07 (Sonnet subagent translation + UAT))
+
+## Latest Decisions (Phase 27-04)
+
+- [Phase 27-04] SettingsScreen gains a 4-language picker at the TOP of the rendered tree (before first SectionHeader), inside a dedicated Card. Select triggers `handleLocaleChange` which awaits `i18nInstance.changeLanguage(next)`, persists `preferences.locale` (+ legacy `preferences.language` back-compat), then `eventBus.emit({ type: 'LOCALE_CHANGED', payload: { locale: next } })`. 5 always-mounted screens re-render instantly via useTranslation subscribers — D-19 complete.
+- [Phase 27-04] Row LABEL hardcoded as `Language / 语言 / Idioma / 言語` per D-18/D-19 (cross-locale affordance — findable from any locale state); description translated via `t('settings.language.description')` seeded by Plan 01; per-option labels stay in native scripts (English / 简体中文 / Español / 日本語).
+- [Phase 27-04] `CompletionOptions.signal?: AbortSignal` added to `providers/llm/index.ts` — caller-supplied abort surface on both chatCompletion and chatStream.
+- [Phase 27-04] `composeSignal(callerSignal, ms)` helper composes caller abort with per-call timeout via `AbortSignal.any` (modern Chromium 116+ / Safari 17.4+ / Node 20+) with manual-forwarder fallback for older runtimes. Signal threaded through all 7 fetch call sites (localPost, openAI completion/stream, claude completion/stream, gemini completion/stream) — up from the plan's assumed 6 because localPost also required plumbing (Android-local streaming path).
+- [Phase 27-04] `useQuestions.askStreaming` creates ONE `AbortController` per call (declared before the `try`), subscribes to LOCALE_CHANGED inside the try, passes the SAME `abortController.signal` to BOTH Pass 1 and Pass 2 chatStream calls — a single LOCALE_CHANGED event aborts whichever pass is live (the plan called this out as the most common executor mistake; followed the annotated template verbatim).
+- [Phase 27-04] 6 aborted-guards in useQuestions: Pass 1 loop entry + post-Pass-1 guard + Pass 2 loop entry + post-Pass-2 guard + final pre-persistence guard + catch-level abort check. Every buildAndSave path preceded by a guard; catch block short-circuits AbortError to the clean toast path instead of NETWORK_ERROR.
+- [Phase 27-04] Toast on abort uses `i18n.t('ask.localeChangedDiscarded')` (seeded by Plan 01 canonical en.json). Function returns `null` without calling `questionService.buildAndSave` — the half-English / half-Japanese partial never reaches storage.
+- [Phase 27-04] `finally { unsubLocale(); }` ensures the LOCALE_CHANGED subscription is cleaned up on every path (success, abort, throw) — prevents leak across repeated askStreaming calls.
+- [Phase 27-04] TDD cadence: RED commit (`c93ecf46`) introduced 4 failing assertions first; GREEN commit (`7e301831`) landed provider + useQuestions implementation making them pass. Plus Task 1 implementation (`da5c69b5`).
+- [Phase 27-04] Deviation: used direct `settingsService.getSync/.set` instead of the `useSettings` hook the plan illustrated — every other row in SettingsScreen uses the direct pattern, so introducing the hook just for locale would create two parallel settings-snapshot sources inside one component. Documented inline in the code comment and SUMMARY.
+- [Phase 27-04] Deviation: added `callerSignal?` param to `localPost` helper (not explicitly in the plan's Step 1(c) scope) because openAICompletion's native/local branch goes through it — otherwise LOCALE_CHANGED would silently not cancel Android-local completions. Total `signal: composeSignal(...)` call sites rose from the plan's assumed 6 to 7.
+- [Phase 27-04] Deviation: removed dead `void options;` statements from claudeStream + geminiStream — now that `options?.signal` is actually consumed, the silencer lines became dead code.
+- [Phase 27-04] All 48 Wave 0 tests green (bundle-parity, missing-key, data-locale-attr, settings-locale, locale-detect, date.locale, llm-locale-injection, tts-locale, youtube-locale, web-search-no-locale, types.appevent, useQuestions-locale-abort). `npx vite build` green (3.0s). Zero new tsc errors in touched files — 8 pre-existing errors in GraphScreen/canonical-knowledge/review/trellis-state persist per Plan 01 deferred-items.md.
+- [Phase 27-04] `AbortSignal.any` available in test runtime (Node 25) — the modern compositor branch is what shipped during tests; manual-forwarder fallback retained for older native WebViews (mostly iOS 17.3 and earlier).
 
 ## Roadmap
 
@@ -206,8 +223,8 @@ Phase 27 — Add i18n/L10n support (Plan 05 of 07 complete — all 13 screen-lev
 
 ## Last Session
 
-Completed Phase 27 Plan 05 (27-05-PLAN.md) — Screen-level i18n extraction: all 13 `.tsx` files in `app/src/screens/` now import `useTranslation()` and render user-visible strings via `t()`. 464 new flattened keys added to en.json (138 → 602) spanning 11 screen namespaces — home/planner/ask/review/graph/podcast/settings/onboarding/posts/questionDetail + graph.anchor/cluster + posts.detail/qa/connection/image sub-namespaces. zh/es/ja bundles parity-mirrored. OnboardingScreen's Plan-03 cross-locale language step labels preserved verbatim per D-18/D-19 (4-language header, 4 autonyms, cross-locale continue button). Pluralization via explicit countOne/countOther keys. Imperative `i18n.t()` used in 3 outside-hook contexts (AskScreen module-scope callback, GraphScreen buildMindElixirData, PostDetailScreen skeleton posts). Scope deferrals: MILESTONE_POOL (content blurbs, not UI chrome), AskScreen LLM system prompts (D-07 no-runtime-translate), provider model names (proper nouns). Zero new tsc errors; vite build green. Commits: `34cdab1e` (Task 1 — 8 first-level/secondary screens), `adc760b6` (Task 2 — 5 detail/sub screens).
-**Stopped At:** Completed 27-05-PLAN.md
+Completed Phase 27 Plan 04 (27-04-PLAN.md) — Locale switcher + mid-stream abort. SettingsScreen gains a 4-language picker at the top (D-19) that calls `i18n.changeLanguage`, persists `preferences.locale` (+ legacy `language` back-compat), and emits `LOCALE_CHANGED`. Row LABEL hardcoded as `Language / 语言 / Idioma / 言語` for cross-locale affordance. `providers/llm/index.ts` gains `CompletionOptions.signal?: AbortSignal` + a `composeSignal(callerSignal, ms)` helper that uses `AbortSignal.any` (Chromium 116+ / Safari 17.4+ / Node 20+) with manual-forwarder fallback; signal threaded through all 7 fetch call sites (openAI completion/stream, claude completion/stream, gemini completion/stream, plus localPost for Android-local streaming). `useQuestions.askStreaming` declares ONE shared AbortController at the top of the try, subscribes to LOCALE_CHANGED once, passes the same signal to BOTH Pass 1 and Pass 2 chatStream calls, and guards every buildAndSave path with 6 aborted-checks (loop entries, post-loop, pre-persistence, catch-level AbortError short-circuit) — toasts `ask.localeChangedDiscarded` and returns null on abort so partial half-English/half-Japanese output never persists (D-22). TDD cadence: RED commit landed failing test first, GREEN commit made all 4 assertions pass. 48 Wave 0 tests green; `npx vite build` green (3.0s); zero new tsc errors. Deviations: used direct `settingsService.getSync/.set` instead of `useSettings` hook (matches existing SettingsScreen convention); added `callerSignal?` param to `localPost` (LOCALE_CHANGED was silently not cancelling Android-local completions otherwise); removed dead `void options;` statements from claudeStream + geminiStream. Commits: `da5c69b5` (Task 1 — locale switcher), `c93ecf46` (Task 2 RED — failing test), `7e301831` (Task 2 GREEN — provider plumbing + useQuestions abort).
+**Stopped At:** Completed 27-04-PLAN.md
 **Date:** 2026-04-16
 
 ## Latest Decisions (Phase 25)

@@ -662,13 +662,13 @@ Plans:
 **Goal:** Introduce i18n/L10n plumbing across EchoLearn (UI chrome, dates, LLM response locale, TTS voice, YouTube params) shipping 4 fully-translated locales (EN canonical + Simplified Chinese + Spanish + Japanese). Auto-detected at launch, confirmed during onboarding, switchable instantly from Settings, persisted in UserPreferences. No RTL, no retroactive translation of stored content, no runtime LLM translation (dev-time Sonnet subagent only).
 **Requirements**: D-01..D-24 (see 27-CONTEXT.md — no tracked REQ-IDs; decisions are the requirement surface)
 **Depends on:** Phase 26
-**Plans:** 5/7 plans executed
+**Plans:** 6/7 plans executed
 
 Plans:
 - [x] 27-01-PLAN.md — Foundation & Wave 0: install deps, locale bundles + i18n.init, UserPreferences.locale + migration, all Wave 0 test files (wave 1)
 - [x] 27-02-PLAN.md — Central integrations: LLM locale injection (D-12), TTS voice map (D-13), YouTube params (D-14), web-search neutrality (D-15), date.ts refactor (D-11) (wave 2)
 - [x] 27-03-PLAN.md — Font-stack per-locale CSS (D-23), LOCALE_CHANGED AppEvent (D-22 wiring), OnboardingScreen language step (D-18) (wave 2)
-- [ ] 27-04-PLAN.md — SettingsScreen locale switcher (D-19) + mid-stream LLM abort on LOCALE_CHANGED (D-22) (wave 4)
+- [x] 27-04-PLAN.md — SettingsScreen locale switcher (D-19) + mid-stream LLM abort on LOCALE_CHANGED (D-22) (wave 4)
 - [x] 27-05-PLAN.md — Screen UI string extraction (13 screens → en.json; zh/es/ja parity stubs) (D-10) (wave 3)
 - [x] 27-06-PLAN.md — Component + UI + trellis + toast string extraction (D-10) (wave 2)
 - [ ] 27-07-PLAN.md — Sonnet-subagent translation of zh/es/ja + CLAUDE.md creation with i18n Workflow section (D-02/D-03/D-07/D-08/D-09) + D-24 UAT walkthrough (wave 5)
