@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
 status: Executing Phase 27
-stopped_at: Completed 27-02-PLAN.md
-last_updated: "2026-04-16T12:08:51.806Z"
+stopped_at: Completed 27-05-PLAN.md
+last_updated: "2026-04-16T12:43:36.000Z"
 progress:
   total_phases: 22
   completed_phases: 6
   total_plans: 35
-  completed_plans: 31
+  completed_plans: 32
 ---
 
 # Project State: Milestone 1.1
@@ -24,7 +24,7 @@ Enhance user engagement through rich post formats (Rednote-style), smarter miles
 
 ## Current Phase
 
-Phase 27 — Add i18n/L10n support (Plan 02 of 07 complete — central LLM/TTS/YouTube locale injection + date.ts refactor + Tavily neutrality guard landed; 4 of 7 plans done: 01, 02, 03, 06)
+Phase 27 — Add i18n/L10n support (Plan 05 of 07 complete — all 13 screen-level files in app/src/screens/ now t()-driven with 464 new keys across 11 screen namespaces; 5 of 7 plans done: 01, 02, 03, 05, 06; remaining: 04 (useQuestions mid-stream abort + Settings switcher), 07 (Sonnet subagent translation + UAT))
 
 ## Roadmap
 
@@ -36,6 +36,25 @@ Phase 27 — Add i18n/L10n support (Plan 02 of 07 complete — central LLM/TTS/Y
 - **Phase 12:** Portal Navigation & Rich Moves Linking (12-01-PLAN.md — COMPLETE, 12-02-PLAN.md — COMPLETE)
 - **Phase 13:** Planner Redesign (13-01-PLAN.md — COMPLETE)
 - **Phase 14:** Knowledge Graph Classification & Anchor Nodes (14-01-PLAN.md — COMPLETE, 14-02-PLAN.md — COMPLETE, 14-03-PLAN.md — COMPLETE, 14-04-PLAN.md — COMPLETE)
+
+## Latest Decisions (Phase 27-05)
+
+- [Phase 27-05] All 13 `.tsx` files in `app/src/screens/` now import `useTranslation()` and render user-visible strings via `t()` — completes D-10 screen-layer extraction (complement to Plan 06's components + service-layer extraction)
+- [Phase 27-05] 464 new flattened keys added to en.json (138 → 602 total): home.bento.*, planner.toast.*, ask.* (drawer, history, welcome, suggestedPrompts, rateLimit, postThread), review.library.*/miniMap.*/session.*/done.*, graph.* (reorganizeModal, selected, toast, anchor, cluster), podcast.* (player, generateCard, knowledgeToday, insertBanner, toast), settings.* (14 sub-namespaces: sections, fields, descriptions, placeholders, providerLabels, voices, themes, toast, confirm, test, planner, buttons, cacheStats, usageTable, zerotier, about), onboarding.welcome/consent/llm.*, posts.detail/qa/connection/image.*, questionDetail.*
+- [Phase 27-05] zh/es/ja bundles mirrored with EN-duplicate values for all 464 new keys — bundle-parity test green; Plan 07 Sonnet subagent translates
+- [Phase 27-05] Cross-locale branded labels in OnboardingScreen language step (Plan 03 output) preserved verbatim per D-18/D-19: "Language / 语言 / Idioma / 言語" header, "Continue · 继续 · Continuar · 続ける" button, 4 per-option autonyms (English/简体中文/Español/日本語), and "Choose your language · 选择语言 · Elige tu idioma · 言語を選択" subheader — NEVER enter en.json
+- [Phase 27-05] Pluralization via explicit countOne/countOther key pairs selected by ternary at call site — cleaner for Plan 07 translators than i18next plural suffix system, downstream code idiomatic JS (9 pluralization sites)
+- [Phase 27-05] Imperative `i18n.t()` used in 3 module-scope / outside-hook contexts: (a) AskScreen toast inside useCallback with `[]` deps (avoids stale-closure), (b) GraphScreen buildMindElixirData root label (function called during effect setup), (c) PostDetailScreen skeleton post construction inside useEffect (before first render)
+- [Phase 27-05] HomeScreen local `const t = today()` renamed to `todayDate` to avoid collision with useTranslation's `t`
+- [Phase 27-05] AskScreen SUGGESTED_PROMPTS converted to SUGGESTED_PROMPT_KEYS (module-scope array of key paths); component renders via `t(key)` at mount for translation reactivity
+- [Phase 27-05] HomeScreen MILESTONE_POOL (5 static trivia/milestone content cards) deliberately left hardcoded — content blurbs vs UI chrome distinction; documented deferral to future content-localization phase
+- [Phase 27-05] AskScreen LLM system prompts in generateSessionTitle hardcoded in EN per D-07 — EN prompts give LLM better instruction comprehension; ask.titleSystemPrompt keys exist in en.json as future option but code uses literal for LLM-quality stability
+- [Phase 27-05] Provider model names (e.g., gpt-4o, claude-sonnet-4-6, gemini-3.1-flash-image-preview, llama3) left hardcoded — proper-noun technical identifiers
+- [Phase 27-05] SettingsScreen test-result strings keep '✓'/'✗' emoji prefix — downstream color logic `.startsWith('✓')` depends on it; only trailing "Failed"/"Empty vector"/"No API keys configured" fallbacks translated
+- [Phase 27-05] Interpolation placeholders: {{count}} (14 sites for plurals), {{minutes/progress/ms}} (timing), {{revealed}}+{{total}} (mini map), {{reviewed}}+{{total}} (session), {{title}}+{{concept}} (move breadcrumbs + learn-as-post titles), {{error}}+{{message}} (error passthroughs), {{limit}}+{{resetDate}} (rate limits), {{mb}}+{{size}} (cache stats), {{server}} (zerotier blurb), {{anchorCount}}+{{qaCount}} (graph selected), {{clusterCount}}+{{anchorCount}} (graph reorganize toast), {{summary}} (settings planner check-in), {{date}} (usage table)
+- [Phase 27-05] Wave 3 solo executor — ran after Plan 03 (Onboarding language step) was committed; no file-level coordination conflicts
+- [Phase 27-05] Pre-existing tsc errors (8, from Plan 01 deferred-items.md) remain — zero new tsc errors introduced; `npx vite build` green; `node --test` on all 5 locale-related test files (bundle-parity, missing-key, data-locale-attr, settings-locale, locale-detect) passes 15/15
+- [Phase 27-05] Plan met acceptance: (a) all 13 screen files contain `useTranslation` import + at least one `t(` call, (b) bundle-parity test green, (c) OnboardingScreen cross-locale labels grep-positive, (d) vite build green
 
 ## Latest Decisions (Phase 27-02)
 
@@ -187,8 +206,8 @@ Phase 27 — Add i18n/L10n support (Plan 02 of 07 complete — central LLM/TTS/Y
 
 ## Last Session
 
-Completed Phase 27 Plan 02 (27-02-PLAN.md) — Central integrations: LLM locale injection via `applyLocaleDirective` at every chatCompletion/chatStream entry (D-12); TTS nova voice for zh/es/ja with user-override respect (D-13); YouTube URL `hl/regionCode/relevanceLanguage` per locale (D-14); Tavily neutrality locked by negative test (D-15); `date.ts` + `ask-rate-limiter` use Intl with active locale, `getGreeting` routes through `t()` (D-11). `applyLocaleDirective` + `buildYoutubeSearchUrl` extracted to standalone modules (`providers/llm/locale-directive.ts`, `services/youtube-locale-url.ts`) for Node 25 node:test compatibility. Continuation agent (parallel with 27-06) committed final D-11 task `dc8455a7`; Tasks 1+2 from prior session (`be59b5bf`, `9b8b3c5c`). 40-test Wave 0 suite green. Plan 27-06 also completed in parallel (`21e87579`, `b7ac54cf`).
-**Stopped At:** Completed 27-02-PLAN.md
+Completed Phase 27 Plan 05 (27-05-PLAN.md) — Screen-level i18n extraction: all 13 `.tsx` files in `app/src/screens/` now import `useTranslation()` and render user-visible strings via `t()`. 464 new flattened keys added to en.json (138 → 602) spanning 11 screen namespaces — home/planner/ask/review/graph/podcast/settings/onboarding/posts/questionDetail + graph.anchor/cluster + posts.detail/qa/connection/image sub-namespaces. zh/es/ja bundles parity-mirrored. OnboardingScreen's Plan-03 cross-locale language step labels preserved verbatim per D-18/D-19 (4-language header, 4 autonyms, cross-locale continue button). Pluralization via explicit countOne/countOther keys. Imperative `i18n.t()` used in 3 outside-hook contexts (AskScreen module-scope callback, GraphScreen buildMindElixirData, PostDetailScreen skeleton posts). Scope deferrals: MILESTONE_POOL (content blurbs, not UI chrome), AskScreen LLM system prompts (D-07 no-runtime-translate), provider model names (proper nouns). Zero new tsc errors; vite build green. Commits: `34cdab1e` (Task 1 — 8 first-level/secondary screens), `adc760b6` (Task 2 — 5 detail/sub screens).
+**Stopped At:** Completed 27-05-PLAN.md
 **Date:** 2026-04-16
 
 ## Latest Decisions (Phase 25)
