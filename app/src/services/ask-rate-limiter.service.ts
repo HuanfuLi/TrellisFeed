@@ -1,3 +1,5 @@
+import { currentIntlLocale } from '../lib/date.ts';
+
 const STORAGE_KEY = 'echolearn_ask_rate_limit';
 
 interface RateLimitStore {
@@ -20,7 +22,7 @@ function currentYearMonth(): string {
 function getResetDate(): string {
   const d = new Date();
   const nextMonth = new Date(d.getFullYear(), d.getMonth() + 1, 1);
-  return nextMonth.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  return nextMonth.toLocaleDateString(currentIntlLocale(), { month: 'long', day: 'numeric', year: 'numeric' });
 }
 
 function load(): RateLimitStore {
