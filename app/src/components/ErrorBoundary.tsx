@@ -1,5 +1,6 @@
 import { Component } from 'react';
 import type { ErrorInfo, ReactNode } from 'react';
+import i18n from '../locales';
 
 interface Props {
   children: ReactNode;
@@ -25,9 +26,9 @@ export class ErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       return (
         <div style={{ padding: '48px 24px', maxWidth: '448px', margin: '0 auto', textAlign: 'center' }}>
-          <p style={{ fontSize: '2rem', marginBottom: '16px' }}>Something went wrong</p>
+          <p style={{ fontSize: '2rem', marginBottom: '16px' }}>{i18n.t('errorBoundary.title')}</p>
           <p style={{ color: 'var(--muted-foreground)', marginBottom: '24px', fontSize: '0.9rem', lineHeight: 1.5 }}>
-            {this.state.error?.message || 'An unexpected error occurred.'}
+            {this.state.error?.message || i18n.t('errorBoundary.fallbackMessage')}
           </p>
           <button
             onClick={() => {
@@ -45,7 +46,7 @@ export class ErrorBoundary extends Component<Props, State> {
               cursor: 'pointer',
             }}
           >
-            Go to Home
+            {i18n.t('errorBoundary.goHome')}
           </button>
         </div>
       );

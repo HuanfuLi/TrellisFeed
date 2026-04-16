@@ -2,6 +2,7 @@ import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Pin } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { hapticImpactLight } from '../lib/haptics';
 
 interface FlashcardProps {
@@ -12,16 +13,17 @@ interface FlashcardProps {
   onTogglePin?: () => void;
 }
 
-const ratingConfig = [
-  { value: 1, label: '1', color: 'var(--danger)', description: 'Again' },
-  { value: 2, label: '2', color: '#FF8A65', description: 'Hard' },
-  { value: 3, label: '3', color: '#FFD54F', description: 'Good' },
-  { value: 4, label: '4', color: '#9CCC65', description: 'Easy' },
-  { value: 5, label: '5', color: '#558B2F', description: 'Perfect' },
-];
-
 export function Flashcard({ front, back, onRate, pinned, onTogglePin }: FlashcardProps) {
+  const { t } = useTranslation();
   const [isFlipped, setIsFlipped] = useState(false);
+
+  const ratingConfig = [
+    { value: 1, label: '1', color: 'var(--danger)', description: t('flashcard.rating.again') },
+    { value: 2, label: '2', color: '#FF8A65', description: t('flashcard.rating.hard') },
+    { value: 3, label: '3', color: '#FFD54F', description: t('flashcard.rating.good') },
+    { value: 4, label: '4', color: '#9CCC65', description: t('flashcard.rating.easy') },
+    { value: 5, label: '5', color: '#558B2F', description: t('flashcard.rating.perfect') },
+  ];
 
   const handleRate = (rating: number) => {
     void hapticImpactLight();
@@ -51,7 +53,7 @@ export function Flashcard({ front, back, onRate, pinned, onTogglePin }: Flashcar
         {onTogglePin && (
           <button
             onClick={(e) => { e.stopPropagation(); onTogglePin(); }}
-            title={pinned ? 'Unpin card' : 'Pin card (review every day)'}
+            title={pinned ? t('flashcard.unpinTitle') : t('flashcard.pinTitle')}
             style={{
               position: 'absolute',
               top: '12px',
@@ -86,7 +88,7 @@ export function Flashcard({ front, back, onRate, pinned, onTogglePin }: Flashcar
                   textAlign: 'center',
                 }}
               >
-                Question
+                {t('flashcard.question')}
               </p>
               <div className="md-prose" style={{ fontSize: '1.25rem', lineHeight: 1.6, textAlign: 'center' }}>
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>{front}</ReactMarkdown>
@@ -104,7 +106,7 @@ export function Flashcard({ front, back, onRate, pinned, onTogglePin }: Flashcar
                   textAlign: 'center',
                 }}
               >
-                Answer
+                {t('flashcard.answer')}
               </p>
               <div className="md-prose" style={{ fontSize: '1.05rem', lineHeight: 1.7 }}>
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>{back}</ReactMarkdown>
@@ -130,7 +132,7 @@ export function Flashcard({ front, back, onRate, pinned, onTogglePin }: Flashcar
           onPointerEnter={(e) => (e.currentTarget.style.transform = 'scale(1.02)')}
           onPointerLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
         >
-          Show Answer
+          {t('flashcard.showAnswer')}
         </button>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -143,7 +145,7 @@ export function Flashcard({ front, back, onRate, pinned, onTogglePin }: Flashcar
               letterSpacing: '0.05em',
             }}
           >
-            How well did you know this?
+            {t('flashcard.selfRatePrompt')}
           </p>
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
             {ratingConfig.map((rating) => (

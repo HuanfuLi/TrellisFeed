@@ -1,8 +1,11 @@
+import { useTranslation } from 'react-i18next';
+
 interface YouTubeEmbedProps {
   videoId: string;
 }
 
 export function YouTubeEmbed({ videoId }: YouTubeEmbedProps) {
+  const { t } = useTranslation();
   return (
     <div
       style={{
@@ -27,7 +30,7 @@ export function YouTubeEmbed({ videoId }: YouTubeEmbedProps) {
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
         referrerPolicy="strict-origin"
         allowFullScreen
-        title="YouTube video player"
+        title={t('youTubeEmbed.playerTitle')}
       />
     </div>
   );

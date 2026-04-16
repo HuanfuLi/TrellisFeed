@@ -12,19 +12,19 @@
 
 import { BookOpen, HelpCircle, Headphones, Layers, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import type { PlannedMove, PlannedMoveType } from '../types';
 import { navigateToMove } from '../lib/moveNavigator';
 
 // ── Move type CTA config (icon-only) ────────────────────────────────────────
 
-const MOVE_TYPE_CONFIG: Record<PlannedMoveType, {
-  ctaIcon: React.ReactNode;
-  label: string;
-}> = {
-  review: { ctaIcon: <Layers size={14} />, label: 'Review' },
-  read: { ctaIcon: <BookOpen size={14} />, label: 'Read' },
-  compare: { ctaIcon: <HelpCircle size={14} />, label: 'Compare' },
-  podcast: { ctaIcon: <Headphones size={14} />, label: 'Podcast' },
+type MoveTypeConfig = { ctaIcon: React.ReactNode; labelKey: 'portalCard.review' | 'portalCard.read' | 'portalCard.compare' | 'portalCard.podcast' };
+
+const MOVE_TYPE_CONFIG: Record<PlannedMoveType, MoveTypeConfig> = {
+  review: { ctaIcon: <Layers size={14} />, labelKey: 'portalCard.review' },
+  read: { ctaIcon: <BookOpen size={14} />, labelKey: 'portalCard.read' },
+  compare: { ctaIcon: <HelpCircle size={14} />, labelKey: 'portalCard.compare' },
+  podcast: { ctaIcon: <Headphones size={14} />, labelKey: 'portalCard.podcast' },
 };
 
 /** Returns a dot color reflecting mastery signal for a planned move. */
@@ -69,6 +69,7 @@ export function buildPortalData(
 // ── PortalCard component ─────────────────────────────────────────────────────
 
 export function PortalCard({ data, onAccept, onDismiss, onNavigate }: PortalCardProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const config = MOVE_TYPE_CONFIG[data.primaryAction] ?? MOVE_TYPE_CONFIG.review;
 
@@ -119,7 +120,7 @@ export function PortalCard({ data, onAccept, onDismiss, onNavigate }: PortalCard
       <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
         <button
           onClick={handlePrimaryCTA}
-          title={config.label}
+          title={t(config.labelKey)}
           className="active-squish"
           style={{
             width: '30px', height: '30px', borderRadius: '8px',
@@ -132,7 +133,7 @@ export function PortalCard({ data, onAccept, onDismiss, onNavigate }: PortalCard
         </button>
         <button
           onClick={() => onDismiss(data.move.id)}
-          title="Dismiss"
+          title={t('portalCard.dismissTitle')}
           className="active-squish"
           style={{
             width: '30px', height: '30px', borderRadius: '8px',

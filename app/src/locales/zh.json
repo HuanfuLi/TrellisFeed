@@ -8,13 +8,53 @@
       "morning": "Good Morning",
       "afternoon": "Good Afternoon",
       "evening": "Good Evening"
+    },
+    "nav": {
+      "home": "Home",
+      "planner": "Planner",
+      "ask": "Ask",
+      "graph": "Graph",
+      "settings": "Settings"
+    },
+    "action": {
+      "send": "Send",
+      "regenerate": "Regenerate",
+      "edit": "Edit",
+      "editPrompt": "Edit Prompt",
+      "restore": "Restore",
+      "deleteForever": "Delete forever",
+      "moreOptions": "More options"
+    },
+    "toast": {
+      "micPermissionDenied": "Microphone permission denied. Check app settings.",
+      "micInUse": "Microphone is in use by another app.",
+      "micUnsupported": "Recording not supported on this device.",
+      "micGenericError": "Could not access microphone. Try again.",
+      "restoredToTrellis": "Restored to trellis",
+      "permanentlyDeleted": "Permanently deleted",
+      "transcriptionMissingKey": "Add your API key in Text-to-Speech & Speech Recognition settings.",
+      "transcriptionFailed": "Transcription failed: {{message}}"
     }
   },
   "home": {
     "title": "Home"
   },
   "planner": {
-    "title": "Planner"
+    "title": "Planner",
+    "trellis": {
+      "ariaLabel": "Knowledge garden — your review health visualization",
+      "emptyTitle": "Plant your first seed",
+      "emptyBody": "Your knowledge garden grows as you ask questions. Ask one to start.",
+      "askCta": "Ask a question →",
+      "dying": "Dying",
+      "fruits": "Fruits",
+      "harvest": "Harvest",
+      "dead": "Dead",
+      "harvestAria": "Harvest {{count}} fruit",
+      "pruned": "Pruned ({{count}})",
+      "restoreTitle": "Restore to trellis",
+      "deleteForeverTitle": "Delete forever"
+    }
   },
   "ask": {
     "title": "Ask",
@@ -44,5 +84,106 @@
       "title": "Language / 语言 / Idioma / 言語",
       "continue": "Continue"
     }
+  },
+  "chatInput": {
+    "placeholder": "Ask anything...",
+    "listening": "🎙 Listening…",
+    "stopRecordingTitle": "Stop recording",
+    "voiceInputTitle": "Voice input",
+    "webSearchOn": "Web search ON (tap to disable)",
+    "webSearchOff": "Web search OFF (tap to enable)",
+    "tapMicAgainHint": "Tap the mic again to stop"
+  },
+  "chatMessage": {
+    "sources": "Sources",
+    "cancel": "Cancel",
+    "send": "Send",
+    "editPrompt": "Edit Prompt",
+    "regenerate": "Regenerate",
+    "delete": "Delete",
+    "offTopic": "Off-topic",
+    "offTopicPrompt": "This looks off-topic. Save anyway?",
+    "saveAnyway": "Yes, save anyway",
+    "discard": "Discard",
+    "relatedKnowledge": "🔗 Related Knowledge:"
+  },
+  "conceptCard": {
+    "viewDetails": "View details"
+  },
+  "flashcard": {
+    "question": "Question",
+    "answer": "Answer",
+    "showAnswer": "Show Answer",
+    "selfRatePrompt": "How well did you know this?",
+    "pinTitle": "Pin card (review every day)",
+    "unpinTitle": "Unpin card",
+    "rating": {
+      "again": "Again",
+      "hard": "Hard",
+      "good": "Good",
+      "easy": "Easy",
+      "perfect": "Perfect"
+    }
+  },
+  "infoFlow": {
+    "newsTag": "NEWS",
+    "shortTag": "Short",
+    "byChannel": "by {{channel}}",
+    "concept": "Concept",
+    "postImageAlt": "Short video",
+    "emptyTitle": "Nothing to explore yet",
+    "emptyBodyImmersive": "Ask a few questions and Home will turn them into hook-driven concept posts.",
+    "emptyBodyInline": "Ask a few questions and this space will turn them into hook-first concept posts.",
+    "endOfFlow": "You've reached the end of today's curiosity flow",
+    "curiosityFeed": "Curiosity Feed",
+    "postsWaiting": "{{count}} posts waiting",
+    "postsReady": "{{count}} posts ready",
+    "askToStart": "Ask to start your feed",
+    "startWithOneQuestion": "Start with one question",
+    "conceptsCount": "{{count}} concepts",
+    "linksCount": "{{count}} links",
+    "connectionsCount": "{{count}} connections",
+    "conceptsLabel": "concepts",
+    "connectionsLabel": "connections",
+    "open": "Open",
+    "more": "More",
+    "generating": "Generating..."
+  },
+  "portalCard": {
+    "review": "Review",
+    "read": "Read",
+    "compare": "Compare",
+    "podcast": "Podcast",
+    "dismissTitle": "Dismiss"
+  },
+  "postCarousel": {
+    "singleImageAlt": "Post illustration",
+    "multiImageAlt": "Post image {{current}} of {{total}}",
+    "counterAria": "Image {{current}} of {{total}}"
+  },
+  "pullUpHint": {
+    "loading": "Loading more posts...",
+    "releaseToLoad": "Release to load",
+    "pullToLoad": "Pull up to load more",
+    "loadingAria": "Loading more posts",
+    "pullToLoadAria": "Pull up to load more posts"
+  },
+  "youTubeEmbed": {
+    "playerTitle": "YouTube video player"
+  },
+  "errorBoundary": {
+    "title": "Something went wrong",
+    "fallbackMessage": "An unexpected error occurred.",
+    "goHome": "Go to Home"
+  },
+  "feedPostImage": {
+    "alt": "Post preview image"
+  },
+  "detailMenu": {
+    "moreOptionsAria": "More options",
+    "delete": "Delete",
+    "confirmPrompt": "Delete {{label}}? This cannot be undone.",
+    "defaultLabel": "this item",
+    "cancel": "Cancel"
   }
 }

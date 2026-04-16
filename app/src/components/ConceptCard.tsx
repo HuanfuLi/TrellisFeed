@@ -1,4 +1,5 @@
 import { ChevronRight } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Card } from './ui/Card';
 import { Markdown } from './Markdown';
 import type { Question } from '../types';
@@ -13,6 +14,7 @@ interface ConceptCardProps {
 }
 
 export function ConceptCard({ question, onClick, subtitle, badge }: ConceptCardProps) {
+  const { t } = useTranslation();
   const summarySource = question.nodeSummary || question.summary || '';
   const summaryPreview = (() => {
     const first =
@@ -80,7 +82,7 @@ export function ConceptCard({ question, onClick, subtitle, badge }: ConceptCardP
             fontWeight: 600,
           }}
         >
-          <span>View details</span>
+          <span>{t('conceptCard.viewDetails')}</span>
           <ChevronRight size={12} />
         </div>
       </div>

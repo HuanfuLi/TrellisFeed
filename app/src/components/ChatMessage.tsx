@@ -1,5 +1,6 @@
 import { useState, useRef, memo } from 'react';
 import { Pencil, RefreshCw, Trash2, Globe } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Markdown } from './Markdown';
 import { extractCitations } from '../services/web-search.service';
 import type { SourceCitation } from '../types';
@@ -42,6 +43,7 @@ function styleCitationTags(body: string, sources: SourceCitation[]): string {
 }
 
 function SourcesSection({ sources }: { sources: SourceCitation[] }) {
+  const { t } = useTranslation();
   if (sources.length === 0) return null;
   return (
     <div style={{
@@ -63,7 +65,7 @@ function SourcesSection({ sources }: { sources: SourceCitation[] }) {
         marginBottom: '2px',
       }}>
         <Globe size={12} />
-        Sources
+        {t('chatMessage.sources')}
       </div>
       {sources.map((s) => {
         let domain = '';
@@ -111,6 +113,7 @@ export const ChatMessage = memo(function ChatMessage({
   flagged,
   onQuestionOverride,
 }: ChatMessageProps) {
+  const { t } = useTranslation();
   const [showActions, setShowActions] = useState(false);
   const [showOverridePrompt, setShowOverridePrompt] = useState(false);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -181,7 +184,7 @@ export const ChatMessage = memo(function ChatMessage({
                   cursor: 'pointer',
                 }}
               >
-                Cancel
+                {t('chatMessage.cancel')}
               </button>
               <button
                 onClick={onEditSubmit}
@@ -197,7 +200,7 @@ export const ChatMessage = memo(function ChatMessage({
                   opacity: editContent?.trim() ? 1 : 0.5,
                 }}
               >
-                Send
+                {t('chatMessage.send')}
               </button>
             </div>
           </div>
@@ -228,7 +231,7 @@ export const ChatMessage = memo(function ChatMessage({
                   }}
                 >
                   <Pencil size={12} />
-                  Edit Prompt
+                  {t('chatMessage.editPrompt')}
                 </button>
               </div>
             )}
@@ -316,7 +319,7 @@ export const ChatMessage = memo(function ChatMessage({
                 }}
               >
                 <span>⚠️</span>
-                <span>Off-topic</span>
+                <span>{t('chatMessage.offTopic')}</span>
               </button>
 
               {/* Override confirmation — appears inline when badge clicked */}
@@ -332,7 +335,7 @@ export const ChatMessage = memo(function ChatMessage({
                   flexDirection: 'column',
                   gap: '10px',
                 }}>
-                  <div style={{ fontWeight: '500' }}>This looks off-topic. Save anyway?</div>
+                  <div style={{ fontWeight: '500' }}>{t('chatMessage.offTopicPrompt')}</div>
                   <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
                     <button
                       onClick={() => {
@@ -353,7 +356,7 @@ export const ChatMessage = memo(function ChatMessage({
                         fontWeight: '500',
                       }}
                     >
-                      Yes, save anyway
+                      {t('chatMessage.saveAnyway')}
                     </button>
                     <button
                       onClick={() => setShowOverridePrompt(false)}
@@ -369,7 +372,7 @@ export const ChatMessage = memo(function ChatMessage({
                         fontWeight: '500',
                       }}
                     >
-                      Discard
+                      {t('chatMessage.discard')}
                     </button>
                   </div>
                 </div>
@@ -379,7 +382,7 @@ export const ChatMessage = memo(function ChatMessage({
           {relatedKnowledge && relatedKnowledge.length > 0 && (
             <div style={{ marginTop: '16px' }}>
               <p style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--muted-foreground)', marginBottom: '8px' }}>
-                🔗 Related Knowledge:
+                {t('chatMessage.relatedKnowledge')}
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {relatedKnowledge.map((knowledge, index) => (
@@ -437,7 +440,7 @@ export const ChatMessage = memo(function ChatMessage({
               }}
             >
               <RefreshCw size={12} />
-              Regenerate
+              {t('chatMessage.regenerate')}
             </button>
             <button
               onClick={() => { dismiss(); onDelete?.(); }}
@@ -455,7 +458,7 @@ export const ChatMessage = memo(function ChatMessage({
               }}
             >
               <Trash2 size={12} />
-              Delete
+              {t('chatMessage.delete')}
             </button>
           </div>
         )}

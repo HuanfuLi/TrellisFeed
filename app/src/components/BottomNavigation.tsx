@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { motion, useTransform } from 'framer-motion';
 import { Home, GitBranch, Mic, Calendar, Settings } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { hapticImpactLight } from '../lib/haptics';
 import { useSwipeTab } from '../lib/swipe-tab-context';
 
@@ -9,16 +10,6 @@ interface NavItem {
   label: string;
   index: number;
 }
-
-const leftItems: NavItem[] = [
-  { icon: <Home size={22} />, label: 'Home', index: 0 },
-  { icon: <Calendar size={22} />, label: 'Planner', index: 1 },
-];
-
-const rightItems: NavItem[] = [
-  { icon: <GitBranch size={22} />, label: 'Graph', index: 3 },
-  { icon: <Settings size={22} />, label: 'Settings', index: 4 },
-];
 
 // Shared style to suppress all native mobile long-press / callout behaviors
 const noCallout: React.CSSProperties = {
@@ -81,9 +72,20 @@ function TabButton({ item, swipeProgress, onTap }: {
 }
 
 export function BottomNavigation({ onAskLongPress, onAskLongPressRelease }: BottomNavigationProps) {
+  const { t } = useTranslation();
   const { swipeProgress, navigateToTab } = useSwipeTab();
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressFired = useRef(false);
+
+  const leftItems: NavItem[] = [
+    { icon: <Home size={22} />, label: t('common.nav.home'), index: 0 },
+    { icon: <Calendar size={22} />, label: t('common.nav.planner'), index: 1 },
+  ];
+
+  const rightItems: NavItem[] = [
+    { icon: <GitBranch size={22} />, label: t('common.nav.graph'), index: 3 },
+    { icon: <Settings size={22} />, label: t('common.nav.settings'), index: 4 },
+  ];
 
   const handleAskPointerDown = () => {
     longPressFired.current = false;
@@ -199,7 +201,7 @@ export function BottomNavigation({ onAskLongPress, onAskLongPressRelease }: Bott
           }}
         >
           <Mic size={24} />
-          <span style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.02em' }}>Ask</span>
+          <span style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.02em' }}>{t('common.nav.ask')}</span>
         </motion.button>
 
         {/* Right items */}

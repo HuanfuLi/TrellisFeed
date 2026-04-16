@@ -14,6 +14,7 @@
  */
 
 import { ArrowUp, Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export const PULL_THRESHOLD = 100;
 
@@ -24,6 +25,7 @@ interface PullUpHintProps {
 }
 
 export function PullUpHint({ isLoading = false, pullDistance = 0 }: PullUpHintProps) {
+  const { t } = useTranslation();
   const isPastThreshold = pullDistance >= PULL_THRESHOLD;
 
   // Elastic rubber-band: 40% ratio, capped at 60px expansion so it never feels infinite
@@ -48,12 +50,12 @@ export function PullUpHint({ isLoading = false, pullDistance = 0 }: PullUpHintPr
         WebkitUserSelect: 'none',
       }}
       aria-live="polite"
-      aria-label={isLoading ? 'Loading more posts' : 'Pull up to load more posts'}
+      aria-label={isLoading ? t('pullUpHint.loadingAria') : t('pullUpHint.pullToLoadAria')}
     >
       {isLoading ? (
         <>
           <Loader2 size={18} style={{ animation: 'spin 1s linear infinite', flexShrink: 0 }} />
-          <span>Loading more posts...</span>
+          <span>{t('pullUpHint.loading')}</span>
         </>
       ) : (
         <>
@@ -65,7 +67,7 @@ export function PullUpHint({ isLoading = false, pullDistance = 0 }: PullUpHintPr
               transition: 'transform 0.2s ease',
             }}
           />
-          <span>{isPastThreshold ? 'Release to load' : 'Pull up to load more'}</span>
+          <span>{isPastThreshold ? t('pullUpHint.releaseToLoad') : t('pullUpHint.pullToLoad')}</span>
         </>
       )}
     </div>

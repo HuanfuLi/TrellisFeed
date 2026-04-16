@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import type { BlindboxItem, DailyPost, GeneratedImage, Question } from '../types';
 import { FeedPostImage } from './FeedPostImage';
 import { imageGenerationService } from '../services/imageGeneration.service';
@@ -50,6 +51,7 @@ interface ConceptCardProps {
 }
 
 function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: ConceptCardProps) {
+  const { t } = useTranslation();
   // ── Image generation state ──────────────────────────────────────────────────
   // Video/short posts skip AI image generation entirely (D-08: use YouTube thumbnail).
   const isVideoPost = post.sourceType === 'video';
@@ -204,7 +206,7 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
               padding: '3px 8px',
               borderRadius: '100px',
             }}>
-              NEWS
+              {t('infoFlow.newsTag')}
             </span>
             {post.sourceQuestionTitles?.slice(0, 1).map((title, idx) => (
               <span
@@ -325,7 +327,7 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
                   style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none' }}
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
-                  title={normalizedTitle || 'Short video'}
+                  title={normalizedTitle || t('infoFlow.postImageAlt')}
                 />
               </div>
             ) : (
@@ -353,7 +355,7 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
                   padding: '4px 10px',
                   borderRadius: '6px',
                 }}>
-                  Short
+                  {t('infoFlow.shortTag')}
                 </span>
                 <div style={{
                   position: 'absolute',
@@ -452,7 +454,7 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
             </p>
             {isVideoPost && post.videoMeta?.channelTitle && (
               <p style={{ fontSize: '0.78rem', color: 'var(--muted-foreground)', marginBottom: '6px' }}>
-                by {post.videoMeta.channelTitle}
+                {t('infoFlow.byChannel', { channel: post.videoMeta.channelTitle })}
               </p>
             )}
             {/* Preview: show when no image is present */}
@@ -522,6 +524,7 @@ interface ConnectionCardProps {
 }
 
 function ConnectionCard({ conceptNounA, conceptNounB, bridgeInsight, cosineSimilarity: _cosineSimilarity, showScore: _showScore, questionA, questionB, onOpenConnection }: ConnectionCardProps) {
+  const { t } = useTranslation();
   const colors = pickConnectionColors(questionA.id, questionB.id);
 
   return (
@@ -571,7 +574,7 @@ function ConnectionCard({ conceptNounA, conceptNounB, bridgeInsight, cosineSimil
           }}
         >
           <p style={{ fontSize: '0.6rem', fontWeight: 700, color: 'rgba(255,255,255,0.7)', marginBottom: '6px', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-            Concept
+            {t('infoFlow.concept')}
           </p>
           <p style={{ fontSize: '1rem', fontWeight: 800, color: '#ffffff', lineHeight: 1.25 }}>
             {conceptNounA}
@@ -589,7 +592,7 @@ function ConnectionCard({ conceptNounA, conceptNounB, bridgeInsight, cosineSimil
           }}
         >
           <p style={{ fontSize: '0.6rem', fontWeight: 700, color: 'rgba(255,255,255,0.7)', marginBottom: '6px', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-            Concept
+            {t('infoFlow.concept')}
           </p>
           <p style={{ fontSize: '1rem', fontWeight: 800, color: '#ffffff', lineHeight: 1.25 }}>
             {conceptNounB}
@@ -649,6 +652,7 @@ interface ImmersiveInfoFlowProps {
 }
 
 export function ImmersiveInfoFlow({ items, onOpenConnection, onClose, onOpenPost }: ImmersiveInfoFlowProps) {
+  const { t } = useTranslation();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -693,9 +697,9 @@ export function ImmersiveInfoFlow({ items, onOpenConnection, onClose, onOpenPost
           <X size={24} />
         </button>
         <span style={{ fontSize: '2.5rem' }}>✨</span>
-        <p style={{ fontWeight: 700, fontSize: '1.2rem' }}>Nothing to explore yet</p>
+        <p style={{ fontWeight: 700, fontSize: '1.2rem' }}>{t('infoFlow.emptyTitle')}</p>
         <p style={{ color: 'var(--muted-foreground)', fontSize: '0.875rem', textAlign: 'center', padding: '0 32px' }}>
-          Ask a few questions and Home will turn them into hook-driven concept posts.
+          {t('infoFlow.emptyBodyImmersive')}
         </p>
       </div>
     );
@@ -813,7 +817,7 @@ export function ImmersiveInfoFlow({ items, onOpenConnection, onClose, onOpenPost
 
             {index === items.length - 1 && (
               <div style={{ textAlign: 'center', padding: '16px 0 0', color: 'var(--muted-foreground)', fontSize: '0.8rem' }}>
-                You've reached the end of today's curiosity flow
+                {t('infoFlow.endOfFlow')}
               </div>
             )}
           </div>
@@ -838,6 +842,7 @@ interface InlineInfoFlowProps {
 const _seenPostIds = new Set<string>();
 
 export function InlineInfoFlow({ items, onOpenConnection, showConnectionScores = false, onOpenPost, onLoadMore, isLoadingMore }: InlineInfoFlowProps) {
+  const { t } = useTranslation();
   // On first render, mark all current items as "already seen" so they
   // don't animate. Only items added AFTER mount will animate.
   const [newPostIds] = useState<Set<string>>(() => {
@@ -879,16 +884,16 @@ export function InlineInfoFlow({ items, onOpenConnection, showConnectionScores =
       >
         <div>
           <p style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.1em', color: 'white', opacity: 0.8, textTransform: 'uppercase', marginBottom: '2px' }}>
-            Curiosity Feed
+            {t('infoFlow.curiosityFeed')}
           </p>
           <p style={{ fontSize: '1rem', fontWeight: 700, color: 'white' }}>
-            {items.length > 0 ? `${items.length} posts waiting` : 'Ask to start your feed'}
+            {items.length > 0 ? t('infoFlow.postsWaiting', { count: items.length }) : t('infoFlow.askToStart')}
           </p>
         </div>
         {items.length > 0 && (
           <div style={{ display: 'flex', gap: '12px', fontSize: '0.78rem', color: 'white', opacity: 0.92 }}>
-            {conceptCount > 0 && <span>{conceptCount} concepts</span>}
-            {connectionCount > 0 && <span>{connectionCount} links</span>}
+            {conceptCount > 0 && <span>{t('infoFlow.conceptsCount', { count: conceptCount })}</span>}
+            {connectionCount > 0 && <span>{t('infoFlow.linksCount', { count: connectionCount })}</span>}
           </div>
         )}
       </div>
@@ -904,9 +909,9 @@ export function InlineInfoFlow({ items, onOpenConnection, showConnectionScores =
           }}
         >
           <p style={{ fontSize: '1.5rem', marginBottom: '8px' }}>✨</p>
-          <p style={{ fontWeight: 700, marginBottom: '4px' }}>Nothing to explore yet</p>
+          <p style={{ fontWeight: 700, marginBottom: '4px' }}>{t('infoFlow.emptyTitle')}</p>
           <p style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>
-            Ask a few questions and this space will turn them into hook-first concept posts.
+            {t('infoFlow.emptyBodyInline')}
           </p>
         </div>
       ) : (
@@ -976,10 +981,10 @@ export function InlineInfoFlow({ items, onOpenConnection, showConnectionScores =
               {isLoadingMore ? (
                 <>
                   <span style={{ display: 'inline-block', width: '14px', height: '14px', border: '2px solid var(--muted-foreground)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-                  Generating...
+                  {t('infoFlow.generating')}
                 </>
               ) : (
-                'More'
+                t('infoFlow.more')
               )}
             </button>
           )}
@@ -995,6 +1000,7 @@ interface InfoFlowPreviewProps {
 }
 
 export function InfoFlowPreview({ items, onOpen }: InfoFlowPreviewProps) {
+  const { t } = useTranslation();
   const conceptCount = items.filter((item) => item.kind === 'concept').length;
   const connectionCount = items.filter((item) => item.kind === 'connection').length;
 
@@ -1038,10 +1044,10 @@ export function InfoFlowPreview({ items, onOpen }: InfoFlowPreviewProps) {
         >
           <div>
             <p style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.1em', color: 'white', opacity: 0.8, textTransform: 'uppercase', marginBottom: '2px' }}>
-              Curiosity Feed
+              {t('infoFlow.curiosityFeed')}
             </p>
             <p style={{ fontSize: '1.1rem', fontWeight: 700, color: 'white' }}>
-              {items.length > 0 ? `${items.length} posts ready` : 'Start with one question'}
+              {items.length > 0 ? t('infoFlow.postsReady', { count: items.length }) : t('infoFlow.startWithOneQuestion')}
             </p>
           </div>
           {items.length > 0 && (
@@ -1055,7 +1061,7 @@ export function InfoFlowPreview({ items, onOpen }: InfoFlowPreviewProps) {
                 fontSize: '0.875rem',
               }}
             >
-              Open
+              {t('infoFlow.open')}
             </div>
           )}
         </div>
@@ -1072,13 +1078,13 @@ export function InfoFlowPreview({ items, onOpen }: InfoFlowPreviewProps) {
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#F26D52', animation: 'glow-pulse 2s ease-in-out infinite', display: 'inline-block' }} />
               <span style={{ fontSize: '0.8rem', color: 'var(--foreground)', fontWeight: 600 }}>{conceptCount}</span>
-              <span style={{ fontSize: '0.8rem', color: 'var(--muted-foreground)' }}>concepts</span>
+              <span style={{ fontSize: '0.8rem', color: 'var(--muted-foreground)' }}>{t('infoFlow.conceptsLabel')}</span>
             </div>
             {connectionCount > 0 && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--node-sky)', display: 'inline-block' }} />
                 <span style={{ fontSize: '0.8rem', color: 'var(--foreground)', fontWeight: 600 }}>{connectionCount}</span>
-                <span style={{ fontSize: '0.8rem', color: 'var(--muted-foreground)' }}>connections</span>
+                <span style={{ fontSize: '0.8rem', color: 'var(--muted-foreground)' }}>{t('infoFlow.connectionsLabel')}</span>
               </div>
             )}
           </div>

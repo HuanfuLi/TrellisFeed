@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Send, Mic, Loader2, Globe } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { transcribeAudio } from '../providers/stt';
 import { startVoiceRecording, stopVoiceRecording, MicPermissionDeniedError } from '../lib/voice-recorder';
 import { settingsService } from '../services/settings.service';
@@ -13,10 +14,13 @@ interface ChatInputProps {
   onToggleWebSearch?: () => void;
 }
 
-export function ChatInput({ onSend, placeholder = 'Ask anything...', disabled, webSearchEnabled, onToggleWebSearch }: ChatInputProps) {
+export function ChatInput({ onSend, placeholder, disabled, webSearchEnabled, onToggleWebSearch }: ChatInputProps) {
+  const { t } = useTranslation();
   const [message, setMessage] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
+
+  const resolvedPlaceholder = placeholder ?? t('chatInput.placeholder');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,15 +37,15 @@ export function ChatInput({ onSend, placeholder = 'Ask anything...', disabled, w
       setIsRecording(true);
     } catch (err) {
       if (err instanceof MicPermissionDeniedError) {
-        toast('Microphone permission denied. Check app settings.', 'error');
+        toast(t('common.toast.micPermissionDenied'), 'error');
       } else {
         const code = err instanceof Error ? err.message : String(err);
         if (code.includes('MICROPHONE_BEING_USED')) {
-          toast('Microphone is in use by another app.', 'error');
+          toast(t('common.toast.micInUse'), 'error');
         } else if (code.includes('DEVICE_CANNOT_VOICE_RECORD')) {
-          toast('Recording not supported on this device.', 'error');
+          toast(t('common.toast.micUnsupported'), 'error');
         } else {
-          toast('Could not access microphone. Try again.', 'error');
+          toast(t('common.toast.micGenericError'), 'error');
         }
       }
     }
@@ -60,8 +64,8 @@ export function ChatInput({ onSend, placeholder = 'Ask anything...', disabled, w
       const msg = err instanceof Error ? err.message : String(err);
       toast(
         msg.includes('API key') || msg.includes('No API')
-          ? 'Add your API key in Text-to-Speech & Speech Recognition settings.'
-          : `Transcription failed: ${msg}`,
+          ? t('common.toast.transcriptionMissingKey')
+          : t('common.toast.transcriptionFailed', { message: msg }),
         'error',
       );
     } finally {
@@ -100,7 +104,7 @@ export function ChatInput({ onSend, placeholder = 'Ask anything...', disabled, w
             type="button"
             onClick={toggleMic}
             disabled={isTranscribing || disabled}
-            title={isRecording ? 'Stop recording' : 'Voice input'}
+            title={isRecording ? t('chatInput.stopRecordingTitle') : t('chatInput.voiceInputTitle')}
             style={{
               flexShrink: 0,
               width: '34px',
@@ -128,7 +132,7 @@ export function ChatInput({ onSend, placeholder = 'Ask anything...', disabled, w
             <button
               type="button"
               onClick={onToggleWebSearch}
-              title={webSearchEnabled ? 'Web search ON (tap to disable)' : 'Web search OFF (tap to enable)'}
+              title={webSearchEnabled ? t('chatInput.webSearchOn') : t('chatInput.webSearchOff')}
               style={{
                 flexShrink: 0,
                 width: '34px',
@@ -151,7 +155,7 @@ export function ChatInput({ onSend, placeholder = 'Ask anything...', disabled, w
             type="text"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            placeholder={isRecording ? '🎙 Listening…' : placeholder}
+            placeholder={isRecording ? t('chatInput.listening') : resolvedPlaceholder}
             disabled={disabled}
             style={{
               flex: 1,
@@ -190,7 +194,7 @@ export function ChatInput({ onSend, placeholder = 'Ask anything...', disabled, w
             marginTop: '5px',
             letterSpacing: '0.02em',
           }}>
-            Tap the mic again to stop
+            {t('chatInput.tapMicAgainHint')}
           </p>
         )}
       </div>

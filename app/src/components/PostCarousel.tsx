@@ -13,6 +13,7 @@
 
 import { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import type { GeneratedImage } from '../types';
 import { Skeleton } from './ui/Skeleton';
 
@@ -29,6 +30,7 @@ const SWIPE_THRESHOLD = 50;
 const TRANSITION_DURATION = 0.3;
 
 export function PostCarousel({ images, isLoading = false, onIndexChange }: PostCarouselProps) {
+  const { t } = useTranslation();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loadedIndexes, setLoadedIndexes] = useState<Set<number>>(new Set([0]));
   const [direction, setDirection] = useState<'left' | 'right'>('left');
@@ -83,7 +85,7 @@ export function PostCarousel({ images, isLoading = false, onIndexChange }: PostC
         {src ? (
           <img
             src={src}
-            alt="Post illustration"
+            alt={t('postCarousel.singleImageAlt')}
             style={{
               width: '100%',
               height: '100%',
@@ -171,7 +173,7 @@ export function PostCarousel({ images, isLoading = false, onIndexChange }: PostC
           {loadedIndexes.has(currentIndex) && src ? (
             <img
               src={src}
-              alt={`Post image ${currentIndex + 1} of ${images.length}`}
+              alt={t('postCarousel.multiImageAlt', { current: currentIndex + 1, total: images.length })}
               draggable={false}
               style={{
                 width: '100%',
@@ -215,7 +217,7 @@ export function PostCarousel({ images, isLoading = false, onIndexChange }: PostC
           zIndex: 10,
           letterSpacing: '0.05em',
         }}
-        aria-label={`Image ${currentIndex + 1} of ${images.length}`}
+        aria-label={t('postCarousel.counterAria', { current: currentIndex + 1, total: images.length })}
       >
         {currentIndex + 1}/{images.length}
       </div>
