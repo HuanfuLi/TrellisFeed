@@ -1,6 +1,45 @@
 import { motion } from 'framer-motion';
 import type { LeafState } from '../../services/trellis-state.service.ts';
 
+// ── Phase 28 D-10/D-11 — shake-on-tap constants ────────────────────────────
+// Exported at module scope so Wave 0 tests can import without DOM/render.
+
+/** Rotate keyframes for tap-to-shake animation (degrees). */
+export const SHAKE_KEYFRAMES: readonly [number, number, number, number, number] = [0, 4, -4, 2, 0];
+
+/** Duration of the shake animation in milliseconds. */
+export const SHAKE_DURATION_MS = 300;
+
+/**
+ * Dependencies for `onLeafTap` — pure-logic helper split out so the D-11
+ * haptic Nyquist requirement can be asserted via mocked injection.
+ */
+export interface OnLeafTapDeps {
+  perfGuardActive: boolean;
+  shakeControls: { start: (animate: unknown) => unknown };
+  haptic: () => void | Promise<void>;
+}
+
+/**
+ * Phase 28 D-10/D-11 — shake on tap + haptic.
+ *
+ * Pure helper: no DOM access, no React hooks. Safe to call from a
+ * `useCallback` wrapper inside the component AND from a node:test runner
+ * with an injected haptic spy.
+ *
+ * Contract:
+ *   - perfGuardActive=true → no-op (D-13: off-screen leaves on large canvases)
+ *   - otherwise: fire haptic exactly once + queue shake animation on shakeControls
+ */
+export const onLeafTap = ({ perfGuardActive, shakeControls, haptic }: OnLeafTapDeps): void => {
+  if (perfGuardActive) return;
+  void haptic();
+  void shakeControls.start({
+    rotate: SHAKE_KEYFRAMES,
+    transition: { duration: SHAKE_DURATION_MS / 1000, ease: 'easeInOut' },
+  });
+};
+
 // ── Botanical categories ───────────────────────────────────────────────────
 // Each node is assigned one category. The leaf→blossom→fruit progression
 // follows that category so the plant "grows" coherently.

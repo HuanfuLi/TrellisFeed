@@ -8,9 +8,27 @@ import { TrellisLeaf } from './TrellisLeaf.tsx';
 export interface TrellisCanvasProps {
   layout: TrellisLayout;
   ambientEnabled: boolean;
+  focusedAnchorId?: string | null;
 }
 
+// ── Phase 25 D-55 + Phase 28 D-13 — perf thresholds ────────────────────────
+// Two thresholds, two animation classes:
+//   AMBIENT_SWAY_THRESHOLD = 20 — continuous (repeats forever), ambient only.
+//   TAP_ANIMATION_THRESHOLD = 30 — event-driven (one-shot), tolerates more leaves.
+// TAP_ANIMATION_THRESHOLD lives in trellis-perf-mask.ts alongside the predicate.
 const AMBIENT_SWAY_THRESHOLD = 20;
+
+/**
+ * Phase 28 D-12 — pure predicate for pulse-on-focus matching.
+ * Exported so node --test can assert without rendering.
+ */
+export const isLeafFocused = (
+  focusedAnchorId: string | null | undefined,
+  leafAnchorId: string | null | undefined,
+): boolean => {
+  if (!focusedAnchorId || !leafAnchorId) return false;
+  return focusedAnchorId === leafAnchorId;
+};
 
 export function TrellisCanvas({ layout, ambientEnabled }: TrellisCanvasProps) {
   const { t } = useTranslation();

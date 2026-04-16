@@ -24,3 +24,27 @@ test('en/zh/es/ja bundles have identical flattened key sets', () => {
     assert.deepEqual(extra, [], `${locale}.json has extra keys not in en.json: ${extra.join(', ')}`);
   }
 });
+
+// ── Phase 28 D-14 — graph.headerTitle value parity per locale ──────────────
+//
+// Value-level assertion on the renamed Mind Map → Knowledge Graph key.
+// Starts RED before Task 3 swaps the values; flips GREEN once the 4 locale
+// bundles carry the locked UI-SPEC Copywriting Contract strings.
+
+test('graph.headerTitle values match expected per locale (D-14)', () => {
+  const expected = {
+    en: 'Knowledge Graph',
+    zh: '知识图谱',
+    es: 'Grafo de conocimiento',
+    ja: 'ナレッジグラフ',
+  };
+  for (const [locale, expectedValue] of Object.entries(expected)) {
+    const bundle = read(`${locale}.json`);
+    const actual = bundle?.graph?.headerTitle;
+    assert.equal(
+      actual,
+      expectedValue,
+      `${locale}.graph.headerTitle should be "${expectedValue}" but was "${actual}"`,
+    );
+  }
+});
