@@ -34,24 +34,26 @@ reviewed_at: 2026-04-16
 
 ## Spacing Scale
 
-Declared values (multiples of 4 only; all consumed from existing codebase usage):
+**Canonical token system:** see **Amendment A — Spacing Consistency Contract** below for the 8 CSS custom properties introduced by D-26 (`--space-xs`/`--space-sm`/`--space-md`/`--space-lg`/`--space-xl`/`--space-2xl`/`--space-3xl` + `--bottom-nav-safe` + `--section-gap`). Amendment A is AUTHORITATIVE for all Phase 28 spacing decisions.
 
-| Token | Value | Usage in this phase |
-|-------|-------|---------------------|
-| xs | 4px | Scroll-shadow threshold (`scrollTop > 4px` → header shadow on) |
-| sm | 8px | Leaf pulse glow blur radius; CTA/chip inner gap |
-| md | 16px | AskScreen row horizontal padding; section header side padding |
-| lg | 24px | Suggested Moves section header top margin |
-| xl | 32px | (not used in this phase) |
-| 2xl | 48px | (not used in this phase) |
-| 3xl | 64px | (not used in this phase) |
+Phase-28-specific pixel usages (values consumed from Amendment A's token system):
+
+| Pixel value | Amendment A token | Usage in this phase |
+|-------------|-------------------|---------------------|
+| `4px` | `--space-xs` | Scroll-shadow threshold (`scrollTop > 4px` → header shadow on) |
+| `8px` | `--space-sm` | Leaf pulse glow blur radius; CTA/chip inner gap |
+| `12px` | `--space-md` | Row vertical padding (Planner rows, AskScreen rows); section-to-title gap |
+| `16px` | `--space-lg` | Screen horizontal padding; AskScreen row horizontal padding; flashcard padding (uniform) |
+| `20px` | `--space-xl` | Card default internal padding (preserved from existing Card component) |
+| `24px` | `--space-2xl` / `--section-gap` | Section-to-section vertical rhythm (symmetric); Suggested Moves section header top margin |
+| `32px` | `--space-3xl` | PostDetailScreen card vertical padding (32×24 after off-grid fix) |
 
 **Phase-specific geometry exceptions (all pre-existing in codebase — not invented here):**
 - BottomNavigation hidden-state offset: `translateY('100%')` — Pitfall 6 resolution; height-agnostic, survives safe-area changes. Do NOT use magic `88px`.
-- Outlet wrapper bottom padding: unchanged at `calc(80px + var(--safe-area-bottom))` — prevents content shift when nav appears/disappears.
-- Leaf minimum tap target: inherited from Phase 25 (44×44px touch area; visual leaf can be smaller).
+- Outlet wrapper bottom padding: normalized to `var(--bottom-nav-safe)` (= `calc(80px + var(--safe-area-bottom))`) per D-27 — prevents content shift when nav appears/disappears AND respects device safe area.
+- Leaf minimum tap target: inherited from Phase 25 (44×44px touch area; visual leaf can be smaller). Touch-target minimums for other interactive elements specified by D-29.
 
-Exceptions: none introduced by Phase 28.
+Exceptions: none introduced by Phase 28 outside Amendment A's token system.
 
 ---
 
