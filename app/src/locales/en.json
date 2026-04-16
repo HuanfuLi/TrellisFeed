@@ -192,7 +192,7 @@
   },
   "graph": {
     "title": "Knowledge Graph",
-    "headerTitle": "Mind Map",
+    "headerTitle": "Knowledge Graph",
     "reorganizeButton": "Reorganize",
     "reorganizingButton": "Reorganizing...",
     "reorganizeModal": {

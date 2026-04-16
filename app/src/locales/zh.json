@@ -192,7 +192,7 @@
   },
   "graph": {
     "title": "知识图谱",
-    "headerTitle": "脑图",
+    "headerTitle": "知识图谱",
     "reorganizeButton": "重新组织",
     "reorganizingButton": "正在重新组织…",
     "reorganizeModal": {

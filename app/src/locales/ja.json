@@ -192,7 +192,7 @@
   },
   "graph": {
     "title": "知識グラフ",
-    "headerTitle": "マインドマップ",
+    "headerTitle": "ナレッジグラフ",
     "reorganizeButton": "再編成",
     "reorganizingButton": "再編成中…",
     "reorganizeModal": {

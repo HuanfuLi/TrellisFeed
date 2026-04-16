@@ -192,7 +192,7 @@
   },
   "graph": {
     "title": "Grafo de conocimiento",
-    "headerTitle": "Mapa mental",
+    "headerTitle": "Grafo de conocimiento",
     "reorganizeButton": "Reorganizar",
     "reorganizingButton": "Reorganizando…",
     "reorganizeModal": {

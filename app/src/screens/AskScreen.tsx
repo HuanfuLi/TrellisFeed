@@ -231,7 +231,7 @@ export function AskScreen() {
             setStreaming({ placeholderId, content: lastContent });
           }
           // Promote post-context Q&A into the knowledge graph so insights
-          // feed into Mind Map, Review, and Podcast surfaces.
+          // feed into Knowledge Graph, Review, and Podcast surfaces.
           if (lastContent) {
             question = questionService.buildAndSave(userContent, lastContent);
           }
