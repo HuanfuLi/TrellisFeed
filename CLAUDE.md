@@ -17,6 +17,7 @@ EchoLearn is an AI-powered personalized learning platform (React 19 + TypeScript
 - Services return `ServiceResult<T> = { success, data?, error? }`
 - localStorage for all user preferences via `settingsService`
 - Event bus (`src/lib/event-bus.ts`) for cross-screen notifications (LOCALE_CHANGED, REVIEW_COMPLETED, etc.)
+- **Settings sub-page navigation:** SettingsScreen is a menu with 4 sub-pages at `/settings/ai`, `/settings/content`, `/settings/features`, `/settings/data`. Sub-screens live in `src/screens/settings/`. Shared components (SectionHeader, SettingRow, MaterialSwitch, SelectInput, TextInput with password reveal) in `settings/SettingsShared.tsx`. Each sub-screen manages its own state from `settingsService.getSync()`. Header `backTo` prop renders a back-arrow that navigates to the specified path.
 
 ---
 
@@ -71,7 +72,7 @@ Flat nested JSON. Top-level groups:
 - `graph.*` — GraphScreen (includes `graph.anchor.*`, `graph.cluster.*`, `graph.reorganizeModal`, `graph.selected`, `graph.toast`)
 - `podcast.*` — PodcastScreen (includes `podcast.player.*`, `podcast.generateCard.*`, `podcast.knowledgeToday.*`, `podcast.insertBanner.*`, `podcast.toast.*`)
 - `posts.*` — Post feed and detail (includes `posts.detail.*`, `posts.qa.*`, `posts.connection.*`, `posts.image.*`)
-- `settings.*` — SettingsScreen (14 sub-namespaces: `sections`, `fields`, `descriptions`, `placeholders`, `providerLabels`, `voices`, `themes`, `toast`, `confirm`, `test`, `planner`, `buttons`, `cacheStats`, `usageTable`, `zerotier`, `about`)
+- `settings.*` — SettingsScreen + sub-screens (16 sub-namespaces: `menu`, `titles`, `sections`, `fields`, `descriptions`, `placeholders`, `providerLabels`, `voices`, `themes`, `toast`, `confirm`, `test`, `planner`, `buttons`, `cacheStats`, `usageTable`, `zerotier`, `about`)
 - `onboarding.*` — OnboardingScreen (includes `onboarding.welcome.*`, `onboarding.consent.*`, `onboarding.llm.*`)
 - `questionDetail.*` — QuestionDetailScreen (promoted to top-level)
 
