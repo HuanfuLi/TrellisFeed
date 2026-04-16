@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
-status: Executing Phase 28
-stopped_at: Completed 27-03-PLAN.md
-last_updated: "2026-04-16T08:36:49.000Z"
+status: Executing Phase 27
+stopped_at: Completed 27-02-PLAN.md
+last_updated: "2026-04-16T12:08:39.679Z"
 progress:
   total_phases: 22
   completed_phases: 6
   total_plans: 35
-  completed_plans: 29
+  completed_plans: 31
 ---
 
 # Project State: Milestone 1.1
@@ -24,7 +24,7 @@ Enhance user engagement through rich post formats (Rednote-style), smarter miles
 
 ## Current Phase
 
-Phase 27 — Add i18n/L10n support (Plan 03 of 07 complete — UI root wiring + onboarding language step landed in parallel with 02/06)
+Phase 27 — Add i18n/L10n support (Plan 06 of 07 complete — components/trellis + service-layer toast i18n landed; 4 of 7 plans done: 01, 02, 03, 06)
 
 ## Roadmap
 
@@ -36,6 +36,19 @@ Phase 27 — Add i18n/L10n support (Plan 03 of 07 complete — UI root wiring + 
 - **Phase 12:** Portal Navigation & Rich Moves Linking (12-01-PLAN.md — COMPLETE, 12-02-PLAN.md — COMPLETE)
 - **Phase 13:** Planner Redesign (13-01-PLAN.md — COMPLETE)
 - **Phase 14:** Knowledge Graph Classification & Anchor Nodes (14-01-PLAN.md — COMPLETE, 14-02-PLAN.md — COMPLETE, 14-03-PLAN.md — COMPLETE, 14-04-PLAN.md — COMPLETE)
+
+## Latest Decisions (Phase 27-06)
+
+- [Phase 27-06] D-10 structural extraction complete for components layer — 18 tsx files + 6 service-layer toast() call sites + 1 React hook (usePlannerAutoGen) now t()/i18n.t()-driven
+- [Phase 27-06] Non-React module i18n pattern: `import i18n from '../locales'; toast(i18n.t('common.toast.X'))` — applied to session/flashcard/podcast/question/scheduler services and ErrorBoundary class component; reads `i18next` singleton so locale switches propagate immediately
+- [Phase 27-06] React-hook i18n pattern: `useTranslation()` + include `t` in useCallback deps (usePlannerAutoGen.accept, .refresh) — prevents stale-closure locale after runtime language switch
+- [Phase 27-06] components/ui/* (Button, Card, Header, Badge, ProgressBar, Skeleton, BottomSheet, Toast) audited: NO hardcoded user-visible strings — primitives accept labels via props, parents own translation. Zero extraction needed.
+- [Phase 27-06] Brand "EchoLearn" deliberately NOT translated (CONTEXT Pitfall 5) — preserved as-is everywhere
+- [Phase 27-06] 118 new flattened keys added to en.json (20 → 138 total): common.nav.*, common.action.*, common.toast.* + 13 new component sub-namespaces (chatInput, chatMessage, conceptCard, flashcard, infoFlow, portalCard, postCarousel, pullUpHint, youTubeEmbed, errorBoundary, feedPostImage, detailMenu, planner.trellis)
+- [Phase 27-06] zh/es/ja bundles parity-mirrored with EN-duplicate values — Plan 07 Sonnet subagent replaces values; bundle-parity test green today
+- [Phase 27-06] Interpolation placeholders: {{count}} for pluralization (harvestAria, pruned), {{label}} for contextual nouns (confirmPrompt), {{message}} for error passthroughs (transcriptionFailed), {{channel}} (infoFlow.byChannel), {{current}}/{{total}} (postCarousel), {{count}} (postsWaiting/conceptsCount/etc.)
+- [Phase 27-06] TrellisStatusPanel padding tweak (12px 16px → 12px 0) carried over from pre-existing working tree edit (Phase 28 UI audit session orphan) — absorbed into Task 2 commit rather than reverting to avoid cross-plan file contention; flagged in SUMMARY
+- [Phase 27-06] Executor interruption recovery: Task 1 (commit `21e87579`) landed before interruption; Task 2 work was present in uncommitted working tree and verified via tsc + vite build + bundle-parity before committing as `b7ac54cf`
 
 ## Latest Decisions (Phase 27-03)
 
@@ -157,8 +170,8 @@ Phase 27 — Add i18n/L10n support (Plan 03 of 07 complete — UI root wiring + 
 
 ## Last Session
 
-Completed Phase 27 Plan 03 (27-03-PLAN.md) — UI root wiring: CSS `--font-sans` swap via `:root[data-locale]` (D-23 zh/ja overrides); `LOCALE_CHANGED` registered in AppEvent union (D-22 wiring for Plan 04); OnboardingScreen gains `language` step between welcome and consent with 4-autonym picker + auto-highlight via `detectDeviceLocale()` (D-18). Ran parallel with 27-02/27-06.
-**Stopped At:** Completed 27-03-PLAN.md
+Completed Phase 27 Plan 06 (27-06-PLAN.md) — Components + service-layer toast i18n: 18 tsx files + 6 service-layer toast() call sites + 1 React hook driven by t()/i18n.t(); 118 new keys added to en.json (20 → 138 total); bundle-parity enforced across all 4 locales. Task 1 (`21e87579`) landed in initial run; Task 2 (`b7ac54cf`) resumed and completed after executor interruption. Ran parallel with 27-02 (which also completed via `dc8455a7`).
+**Stopped At:** Completed 27-02-PLAN.md
 **Date:** 2026-04-16
 
 ## Latest Decisions (Phase 25)
