@@ -1,0 +1,48 @@
+{
+  "common": {
+    "today": "Today",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "greeting": {
+      "morning": "Good Morning",
+      "afternoon": "Good Afternoon",
+      "evening": "Good Evening"
+    }
+  },
+  "home": {
+    "title": "Home"
+  },
+  "planner": {
+    "title": "Planner"
+  },
+  "ask": {
+    "title": "Ask",
+    "localeChangedDiscarded": "Locale changed — answer discarded. Ask again."
+  },
+  "review": {
+    "title": "Review"
+  },
+  "graph": {
+    "title": "Knowledge Graph"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": {
+      "label": "Language / 语言 / Idioma / 言語",
+      "description": "Choose your display language"
+    }
+  },
+  "podcast": {
+    "title": "Podcast"
+  },
+  "posts": {
+    "title": "Posts"
+  },
+  "onboarding": {
+    "language": {
+      "title": "Language / 语言 / Idioma / 言語",
+      "continue": "Continue"
+    }
+  }
+}

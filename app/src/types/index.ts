@@ -288,9 +288,15 @@ export interface ReviewSettings {
   reminderTime: string;
 }
 
+/** Supported i18n locales. Canonical source in `app/src/locales/index.ts`; inlined here to avoid cross-module dependency. */
+export type SupportedLocale = 'en' | 'zh' | 'es' | 'ja';
+
 export interface AppPreferences {
   theme: 'light' | 'dark' | 'system';
-  language: string;
+  /** Canonical display locale (D-20). Populated by migration from legacy `language` field on first load in Task 3 of Phase 27-01. */
+  locale?: SupportedLocale;
+  /** @deprecated Use `locale` instead. Kept for one-time migration only. */
+  language?: string;
   onboardingCompleted: boolean;
   /** Explicit user consent to transmit questions to the configured AI provider. Required by App Store / Play Store AI policies. */
   aiConsentGiven?: boolean;
