@@ -699,7 +699,39 @@ Plans:
 Plans:
 - [ ] TBD (run /gsd:plan-phase 28 to break down)
 
+### Phase 29: Final polishment (v1.3 gap closure)
+
+**Goal:** Close all v1.3 milestone-audit tech debt in a single sweep — wire missing strategy hints, extend AbortSignal plumbing, clear pre-existing tsc/Node 25 test issues, and execute device UAT walkthrough to flip `human_needed` phases to `passed`.
+**Requirements:** None net-new — closes integration findings + deferred items from `.planning/v1.3-MILESTONE-AUDIT.md`
+**Depends on:** Phase 27 (v1.3)
+**Gap closure:** Closes TD-01 + TD-02 + TD-03 from `.planning/v1.3-INTEGRATION-CHECK.md`, pre-existing tsc/Node 25 chain from `.planning/milestones/v1.3-phases/27-*/deferred-items.md`, and 25 UAT checkpoints across phases 20/21/22/26
+
+Scope bundles:
+
+1. **Curiosity-signal wiring (TD-01, Phase 20 × plannerAutoGen/feed):**
+   - Thread `plannerService.getRecentSignals()` into `plannerAutoGen.service.ts:115` and `concept-feed.service.ts:759` so `defaultStrategy.computeHints(signals, checkInSignals)` receives the curiosity topics.
+
+2. **AbortSignal plumbing (TD-02, TD-03):**
+   - `PostDetailScreen.tsx` on-enter essay effect: replace local `aborted` boolean with `AbortController`; subscribe to `LOCALE_CHANGED`; thread `signal` through `post-essay.service.ts` → `chatStream`.
+   - `classifyAndAnchorIncremental` in `canonical-knowledge.service.ts`: accept optional `AbortSignal` on each of the 3 step calls so mid-classification locale switches (future) or explicit cancellations can halt.
+
+3. **Pre-existing tsc + Node 25 cleanup:**
+   - Add `.ts`/`.js` extensions to intra-`src/` imports causing `ERR_MODULE_NOT_FOUND` under Node 25 on the test suite (canonical-knowledge-pipeline, canonical-knowledge, concept-feed, reorg-json-parser, web-search).
+   - Fix tsc errors in `GraphScreen`, `canonical-knowledge`, `review`, `trellis-state` (per `deferred-items.md`).
+
+4. **v1.3 UAT walkthrough (flip `human_needed` → `passed` on 20/21/22/26):**
+   - Phase 20: portal card layout, diagnostic chat multi-turn flow, navigation routing, primary CTA (4 items)
+   - Phase 21: feed load time, on-enter streaming UX, cache hit on re-visit, video/news streaming, error retry (5 items)
+   - Phase 22: rubber-band physics, snap-back, nested gesture suppression (PostCarousel + MindElixir), keyboard-open suppression, GraphScreen first-reveal, sub-screen swipe disabled, scroll preservation (9 items; items 4/5 superseded by 2026-04-15 instant-transport addendum)
+   - Phase 26: harvest animation (fly + confetti), fruit glow, heal/replant/prune under simplified UX, autoGen dedup edge case, priority ordering (7 items, all post-hashStr-fix retest)
+   - Produce `UAT-LOG.md` capturing results; update each archived phase's VERIFICATION.md `status` + re_verification frontmatter.
+
+**Plans:** 0 plans (run `/gsd:plan-phase 29` to break down)
+
+**Out of scope for Phase 29:**
+- 23-05 DEDUP plan (symmetric labelKey + NEW→existing coercion) — intentionally still deferred; revisit only if classification dedup surfaces as a real problem in practice.
+
 ---
 
 _Created: 2026-03-26 | v1.1 Roadmap | 17 phases | 91 requirements mapped_
-_Updated: 2026-04-16 — phases 20-27 archived as v1.3 (pre-release); Phase 28 opens v1.4_
+_Updated: 2026-04-16 — phases 20-27 archived as v1.3 (pre-release); Phase 28 opens v1.4; Phase 29 added as v1.3 gap-closure sweep_
