@@ -153,6 +153,7 @@ export function TestResult({ result }: { result: string | null }) {
 }
 
 export const SUB_SCREEN_STYLE: CSSProperties = {
+  paddingTop: '64px',
   paddingLeft: '16px',
   paddingRight: '16px',
   paddingBottom: 'var(--bottom-nav-safe)',
