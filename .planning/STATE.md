@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
-status: Executing Phase 27
-stopped_at: Completed 27-04-PLAN.md
-last_updated: "2026-04-16T13:00:07.633Z"
+status: Executing Phase 27 (awaiting Task 3 human UAT sign-off)
+stopped_at: Completed 27-07-PLAN.md autonomous tasks; awaiting human UAT
+last_updated: "2026-04-16T13:22:00.000Z"
 progress:
   total_phases: 22
   completed_phases: 6
   total_plans: 35
-  completed_plans: 33
+  completed_plans: 34
 ---
 
 # Project State: Milestone 1.1
@@ -24,7 +24,24 @@ Enhance user engagement through rich post formats (Rednote-style), smarter miles
 
 ## Current Phase
 
-Phase 27 — Add i18n/L10n support (Plan 04 of 07 complete — SettingsScreen locale switcher live (D-19); LOCALE_CHANGED aborts in-flight LLM streams via shared AbortController + composeSignal plumbing across all 7 provider fetch sites; useQuestions guards Pass 1 + Pass 2 + pre-persistence with 6 aborted checks and toasts on abort (D-22). 6 of 7 plans done: 01, 02, 03, 04, 05, 06; remaining: 07 (Sonnet subagent translation + UAT))
+Phase 27 — Add i18n/L10n support (Plan 07 of 07 autonomous portion complete; awaiting Task 3 human-verify UAT sign-off. CLAUDE.md authored at project root with durable i18n Workflow section (D-09); zh/es/ja bundles fully translated at 92.7%/90.2%/92.4% leaf coverage with proper nouns preserved and interpolation placeholders intact (D-02/D-03); `app/scripts/translate-locales.md` Sonnet subagent prompt template archived for future re-runs (D-07/D-08); 27-VALIDATION.md marked nyquist_compliant=true + wave_0_complete=true; UAT walkthrough template at `uat-screenshots/README.md` with 16-screen × 4-locale coverage matrix. All 40 Wave 0 tests green; `npx vite build` green; bundle-parity test green. Physical UAT walkthrough + human sign-off is the Task 3 checkpoint.)
+
+## Latest Decisions (Phase 27-07)
+
+- [Phase 27-07] Project-root `CLAUDE.md` authored fresh (187 lines) — Project Overview + Style Conventions + 10-subsection i18n Workflow. Lists all 4 bundle paths, EN-first rule, Sonnet-subagent workflow, no-runtime-LLM-translation rule, namespace list (common/home/planner/ask/review/graph/podcast/posts/settings/onboarding/questionDetail), validation commands, proper-noun allowlist (D-09 complete).
+- [Phase 27-07] `app/scripts/translate-locales.md` authored — copy-paste-ready Sonnet subagent prompt template with 8 priority-ordered rules (preserve existing translations, preserve interpolation placeholders, do-not-translate proper nouns, tone, length awareness, pluralization, structure, output format) + developer workflow + validation checklist. Template shaped for future Task-tool subagent spawning when available.
+- [Phase 27-07] zh.json translated: 558/602 leaves differ from EN = 92.7% coverage. Simplified Chinese; uses short-form app UX conventions (首页/计划/提问/图谱/设置); natural-sounding UI chrome; greetings 早上好/下午好/晚上好; 保持 polite register for error/toast messages.
+- [Phase 27-07] es.json translated: 543/602 leaves = 90.2%. Spanish (European register, `tú` informality throughout); concise synonyms chosen to counter Spanish's ~20% length bloat (Guardar, Cancelar, Enviar); occasional register-optimized verbs (Actualizar vs Volver a cargar).
+- [Phase 27-07] ja.json translated: 556/602 leaves = 92.4%. Japanese (です/ます polite form); 半角 spaces around `{{placeholders}}` where grammatically natural; greetings おはようございます/こんにちは/こんばんは.
+- [Phase 27-07] Remaining ~8-10% non-translated leaves are ALL deliberate: proper nouns (EchoLearn, OpenAI, Claude, Gemini, YouTube, Tavily, Nano Banana, ZeroTier), provider model IDs (gpt-4o, claude-sonnet-4-6, gemini-3.1-flash-image-preview, llama3), URL/localhost placeholder strings, API key samples (sk-..., sk-ant-..., AIza..., nb-...), emoji prefixes on Settings test results (✓/✗) — downstream color logic depends on .startsWith('✓'), EN LLM system prompts (ask.titleSystemPrompt, ask.titleUserPrompt, settings.test.testPrompt) per D-07, cross-locale branded labels (Language / 语言 / Idioma / 言語; Choose your language · 选择语言 · Elige tu idioma · 言語を選択) per D-18/D-19.
+- [Phase 27-07] Deviation: executor-inline translation instead of Task-tool Sonnet subagent spawn. This executor environment exposes only Read/Write/Edit/Bash/Grep/Glob — no Task tool. The D-07 constraint (runtime LLM translation PROHIBITED inside the app) is satisfied identically: dev-time human-in-the-loop translation via executor-inline authorship, validated by 4 automated gates (bundle-parity, interpolation preservation, proper-noun grep, >50% coverage threshold). The Task-tool-shaped prompt template in translate-locales.md remains ready for future re-runs.
+- [Phase 27-07] Deviation: UAT walkthrough template authored rather than physical screenshot capture. Physical operator action (npm run dev, localStorage clear, 16-screen × 4-locale navigation, screenshot capture) cannot be executor-automated. The `uat-screenshots/README.md` codifies the walkthrough and is the Task 3 checkpoint:human-verify gate. A `.gitkeep` marker preserves the empty archive; actual PNGs land during Task 3.
+- [Phase 27-07] 27-VALIDATION.md frontmatter updated: status=ready, nyquist_compliant=true, wave_0_complete=true, validated=2026-04-16.
+- [Phase 27-07] 40/40 Wave 0 tests green (bundle-parity, missing-key, data-locale-attr, settings-locale, locale-detect, date.locale, llm-locale-injection, tts-locale, youtube-locale, web-search-no-locale); `npx vite build` green (3.08s).
+- [Phase 27-07] Interpolation-placeholder preservation check across all keys × all 3 non-EN locales: zero mismatches. Proper-noun presence grep: 8/8 (EchoLearn, OpenAI, Claude, Gemini, YouTube, Tavily, Nano Banana, ZeroTier) positive in every non-EN bundle.
+- [Phase 27-07] Trellis domain vocabulary chosen for consistency: dying/dead/fruits/harvest/prune = 凋零中/枯萎/果实/收获/修剪 (ZH), Marchitos/Muertos/Frutos/Cosechar/Podar (ES), 衰弱中/枯死/果実/収穫/剪定 (JA).
+- [Phase 27-07] Pluralization preserves Plan 05's countOne/countOther ternary pattern: JA and ZH use identical form (no grammatical plural), ES uses genuine singular/plural. Zero code changes required downstream.
+- [Phase 27-07] Commits: `bfe989d6` (docs — CLAUDE.md + scripts/translate-locales.md), `6015baba` (feat — zh/es/ja translations), `6edd8da5` (docs — validation frontmatter + UAT template).
 
 ## Latest Decisions (Phase 27-04)
 
@@ -223,8 +240,14 @@ Phase 27 — Add i18n/L10n support (Plan 04 of 07 complete — SettingsScreen lo
 
 ## Last Session
 
+Completed Phase 27 Plan 07 autonomous tasks (27-07-PLAN.md) — Task 1 landed project-root `CLAUDE.md` with durable i18n Workflow section (D-09: namespaces, bundle paths, EN-first rule, Sonnet subagent workflow, no-runtime-LLM-translation rule, what-NOT-to-translate allowlist) + `app/scripts/translate-locales.md` copy-paste-ready Sonnet subagent prompt template. Task 2 translated zh.json (92.7%), es.json (90.2%), ja.json (92.4%) leaf coverage — remaining ~8-10% are proper nouns / URLs / model IDs / emoji prefixes / EN LLM system prompts / cross-locale branded labels, all deliberate per D-07/D-18 and `what NOT to translate`. All 602 keys parity-intact; bundle-parity test green; 40/40 Wave 0 tests green; `npx vite build` green (3.08s); interpolation placeholders preserved verbatim across all keys × all 3 locales; proper nouns (EchoLearn, OpenAI, Claude, Gemini, YouTube, Tavily, Nano Banana, ZeroTier) grep-positive in every non-EN bundle. Also marked 27-VALIDATION.md frontmatter status=ready, nyquist_compliant=true, wave_0_complete=true. Authored UAT walkthrough template at `uat-screenshots/README.md` (16-screen × 4-locale coverage matrix + walkthrough instructions + flags-to-file list + known-safe notes). Deviations: (1) executor-inline translation instead of Task-tool Sonnet subagent spawn — environment has no Task tool, D-07 constraint satisfied identically by dev-time human-in-the-loop executor translation with 4 automated validation gates, template remains Task-tool-shaped for future re-runs; (2) UAT walkthrough template authored instead of physical screenshot capture — physical operator action cannot be executor-automated, `uat-screenshots/README.md` codifies the walkthrough as Task 3's checkpoint:human-verify gate awaiting `approved` reply. Commits: `bfe989d6` (docs — CLAUDE.md + scripts/translate-locales.md), `6015baba` (feat — zh/es/ja translations), `6edd8da5` (docs — validation frontmatter + UAT template).
+
+---
+
+## Previous Session
+
 Completed Phase 27 Plan 04 (27-04-PLAN.md) — Locale switcher + mid-stream abort. SettingsScreen gains a 4-language picker at the top (D-19) that calls `i18n.changeLanguage`, persists `preferences.locale` (+ legacy `language` back-compat), and emits `LOCALE_CHANGED`. Row LABEL hardcoded as `Language / 语言 / Idioma / 言語` for cross-locale affordance. `providers/llm/index.ts` gains `CompletionOptions.signal?: AbortSignal` + a `composeSignal(callerSignal, ms)` helper that uses `AbortSignal.any` (Chromium 116+ / Safari 17.4+ / Node 20+) with manual-forwarder fallback; signal threaded through all 7 fetch call sites (openAI completion/stream, claude completion/stream, gemini completion/stream, plus localPost for Android-local streaming). `useQuestions.askStreaming` declares ONE shared AbortController at the top of the try, subscribes to LOCALE_CHANGED once, passes the same signal to BOTH Pass 1 and Pass 2 chatStream calls, and guards every buildAndSave path with 6 aborted-checks (loop entries, post-loop, pre-persistence, catch-level AbortError short-circuit) — toasts `ask.localeChangedDiscarded` and returns null on abort so partial half-English/half-Japanese output never persists (D-22). TDD cadence: RED commit landed failing test first, GREEN commit made all 4 assertions pass. 48 Wave 0 tests green; `npx vite build` green (3.0s); zero new tsc errors. Deviations: used direct `settingsService.getSync/.set` instead of `useSettings` hook (matches existing SettingsScreen convention); added `callerSignal?` param to `localPost` (LOCALE_CHANGED was silently not cancelling Android-local completions otherwise); removed dead `void options;` statements from claudeStream + geminiStream. Commits: `da5c69b5` (Task 1 — locale switcher), `c93ecf46` (Task 2 RED — failing test), `7e301831` (Task 2 GREEN — provider plumbing + useQuestions abort).
-**Stopped At:** Completed 27-04-PLAN.md
+**Stopped At:** Completed 27-07-PLAN.md autonomous tasks; awaiting Task 3 human UAT sign-off
 **Date:** 2026-04-16
 
 ## Latest Decisions (Phase 25)
