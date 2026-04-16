@@ -9,6 +9,8 @@ import { getRateLimitStatus, incrementAskCount } from '../services/ask-rate-limi
 import { evaluateQuestion as filterQuestion, type QuestionFilterContext } from '../services/question-filter.service';
 import { eventBus } from '../lib/event-bus';
 import { webSearch } from '../services/web-search.service';
+import { toast } from '../lib/toast';
+import i18n from '../locales';
 
 const WEB_SEARCH_TOOL_PROMPT = `
 You have access to a web search tool. When a question requires current/real-time information, recent events, up-to-date facts, or verification of claims, output exactly:
@@ -111,6 +113,15 @@ export function useQuestions(): UseQuestionsReturn {
         return null;
       }
 
+      // ═══ D-22 — Shared abort controller for BOTH streaming passes ═══
+      // One controller per askStreaming call. LOCALE_CHANGED subscriber
+      // aborts it, which cancels any in-flight chatStream and flips the
+      // `aborted` guards below to prevent buildAndSave on discarded output.
+      const abortController = new AbortController();
+      const unsubLocale = eventBus.subscribe('LOCALE_CHANGED', () => {
+        abortController.abort(new DOMException('Locale changed', 'AbortError'));
+      });
+
       try {
         const store = questionService.getAll();
         const candidatePack = buildCandidateContextPack(content, store);
@@ -142,14 +153,21 @@ export function useQuestions(): UseQuestionsReturn {
             { role: 'user', content },
           ],
           llmConfig,
-          { serviceName: 'ask' },
+          { serviceName: 'ask', signal: abortController.signal },
         );
 
         for await (const token of stream) {
+          if (abortController.signal.aborted) break;
           accumulated += token;
           // Show the user a cleaned version — hide partial/complete tool markers
           const display = accumulated.replace(TOOL_PATTERN, '').replace(/\[TOOL:web_search\]\s*\{[^}]*$/, '').trimEnd();
           onToken(display);
+        }
+
+        if (abortController.signal.aborted) {
+          toast(i18n.t('ask.localeChangedDiscarded'));
+          setIsAsking(false);
+          return null; // do NOT call buildAndSave with partial Pass-1 output
         }
 
         // --- Check for tool invocation OR forced web search ---
@@ -183,6 +201,9 @@ export function useQuestions(): UseQuestionsReturn {
               .join('\n\n');
 
             // --- Pass 2: Re-prompt with search results (replaces Pass 1) ---
+            // Reuses the SAME abortController + signal as Pass 1. A single
+            // LOCALE_CHANGED event aborts the whole flow regardless of which
+            // pass is currently in flight.
             accumulated = '';
             const stream2 = chatStream(
               [
@@ -199,12 +220,19 @@ export function useQuestions(): UseQuestionsReturn {
                 },
               ],
               llmConfig,
-              { serviceName: 'ask' },
+              { serviceName: 'ask', signal: abortController.signal },
             );
 
             for await (const token of stream2) {
+              if (abortController.signal.aborted) break;
               accumulated += token;
               onToken(accumulated);
+            }
+
+            if (abortController.signal.aborted) {
+              toast(i18n.t('ask.localeChangedDiscarded'));
+              setIsAsking(false);
+              return null; // do NOT persist Pass-2 partial
             }
           }
           // If search failed, keep the original response (minus the tool marker)
@@ -212,6 +240,14 @@ export function useQuestions(): UseQuestionsReturn {
             accumulated = accumulated.replace(TOOL_PATTERN, '').trim();
             onToken(accumulated);
           }
+        }
+
+        // Final guard before persistence — covers any abort that fired between
+        // the last loop-level check and this line (e.g. during webSearch).
+        if (abortController.signal.aborted) {
+          toast(i18n.t('ask.localeChangedDiscarded'));
+          setIsAsking(false);
+          return null;
         }
 
         // Persist and get structured question
@@ -243,11 +279,20 @@ export function useQuestions(): UseQuestionsReturn {
         setIsAsking(false);
         return question;
       } catch (e) {
+        // A LOCALE_CHANGED abort can surface here as an AbortError from fetch.
+        // Treat it as a clean cancel, not an error toast.
+        if (abortController.signal.aborted) {
+          toast(i18n.t('ask.localeChangedDiscarded'));
+          setIsAsking(false);
+          return null;
+        }
         const msg = e instanceof Error ? e.message : String(e);
         onToken(msg);
         setError({ code: 'NETWORK_ERROR', message: msg, retryable: true });
         setIsAsking(false);
         return null;
+      } finally {
+        unsubLocale();
       }
     },
     [],

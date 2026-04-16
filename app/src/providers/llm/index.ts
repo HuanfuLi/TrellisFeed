@@ -24,6 +24,27 @@ function timeoutSignal(ms: number): AbortSignal {
   return ac.signal;
 }
 
+// ─── Signal composition ──────────────────────────────────────────────────────
+//
+// Composes a caller-supplied AbortSignal (e.g. LOCALE_CHANGED → abortController
+// from useQuestions per D-22) with the timeout signal so whichever fires first
+// cancels the fetch. AbortSignal.any is available on Chromium 116+ /
+// Safari 17.4+ / Node 20+; we fall back to a manual forwarder for older
+// runtimes.
+
+function composeSignal(callerSignal: AbortSignal | undefined, ms: number): AbortSignal {
+  const tm = timeoutSignal(ms);
+  if (!callerSignal) return tm;
+  if (typeof AbortSignal.any === 'function') return AbortSignal.any([callerSignal, tm]);
+  // Manual fallback: forward either abort into a fresh controller.
+  const ac = new AbortController();
+  if (callerSignal.aborted) ac.abort(callerSignal.reason);
+  else callerSignal.addEventListener('abort', () => ac.abort(callerSignal.reason), { once: true });
+  if (tm.aborted) ac.abort(tm.reason);
+  else tm.addEventListener('abort', () => ac.abort(tm.reason), { once: true });
+  return ac.signal;
+}
+
 const COMPLETION_TIMEOUT_MS = 60_000; // 60 s for non-streaming completions
 const STREAM_TIMEOUT_MS = 120_000;    // 120 s for full streaming response
 
@@ -33,6 +54,8 @@ export interface CompletionOptions {
   maxTokens?: number;
   serviceName?: string;
   jsonMode?: boolean;
+  /** Caller-supplied abort signal (D-22 mid-stream cancellation on LOCALE_CHANGED). */
+  signal?: AbortSignal;
 }
 
 export async function chatCompletion(messages: ChatMessage[], config: LLMConfig, options?: CompletionOptions): Promise<string> {
@@ -105,6 +128,7 @@ function openAIHeaders(config: LLMConfig): Record<string, string> {
 async function localPost(
   url: string,
   body: object,
+  callerSignal?: AbortSignal,
 ): Promise<{ ok: boolean; status: number; text(): Promise<string>; json(): Promise<unknown> }> {
   const headers = { 'Content-Type': 'application/json' };
 
@@ -119,7 +143,7 @@ async function localPost(
     };
   }
 
-  return fetch(url, { method: 'POST', headers, body: JSON.stringify(body), signal: timeoutSignal(COMPLETION_TIMEOUT_MS) });
+  return fetch(url, { method: 'POST', headers, body: JSON.stringify(body), signal: composeSignal(callerSignal, COMPLETION_TIMEOUT_MS) });
 }
 
 async function openAICompletion(messages: ChatMessage[], config: LLMConfig, maxTokens = 4096, options?: CompletionOptions): Promise<string> {
@@ -132,8 +156,8 @@ async function openAICompletion(messages: ChatMessage[], config: LLMConfig, maxT
   if (options?.jsonMode && !isLocal) body.response_format = { type: 'json_object' };
 
   const response = isLocal
-    ? await localPost(url, body)
-    : await fetch(url, { method: 'POST', headers: openAIHeaders(config), body: JSON.stringify(body), signal: timeoutSignal(COMPLETION_TIMEOUT_MS) });
+    ? await localPost(url, body, options?.signal)
+    : await fetch(url, { method: 'POST', headers: openAIHeaders(config), body: JSON.stringify(body), signal: composeSignal(options?.signal, COMPLETION_TIMEOUT_MS) });
 
   if (!response.ok) {
     const err = await response.text();
@@ -163,7 +187,7 @@ async function* openAIStream(messages: ChatMessage[], config: LLMConfig, options
     method: 'POST',
     headers: isLocal ? { 'Content-Type': 'application/json' } : openAIHeaders(config),
     body: JSON.stringify({ model: config.model, messages, max_tokens: 4096, stream: true }),
-    signal: timeoutSignal(STREAM_TIMEOUT_MS),
+    signal: composeSignal(options?.signal, STREAM_TIMEOUT_MS),
   });
   if (!response.ok) {
     const err = await response.text();
@@ -194,7 +218,7 @@ async function claudeCompletion(messages: ChatMessage[], config: LLMConfig, maxT
       'anthropic-dangerous-direct-browser-access': 'true',
     },
     body: JSON.stringify({ model: config.model, max_tokens: maxTokens, system, messages: userMessages }),
-    signal: timeoutSignal(COMPLETION_TIMEOUT_MS),
+    signal: composeSignal(options?.signal, COMPLETION_TIMEOUT_MS),
   });
   if (!response.ok) {
     const err = await response.text();
@@ -225,7 +249,7 @@ async function* claudeStream(messages: ChatMessage[], config: LLMConfig, options
       'anthropic-dangerous-direct-browser-access': 'true',
     },
     body: JSON.stringify({ model: config.model, max_tokens: 4096, stream: true, system, messages: userMessages }),
-    signal: timeoutSignal(STREAM_TIMEOUT_MS),
+    signal: composeSignal(options?.signal, STREAM_TIMEOUT_MS),
   });
   if (!response.ok) {
     const err = await response.text();
@@ -235,8 +259,6 @@ async function* claudeStream(messages: ChatMessage[], config: LLMConfig, options
     response,
     (p) => p.type === 'content_block_delta' && p.delta?.type === 'text_delta' ? p.delta.text : '',
   );
-  // options available for future SSE usage extraction
-  void options;
 }
 
 // ─── Gemini ──────────────────────────────────────────────────────────────────
@@ -267,7 +289,7 @@ async function geminiCompletion(messages: ChatMessage[], config: LLMConfig, maxT
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': config.apiKey ?? '' },
     body: JSON.stringify(toGeminiPayload(messages, maxTokens, options?.jsonMode ?? false)),
-    signal: timeoutSignal(COMPLETION_TIMEOUT_MS),
+    signal: composeSignal(options?.signal, COMPLETION_TIMEOUT_MS),
   });
   if (!response.ok) {
     const err = await response.text();
@@ -289,15 +311,13 @@ async function* geminiStream(messages: ChatMessage[], config: LLMConfig, options
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': config.apiKey ?? '' },
     body: JSON.stringify(toGeminiPayload(messages)),
-    signal: timeoutSignal(STREAM_TIMEOUT_MS),
+    signal: composeSignal(options?.signal, STREAM_TIMEOUT_MS),
   });
   if (!response.ok) {
     const err = await response.text();
     throw new Error(`Gemini API error ${response.status}: ${err}`);
   }
   yield* parseSseStream(response, (p) => p.candidates?.[0]?.content?.parts?.[0]?.text ?? '');
-  // options available for future SSE usage extraction
-  void options;
 }
 
 // ─── Shared SSE parser ────────────────────────────────────────────────────────
