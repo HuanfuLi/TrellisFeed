@@ -1,5 +1,7 @@
 # Phase 27 — D-24 UAT Screenshot Archive
 
+**Status:** approved by operator on 2026-04-16 (walkthrough executed; no blockers reported).
+
 This directory captures the visual QA pass for the i18n/L10n ship — every first-level screen + key sub-screens in each of the 4 supported locales.
 
 ## Coverage matrix
