@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
 status: Executing Phase 28
-stopped_at: Phase 28 context gathered
-last_updated: "2026-04-16T09:00:00.000Z"
+stopped_at: Completed 27-01-PLAN.md
+last_updated: "2026-04-16T08:29:24.588Z"
 progress:
   total_phases: 22
   completed_phases: 6
   total_plans: 35
-  completed_plans: 27
+  completed_plans: 28
 ---
 
 # Project State: Milestone 1.1
@@ -24,7 +24,7 @@ Enhance user engagement through rich post formats (Rednote-style), smarter miles
 
 ## Current Phase
 
-Phase 26 — Trellis Harvest Panel, Dying/Dead Node Actions, and Suggested Moves Refactor (Plan 04 of 04 complete — phase ready for verification)
+Phase 27 — Add i18n/L10n support (Plan 01 of 07 complete — Foundation + Wave 0 landed)
 
 ## Roadmap
 
@@ -36,6 +36,22 @@ Phase 26 — Trellis Harvest Panel, Dying/Dead Node Actions, and Suggested Moves
 - **Phase 12:** Portal Navigation & Rich Moves Linking (12-01-PLAN.md — COMPLETE, 12-02-PLAN.md — COMPLETE)
 - **Phase 13:** Planner Redesign (13-01-PLAN.md — COMPLETE)
 - **Phase 14:** Knowledge Graph Classification & Anchor Nodes (14-01-PLAN.md — COMPLETE, 14-02-PLAN.md — COMPLETE, 14-03-PLAN.md — COMPLETE, 14-04-PLAN.md — COMPLETE)
+
+## Latest Decisions (Phase 27-01)
+
+- [Phase 27-01] i18next@26.0.5 + react-i18next@17.0.3 + @capacitor/device@8.0.2 installed; sync init from main.tsx (side-effect `import './locales'` before createRoot) — no Suspense flash
+- [Phase 27-01] Static-imported 4 JSON bundles (en canonical, zh/es/ja parity stubs duplicating EN values — Plan 07's Sonnet subagent replaces values); bundle-parity test green today
+- [Phase 27-01] Type-safe t() via module augmentation (Option A from RESEARCH.md) — typo in `t('home.titlee')` fails tsc compile
+- [Phase 27-01] TDD inversion: lib/locale.ts landed in Task 1 (not Task 2) because locales/index.ts imports it and Task 1 acceptance requires tsc/build exits 0; Task 2 retrofits TDD test coverage
+- [Phase 27-01] UserPreferences.locale staged optional (Task 1) → required (Task 3) so each task commit compiles standalone; legacy `language` kept as @deprecated for one-time migration only
+- [Phase 27-01] Legacy migration in settings.service.load(): if stored `preferences.language` exists and `locale` is missing, normalize (toLowerCase, split-'-', allowlist check) to 'en'/'zh'/'es'/'ja'; unsupported → 'en'
+- [Phase 27-01] SUPPORTED_LOCALES duplicated in lib/locale.ts to break circular import with locales/index.ts (per plan Task 2 NOTE)
+- [Phase 27-01] SupportedLocale inlined in types/index.ts (no cross-module dependency from types/ to locales/)
+- [Phase 27-01] resolveJsonModule + allowSyntheticDefaultImports added to tsconfig.app.json for JSON imports under strict verbatimModuleSyntax
+- [Phase 27-01] Node 25 globalThis.navigator is a read-only getter; tests use Object.defineProperty with configurable:true for shimming (also applied to globalThis.localStorage)
+- [Phase 27-01] Wave 0 suite: 11 test files total (4 live + 6 Plan-02/04 skeletons + 1 TDD via Task 2); 21 live cases pass in ~280ms; 6 skeletons have placeholder assertions with TODO markers
+- [Phase 27-01] Pre-existing Node 25 TS-stripping failures (affecting tests that transitively import src/providers/llm/index.ts → token-usage.service) logged to deferred-items.md, out of scope
+- [Phase 27-01] Pre-existing 8 tsc errors in GraphScreen/canonical-knowledge/review/trellis-state files — not introduced by Phase 27-01; logged to deferred-items.md
 
 ## Latest Decisions (Phase 28)
 
@@ -124,9 +140,9 @@ Phase 26 — Trellis Harvest Panel, Dying/Dead Node Actions, and Suggested Moves
 
 ## Last Session
 
-Completed Phase 26 Plan 02 (26-02-PLAN.md) — TrellisStatusPanel (3-column fruit/dying/dead counts + bottom sheets), harvest flow (clear blossom dates + credits + fly-to-counter + confetti), Planner header fruit counter pill
-**Stopped At:** Phase 27 context gathered
-**Date:** 2026-04-15
+Completed Phase 27 Plan 01 (27-01-PLAN.md) — i18next + react-i18next + @capacitor/device installed; sync init from main.tsx; UserPreferences.locale + legacy language migration; 11 Wave 0 test files (21 cases pass in ~280ms)
+**Stopped At:** Completed 27-01-PLAN.md
+**Date:** 2026-04-16
 
 ## Latest Decisions (Phase 25)
 
