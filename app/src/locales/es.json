@@ -261,6 +261,22 @@
       "label": "Language / 语言 / Idioma / 言語",
       "description": "Elige el idioma de la interfaz"
     },
+    "menu": {
+      "aiModels": "Modelos de IA",
+      "aiModelsDesc": "Modelo de lenguaje, embeddings, texto a voz",
+      "contentSources": "Fuentes de contenido",
+      "contentSourcesDesc": "Generación de imágenes, YouTube, búsqueda web",
+      "features": "Funciones",
+      "featuresDesc": "Pódcast, repaso, planificación",
+      "dataPrivacy": "Datos y privacidad",
+      "dataPrivacyDesc": "Privacidad, herramientas de desarrollo, estadísticas"
+    },
+    "titles": {
+      "aiModels": "Modelos de IA",
+      "contentSources": "Fuentes de contenido",
+      "features": "Funciones",
+      "dataPrivacy": "Datos y privacidad"
+    },
     "sections": {
       "languageModel": "Modelo de lenguaje",
       "embeddingModel": "Modelo de embeddings",
@@ -304,7 +320,8 @@
       "imageGeneration": "Generación de imágenes",
       "nanoBananaApiKey": "Clave API Nano Banana",
       "geminiApiKey": "Clave API Gemini",
-      "geminiModel": "Modelo Gemini"
+      "geminiModel": "Modelo Gemini",
+      "language": "Idioma"
     },
     "descriptions": {
       "embeddingBlurb": "Usado para la similitud semántica entre conceptos. Impulsa la calidad de las tarjetas de conexión. Independiente del LLM — Anthropic no tiene modelo de embeddings.",
@@ -453,7 +470,8 @@
       "imageCacheCleared": "Caché de imágenes borrado.",
       "tokenUsageCleared": "Datos de uso de tokens borrados.",
       "trellisDevOn": "Modo dev enrejado activado — mostrando todos los estados",
-      "trellisDevOff": "Modo dev enrejado desactivado"
+      "trellisDevOff": "Modo dev enrejado desactivado",
+      "settingsReset": "Ajustes restablecidos — recargando…"
     },
     "confirm": {
       "deleteApiKeys": "¿Eliminar todas las claves API guardadas? Esto deshabilitará IA y TTS hasta que las vuelvas a introducir.",

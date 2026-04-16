@@ -261,6 +261,22 @@
       "label": "Language / 语言 / Idioma / 言語",
       "description": "表示言語を選択"
     },
+    "menu": {
+      "aiModels": "AIモデル",
+      "aiModelsDesc": "言語モデル、埋め込み、音声合成",
+      "contentSources": "コンテンツソース",
+      "contentSourcesDesc": "画像生成、YouTube、ウェブ検索",
+      "features": "機能",
+      "featuresDesc": "ポッドキャスト、復習、プランナー設定",
+      "dataPrivacy": "データとプライバシー",
+      "dataPrivacyDesc": "プライバシー、開発者ツール、使用統計"
+    },
+    "titles": {
+      "aiModels": "AIモデル",
+      "contentSources": "コンテンツソース",
+      "features": "機能",
+      "dataPrivacy": "データとプライバシー"
+    },
     "sections": {
       "languageModel": "言語モデル",
       "embeddingModel": "埋め込みモデル",
@@ -304,7 +320,8 @@
       "imageGeneration": "画像生成",
       "nanoBananaApiKey": "Nano Banana API キー",
       "geminiApiKey": "Gemini API キー",
-      "geminiModel": "Gemini モデル"
+      "geminiModel": "Gemini モデル",
+      "language": "言語"
     },
     "descriptions": {
       "embeddingBlurb": "概念間の意味的類似度に使用され、コネクションカードの品質を支えます。LLM とは別 — Anthropic に埋め込みモデルはありません。",
@@ -453,7 +470,8 @@
       "imageCacheCleared": "画像キャッシュを消去しました。",
       "tokenUsageCleared": "トークン使用データを消去しました。",
       "trellisDevOn": "トレリス開発モードを ON — すべての葉の状態を表示",
-      "trellisDevOff": "トレリス開発モードを OFF"
+      "trellisDevOff": "トレリス開発モードを OFF",
+      "settingsReset": "設定をリセットしました — 再読み込み中…"
     },
     "confirm": {
       "deleteApiKeys": "保存済みの API キーをすべて削除しますか？再入力するまで AI と TTS の機能は無効になります。",

@@ -13,6 +13,10 @@ import { PlannerScreen } from './screens/PlannerScreen';
 import { ReviewScreen } from './screens/ReviewScreen';
 import { PodcastScreen } from './screens/PodcastScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
+import { SettingsAIScreen } from './screens/settings/SettingsAIScreen';
+import { SettingsContentScreen } from './screens/settings/SettingsContentScreen';
+import { SettingsFeaturesScreen } from './screens/settings/SettingsFeaturesScreen';
+import { SettingsDataScreen } from './screens/settings/SettingsDataScreen';
 import { GraphScreen } from './screens/GraphScreen';
 import { SwipeTabContainer } from './components/SwipeTabContainer';
 import { PostDetailScreen } from './screens/PostDetailScreen';
@@ -276,6 +280,10 @@ const router = createBrowserRouter([
       { path: 'review', element: <PageTransition><ReviewScreen /></PageTransition> },
       { path: 'podcast', element: <PageTransition><PodcastScreen /></PageTransition> },
       { path: 'settings', element: null },
+      { path: 'settings/ai', element: <PageTransition><SettingsAIScreen /></PageTransition> },
+      { path: 'settings/content', element: <PageTransition><SettingsContentScreen /></PageTransition> },
+      { path: 'settings/features', element: <PageTransition><SettingsFeaturesScreen /></PageTransition> },
+      { path: 'settings/data', element: <PageTransition><SettingsDataScreen /></PageTransition> },
       { path: '*', element: <Navigate to="/home" replace /> },
     ],
   },

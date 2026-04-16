@@ -1,5 +1,7 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import { HeaderScrollContext } from '../../lib/header-scroll-context';
 
 /** Height of the header bar (excluding safe-area). Use in content padding. */
@@ -14,6 +16,8 @@ interface HeaderProps {
   right?: ReactNode;
   /** When true, title is centered between left/right slots. Default: left-aligned. */
   centered?: boolean;
+  /** When provided, renders a back-arrow left slot that navigates to this path */
+  backTo?: string;
   /** Extra inline styles on the outer fixed container */
   style?: CSSProperties;
   /**
@@ -30,9 +34,16 @@ interface HeaderProps {
  * Each screen using this component should add `paddingTop: HEADER_HEIGHT` (or more)
  * to its scrollable content so it doesn't sit behind the header.
  */
-export function Header({ title, left, right, centered, style, scrolled: scrolledProp }: HeaderProps) {
+export function Header({ title, left, right, centered, backTo, style, scrolled: scrolledProp }: HeaderProps) {
+  const navigate = useNavigate();
   const ctx = useContext(HeaderScrollContext);
   const scrolled = scrolledProp ?? ctx?.scrolled ?? false;
+  const effectiveLeft = left ?? (backTo ? (
+    <button onClick={() => navigate(backTo)} style={{ background: 'none', border: 'none', padding: '8px', marginLeft: '-8px', color: 'var(--primary-40)', display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+      <ArrowLeft size={20} />
+    </button>
+  ) : undefined);
+  const effectiveCentered = centered ?? !!backTo;
   return (
     <div
       style={{
@@ -61,14 +72,14 @@ export function Header({ title, left, right, centered, style, scrolled: scrolled
           gap: '12px',
         }}
       >
-        {centered ? (
+        {effectiveCentered ? (
           <>
             {/* Phase 28 D-29 — WCAG 2.5.8 44×44 minimum touch target for the
                  left/right slots. The back button inside inherits from the
                  flex container; we also stretch the slot to the full header
                  height so any nested button has at least 44px tap surface. */}
             <div style={{ minWidth: '44px', minHeight: '44px', display: 'flex', alignItems: 'center' }}>
-              {left}
+              {effectiveLeft}
             </div>
             <h1
               style={{
@@ -94,7 +105,7 @@ export function Header({ title, left, right, centered, style, scrolled: scrolled
                  back buttons inherit a minimum tap area regardless of their
                  own inline styles. */}
             <div style={{ minWidth: '44px', minHeight: '44px', display: 'flex', alignItems: 'center' }}>
-              {left}
+              {effectiveLeft}
             </div>
             <div style={{ minWidth: '44px', minHeight: '44px', display: 'flex', alignItems: 'center' }}>
               {right}

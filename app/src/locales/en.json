@@ -261,6 +261,22 @@
       "label": "Language / 语言 / Idioma / 言語",
       "description": "Choose your display language"
     },
+    "menu": {
+      "aiModels": "AI Models",
+      "aiModelsDesc": "Language model, embedding, text-to-speech",
+      "contentSources": "Content Sources",
+      "contentSourcesDesc": "Image generation, YouTube, web search",
+      "features": "Features",
+      "featuresDesc": "Podcast, review, planner scheduling",
+      "dataPrivacy": "Data & Privacy",
+      "dataPrivacyDesc": "Privacy, developer tools, usage analytics"
+    },
+    "titles": {
+      "aiModels": "AI Models",
+      "contentSources": "Content Sources",
+      "features": "Features",
+      "dataPrivacy": "Data & Privacy"
+    },
     "sections": {
       "languageModel": "Language Model",
       "embeddingModel": "Embedding Model",
@@ -304,7 +320,8 @@
       "imageGeneration": "Image Generation",
       "nanoBananaApiKey": "Nano Banana API Key",
       "geminiApiKey": "Gemini API Key",
-      "geminiModel": "Gemini Model"
+      "geminiModel": "Gemini Model",
+      "language": "Language"
     },
     "descriptions": {
       "embeddingBlurb": "Used for semantic similarity between concepts. Powers connection card quality. Separate from the LLM — Anthropic has no embedding model.",
@@ -453,7 +470,8 @@
       "imageCacheCleared": "Image cache cleared.",
       "tokenUsageCleared": "Token usage data cleared.",
       "trellisDevOn": "Trellis dev mode on — showing all leaf states",
-      "trellisDevOff": "Trellis dev mode off"
+      "trellisDevOff": "Trellis dev mode off",
+      "settingsReset": "Settings reset — reloading…"
     },
     "confirm": {
       "deleteApiKeys": "Delete all stored API keys? This will disable AI and TTS features until you re-enter your keys.",
