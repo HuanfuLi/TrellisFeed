@@ -267,7 +267,7 @@ export function PodcastScreen() {
   // ── All Podcasts sub-view ───────────────────────────────────────────────
   if (showAllPodcasts) {
     return (
-      <div style={{ padding: '24px 16px 96px', maxWidth: '448px', margin: '0 auto' }}>
+      <div style={{ paddingTop: '24px', paddingLeft: '16px', paddingRight: '16px', paddingBottom: 'var(--bottom-nav-safe)', maxWidth: '448px', margin: '0 auto' }}>
         <button
           onClick={() => setShowAllPodcasts(false)}
           style={{ background: 'none', border: 'none', padding: '12px', marginLeft: '-12px', color: 'var(--primary-40)', display: 'flex', alignItems: 'center', marginBottom: '24px' }}
@@ -373,7 +373,7 @@ export function PodcastScreen() {
 
   // ── Main view ───────────────────────────────────────────────────────────
   return (
-    <div style={{ padding: '24px 16px 96px', maxWidth: '448px', margin: '0 auto' }}>
+    <div style={{ paddingTop: '24px', paddingLeft: '16px', paddingRight: '16px', paddingBottom: 'var(--bottom-nav-safe)', maxWidth: '448px', margin: '0 auto' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
         <button

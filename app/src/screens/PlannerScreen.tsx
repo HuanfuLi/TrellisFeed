@@ -91,7 +91,7 @@ export function PlannerScreen() {
   };
 
   return (
-    <div style={{ padding: `${HEADER_HEIGHT + 8}px 16px 96px`, maxWidth: '448px', margin: '0 auto' }}>
+    <div style={{ paddingTop: `${HEADER_HEIGHT + 8}px`, paddingLeft: '16px', paddingRight: '16px', paddingBottom: 'var(--bottom-nav-safe)', maxWidth: '448px', margin: '0 auto' }}>
       <Header
         title={t('planner.title')}
         right={
@@ -116,7 +116,10 @@ export function PlannerScreen() {
 
       <TrellisHero />
 
-      <div style={{ marginTop: '16px', marginBottom: '8px' }}>
+      {/* Phase 28 D-30 — symmetric section rhythm (var(--section-gap) = 24px)
+           between TrellisHero and TrellisStatusPanel, replacing the prior
+           asymmetric 16px/8px. */}
+      <div style={{ marginTop: 'var(--section-gap)', marginBottom: 'var(--section-gap)' }}>
         <TrellisStatusPanel
           nodes={layout.nodes}
           onCreditsChange={setCredits}
@@ -184,7 +187,8 @@ export function PlannerScreen() {
                   onClick={() => handleReplant(node)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: '12px',
-                    padding: '11px 0', borderBottom: '1px solid var(--border)',
+                    // Phase 28 D-28 — 11px → 12px to land on the 4-grid.
+                    padding: '12px 0', borderBottom: '1px solid var(--border)',
                     cursor: 'pointer',
                   }}
                 >
@@ -209,8 +213,10 @@ export function PlannerScreen() {
                     aria-label={t('planner.pruneAria')}
                     title={t('planner.pruneTitle')}
                     style={{
+                      // Phase 28 D-29 — WCAG 2.5.8 44×44 minimum touch target.
+                      // Visible icon is still 14px — the 44×44 is tap area.
                       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                      width: 32, height: 32, borderRadius: 8,
+                      minWidth: '44px', minHeight: '44px', borderRadius: 8,
                       backgroundColor: 'transparent',
                       border: '1px solid var(--border)',
                       color: 'var(--muted-foreground)', cursor: 'pointer',
@@ -232,7 +238,8 @@ export function PlannerScreen() {
                   onClick={() => handleHeal(node)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: '12px',
-                    padding: '11px 0', borderBottom: '1px solid var(--border)',
+                    // Phase 28 D-28 — 11px → 12px on the 4-grid.
+                    padding: '12px 0', borderBottom: '1px solid var(--border)',
                     cursor: 'pointer',
                   }}
                 >
@@ -257,8 +264,9 @@ export function PlannerScreen() {
                     aria-label={t('planner.pruneAria')}
                     title={t('planner.pruneTitle')}
                     style={{
+                      // Phase 28 D-29 — WCAG 2.5.8 44×44 minimum touch target.
                       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                      width: 32, height: 32, borderRadius: 8,
+                      minWidth: '44px', minHeight: '44px', borderRadius: 8,
                       backgroundColor: 'transparent',
                       border: '1px solid var(--border)',
                       color: 'var(--muted-foreground)', cursor: 'pointer',

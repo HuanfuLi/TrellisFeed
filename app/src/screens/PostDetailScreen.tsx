@@ -378,7 +378,7 @@ export function PostDetailScreen() {
 
   if (loadingPost) {
     return (
-      <div style={{ padding: `calc(24px + ${HEADER_HEIGHT}px) 16px 24px`, maxWidth: '448px', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <div style={{ paddingTop: `calc(24px + ${HEADER_HEIGHT}px)`, paddingLeft: '16px', paddingRight: '16px', paddingBottom: 'var(--bottom-nav-safe)', maxWidth: '448px', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '12px' }}>
         <Header
           title={t('posts.detail.headerTitle')}
           centered
@@ -396,7 +396,7 @@ export function PostDetailScreen() {
 
   if (!post) {
     return (
-      <div style={{ padding: `calc(24px + ${HEADER_HEIGHT}px) 16px 24px`, maxWidth: '448px', margin: '0 auto' }}>
+      <div style={{ paddingTop: `calc(24px + ${HEADER_HEIGHT}px)`, paddingLeft: '16px', paddingRight: '16px', paddingBottom: 'var(--bottom-nav-safe)', maxWidth: '448px', margin: '0 auto' }}>
         <Header
           title={t('posts.detail.headerTitle')}
           centered
@@ -418,7 +418,7 @@ export function PostDetailScreen() {
   const meta = connectionMetaRef.current;
 
   return (
-    <div style={{ padding: `calc(16px + ${HEADER_HEIGHT}px) 16px 104px`, maxWidth: '448px', margin: '0 auto' }}>
+    <div style={{ paddingTop: `calc(16px + ${HEADER_HEIGHT}px)`, paddingLeft: '16px', paddingRight: '16px', paddingBottom: 'var(--bottom-nav-safe)', maxWidth: '448px', margin: '0 auto' }}>
       <Header
         title={t('posts.detail.headerTitle')}
         centered
@@ -548,7 +548,8 @@ export function PostDetailScreen() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                padding: '32px 28px',
+                // Phase 28 D-28 — 32px 28px → 32px 24px to hit 4-grid outlier fix.
+                padding: '32px 24px',
                 boxSizing: 'border-box',
                 marginBottom: '8px',
                 borderRadius: 'var(--radius-xl)',

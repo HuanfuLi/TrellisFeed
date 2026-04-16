@@ -56,7 +56,7 @@ export function QuestionDetailScreen() {
   const related = questions.filter((q) => question.relatedQuestionIds.includes(q.id));
 
   return (
-    <div style={{ padding: '24px 16px 96px', maxWidth: '448px', margin: '0 auto' }}>
+    <div style={{ paddingTop: '24px', paddingLeft: '16px', paddingRight: '16px', paddingBottom: 'var(--bottom-nav-safe)', maxWidth: '448px', margin: '0 auto' }}>
       {/* Move breadcrumb — shown when navigated from a suggested move */}
       {moveState && (
         <div style={{

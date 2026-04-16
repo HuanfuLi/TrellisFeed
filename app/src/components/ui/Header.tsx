@@ -63,7 +63,11 @@ export function Header({ title, left, right, centered, style, scrolled: scrolled
       >
         {centered ? (
           <>
-            <div style={{ minWidth: '40px', display: 'flex', alignItems: 'center' }}>
+            {/* Phase 28 D-29 — WCAG 2.5.8 44×44 minimum touch target for the
+                 left/right slots. The back button inside inherits from the
+                 flex container; we also stretch the slot to the full header
+                 height so any nested button has at least 44px tap surface. */}
+            <div style={{ minWidth: '44px', minHeight: '44px', display: 'flex', alignItems: 'center' }}>
               {left}
             </div>
             <h1
@@ -79,15 +83,22 @@ export function Header({ title, left, right, centered, style, scrolled: scrolled
             >
               {title}
             </h1>
-            <div style={{ minWidth: '40px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+            <div style={{ minWidth: '44px', minHeight: '44px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
               {right}
             </div>
           </>
         ) : (
           <>
             <h1 style={{ flex: 1, fontSize: '1.25rem', fontWeight: 700 }}>{title}</h1>
-            {left}
-            {right}
+            {/* Phase 28 D-29 — 44×44 enforced at the slot level so consumer
+                 back buttons inherit a minimum tap area regardless of their
+                 own inline styles. */}
+            <div style={{ minWidth: '44px', minHeight: '44px', display: 'flex', alignItems: 'center' }}>
+              {left}
+            </div>
+            <div style={{ minWidth: '44px', minHeight: '44px', display: 'flex', alignItems: 'center' }}>
+              {right}
+            </div>
           </>
         )}
       </div>

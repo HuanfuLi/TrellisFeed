@@ -54,7 +54,8 @@ const LibraryCard = memo(function LibraryCard({
           display: 'flex',
           alignItems: 'flex-start',
           justifyContent: 'space-between',
-          padding: '16px 16px 12px',
+          // Phase 28 D-28 — uniform 16px (was asymmetric 16/16/12).
+          padding: '16px',
           gap: '12px',
         }}
       >
@@ -138,7 +139,8 @@ const LibraryCard = memo(function LibraryCard({
       <div style={{ height: '1px', backgroundColor: 'var(--surface-variant)', margin: '0 16px' }} />
 
       {/* A row */}
-      <div style={{ padding: '12px 16px 16px' }}>
+      {/* Phase 28 D-28 — uniform 16px (was asymmetric 12/16/16). */}
+      <div style={{ padding: '16px' }}>
         <p
           style={{
             fontSize: '0.7rem',
@@ -391,7 +393,7 @@ export function ReviewScreen() {
     const pinnedCount = sorted.filter((c) => c.pinned).length;
 
     return (
-      <div style={{ padding: '24px 16px 96px', maxWidth: '448px', margin: '0 auto' }}>
+      <div style={{ paddingTop: '24px', paddingLeft: '16px', paddingRight: '16px', paddingBottom: 'var(--bottom-nav-safe)', maxWidth: '448px', margin: '0 auto' }}>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
           <button
@@ -495,7 +497,7 @@ export function ReviewScreen() {
       ? (reviewed === 1 ? t('review.done.finishedOne', { count: reviewed }) : t('review.done.finishedOther', { count: reviewed }))
       : t('review.done.noneDue');
     return (
-      <div style={{ padding: '24px 16px 96px', maxWidth: '448px', margin: '0 auto' }}>
+      <div style={{ paddingTop: '24px', paddingLeft: '16px', paddingRight: '16px', paddingBottom: 'var(--bottom-nav-safe)', maxWidth: '448px', margin: '0 auto' }}>
         <Confetti active={showConfetti} />
         <button
           onClick={() => navigate(-1)}
@@ -578,7 +580,7 @@ export function ReviewScreen() {
 
   // ── Active review session ────────────────────────────────────────────────────
   return (
-    <div style={{ padding: '24px 0 96px', maxWidth: '448px', margin: '0 auto' }}>
+    <div style={{ paddingTop: '24px', paddingBottom: 'var(--bottom-nav-safe)', maxWidth: '448px', margin: '0 auto' }}>
       {/* Header */}
       <div style={{ padding: '0 16px', marginBottom: '24px' }}>
         {/* Move breadcrumb — shown when navigated from a suggested move */}

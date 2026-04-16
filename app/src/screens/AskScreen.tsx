@@ -567,7 +567,8 @@ export function AskScreen() {
                     onClick={() => void handleSend(prompt)}
                     style={{
                       textAlign: 'left',
-                      padding: '11px 16px',
+                      // Phase 28 D-28 — 11px → 12px on the 4-grid.
+                      padding: '12px 16px',
                       borderRadius: '18px',
                       border: '1.5px solid var(--border)',
                       backgroundColor: 'var(--card)',
@@ -604,6 +605,8 @@ export function AskScreen() {
                         onClick={() => navigate(`/ask/${q.id}`)}
                         style={{
                           textAlign: 'left',
+                          // TODO(Plan 28-03 D-15): row becomes a full <button> with
+                          // refactored structure; padding then follows UI-SPEC D-15.
                           padding: '11px 16px',
                           borderRadius: '18px',
                           border: '1.5px solid var(--border)',
@@ -715,7 +718,9 @@ export function AskScreen() {
                     onClick={() => setConfirmFlagId(message.id)}
                     title={t('ask.flagTitle')}
                     aria-label={t('ask.flagTitle')}
-                    style={{ padding: '10px', borderRadius: '8px', border: 'none', background: 'none', cursor: 'pointer', color: 'var(--muted-foreground)', opacity: 0.45, display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.7rem' }}
+                    // Phase 28 D-29 — WCAG 2.5.8 44×44 minimum touch target.
+                    // Visible Flag icon stays 12px; justifyContent centers it.
+                    style={{ padding: '10px', borderRadius: '8px', border: 'none', background: 'none', cursor: 'pointer', color: 'var(--muted-foreground)', opacity: 0.45, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: '44px', minHeight: '44px', gap: '3px', fontSize: '0.7rem' }}
                   >
                     <Flag size={12} />
                   </button>

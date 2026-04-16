@@ -376,7 +376,10 @@ export function HomeScreen() {
           touchAction: 'pan-y',
         }}
       >
-      <div style={{ padding: `${HEADER_HEIGHT + 8}px 16px calc(96px + var(--safe-area-top) + var(--safe-area-bottom))`, maxWidth: '448px', margin: '0 auto' }}>
+      {/* Phase 28 D-27 — paddingBottom migrated to var(--bottom-nav-safe) for
+           consistent bottom-nav clearance across all screens. paddingTop absorbs
+           HEADER_HEIGHT + 8px; safe-area-top is already applied by the wrapper. */}
+      <div style={{ paddingTop: `${HEADER_HEIGHT + 8}px`, paddingLeft: '16px', paddingRight: '16px', paddingBottom: 'var(--bottom-nav-safe)', maxWidth: '448px', margin: '0 auto' }}>
 
         {/* Bento Grid */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
