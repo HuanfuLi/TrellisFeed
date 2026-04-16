@@ -1,4 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, BookOpen, FileText, ChevronRight } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Skeleton } from '../components/ui/Skeleton';
@@ -13,6 +14,7 @@ import { toast } from '../lib/toast';
 export function AnchorDetailScreen() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { getById, questions, isLoading } = useQuestions();
 
   const anchor = id ? getById(id) : undefined;
@@ -33,7 +35,7 @@ export function AnchorDetailScreen() {
             <Skeleton height="6rem" />
           </div>
         ) : (
-          <p style={{ color: 'var(--muted-foreground)' }}>Anchor not found.</p>
+          <p style={{ color: 'var(--muted-foreground)' }}>{t('graph.anchor.notFound')}</p>
         )}
       </div>
     );
@@ -70,11 +72,12 @@ export function AnchorDetailScreen() {
   const handleGeneratePost = () => {
     // Navigate to post detail with discover meta for this anchor concept
     const postId = `anchor-post-${anchor.id}`;
+    const concept = anchor.title || anchor.content;
     navigate(`/posts/${postId}`, {
       state: {
         discoverMeta: {
-          concept: anchor.title || anchor.content,
-          title: `Understanding ${anchor.title || anchor.content}: A Complete Guide`,
+          concept,
+          title: t('graph.anchor.learnAsPostTitle', { concept }),
         },
       },
     });
@@ -83,7 +86,7 @@ export function AnchorDetailScreen() {
   return (
     <div style={{ padding: `${HEADER_HEIGHT + 8}px 16px 96px`, maxWidth: '448px', margin: '0 auto' }}>
       <Header
-        title="Concept Anchor"
+        title={t('graph.anchor.title')}
         centered
         left={
           <button
@@ -95,13 +98,13 @@ export function AnchorDetailScreen() {
         }
         right={
           <DetailMenu
-            deleteLabel="this anchor and its Q&As"
+            deleteLabel={t('graph.anchor.deleteLabel')}
             onDelete={async () => {
               for (const qa of qaChildren) {
                 await questionService.delete(qa.id);
               }
               await questionService.delete(anchor.id);
-              toast('Anchor deleted', 'success');
+              toast(t('graph.anchor.deleted'), 'success');
               navigate(-1);
             }}
           />
@@ -118,9 +121,9 @@ export function AnchorDetailScreen() {
         gap: '4px',
         flexWrap: 'wrap',
       }}>
-        <span>{anchor.rootLabel || 'Knowledge'}</span>
+        <span>{anchor.rootLabel || t('graph.anchor.rootFallback')}</span>
         <ChevronRight size={12} />
-        <span>{anchor.branchLabel || 'General'}</span>
+        <span>{anchor.branchLabel || t('graph.anchor.branchFallback')}</span>
         <ChevronRight size={12} />
         {anchor.clusterNodeId ? (
           <button
@@ -135,10 +138,10 @@ export function AnchorDetailScreen() {
               fontWeight: 600,
             }}
           >
-            {anchor.clusterLabel || 'Concepts'}
+            {anchor.clusterLabel || t('graph.anchor.clusterFallback')}
           </button>
         ) : (
-          <span>{anchor.clusterLabel || 'Concepts'}</span>
+          <span>{anchor.clusterLabel || t('graph.anchor.clusterFallback')}</span>
         )}
       </div>
 
@@ -155,8 +158,8 @@ export function AnchorDetailScreen() {
         color: 'var(--muted-foreground)',
         marginBottom: '20px',
       }}>
-        <span>{anchor.qaCount || qaChildren.length} Q&As</span>
-        <span>{anchorCardCount} flashcards</span>
+        <span>{t('graph.anchor.qaCount', { count: anchor.qaCount || qaChildren.length })}</span>
+        <span>{t('graph.anchor.flashcardCount', { count: anchorCardCount })}</span>
       </div>
 
       {/* Action buttons */}
@@ -181,7 +184,7 @@ export function AnchorDetailScreen() {
           }}
         >
           <BookOpen size={16} />
-          Flashcards
+          {t('graph.anchor.flashcardsButton')}
         </button>
         <button
           onClick={handleGeneratePost}
@@ -202,7 +205,7 @@ export function AnchorDetailScreen() {
           }}
         >
           <FileText size={16} />
-          Learn as Post
+          {t('graph.anchor.learnAsPostButton')}
         </button>
       </div>
 
@@ -216,7 +219,7 @@ export function AnchorDetailScreen() {
             letterSpacing: '0.05em',
             color: 'var(--muted-foreground)',
           }}>
-            Knowledge Summary
+            {t('graph.anchor.summaryHeading')}
           </h4>
           <Card>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -246,7 +249,7 @@ export function AnchorDetailScreen() {
             letterSpacing: '0.05em',
             color: 'var(--muted-foreground)',
           }}>
-            Questions & Answers
+            {t('graph.anchor.qaHeading')}
           </h4>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {qaChildren.map((qa) => (
@@ -265,7 +268,7 @@ export function AnchorDetailScreen() {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginTop: '6px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', color: 'var(--primary-40)', fontWeight: 600 }}>
-                    <span>View details</span>
+                    <span>{t('graph.anchor.viewDetails')}</span>
                     <ChevronRight size={12} />
                   </div>
                 </div>

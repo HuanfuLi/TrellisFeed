@@ -1,4 +1,5 @@
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Calendar, Tag, Play } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
@@ -15,6 +16,7 @@ export function QuestionDetailScreen() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useTranslation();
   const { getById, questions, isLoading } = useQuestions();
 
   // Extract move navigation context (when navigated from a suggested move)
@@ -45,7 +47,7 @@ export function QuestionDetailScreen() {
             <Skeleton height="8rem" />
           </div>
         ) : (
-          <p style={{ color: 'var(--muted-foreground)' }}>Question not found.</p>
+          <p style={{ color: 'var(--muted-foreground)' }}>{t('questionDetail.notFound')}</p>
         )}
       </div>
     );
@@ -62,7 +64,7 @@ export function QuestionDetailScreen() {
           color: 'var(--muted-foreground)',
           marginBottom: '12px',
         }}>
-          Suggested move: {moveState.move.title}
+          {t('questionDetail.moveBreadcrumb', { title: moveState.move.title })}
         </div>
       )}
       {/* Back + Menu */}
@@ -74,10 +76,10 @@ export function QuestionDetailScreen() {
           <ArrowLeft size={20} />
         </button>
         <DetailMenu
-          deleteLabel="this question"
+          deleteLabel={t('questionDetail.deleteLabel')}
           onDelete={async () => {
             await questionService.delete(question.id);
-            toast('Question deleted', 'success');
+            toast(t('questionDetail.deleted'), 'success');
             navigate(-1);
           }}
         />
@@ -89,7 +91,7 @@ export function QuestionDetailScreen() {
           <Calendar size={14} /> {formatDate(question.createdAt)}
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <Tag size={14} /> {question.reviewSchedule.reviewCount} reviews
+          <Tag size={14} /> {t('questionDetail.reviewsCount', { count: question.reviewSchedule.reviewCount })}
         </span>
       </div>
 
@@ -105,7 +107,7 @@ export function QuestionDetailScreen() {
       {/* Question card */}
       <Card style={{ marginBottom: '12px' }}>
         <h4 style={{ marginBottom: '10px', color: 'var(--muted-foreground)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          Question
+          {t('questionDetail.questionHeading')}
         </h4>
         <p style={{ lineHeight: 1.6 }}>{question.content}</p>
       </Card>
@@ -113,22 +115,22 @@ export function QuestionDetailScreen() {
       {/* Answer card */}
       <Card style={{ marginBottom: '24px' }}>
         <h4 style={{ marginBottom: '12px', color: 'var(--muted-foreground)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          Answer
+          {t('questionDetail.answerHeading')}
         </h4>
         <Markdown>{question.answer}</Markdown>
       </Card>
 
       {/* Review Schedule */}
       <div style={{ marginBottom: '24px' }}>
-        <h4 style={{ marginBottom: '12px' }}>Review Schedule</h4>
+        <h4 style={{ marginBottom: '12px' }}>{t('questionDetail.scheduleHeading')}</h4>
         <Card>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <p style={{ fontWeight: 500, fontSize: '0.9rem', marginBottom: '4px' }}>
-                Next review: {question.reviewSchedule.nextReviewDate}
+                {t('questionDetail.nextReview', { date: question.reviewSchedule.nextReviewDate })}
               </p>
               <p style={{ fontSize: '0.8rem', color: 'var(--muted-foreground)' }}>
-                Times reviewed: {question.reviewSchedule.reviewCount}
+                {t('questionDetail.timesReviewed', { count: question.reviewSchedule.reviewCount })}
               </p>
             </div>
             <button
@@ -147,7 +149,7 @@ export function QuestionDetailScreen() {
                 gap: '6px'
               }}
             >
-              <Play size={14} fill="currentColor" /> Review Now
+              <Play size={14} fill="currentColor" /> {t('questionDetail.reviewNow')}
             </button>
           </div>
         </Card>
@@ -156,7 +158,7 @@ export function QuestionDetailScreen() {
       {/* Related Questions */}
       {related.length > 0 && (
         <div>
-          <h4 style={{ marginBottom: '12px' }}>Related Questions</h4>
+          <h4 style={{ marginBottom: '12px' }}>{t('questionDetail.relatedHeading')}</h4>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {related.map((q) => (
               <Card

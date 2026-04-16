@@ -1,4 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, BookOpen, FileText, ChevronRight } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Skeleton } from '../components/ui/Skeleton';
@@ -14,6 +15,7 @@ import { toast } from '../lib/toast';
 export function ClusterDetailScreen() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { getById, questions, isLoading } = useQuestions();
 
   const cluster = id ? getById(id) : undefined;
@@ -35,7 +37,7 @@ export function ClusterDetailScreen() {
             <Skeleton height="6rem" />
           </div>
         ) : (
-          <p style={{ color: 'var(--muted-foreground)' }}>Cluster not found.</p>
+          <p style={{ color: 'var(--muted-foreground)' }}>{t('graph.cluster.notFound')}</p>
         )}
       </div>
     );
@@ -89,11 +91,12 @@ export function ClusterDetailScreen() {
 
   const handleGeneratePost = () => {
     const postId = `cluster-post-${cluster.id}`;
+    const concept = cluster.title || cluster.content;
     navigate(`/posts/${postId}`, {
       state: {
         discoverMeta: {
-          concept: cluster.title || cluster.content,
-          title: `Understanding ${cluster.title || cluster.content}: A Complete Guide`,
+          concept,
+          title: t('graph.cluster.learnAsPostTitle', { concept }),
         },
       },
     });
@@ -102,7 +105,7 @@ export function ClusterDetailScreen() {
   return (
     <div style={{ padding: `${HEADER_HEIGHT + 8}px 16px 96px`, maxWidth: '448px', margin: '0 auto' }}>
       <Header
-        title="Knowledge Cluster"
+        title={t('graph.cluster.title')}
         centered
         left={
           <button
@@ -114,7 +117,7 @@ export function ClusterDetailScreen() {
         }
         right={
           <DetailMenu
-            deleteLabel="this cluster and all its contents"
+            deleteLabel={t('graph.cluster.deleteLabel')}
             onDelete={async () => {
               for (const qa of allQaChildren) {
                 await questionService.delete(qa.id);
@@ -123,7 +126,7 @@ export function ClusterDetailScreen() {
                 await questionService.delete(anchor.id);
               }
               await questionService.delete(cluster.id);
-              toast('Cluster deleted', 'success');
+              toast(t('graph.cluster.deleted'), 'success');
               navigate(-1);
             }}
           />
@@ -142,9 +145,9 @@ export function ClusterDetailScreen() {
           flexWrap: 'wrap',
         }}
       >
-        <span>{cluster.rootLabel || 'Knowledge'}</span>
+        <span>{cluster.rootLabel || t('graph.cluster.rootFallback')}</span>
         <ChevronRight size={12} />
-        <span>{cluster.branchLabel || 'General'}</span>
+        <span>{cluster.branchLabel || t('graph.cluster.branchFallback')}</span>
       </div>
 
       {/* Cluster title */}
@@ -162,9 +165,9 @@ export function ClusterDetailScreen() {
           marginBottom: '20px',
         }}
       >
-        <span>{childAnchors.length} concepts</span>
-        <span>{allQaChildren.length} Q&As</span>
-        <span>{clusterCardCount} flashcards</span>
+        <span>{t('graph.cluster.conceptCount', { count: childAnchors.length })}</span>
+        <span>{t('graph.cluster.qaCount', { count: allQaChildren.length })}</span>
+        <span>{t('graph.cluster.flashcardCount', { count: clusterCardCount })}</span>
       </div>
 
       {/* Action buttons */}
@@ -189,7 +192,7 @@ export function ClusterDetailScreen() {
           }}
         >
           <BookOpen size={16} />
-          Flashcards
+          {t('graph.cluster.flashcardsButton')}
         </button>
         <button
           onClick={handleGeneratePost}
@@ -210,7 +213,7 @@ export function ClusterDetailScreen() {
           }}
         >
           <FileText size={16} />
-          Learn as Post
+          {t('graph.cluster.learnAsPostButton')}
         </button>
       </div>
 
@@ -226,7 +229,7 @@ export function ClusterDetailScreen() {
               color: 'var(--muted-foreground)',
             }}
           >
-            Knowledge Summary
+            {t('graph.cluster.summaryHeading')}
           </h4>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {groupedSummaries.map((group, gi) => (
@@ -277,7 +280,7 @@ export function ClusterDetailScreen() {
               color: 'var(--muted-foreground)',
             }}
           >
-            Concept Anchors
+            {t('graph.cluster.anchorsHeading')}
           </h4>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {childAnchors.map((anchor) => {
@@ -289,7 +292,7 @@ export function ClusterDetailScreen() {
                   key={anchor.id}
                   question={anchor}
                   onClick={() => navigate(`/anchor/${anchor.id}`)}
-                  subtitle={`${anchorQaCount} Q&As`}
+                  subtitle={t('graph.anchor.qaCount', { count: anchorQaCount })}
                 />
               );
             })}

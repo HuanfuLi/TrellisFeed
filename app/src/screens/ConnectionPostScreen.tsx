@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Loader2, MessageSquare, RefreshCw } from 'lucide-react';
 import type { ChatSession, DailyPost, Question, SessionMessage } from '../types';
 import { conceptFeedService } from '../services/concept-feed.service';
@@ -26,6 +27,7 @@ function newMsgId(prefix: string): string {
 export function ConnectionPostScreen() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useTranslation();
   const { idA, idB } = useParams<{ idA: string; idB: string }>();
   const state = (location.state as LocationState | null);
   const { questions } = useQuestions();
@@ -44,8 +46,8 @@ export function ConnectionPostScreen() {
   const questionsRef = useRef(questions);
   questionsRef.current = questions;
 
-  const conceptNounA = state?.conceptNounA ?? 'Concept A';
-  const conceptNounB = state?.conceptNounB ?? 'Concept B';
+  const conceptNounA = state?.conceptNounA ?? t('posts.connection.fallbackA');
+  const conceptNounB = state?.conceptNounB ?? t('posts.connection.fallbackB');
 
   useEffect(() => {
     if (!idA || !idB) return;
@@ -64,7 +66,7 @@ export function ConnectionPostScreen() {
     const qA = state?.questionA ?? allQuestions.find((q) => q.id === idA) ?? null;
     const qB = state?.questionB ?? allQuestions.find((q) => q.id === idB) ?? null;
     if (!qA || !qB) {
-      setError('Could not find the concepts for this connection.');
+      setError(t('posts.connection.notFound'));
       return;
     }
 
@@ -88,7 +90,7 @@ export function ConnectionPostScreen() {
         setStreaming('');
       } catch (err) {
         if (!aborted) {
-          setError(err instanceof Error ? err.message : 'Generation failed. Check your AI settings.');
+          setError(err instanceof Error ? err.message : t('posts.connection.generationFailed'));
         }
       } finally {
         if (!aborted) setIsGenerating(false);
@@ -140,7 +142,7 @@ export function ConnectionPostScreen() {
       const aiMsg: SessionMessage = {
         id: newMsgId('ai'),
         type: 'ai',
-        content: accumulated || 'Something went wrong. Please try again.',
+        content: accumulated || t('posts.connection.qaGenericError'),
       };
       const updated: ChatSession = { ...nextSession, messages: [...nextSession.messages, aiMsg] };
       setSession(updated);
@@ -148,7 +150,7 @@ export function ConnectionPostScreen() {
       setQaStreaming('');
     } catch (err) {
       setQaStreaming('');
-      toast(err instanceof Error ? err.message : 'Failed to ask about this post.', 'error');
+      toast(err instanceof Error ? err.message : t('posts.connection.qaAskFailed'), 'error');
     }
   };
 
@@ -178,7 +180,7 @@ export function ConnectionPostScreen() {
         </button>
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--muted-foreground)', marginBottom: '1px' }}>
-            Connection
+            {t('posts.connection.headerLabel')}
           </p>
           <p style={{ fontWeight: 700, fontSize: '0.95rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {conceptNounA} &amp; {conceptNounB}
@@ -219,7 +221,7 @@ export function ConnectionPostScreen() {
             backgroundColor: 'var(--danger-light)',
             marginBottom: '16px',
           }}>
-            <p style={{ color: 'var(--danger-dark)', fontWeight: 600, marginBottom: '8px' }}>Generation failed</p>
+            <p style={{ color: 'var(--danger-dark)', fontWeight: 600, marginBottom: '8px' }}>{t('posts.connection.generationFailedHeading')}</p>
             <p style={{ color: 'var(--danger-dark)', fontSize: '0.875rem', marginBottom: '16px' }}>{error}</p>
             <button
               onClick={handleRetry}
@@ -237,7 +239,7 @@ export function ConnectionPostScreen() {
                 cursor: 'pointer',
               }}
             >
-              <RefreshCw size={14} /> Retry
+              <RefreshCw size={14} /> {t('posts.connection.retryButton')}
             </button>
           </div>
         )}
@@ -279,7 +281,7 @@ export function ConnectionPostScreen() {
             <div style={{ padding: '16px 14px 12px', borderBottom: '1px solid var(--surface-variant)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
                 <MessageSquare size={17} color="var(--primary-40)" />
-                <h2 style={{ fontSize: '1rem' }}>Ask this post</h2>
+                <h2 style={{ fontSize: '1rem' }}>{t('posts.connection.qaHeading')}</h2>
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                 {quickAskPrompts.map((prompt) => (
@@ -309,7 +311,7 @@ export function ConnectionPostScreen() {
             <div style={{ padding: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {qaMessages.length === 0 && !qaStreaming && (
                 <p style={{ color: 'var(--muted-foreground)', fontSize: '0.86rem', lineHeight: 1.55 }}>
-                  Ask a follow-up about this comparison, or challenge a claim in the essay.
+                  {t('posts.connection.qaEmpty')}
                 </p>
               )}
 
@@ -346,7 +348,7 @@ export function ConnectionPostScreen() {
                   value={input}
                   onChange={(event) => setInput(event.target.value)}
                   rows={2}
-                  placeholder="Ask a follow-up about this connection..."
+                  placeholder={t('posts.connection.qaPlaceholder')}
                   disabled={Boolean(qaStreaming)}
                   style={{
                     flex: 1,
@@ -375,7 +377,7 @@ export function ConnectionPostScreen() {
                     opacity: !input.trim() || qaStreaming ? 0.5 : 1,
                   }}
                 >
-                  Ask
+                  {t('posts.connection.qaSubmit')}
                 </button>
               </form>
             </div>

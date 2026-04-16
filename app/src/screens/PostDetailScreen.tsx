@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Loader2, MessageSquare, RefreshCw } from 'lucide-react';
+import i18n from '../locales';
 import { DetailMenu } from '../components/DetailMenu';
 import { Header, HEADER_HEIGHT } from '../components/ui/Header';
 import type { ChatSession, DailyPost, GeneratedImage, Question, SessionMessage } from '../types';
@@ -42,6 +44,7 @@ export function PostDetailScreen() {
   const navigate = useNavigate();
   const location = useLocation();
   const { id } = useParams();
+  const { t } = useTranslation();
   const { questions } = useQuestions();
 
   const locationState = location.state as { post?: DailyPost; connectionMeta?: ConnectionMeta; discoverMeta?: DiscoverMeta } | null;
@@ -110,16 +113,16 @@ export function PostDetailScreen() {
         id,
         date: new Date().toISOString().split('T')[0],
         title: `${connectionMeta.conceptNounA} & ${connectionMeta.conceptNounB}`,
-        teaser: { hook: 'Generating connection...', preview: '' },
+        teaser: { hook: i18n.t('posts.detail.connectionGenerating'), preview: '' },
         bodyMarkdown: '',
         whyCare: '',
         takeaway: '',
         quickAskPrompts: [],
         narrativeMode: 'contrast',
-        contextLabel: 'Connection',
+        contextLabel: i18n.t('posts.detail.connectionLabel'),
         sourceType: 'connection',
         sourceQuestionIds: [connectionMeta.questionA.id, connectionMeta.questionB.id],
-        sourceQuestionTitles: [connectionMeta.questionA.title || 'Concept A', connectionMeta.questionB.title || 'Concept B'],
+        sourceQuestionTitles: [connectionMeta.questionA.title || i18n.t('posts.detail.connectionFallbackA'), connectionMeta.questionB.title || i18n.t('posts.detail.connectionFallbackB')],
         keywords: [],
         generatedAt: Date.now(),
         origin: 'ai',
@@ -136,13 +139,13 @@ export function PostDetailScreen() {
         id,
         date: new Date().toISOString().split('T')[0],
         title: discoverMeta.title,
-        teaser: { hook: `Exploring ${discoverMeta.concept}...`, preview: '' },
+        teaser: { hook: i18n.t('posts.detail.discoverHookPreview', { concept: discoverMeta.concept }), preview: '' },
         bodyMarkdown: '',
         whyCare: '',
         takeaway: '',
         quickAskPrompts: [],
         narrativeMode: 'mechanism-breakdown',
-        contextLabel: 'Concept Discovery',
+        contextLabel: i18n.t('posts.detail.discoverContextLabel'),
         sourceType: 'mixed',
         sourceQuestionIds: [],
         sourceQuestionTitles: [],
@@ -244,7 +247,7 @@ export function PostDetailScreen() {
         }
       } catch (err) {
         if (!aborted) {
-          setOnEnterError(err instanceof Error ? err.message : 'Essay generation failed. Check your AI settings.');
+          setOnEnterError(err instanceof Error ? err.message : i18n.t('posts.detail.generationFailedFallback'));
         }
       } finally {
         if (!aborted) setIsStreamingOnEnter(false);
@@ -342,7 +345,7 @@ export function PostDetailScreen() {
       const aiMsg: SessionMessage = {
         id: newMsgId('ai'),
         type: 'ai',
-        content: accumulated || 'Something went wrong. Please try again.',
+        content: accumulated || t('posts.qa.genericError'),
       };
       const updated: ChatSession = { ...nextSession, messages: [...nextSession.messages, aiMsg] };
       setSession(updated);
@@ -350,7 +353,7 @@ export function PostDetailScreen() {
       setQaStreaming('');
     } catch (error) {
       setQaStreaming('');
-      toast(error instanceof Error ? error.message : 'Failed to ask about this post.', 'error');
+      toast(error instanceof Error ? error.message : t('posts.qa.askFailed'), 'error');
     }
   };
 
@@ -364,10 +367,10 @@ export function PostDetailScreen() {
       if (result.success && result.data) {
         setCarouselImages([result.data]);
       } else {
-        toast(result.error?.message ?? 'Image generation failed', 'error');
+        toast(result.error?.message ?? t('posts.image.generationFailed'), 'error');
       }
     } catch {
-      toast('Image generation failed', 'error');
+      toast(t('posts.image.generationFailed'), 'error');
     } finally {
       setIsRetryingImage(false);
     }
@@ -377,7 +380,7 @@ export function PostDetailScreen() {
     return (
       <div style={{ padding: `calc(24px + ${HEADER_HEIGHT}px) 16px 24px`, maxWidth: '448px', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '12px' }}>
         <Header
-          title="Post"
+          title={t('posts.detail.headerTitle')}
           centered
           left={
             <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', padding: '12px', marginLeft: '-12px', color: 'var(--primary-40)', display: 'flex', alignItems: 'center' }}>
@@ -386,7 +389,7 @@ export function PostDetailScreen() {
           }
         />
         <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
-        Loading post...
+        {t('posts.detail.loading')}
       </div>
     );
   }
@@ -395,7 +398,7 @@ export function PostDetailScreen() {
     return (
       <div style={{ padding: `calc(24px + ${HEADER_HEIGHT}px) 16px 24px`, maxWidth: '448px', margin: '0 auto' }}>
         <Header
-          title="Post"
+          title={t('posts.detail.headerTitle')}
           centered
           left={
             <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', padding: '12px', marginLeft: '-12px', color: 'var(--primary-40)', display: 'flex', alignItems: 'center' }}>
@@ -403,8 +406,8 @@ export function PostDetailScreen() {
             </button>
           }
         />
-        <h2 style={{ marginTop: '24px', marginBottom: '8px' }}>Post not found</h2>
-        <p style={{ color: 'var(--muted-foreground)' }}>This post is no longer available in the current daily feed.</p>
+        <h2 style={{ marginTop: '24px', marginBottom: '8px' }}>{t('posts.detail.notFoundHeading')}</h2>
+        <p style={{ color: 'var(--muted-foreground)' }}>{t('posts.detail.notFoundBody')}</p>
       </div>
     );
   }
@@ -417,7 +420,7 @@ export function PostDetailScreen() {
   return (
     <div style={{ padding: `calc(16px + ${HEADER_HEIGHT}px) 16px 104px`, maxWidth: '448px', margin: '0 auto' }}>
       <Header
-        title="Post"
+        title={t('posts.detail.headerTitle')}
         centered
         left={
           <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', padding: '12px', marginLeft: '-12px', color: 'var(--primary-40)', display: 'flex', alignItems: 'center' }}>
@@ -426,10 +429,10 @@ export function PostDetailScreen() {
         }
         right={
           <DetailMenu
-            deleteLabel="this post"
+            deleteLabel={t('posts.detail.deleteLabel')}
             onDelete={() => {
               conceptFeedService.deletePost(post!.id);
-              toast('Post deleted', 'success');
+              toast(t('posts.detail.deletedToast'), 'success');
               navigate(-1);
             }}
           />
@@ -449,7 +452,7 @@ export function PostDetailScreen() {
           marginBottom: '8px',
           paddingLeft: '4px',
         }}>
-          Suggested move: {moveState.move.title}
+          {t('posts.detail.moveBreadcrumb', { title: moveState.move.title })}
         </div>
       )}
 
@@ -482,7 +485,7 @@ export function PostDetailScreen() {
           borderBottom: '1px solid var(--border)',
         }}>
           <span style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-            Sources
+            {t('posts.detail.sourcesHeading')}
           </span>
           <div style={{ marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
             {post.newsMeta.sources.map((s) => (
@@ -608,7 +611,7 @@ export function PostDetailScreen() {
               }}
             >
               <RefreshCw size={14} />
-              Generate image
+              {t('posts.image.generate')}
             </button>
           )}
         </>
@@ -640,14 +643,14 @@ export function PostDetailScreen() {
             color: 'var(--muted-foreground)',
             margin: '16px 0 8px',
           }}>
-            AI Summary
+            {t('posts.detail.videoAiSummary')}
           </h3>
         )}
         {/* Essay body — shell always rendered, content streams in */}
         <div style={{ minHeight: '200px', marginBottom: '20px' }}>
           {onEnterError ? (
             <div style={{ padding: '20px', borderRadius: 'var(--radius-xl)', border: '1px solid var(--danger)', backgroundColor: 'var(--danger-light)', marginBottom: '16px' }}>
-              <p style={{ color: 'var(--danger-dark)', fontWeight: 600, marginBottom: '8px' }}>Generation failed</p>
+              <p style={{ color: 'var(--danger-dark)', fontWeight: 600, marginBottom: '8px' }}>{t('posts.detail.generationFailedHeading')}</p>
               <p style={{ color: 'var(--danger-dark)', fontSize: '0.875rem', marginBottom: '16px' }}>{onEnterError}</p>
               <button
                 onClick={() => {
@@ -657,7 +660,7 @@ export function PostDetailScreen() {
                 }}
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: 'var(--radius)', backgroundColor: 'var(--danger)', color: 'white', fontWeight: 600, fontSize: '0.875rem', border: 'none', cursor: 'pointer' }}
               >
-                <RefreshCw size={14} /> Retry
+                <RefreshCw size={14} /> {t('posts.detail.retryButton')}
               </button>
             </div>
           ) : isStreamingOnEnter ? (
@@ -691,7 +694,7 @@ export function PostDetailScreen() {
             }}
           >
             <p style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--muted-foreground)', marginBottom: '6px' }}>
-              Takeaway
+              {t('posts.detail.takeawayHeading')}
             </p>
             <p style={{ lineHeight: 1.65 }}>{post.takeaway || onEnterMeta?.takeaway}</p>
           </div>
@@ -710,7 +713,7 @@ export function PostDetailScreen() {
         <div style={{ padding: '16px 14px 12px', borderBottom: '1px solid var(--surface-variant)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
             <MessageSquare size={17} color="var(--primary-40)" />
-            <h2 style={{ fontSize: '1rem' }}>Ask this post</h2>
+            <h2 style={{ fontSize: '1rem' }}>{t('posts.qa.heading')}</h2>
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
             {quickAskPrompts.map((prompt) => (
@@ -741,8 +744,8 @@ export function PostDetailScreen() {
           {messages.length === 0 && !qaStreaming && (
             <p style={{ color: 'var(--muted-foreground)', fontSize: '0.86rem', lineHeight: 1.55 }}>
               {isConnectionPost
-                ? 'Ask a follow-up about this comparison, challenge a claim, or connect it to something else you have been learning.'
-                : 'Ask for an example, challenge the claim, or connect this post to something else you have been learning.'}
+                ? t('posts.qa.emptyConnection')
+                : t('posts.qa.emptyGeneric')}
             </p>
           )}
 
@@ -779,7 +782,7 @@ export function PostDetailScreen() {
               value={input}
               onChange={(event) => setInput(event.target.value)}
               rows={2}
-              placeholder={isConnectionPost ? 'Ask a follow-up about this connection...' : 'Ask a follow-up about this post...'}
+              placeholder={isConnectionPost ? t('posts.qa.placeholderConnection') : t('posts.qa.placeholderGeneric')}
               disabled={Boolean(qaStreaming)}
               style={{
                 flex: 1,
@@ -808,7 +811,7 @@ export function PostDetailScreen() {
                 opacity: !input.trim() || qaStreaming ? 0.5 : 1,
               }}
             >
-              Ask
+              {t('posts.qa.submit')}
             </button>
           </form>
         </div>
