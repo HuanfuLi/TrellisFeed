@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import type { TrellisLayout } from '../../services/trellis-state.service.ts';
 import { TRELLIS_VIEWBOX_W, TRELLIS_VIEWBOX_H } from '../../services/trellis-layout.service.ts';
 import { TrellisLeaf } from './TrellisLeaf.tsx';
+import { leafAnimationMask, TAP_ANIMATION_THRESHOLD } from '../../services/trellis-perf-mask.ts';
 
 export interface TrellisCanvasProps {
   layout: TrellisLayout;
@@ -30,7 +31,7 @@ export const isLeafFocused = (
   return focusedAnchorId === leafAnchorId;
 };
 
-export function TrellisCanvas({ layout, ambientEnabled }: TrellisCanvasProps) {
+export function TrellisCanvas({ layout, ambientEnabled, focusedAnchorId }: TrellisCanvasProps) {
   const { t } = useTranslation();
   const { vines, nodes } = layout;
   const leafCount = nodes.length;
@@ -40,6 +41,13 @@ export function TrellisCanvas({ layout, ambientEnabled }: TrellisCanvasProps) {
     return (i: number) => i % 3 === 0;
   }, [swayEnabled]);
   const effectiveSway = ambientEnabled ? leafSwayMask : (_: number) => false;
+
+  // Phase 28 D-13 — tap-animation perf guard. Count-only gate (IntersectionObserver
+  // can layer in later per RESEARCH Pattern 6 without changing the call site).
+  // inView=true is the conservative default — below the threshold everything
+  // animates; above it, we'd need real visibility info to suppress. Until IO
+  // lands, leaves above the threshold still animate (graceful degradation).
+  const perfGuardThresholdExceeded = leafCount > TAP_ANIMATION_THRESHOLD;
 
   return (
     <svg
@@ -84,19 +92,30 @@ export function TrellisCanvas({ layout, ambientEnabled }: TrellisCanvasProps) {
       </g>
       {/* Leaves / blossoms / fruits */}
       <g>
-        {nodes.map((n, i) => (
-          <TrellisLeaf
-            key={n.anchor.id}
-            x={n.layoutPosition.x}
-            y={n.layoutPosition.y}
-            tangentAngle={n.tangentAngle}
-            side={n.side}
-            state={n.leafState}
-            botanicalCategory={n.botanicalCategory}
-            ambientSway={effectiveSway(i)}
-            animationDelay={0.8 + i * 0.05}
-          />
-        ))}
+        {nodes.map((n, i) => {
+          // D-13: when the canvas is large, gate the one-shot animations.
+          // leafAnimationMask returns true when allowed; perfGuardActive is the
+          // complement. Without IO layered, inView=true is the conservative default.
+          const inView = true;
+          const perfGuardActive =
+            perfGuardThresholdExceeded && !leafAnimationMask({ totalCount: leafCount, inView });
+          return (
+            <TrellisLeaf
+              key={n.anchor.id}
+              anchorId={n.anchor.id}
+              x={n.layoutPosition.x}
+              y={n.layoutPosition.y}
+              tangentAngle={n.tangentAngle}
+              side={n.side}
+              state={n.leafState}
+              botanicalCategory={n.botanicalCategory}
+              ambientSway={effectiveSway(i)}
+              animationDelay={0.8 + i * 0.05}
+              focused={isLeafFocused(focusedAnchorId, n.anchor.id)}
+              perfGuardActive={perfGuardActive}
+            />
+          );
+        })}
       </g>
     </svg>
   );

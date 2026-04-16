@@ -1,5 +1,7 @@
-import { motion } from 'framer-motion';
+import { useCallback, useEffect, useState } from 'react';
+import { motion, useAnimationControls } from 'framer-motion';
 import type { LeafState } from '../../services/trellis-state.service.ts';
+import { hapticImpactLight } from '../../lib/haptics.ts';
 
 // ── Phase 28 D-10/D-11 — shake-on-tap constants ────────────────────────────
 // Exported at module scope so Wave 0 tests can import without DOM/render.
@@ -13,10 +15,16 @@ export const SHAKE_DURATION_MS = 300;
 /**
  * Dependencies for `onLeafTap` — pure-logic helper split out so the D-11
  * haptic Nyquist requirement can be asserted via mocked injection.
+ *
+ * `shakeControls` is typed loosely (`start: (arg: any) => any`) to accept
+ * BOTH framer-motion's real `AnimationControls.start` AND a minimal test spy
+ * without the caller needing a cast. The contract only requires that a
+ * single call with an animation definition is made.
  */
 export interface OnLeafTapDeps {
   perfGuardActive: boolean;
-  shakeControls: { start: (animate: unknown) => unknown };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  shakeControls: { start: (animate: any) => any };
   haptic: () => void | Promise<void>;
 }
 
@@ -113,6 +121,9 @@ export interface TrellisLeafProps {
   botanicalCategory: number; // index into BOTANICAL_CATEGORIES
   ambientSway?: boolean;
   animationDelay?: number;
+  anchorId?: string; // Phase 28 D-12 — identifies the leaf for focus matching + pulse key
+  focused?: boolean; // Phase 28 D-12 — true when Suggested Moves row for this anchor was pressed
+  perfGuardActive?: boolean; // Phase 28 D-13 — true when layout.nodes.length > 30 AND leaf is off-screen
 }
 
 // ── Bud (universal) ────────────────────────────────────────────────────────
@@ -523,8 +534,25 @@ function withDecay(leaf: React.ReactNode, state: 'yellow' | 'falling' | 'fallen'
 const LEAF_SCALE = 1.8;
 
 export function TrellisLeaf(props: TrellisLeafProps) {
-  const { x, y, tangentAngle, side, state, botanicalCategory, ambientSway, animationDelay = 0 } = props;
+  const {
+    x, y, tangentAngle, side, state, botanicalCategory,
+    ambientSway, animationDelay = 0,
+    anchorId, focused = false, perfGuardActive = false,
+  } = props;
   const cat = BOTANICAL_CATEGORIES[botanicalCategory % BOTANICAL_CATEGORIES.length];
+
+  // Phase 28 D-10/D-11 — shake controls + handler (runtime wrapper around pure onLeafTap)
+  const shakeControls = useAnimationControls();
+  const handleTap = useCallback(() => {
+    onLeafTap({ perfGuardActive, shakeControls, haptic: hapticImpactLight });
+  }, [perfGuardActive, shakeControls]);
+
+  // Phase 28 D-12 — re-mount the pulse wrapper each time `focused` flips true so
+  // the animation fires anew on every repeat tap of the same Suggested Moves row.
+  const [focusCounter, setFocusCounter] = useState(0);
+  useEffect(() => {
+    if (focused) setFocusCounter((c) => c + 1);
+  }, [focused]);
 
   let shape: React.ReactNode;
 
@@ -552,6 +580,7 @@ export function TrellisLeaf(props: TrellisLeafProps) {
 
   return (
     <g transform={`translate(${x}, ${y})`}>
+      {/* Outer motion.g — ambient sway (Phase 25); preserved unchanged */}
       <motion.g
         initial={{ scale: 0, opacity: 0 }}
         animate={{
@@ -568,7 +597,38 @@ export function TrellisLeaf(props: TrellisLeafProps) {
           : { type: 'spring', stiffness: 260, damping: 18, delay: animationDelay }}
         style={{ transformOrigin: '0 0', transformBox: 'fill-box' }}
       >
-        {shape}
+        {/* Phase 28 D-10 — shake wrapper (tap handler lives here; ambient sway
+             on the outer motion.g is untouched so both animations compose). */}
+        <motion.g
+          animate={shakeControls}
+          onClick={handleTap}
+          data-anchor-id={anchorId}
+          style={{ cursor: 'pointer', pointerEvents: 'auto' }}
+        >
+          {/* Phase 28 D-12 — pulse wrapper (keyed on focusCounter so repeat
+               focus re-triggers the animation). */}
+          <motion.g
+            key={`pulse-${anchorId ?? 'x'}-${focusCounter}`}
+            animate={focused && !perfGuardActive
+              ? {
+                  scale: [1, 1.15, 1],
+                  filter: [
+                    'drop-shadow(0 0 0px transparent)',
+                    'drop-shadow(0 0 8px var(--primary-40))',
+                    'drop-shadow(0 0 0px transparent)',
+                  ],
+                }
+              : { scale: 1, filter: 'drop-shadow(0 0 0px transparent)' }}
+            transition={focused
+              ? {
+                  scale: { duration: 0.6, ease: 'easeInOut' },
+                  filter: { duration: 2.0, ease: 'easeOut' },
+                }
+              : { duration: 0 }}
+          >
+            {shape}
+          </motion.g>
+        </motion.g>
       </motion.g>
     </g>
   );

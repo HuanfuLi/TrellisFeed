@@ -5,7 +5,15 @@ import { TrellisCanvas } from './TrellisCanvas.tsx';
 import { TrellisEmptyState } from './TrellisEmptyState.tsx';
 import { TrellisBackgroundA } from './variants/TrellisBackgroundA.tsx';
 
-export function TrellisHero() {
+export interface TrellisHeroProps {
+  /**
+   * Phase 28 D-12 — anchor id currently pulsing (from Suggested Moves row
+   * pointerdown). Forwarded to TrellisCanvas → TrellisLeaf.
+   */
+  focusedAnchorId?: string | null;
+}
+
+export function TrellisHero({ focusedAnchorId }: TrellisHeroProps = {}) {
   const { t } = useTranslation();
   const { layout } = useTrellisData();
   const location = useLocation();
@@ -30,7 +38,13 @@ export function TrellisHero() {
       <TrellisBackgroundA />
 
       {/* SVG canvas (vines + leaves) */}
-      {!isEmpty && <TrellisCanvas layout={layout} ambientEnabled={isPlannerActive} />}
+      {!isEmpty && (
+        <TrellisCanvas
+          layout={layout}
+          ambientEnabled={isPlannerActive}
+          focusedAnchorId={focusedAnchorId}
+        />
+      )}
 
       {/* Empty state overlay */}
       {isEmpty && <TrellisEmptyState />}

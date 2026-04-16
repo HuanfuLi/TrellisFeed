@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -39,6 +39,27 @@ export function PlannerScreen() {
   const counterRef = useRef<HTMLSpanElement>(null);
   const [showAutoMoves, setShowAutoMoves] = useState(true);
   const [showAllSuggestions, setShowAllSuggestions] = useState(false);
+
+  // Phase 28 D-12 — track which anchor should pulse on the trellis when the
+  // user presses (pointerdown) a Suggested Moves row. Auto-clears after 2s
+  // so the glow fades naturally even if navigation is cancelled.
+  const [focusedAnchorId, setFocusedAnchorId] = useState<string | null>(null);
+  const focusClearTimerRef = useRef<number | null>(null);
+  const focusAnchor = useCallback((anchorId: string) => {
+    setFocusedAnchorId(anchorId);
+    if (focusClearTimerRef.current !== null) {
+      window.clearTimeout(focusClearTimerRef.current);
+    }
+    focusClearTimerRef.current = window.setTimeout(() => {
+      setFocusedAnchorId(null);
+      focusClearTimerRef.current = null;
+    }, 2000);
+  }, []);
+  useEffect(() => () => {
+    if (focusClearTimerRef.current !== null) {
+      window.clearTimeout(focusClearTimerRef.current);
+    }
+  }, []);
 
   // Trellis-derived action moves (per D-19, D-20, D-23).
   // Re-derived every render so layout updates flow through immediately.
@@ -114,7 +135,7 @@ export function PlannerScreen() {
         }
       />
 
-      <TrellisHero />
+      <TrellisHero focusedAnchorId={focusedAnchorId} />
 
       {/* Phase 28 D-30 — symmetric section rhythm (var(--section-gap) = 24px)
            between TrellisHero and TrellisStatusPanel, replacing the prior
@@ -184,6 +205,7 @@ export function PlannerScreen() {
               return (
                 <div
                   key={`dead-${node.anchor.id}`}
+                  onPointerDown={() => focusAnchor(node.anchor.id)}
                   onClick={() => handleReplant(node)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: '12px',
@@ -235,6 +257,7 @@ export function PlannerScreen() {
               return (
                 <div
                   key={`dying-${node.anchor.id}`}
+                  onPointerDown={() => focusAnchor(node.anchor.id)}
                   onClick={() => handleHeal(node)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: '12px',
