@@ -11,6 +11,8 @@ import { conceptFeedService } from '../services/concept-feed.service';
 import { imageGenerationService } from '../services/imageGeneration.service';
 import { sessionService } from '../services/session.service';
 import { postContextQaService } from '../services/post-context-qa.service';
+import { dailyReadService, getAnchorIdForPost } from '../services/daily-read.service';
+import { questionService } from '../services/question.service';
 import { Markdown } from '../components/Markdown';
 import { ChatMessage } from '../components/ChatMessage';
 import { PostCarousel } from '../components/PostCarousel';
@@ -89,6 +91,61 @@ export function PostDetailScreen() {
   // without re-triggering the post-loading effect.
   const questionsRef = useRef(questions);
   questionsRef.current = questions;
+
+  // --- Reading detectors (Phase 30, D-04/D-05/D-06) ---
+  const [resolvedAnchorId, setResolvedAnchorId] = useState<string | null>(null);
+  const hasEmittedRef = useRef(false);
+  const scrollSentinelRef = useRef<HTMLDivElement>(null);
+  const dwellTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Resolve anchor ID for the current post
+  useEffect(() => {
+    if (!post) { setResolvedAnchorId(null); return; }
+    const allQ = questionService.getAll({ includeFlagged: true });
+    const byId = new Map(allQ.map(q => [q.id, q]));
+    setResolvedAnchorId(getAnchorIdForPost(post, byId));
+  }, [post?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Reset emit guard when post changes
+  useEffect(() => {
+    hasEmittedRef.current = false;
+  }, [post?.id]);
+
+  // Idempotent emit helper
+  const emitExplored = useCallback((anchorId: string) => {
+    if (hasEmittedRef.current) return;
+    if (dailyReadService.isExplored(anchorId)) { hasEmittedRef.current = true; return; }
+    hasEmittedRef.current = true;
+    dailyReadService.markExplored(anchorId);
+    eventBus.emit({ type: 'CONCEPT_EXPLORED', payload: { anchorId } });
+  }, []);
+
+  // Detector A: Scroll 70% sentinel (IntersectionObserver)
+  useEffect(() => {
+    const sentinel = scrollSentinelRef.current;
+    if (!sentinel || !resolvedAnchorId) return;
+    if (dailyReadService.isExplored(resolvedAnchorId)) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        emitExplored(resolvedAnchorId);
+        observer.disconnect();
+      }
+    }, { threshold: 0.1 });
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [resolvedAnchorId, emitExplored]);
+
+  // Detector B: 30s dwell timer
+  useEffect(() => {
+    if (!resolvedAnchorId) return;
+    if (dailyReadService.isExplored(resolvedAnchorId)) return;
+    dwellTimerRef.current = setTimeout(() => {
+      emitExplored(resolvedAnchorId);
+    }, 30_000);
+    return () => {
+      if (dwellTimerRef.current) clearTimeout(dwellTimerRef.current);
+    };
+  }, [resolvedAnchorId, emitExplored]);
 
   useEffect(() => {
     if (!id) return;
@@ -340,6 +397,9 @@ export function PostDetailScreen() {
 
   const handleAsk = async (content: string) => {
     if (!content.trim() || !post || !session) return;
+
+    // Detector C: Follow-up question marks concept as explored (D-06)
+    if (resolvedAnchorId) emitExplored(resolvedAnchorId);
 
     const userMsg: SessionMessage = { id: newMsgId('u'), type: 'user', content: content.trim() };
     const nextSession: ChatSession = { ...session, messages: [...session.messages, userMsg] };
@@ -709,6 +769,8 @@ export function PostDetailScreen() {
             </div>
           ) : null}
         </div>
+        {/* Scroll 70% sentinel — placed between essay body and takeaway (D-04) */}
+        <div ref={scrollSentinelRef} style={{ height: '1px' }} />
         {post.sourceType !== 'video' && (post.takeaway || onEnterMeta?.takeaway) && (
           <div
             style={{

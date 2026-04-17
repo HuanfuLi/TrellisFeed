@@ -879,39 +879,8 @@ export function InlineInfoFlow({ items, onOpenConnection, showConnectionScores =
     }
   }, [items]);
 
-  const conceptCount = items.filter((item) => item.kind === 'concept').length;
-  const connectionCount = items.filter((item) => item.kind === 'connection').length;
-
   return (
     <div>
-      <div
-        style={{
-          padding: '16px 20px',
-          background: 'linear-gradient(145deg, #FFB36B 0%, #F26D52 55%, #D94B6A 100%)',
-          borderRadius: 'var(--radius-xl)',
-          marginBottom: '12px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          boxShadow: 'var(--shadow-2)',
-        }}
-      >
-        <div>
-          <p style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.1em', color: 'white', opacity: 0.8, textTransform: 'uppercase', marginBottom: '2px' }}>
-            {t('infoFlow.curiosityFeed')}
-          </p>
-          <p style={{ fontSize: '1rem', fontWeight: 700, color: 'white' }}>
-            {items.length > 0 ? t('infoFlow.postsWaiting', { count: items.length }) : t('infoFlow.askToStart')}
-          </p>
-        </div>
-        {items.length > 0 && (
-          <div style={{ display: 'flex', gap: '12px', fontSize: '0.78rem', color: 'white', opacity: 0.92 }}>
-            {conceptCount > 0 && <span>{t('infoFlow.conceptsCount', { count: conceptCount })}</span>}
-            {connectionCount > 0 && <span>{t('infoFlow.linksCount', { count: connectionCount })}</span>}
-          </div>
-        )}
-      </div>
-
       {items.length === 0 ? (
         <div
           style={{
