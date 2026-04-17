@@ -494,9 +494,7 @@ export function HomeScreen() {
 
         {/* Concept Progress Card — OUTSIDE grid so position:sticky works */}
         {conceptQuota > 0 && (
-          <div style={{ marginTop: '16px' }}>
-            <ConceptProgressCard explored={exploredCount} total={conceptQuota} isComplete={isComplete} />
-          </div>
+          <ConceptProgressCard explored={exploredCount} total={conceptQuota} isComplete={isComplete} />
         )}
 
         {/* Empty state when feed has posts but no concept posts (D-17) */}

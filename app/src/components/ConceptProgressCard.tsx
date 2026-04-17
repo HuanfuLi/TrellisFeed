@@ -10,16 +10,25 @@ interface ConceptProgressCardProps {
   isComplete: boolean;
 }
 
+const COMPACT_HEIGHT = 38;
+
 export function ConceptProgressCard({ explored, total, isComplete }: ConceptProgressCardProps) {
   const { t } = useTranslation();
-  const placeholderRef = useRef<HTMLDivElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
   const [isCompact, setIsCompact] = useState(false);
+  const [expandedHeight, setExpandedHeight] = useState(0);
 
   useEffect(() => {
-    const placeholder = placeholderRef.current;
-    if (!placeholder) return;
+    const wrapper = wrapperRef.current;
+    const card = cardRef.current;
+    if (!wrapper || !card) return;
 
-    const scrollParent = placeholder.closest('[data-home-scroll]') as HTMLElement | null;
+    if (!isCompact && card.offsetHeight > 0) {
+      setExpandedHeight(card.offsetHeight);
+    }
+
+    const scrollParent = wrapper.closest('[data-home-scroll]') as HTMLElement | null;
     if (!scrollParent) return;
 
     let ticking = false;
@@ -27,7 +36,7 @@ export function ConceptProgressCard({ explored, total, isComplete }: ConceptProg
       if (ticking) return;
       ticking = true;
       requestAnimationFrame(() => {
-        const rect = placeholder.getBoundingClientRect();
+        const rect = wrapper.getBoundingClientRect();
         setIsCompact(rect.top <= HEADER_HEIGHT);
         ticking = false;
       });
@@ -35,7 +44,7 @@ export function ConceptProgressCard({ explored, total, isComplete }: ConceptProg
 
     scrollParent.addEventListener('scroll', onScroll, { passive: true });
     return () => scrollParent.removeEventListener('scroll', onScroll);
-  }, []);
+  }, [isCompact]);
 
   if (total === 0) return null;
 
@@ -46,68 +55,80 @@ export function ConceptProgressCard({ explored, total, isComplete }: ConceptProg
     : 'var(--card)';
 
   return (
-    <>
-      {/* Placeholder keeps space in flow when card goes fixed */}
-      <div ref={placeholderRef} style={{ minHeight: isCompact ? '100px' : 0 }} />
+    <div
+      ref={wrapperRef}
+      style={{
+        marginTop: '16px',
+        marginBottom: '16px',
+        minHeight: isCompact && expandedHeight > 0 ? `${expandedHeight}px` : undefined,
+      }}
+    >
       <div
-        style={isCompact ? {
-          position: 'fixed',
-          top: `calc(var(--safe-area-top) + ${HEADER_HEIGHT}px)`,
-          left: 0,
-          right: 0,
-          zIndex: 180,
+        ref={cardRef}
+        style={{
+          position: isCompact ? 'fixed' : 'relative',
+          top: isCompact ? `calc(var(--safe-area-top) + ${HEADER_HEIGHT}px)` : undefined,
+          left: isCompact ? 0 : undefined,
+          right: isCompact ? 0 : undefined,
+          zIndex: isCompact ? 180 : 1,
           backgroundColor: cardBg,
-          borderRadius: 0,
-          boxShadow: 'var(--shadow-2)',
-          padding: '8px 16px',
-          transition: 'all 200ms ease',
-        } : {
-          position: 'relative',
-          zIndex: 1,
-          backgroundColor: cardBg,
-          borderRadius: 'var(--radius)',
-          boxShadow: 'var(--shadow-1)',
-          padding: '16px',
-          transition: 'all 200ms ease',
+          borderRadius: isCompact ? 0 : 'var(--radius)',
+          boxShadow: isCompact ? 'var(--shadow-2)' : 'var(--shadow-1)',
+          padding: isCompact ? '10px 16px' : '16px',
+          transition: 'padding 400ms ease, border-radius 400ms ease, box-shadow 400ms ease',
         }}
       >
-        {isCompact ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', maxWidth: '448px', margin: '0 auto' }}>
-            <BookOpen size={16} color={barColor} />
-            <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--foreground)', whiteSpace: 'nowrap' }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          maxWidth: isCompact ? '448px' : undefined,
+          margin: isCompact ? '0 auto' : undefined,
+        }}>
+          <BookOpen
+            size={isCompact ? 16 : 20}
+            color={barColor}
+            style={{ transition: 'width 400ms ease, height 400ms ease', flexShrink: 0 }}
+          />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {!isCompact && (
+              <span style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--foreground)', display: 'block' }}>
+                {t('home.feed.title')}
+              </span>
+            )}
+            <span style={{
+              fontSize: '0.875rem',
+              fontWeight: isCompact ? 600 : 400,
+              color: isCompact ? 'var(--foreground)' : 'var(--muted-foreground)',
+              display: 'block',
+              marginTop: isCompact ? 0 : '2px',
+              whiteSpace: isCompact ? 'nowrap' : undefined,
+            }}>
               {isComplete
                 ? t('home.feed.complete')
-                : t('home.feed.progressCompact', { explored, total })}
+                : isCompact
+                  ? t('home.feed.progressCompact', { explored, total })
+                  : t('home.feed.progress', { explored, total })}
             </span>
+          </div>
+          {isCompact && (
             <ProgressBar
               value={progressPercent}
               color={barColor}
               height={6}
-              style={{ flex: 1, marginLeft: '4px' }}
+              style={{ flex: 1, minWidth: '80px' }}
             />
-          </div>
-        ) : (
-          <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <BookOpen size={20} color={barColor} />
-              <span style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--foreground)' }}>
-                {t('home.feed.title')}
-              </span>
-            </div>
-            <p style={{ fontSize: '0.875rem', fontWeight: 400, color: 'var(--muted-foreground)', marginTop: '4px' }}>
-              {isComplete
-                ? t('home.feed.complete')
-                : t('home.feed.progress', { explored, total })}
-            </p>
-            <ProgressBar
-              value={progressPercent}
-              color={barColor}
-              height={8}
-              style={{ marginTop: '8px' }}
-            />
-          </>
+          )}
+        </div>
+        {!isCompact && (
+          <ProgressBar
+            value={progressPercent}
+            color={barColor}
+            height={8}
+            style={{ marginTop: '8px' }}
+          />
         )}
       </div>
-    </>
+    </div>
   );
 }
