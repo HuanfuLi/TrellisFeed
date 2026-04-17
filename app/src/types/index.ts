@@ -634,7 +634,8 @@ export type ErrorCode =
   | 'TOO_FEW'
   | 'PARSE_ERROR'
   | 'SEARCH_FAILED'
-  | 'LLM_ERROR';
+  | 'LLM_ERROR'
+  | 'COVERAGE_ERROR';
 
 export interface AskResult {
   question: Question;
@@ -675,4 +676,5 @@ export type AppEvent =
   | { type: 'CLASSIFICATION_COMPLETED'; payload: { anchorId: string; anchorName: string } }
   | { type: 'ANCHOR_DELETED'; payload: { anchorId: string } }
   | { type: 'HARVEST_COMPLETED'; payload: { count: number } }
-  | { type: 'NEWS_POSTS_READY'; payload: { posts: DailyPost[] } };
+  | { type: 'NEWS_POSTS_READY'; payload: { posts: DailyPost[] } }
+  | { type: 'GRAPH_UPDATED' };
