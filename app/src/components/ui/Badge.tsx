@@ -20,10 +20,10 @@ interface BadgeProps {
 
 const colorMap: Record<BadgeColor, { bg: string; text: string }> = {
   green: { bg: 'var(--primary-90)', text: 'var(--primary-30)' },
-  yellow: { bg: 'var(--secondary-80)', text: '#5D4037' },
+  yellow: { bg: 'var(--secondary-80)', text: 'var(--badge-yellow-text)' },
   red: { bg: 'var(--danger-light)', text: 'var(--danger-dark)' },
-  blue: { bg: 'var(--node-sky)', text: '#01579B' },
-  purple: { bg: 'var(--node-lilac)', text: '#4A148C' },
+  blue: { bg: 'var(--node-sky)', text: 'var(--badge-blue-text)' },
+  purple: { bg: 'var(--node-lilac)', text: 'var(--badge-purple-text)' },
   gray: { bg: 'var(--surface-variant)', text: 'var(--muted-foreground)' },
 };
 

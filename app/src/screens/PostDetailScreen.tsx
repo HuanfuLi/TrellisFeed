@@ -521,7 +521,7 @@ export function PostDetailScreen() {
         <>
           {/* Text-art header — shows textArtContent in notebook style like card face */}
           {post.presentationStyle === 'text-art' && post.textArtContent && (() => {
-            const TEXT_ART_THEMES = [
+            const LIGHT = [
               { bg: '#FFFDE7', dot: '#C5CAE9', text: '#1A1A1A', font: 'Georgia, "Times New Roman", serif' },
               { bg: '#E8F5E9', dot: '#A5D6A7', text: '#1B5E20', font: '"Courier New", Courier, monospace' },
               { bg: '#F3E5F5', dot: '#CE93D8', text: '#4A148C', font: 'Palatino, "Palatino Linotype", serif' },
@@ -531,9 +531,20 @@ export function PostDetailScreen() {
               { bg: '#E0F7FA', dot: '#80DEEA', text: '#006064', font: 'Verdana, Geneva, sans-serif' },
               { bg: '#FFF8E1', dot: '#FFE082', text: '#E65100', font: '"Bookman Old Style", Bookman, serif' },
             ];
+            const DARK = [
+              { bg: '#1C1A14', dot: '#2A2840', text: '#FFF9C4', font: 'Georgia, "Times New Roman", serif' },
+              { bg: '#1A2E1C', dot: '#2E5A30', text: '#A5D6A7', font: '"Courier New", Courier, monospace' },
+              { bg: '#2A1A30', dot: '#4A2060', text: '#CE93D8', font: 'Palatino, "Palatino Linotype", serif' },
+              { bg: '#1A2030', dot: '#1E3A5A', text: '#90CAF9', font: 'system-ui, -apple-system, sans-serif' },
+              { bg: '#2A1E14', dot: '#4A3018', text: '#FFCC80', font: '"Trebuchet MS", "Gill Sans", sans-serif' },
+              { bg: '#2A1420', dot: '#4A1830', text: '#F48FB1', font: 'Garamond, "Hoefler Text", serif' },
+              { bg: '#142A2C', dot: '#1A3A3E', text: '#80DEEA', font: 'Verdana, Geneva, sans-serif' },
+              { bg: '#2A2414', dot: '#3A3018', text: '#FFE082', font: '"Bookman Old Style", Bookman, serif' },
+            ];
+            const themes = document.documentElement.classList.contains('dark') ? DARK : LIGHT;
             let h = 0;
             for (const ch of post.id) h = ((h << 5) - h + ch.charCodeAt(0)) | 0;
-            const theme = TEXT_ART_THEMES[((h % TEXT_ART_THEMES.length) + TEXT_ART_THEMES.length) % TEXT_ART_THEMES.length];
+            const theme = themes[((h % themes.length) + themes.length) % themes.length];
             const content = post.textArtContent.split('\n').filter(Boolean).join(' ');
             const fontSize = content.length > 100 ? '1.25rem' : content.length > 60 ? '1.5rem' : '2rem';
             return (

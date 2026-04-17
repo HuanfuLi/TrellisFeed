@@ -10,7 +10,7 @@ export function TrellisEmptyState() {
       style={{
         position: 'absolute', inset: 0, zIndex: 40,
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        background: 'rgba(255, 251, 245, 0.7)',
+        background: 'var(--trellis-empty-bg)',
         gap: 16,
         textAlign: 'center',
         padding: 16,

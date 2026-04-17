@@ -10,7 +10,7 @@ import { settingsService } from '../services/settings.service';
 
 // ── Text-art theme pool (random selection per render) ──────────────────────────
 
-const TEXT_ART_THEMES = [
+const TEXT_ART_THEMES_LIGHT = [
   { bg: '#FFFDE7', dot: '#C5CAE9', text: '#1A1A1A', font: 'Georgia, "Times New Roman", serif' },
   { bg: '#E8F5E9', dot: '#A5D6A7', text: '#1B5E20', font: '"Courier New", Courier, monospace' },
   { bg: '#F3E5F5', dot: '#CE93D8', text: '#4A148C', font: 'Palatino, "Palatino Linotype", serif' },
@@ -20,12 +20,26 @@ const TEXT_ART_THEMES = [
   { bg: '#E0F7FA', dot: '#80DEEA', text: '#006064', font: 'Verdana, Geneva, sans-serif' },
   { bg: '#FFF8E1', dot: '#FFE082', text: '#E65100', font: '"Bookman Old Style", Bookman, serif' },
 ];
+const TEXT_ART_THEMES_DARK = [
+  { bg: '#1C1A14', dot: '#2A2840', text: '#FFF9C4', font: 'Georgia, "Times New Roman", serif' },
+  { bg: '#1A2E1C', dot: '#2E5A30', text: '#A5D6A7', font: '"Courier New", Courier, monospace' },
+  { bg: '#2A1A30', dot: '#4A2060', text: '#CE93D8', font: 'Palatino, "Palatino Linotype", serif' },
+  { bg: '#1A2030', dot: '#1E3A5A', text: '#90CAF9', font: 'system-ui, -apple-system, sans-serif' },
+  { bg: '#2A1E14', dot: '#4A3018', text: '#FFCC80', font: '"Trebuchet MS", "Gill Sans", sans-serif' },
+  { bg: '#2A1420', dot: '#4A1830', text: '#F48FB1', font: 'Garamond, "Hoefler Text", serif' },
+  { bg: '#142A2C', dot: '#1A3A3E', text: '#80DEEA', font: 'Verdana, Geneva, sans-serif' },
+  { bg: '#2A2414', dot: '#3A3018', text: '#FFE082', font: '"Bookman Old Style", Bookman, serif' },
+];
+function getTextArtThemes() {
+  return document.documentElement.classList.contains('dark') ? TEXT_ART_THEMES_DARK : TEXT_ART_THEMES_LIGHT;
+}
 
 function pickTextArtTheme(postId: string) {
+  const themes = getTextArtThemes();
   let h = 0;
   for (const ch of postId) h = ((h << 5) - h + ch.charCodeAt(0)) | 0;
-  const idx = ((h % TEXT_ART_THEMES.length) + TEXT_ART_THEMES.length) % TEXT_ART_THEMES.length;
-  return TEXT_ART_THEMES[idx];
+  const idx = ((h % themes.length) + themes.length) % themes.length;
+  return themes[idx];
 }
 
 export type InfoFlowItem =
@@ -126,8 +140,8 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
           flexDirection: 'column',
           padding: '0 0 16px 0',
           borderRadius: 'var(--radius-xl)',
-          backgroundColor: '#faf8f4',
-          border: '1px solid #e8e2d8',
+          backgroundColor: 'var(--news-card-bg)',
+          border: '1px solid var(--news-card-border)',
           boxShadow: 'var(--shadow-2)',
           cursor: 'pointer',
           fontFamily: "Georgia, 'Times New Roman', 'Noto Serif', serif",
@@ -140,7 +154,7 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
         <div style={{
           position: 'absolute',
           inset: 0,
-          backgroundImage: 'radial-gradient(circle, #d4c9b8 0.5px, transparent 0.5px)',
+          backgroundImage: 'radial-gradient(circle, var(--news-card-dot) 0.5px, transparent 0.5px)',
           backgroundSize: '20px 20px',
           opacity: 0.15,
           pointerEvents: 'none',
@@ -152,7 +166,7 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
             <span style={{
               display: 'block',
               fontSize: '0.7rem',
-              color: '#888',
+              color: 'var(--news-card-source)',
               textTransform: 'uppercase',
               letterSpacing: '0.08em',
               marginBottom: '10px',
@@ -170,7 +184,7 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
             fontSize: '1.25rem',
             fontWeight: 700,
             lineHeight: 1.3,
-            color: '#1a1a1a',
+            color: 'var(--news-card-headline)',
             marginBottom: '12px',
           }}>
             {normalizedTitle}
@@ -180,7 +194,7 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
           <p style={{
             fontSize: '0.9rem',
             lineHeight: 1.55,
-            color: '#444',
+            color: 'var(--news-card-body)',
             marginBottom: '20px',
           }}>
             {normalizedPreview}
@@ -189,7 +203,7 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
 
         {/* Bottom rule line — newspaper divider */}
         <div style={{
-          borderTop: '1px solid #d4c9b8',
+          borderTop: '1px solid var(--news-card-divider)',
           padding: '12px 20px 0',
           position: 'relative',
         }}>
@@ -200,9 +214,9 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
               fontWeight: 700,
               letterSpacing: '0.08em',
               textTransform: 'uppercase',
-              color: '#6B4C35',
+              color: 'var(--news-card-tag-text)',
               fontFamily: 'system-ui, -apple-system, sans-serif',
-              backgroundColor: 'rgba(107,76,53,0.08)',
+              backgroundColor: 'var(--news-card-tag-bg)',
               padding: '3px 8px',
               borderRadius: '100px',
             }}>
@@ -213,11 +227,11 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
                 key={idx}
                 style={{
                   fontSize: '0.65rem',
-                  color: '#999',
+                  color: 'var(--news-card-muted)',
                   fontFamily: 'system-ui, -apple-system, sans-serif',
                   padding: '3px 8px',
                   borderRadius: '100px',
-                  border: '1px solid #e8e2d8',
+                  border: '1px solid var(--news-card-tag-border)',
                 }}
               >
                 {title}
