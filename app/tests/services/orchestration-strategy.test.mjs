@@ -4,9 +4,15 @@
  * Phase 20: Orchestration Strategy & Diagnostic Dialogue
  */
 
-import { describe, it } from 'node:test';
+import { describe, it, test } from 'node:test';
 import assert from 'assert';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
 import { defaultStrategy } from '../../src/services/orchestration-strategy.service.ts';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(__dirname, '../..');
 
 // ─── Test helpers ─────────────────────────────────────────────────────────────
 
@@ -101,4 +107,31 @@ describe('defaultStrategy.computeHints', () => {
     assert.deepStrictEqual(hints.curiosityTopics, []);
   });
 
+});
+
+// ─── TD-01 plumbing assertions ───────────────────────────────────────────────
+
+test('TD-01 plumbing: plannerAutoGen.service.ts passes checkInSignals to computeHints', () => {
+  const src = readFileSync(path.join(repoRoot, 'src/services/plannerAutoGen.service.ts'), 'utf8');
+  assert.ok(
+    src.includes('computeHints(signals, checkInSignals)'),
+    'plannerAutoGen.service.ts must pass checkInSignals to computeHints',
+  );
+  assert.ok(
+    src.includes('plannerService.getRecentSignals()'),
+    'plannerAutoGen.service.ts must call plannerService.getRecentSignals()',
+  );
+});
+
+test('TD-01 plumbing: concept-feed.service.ts applyStrategyBias passes checkInSignals to computeHints', () => {
+  const src = readFileSync(path.join(repoRoot, 'src/services/concept-feed.service.ts'), 'utf8');
+  assert.ok(
+    src.includes('computeHints(signals, checkInSignals)'),
+    'concept-feed.service.ts must pass checkInSignals to computeHints',
+  );
+  // Ensure we didn't accidentally remove the pre-existing line-251 recentSignals call
+  assert.ok(
+    src.includes('const recentSignals = plannerService.getRecentSignals()'),
+    'concept-feed.service.ts must retain pre-existing line-251 recentSignals call',
+  );
 });
