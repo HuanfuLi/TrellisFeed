@@ -166,6 +166,7 @@ export function AskScreen() {
   const [session, setSession] = useState<ChatSession>(() => sessionService.getActive());
   const [streaming, setStreaming] = useState<StreamingOverlay | null>(null);
   const [showHistory, setShowHistory] = useState(false);
+  const [historyClosing, setHistoryClosing] = useState(false);
   const [historySessions, setHistorySessions] = useState<ChatSession[]>([]);
   const [confirmFlagId, setConfirmFlagId] = useState<string | null>(null);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
@@ -219,6 +220,11 @@ export function AskScreen() {
     const target = container.scrollTop + (elTop - containerTop) - PADDING_TOP;
     container.scrollTo({ top: target, behavior: 'smooth' });
   }, [anchorMsgId]);
+
+  const closeHistory = () => {
+    setHistoryClosing(true);
+    setTimeout(() => { setShowHistory(false); setHistoryClosing(false); }, 200);
+  };
 
   // Refresh the sessions list whenever the history panel opens
   useEffect(() => {
@@ -445,7 +451,7 @@ export function AskScreen() {
     const newSession = startNewSession(sessionRef.current);
     setSession(newSession);
     setStreaming(null);
-    setShowHistory(false);
+    closeHistory();
   }, []);
 
   const handleSelectSession = useCallback((id: string) => {
@@ -458,7 +464,7 @@ export function AskScreen() {
       setSession(loaded);
       setStreaming(null);
     }
-    setShowHistory(false);
+    closeHistory();
   }, []);
 
   const handleFlagConfirm = useCallback((messageId: string) => {
@@ -515,7 +521,7 @@ export function AskScreen() {
         centered
         left={
           <button
-            onClick={() => { setShowHistory(prev => !prev); setHistorySearch(''); }}
+            onClick={() => { if (showHistory) { closeHistory(); } else { setShowHistory(true); setHistorySearch(''); } }}
             title={t('ask.historyButtonTitle')}
             style={{
               display: 'flex',
@@ -834,13 +840,13 @@ export function AskScreen() {
         <>
           {/* Backdrop */}
           <div
-            onClick={() => setShowHistory(false)}
+            onClick={closeHistory}
             style={{
               position: 'absolute',
               inset: 0,
               backgroundColor: 'rgba(0,0,0,0.4)',
               zIndex: 40,
-              animation: 'fade-in 0.2s ease',
+              animation: historyClosing ? 'fade-out 0.2s ease forwards' : 'fade-in 0.2s ease',
             }}
           />
           {/* Drawer */}
@@ -857,7 +863,7 @@ export function AskScreen() {
               zIndex: 50,
               display: 'flex',
               flexDirection: 'column',
-              animation: 'slide-in-left 0.25s ease',
+              animation: historyClosing ? 'slide-out-left 0.2s ease forwards' : 'slide-in-left 0.25s ease',
             }}
           >
             {/* Drawer header */}
@@ -871,7 +877,7 @@ export function AskScreen() {
             >
               <h2 style={{ fontSize: '1.1rem', fontWeight: 700 }}>{t('ask.historyTitle')}</h2>
               <button
-                onClick={() => setShowHistory(false)}
+                onClick={closeHistory}
                 style={{
                   display: 'flex',
                   alignItems: 'center',

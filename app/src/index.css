@@ -123,8 +123,9 @@
   --news-card-muted: #999999;
   --news-card-divider: #d4c9b8;
 
-  /* Badge text — dark text on light tinted backgrounds */
+  /* Badge — dark text on light tinted backgrounds */
   --badge-yellow-text: #5D4037;
+  --badge-yellow-bg: var(--secondary-80);
   --badge-blue-text: #01579B;
   --badge-purple-text: #4A148C;
 
@@ -247,8 +248,9 @@ body.keyboard-open #bottom-navigation {
   --news-card-muted: #707070;
   --news-card-divider: rgba(255, 255, 255, 0.10);
 
-  /* Badge text — light text on dark tinted backgrounds */
+  /* Badge — light text on dark tinted backgrounds */
   --badge-yellow-text: #FFE0B2;
+  --badge-yellow-bg: #3E2723;
   --badge-blue-text: #90CAF9;
   --badge-purple-text: #CE93D8;
 
@@ -426,10 +428,18 @@ body.keyboard-open #bottom-navigation {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* History drawer — slide in from left */
+/* History drawer — slide in/out from left */
 @keyframes slide-in-left {
   from { transform: translateX(-100%); }
   to   { transform: translateX(0); }
+}
+@keyframes slide-out-left {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-100%); }
+}
+@keyframes fade-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
 }
 
 /* Immersive flow — slide up from bottom */

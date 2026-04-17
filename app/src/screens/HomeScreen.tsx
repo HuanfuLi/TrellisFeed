@@ -7,7 +7,7 @@ import { Badge } from '../components/ui/Badge';
 import { InlineInfoFlow, type InfoFlowItem } from '../components/InfoFlow';
 import { PullUpHint, PULL_THRESHOLD } from '../components/PullUpHint';
 import { infiniteScrollService } from '../services/infiniteScroll.service';
-import type { BlindboxItem, DailyPost, Question } from '../types';
+import type { DailyPost, Question } from '../types';
 import { useQuestions } from '../state/useQuestions';
 import { useReview } from '../state/useReview';
 import { usePodcast } from '../state/usePodcast';
@@ -20,13 +20,6 @@ import { today, getGreeting } from '../lib/date';
 import { toast } from '../lib/toast';
 import { Header, HEADER_HEIGHT } from '../components/ui/Header';
 
-const MILESTONE_POOL: BlindboxItem[] = [
-  { id: 'm-0', type: 'milestone', emoji: '🔥', headline: 'Momentum looks like curiosity', body: 'The more often you open ideas from different angles, the easier it becomes to stay in motion without forcing yourself.' },
-  { id: 'm-1', type: 'trivia',    emoji: '🧠', headline: 'Did you know?',         body: 'The brain keeps details that feel reusable. Retrieval, surprise, and connection all make an idea feel worth keeping.' },
-  { id: 'm-2', type: 'milestone', emoji: '⚡', headline: 'Your feed is learning you', body: 'Recent questions create the spark, older questions add depth, and the space between them is where insight usually shows up.' },
-  { id: 'm-3', type: 'trivia',    emoji: '💡', headline: 'Memory likes contrast', body: 'When a familiar idea meets a new angle, your brain has to reconcile them, and that tension often makes both easier to remember.' },
-  { id: 'm-4', type: 'milestone', emoji: '🌱', headline: 'Knowledge compounds!', body: 'Every connection you keep is another route back into the same concept later. That is why understanding starts to feel faster over time.' },
-];
 
 export function HomeScreen() {
   const navigate = useNavigate();
@@ -322,18 +315,7 @@ export function HomeScreen() {
       }
     }
 
-    // Inject milestone cards every 5 regular cards
-    const withMilestones: InfoFlowItem[] = [];
-    let milestoneIdx = 0;
-    items.forEach((item, idx) => {
-      if (idx > 0 && idx % 5 === 0) {
-        withMilestones.push({ kind: 'milestone', item: MILESTONE_POOL[milestoneIdx % MILESTONE_POOL.length] });
-        milestoneIdx++;
-      }
-      withMilestones.push(item);
-    });
-
-    return withMilestones;
+    return items;
   }, [dailyPosts, questions]);
 
   const handleOpenConnection = (idA: string, idB: string) => {
