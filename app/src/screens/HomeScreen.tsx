@@ -1,10 +1,12 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { BookOpen, CheckSquare, Headphones } from 'lucide-react';
+import { BookOpen, CheckSquare, Headphones, Sparkles } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { InlineInfoFlow, type InfoFlowItem } from '../components/InfoFlow';
+import { ConceptProgressCard } from '../components/ConceptProgressCard';
+import { Confetti } from '../components/Confetti';
 import { PullUpHint, PULL_THRESHOLD } from '../components/PullUpHint';
 import { infiniteScrollService } from '../services/infiniteScroll.service';
 import type { DailyPost, Question } from '../types';
@@ -15,6 +17,8 @@ import { plannerService } from '../services/planner.service';
 import { plannerAutoGenService } from '../services/plannerAutoGen.service';
 import { settingsService } from '../services/settings.service';
 import { conceptFeedService } from '../services/concept-feed.service';
+import { dailyReadService, getConceptQuota } from '../services/daily-read.service';
+import { trellisCreditsService } from '../services/trellis-credits.service';
 import { eventBus } from '../lib/event-bus';
 import { today, getGreeting } from '../lib/date';
 import { toast } from '../lib/toast';
@@ -345,8 +349,41 @@ export function HomeScreen() {
 
   const [suggestedMoveCount, setSuggestedMoveCount] = useState(0);
 
+  // --- Concept exploration progress (Phase 30, D-04/D-07) ---
+  const questionsById = useMemo(() => new Map(questions.map(q => [q.id, q])), [questions]);
+  const quotaAnchorIds = useMemo(() => getConceptQuota(dailyPosts, questionsById), [dailyPosts, questionsById]);
+  const conceptQuota = quotaAnchorIds.size;
+
+  const [exploredAnchors, setExploredAnchors] = useState<string[]>(() => dailyReadService.getExploredAnchors());
+  const exploredCount = useMemo(() => exploredAnchors.filter(id => quotaAnchorIds.has(id)).length, [exploredAnchors, quotaAnchorIds]);
+  const isComplete = conceptQuota > 0 && exploredCount >= conceptQuota;
+
+  const [showConfetti, setShowConfetti] = useState(false);
+  const creditAwardedRef = useRef(dailyReadService.isCreditAwarded());
+
+  // Subscribe to CONCEPT_EXPLORED events from PostDetailScreen
+  useEffect(() => {
+    const unsub = eventBus.subscribe('CONCEPT_EXPLORED', () => {
+      setExploredAnchors(dailyReadService.getExploredAnchors());
+    });
+    return unsub;
+  }, []);
+
+  // Celebration: gold bar + confetti + toast + credit on completion
+  useEffect(() => {
+    if (isComplete && conceptQuota > 0 && !creditAwardedRef.current) {
+      creditAwardedRef.current = true;
+      dailyReadService.markCreditAwarded();
+      trellisCreditsService.add(1);
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 3500);
+      toast(t('home.feed.creditToast'), 'success');
+    }
+  }, [isComplete, conceptQuota, t]);
+
   return (
     <>
+      <Confetti active={showConfetti} />
       <Header title={getGreeting()} />
       <div
         ref={containerRef}
@@ -451,6 +488,34 @@ export function HomeScreen() {
               </div>
             </Card>
           </button>
+
+          {/* Concept Progress Card — per D-07, placed between bento grid and feed */}
+          {conceptQuota > 0 && (
+            <div style={{ gridColumn: '1 / -1' }}>
+              <ConceptProgressCard explored={exploredCount} total={conceptQuota} isComplete={isComplete} />
+            </div>
+          )}
+
+          {/* Empty state when feed has posts but no concept posts (D-17) */}
+          {conceptQuota === 0 && dailyPosts.length > 0 && (
+            <div style={{
+              gridColumn: '1 / -1',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minHeight: '160px',
+              textAlign: 'center',
+            }}>
+              <Sparkles size={32} color="var(--muted-foreground)" style={{ opacity: 0.5, marginBottom: '12px' }} />
+              <p style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--foreground)', marginBottom: '4px' }}>
+                {t('home.feed.emptyTitle')}
+              </p>
+              <p style={{ fontSize: '0.875rem', fontWeight: 400, color: 'var(--muted-foreground)' }}>
+                {t('home.feed.emptyBody')}
+              </p>
+            </div>
+          )}
 
           {/* Inline Info Flow — full width */}
           <div style={{ gridColumn: '1 / -1' }}>
