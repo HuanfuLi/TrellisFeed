@@ -256,7 +256,7 @@ function RootLayout() {
             zIndex: 50,
             backgroundColor: 'var(--surface)',
             paddingTop: 'var(--safe-area-top)',
-            paddingBottom: 'calc(80px + var(--safe-area-bottom))',
+            paddingBottom: 'var(--safe-area-bottom)',
             overflow: 'auto',
             overscrollBehavior: 'contain',
             animation: subScreenClosing ? 'sub-screen-out 0.2s ease forwards' : 'sub-screen-in 0.2s ease',
