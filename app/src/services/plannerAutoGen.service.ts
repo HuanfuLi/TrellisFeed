@@ -112,7 +112,8 @@ export const plannerAutoGenService = {
     if (concepts.length === 0) return [];
 
     const signals = trajectoryAnalyzerService.aggregateSignals(forceRefresh);
-    const hints = defaultStrategy.computeHints(signals);
+    const checkInSignals = plannerService.getRecentSignals();
+    const hints = defaultStrategy.computeHints(signals, checkInSignals);
     const existing = loadMoves();
 
     // Filter out concepts with recent duplicate moves.
