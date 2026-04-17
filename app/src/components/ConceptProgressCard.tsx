@@ -12,28 +12,30 @@ interface ConceptProgressCardProps {
 
 export function ConceptProgressCard({ explored, total, isComplete }: ConceptProgressCardProps) {
   const { t } = useTranslation();
-  const sentinelRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
   const [isCompact, setIsCompact] = useState(false);
 
   useEffect(() => {
-    const sentinel = sentinelRef.current;
-    if (!sentinel) return;
+    const card = cardRef.current;
+    if (!card) return;
 
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsCompact(!entry.isIntersecting);
-      },
-      { rootMargin: `-${HEADER_HEIGHT}px 0px 0px 0px`, threshold: 0 },
-    );
+    const scrollParent = card.closest('[data-home-scroll]') as HTMLElement | null;
+    if (!scrollParent) return;
 
-    // Anti-flicker: synchronously check initial position (Pitfall 6)
-    const rect = sentinel.getBoundingClientRect();
-    if (rect.top < HEADER_HEIGHT) {
-      setIsCompact(true);
-    }
+    let ticking = false;
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        const rect = card.getBoundingClientRect();
+        const headerBottom = HEADER_HEIGHT;
+        setIsCompact(rect.top <= headerBottom + 2);
+        ticking = false;
+      });
+    };
 
-    observer.observe(sentinel);
-    return () => observer.disconnect();
+    scrollParent.addEventListener('scroll', onScroll, { passive: true });
+    return () => scrollParent.removeEventListener('scroll', onScroll);
   }, []);
 
   if (total === 0) return null;
@@ -45,59 +47,57 @@ export function ConceptProgressCard({ explored, total, isComplete }: ConceptProg
     : 'var(--card)';
 
   return (
-    <>
-      <div ref={sentinelRef} style={{ height: '1px' }} />
-      <div
-        style={{
-          position: 'sticky',
-          top: `${HEADER_HEIGHT}px`,
-          zIndex: 100,
-          backgroundColor: cardBg,
-          borderRadius: isCompact ? 0 : 'var(--radius)',
-          boxShadow: isCompact ? 'var(--shadow-2)' : 'var(--shadow-1)',
-          padding: isCompact ? '8px 16px' : '16px',
-          transition: 'all 200ms ease',
-        }}
-      >
-        {isCompact ? (
-          /* Compact state: single row */
+    <div
+      ref={cardRef}
+      style={{
+        position: 'sticky',
+        top: `${HEADER_HEIGHT}px`,
+        zIndex: 100,
+        backgroundColor: cardBg,
+        borderRadius: isCompact ? 0 : 'var(--radius)',
+        boxShadow: isCompact ? 'var(--shadow-2)' : 'var(--shadow-1)',
+        padding: isCompact ? '8px 16px' : '16px',
+        marginLeft: isCompact ? '-16px' : 0,
+        marginRight: isCompact ? '-16px' : 0,
+        transition: 'all 200ms ease',
+      }}
+    >
+      {isCompact ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <BookOpen size={16} color={barColor} />
+          <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--foreground)', whiteSpace: 'nowrap' }}>
+            {isComplete
+              ? t('home.feed.complete')
+              : t('home.feed.progressCompact', { explored, total })}
+          </span>
+          <ProgressBar
+            value={progressPercent}
+            color={barColor}
+            height={6}
+            style={{ flex: 1, marginLeft: '4px' }}
+          />
+        </div>
+      ) : (
+        <>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <BookOpen size={16} color={barColor} />
-            <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--foreground)', whiteSpace: 'nowrap' }}>
-              {isComplete
-                ? t('home.feed.complete')
-                : t('home.feed.progressCompact', { explored, total })}
+            <BookOpen size={20} color={barColor} />
+            <span style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--foreground)' }}>
+              {t('home.feed.title')}
             </span>
-            <ProgressBar
-              value={progressPercent}
-              color={barColor}
-              height={6}
-              style={{ flex: 1, marginLeft: '4px' }}
-            />
           </div>
-        ) : (
-          /* Expanded state: icon + title, label, progress bar */
-          <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <BookOpen size={20} color={barColor} />
-              <span style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--foreground)' }}>
-                {t('home.feed.title')}
-              </span>
-            </div>
-            <p style={{ fontSize: '0.875rem', fontWeight: 400, color: 'var(--muted-foreground)', marginTop: '4px' }}>
-              {isComplete
-                ? t('home.feed.complete')
-                : t('home.feed.progress', { explored, total })}
-            </p>
-            <ProgressBar
-              value={progressPercent}
-              color={barColor}
-              height={8}
-              style={{ marginTop: '8px' }}
-            />
-          </>
-        )}
-      </div>
-    </>
+          <p style={{ fontSize: '0.875rem', fontWeight: 400, color: 'var(--muted-foreground)', marginTop: '4px' }}>
+            {isComplete
+              ? t('home.feed.complete')
+              : t('home.feed.progress', { explored, total })}
+          </p>
+          <ProgressBar
+            value={progressPercent}
+            color={barColor}
+            height={8}
+            style={{ marginTop: '8px' }}
+          />
+        </>
+      )}
+    </div>
   );
 }

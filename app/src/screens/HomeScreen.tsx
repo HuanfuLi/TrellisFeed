@@ -387,6 +387,7 @@ export function HomeScreen() {
       <Header title={getGreeting()} />
       <div
         ref={containerRef}
+        data-home-scroll
         style={{
           overflowY: 'auto',
           height: '100dvh',
