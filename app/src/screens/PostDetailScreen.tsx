@@ -20,6 +20,7 @@ import { parseMoveNavigationState } from '../lib/moveNavigator';
 import { inferImageStyle, buildImagePrompt } from '../services/postFormatting.service';
 import { normalizePlainText } from '../lib/text-normalization';
 import { generatePostEssay, generateEssayMeta, patchPostEssayInCache, type EssayContent } from '../services/post-essay.service';
+import { eventBus } from '../lib/event-bus';
 
 interface ConnectionMeta {
   questionA: Question;
@@ -163,13 +164,19 @@ export function PostDetailScreen() {
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps -- passedPost, connectionMeta, discoverMeta are stable per navigation
 
   // On-enter essay generation: stream bodyMarkdown when post has empty body
+  // D-06 + D-16: ONE AbortController for streamingBody + post-stream generateEssayMeta.
+  // Matches useQuestions.ts:120-123 house pattern verbatim.
   useEffect(() => {
     if (!post) return;
     // Skip if post already has content (starter posts, cached essays, shorts)
     if (post.bodyMarkdown && post.bodyMarkdown.trim() !== '') return;
     if (post.sourceType === 'short') return;
 
-    let aborted = false;
+    const abortController = new AbortController();
+    const unsubLocale = eventBus.subscribe('LOCALE_CHANGED', () => {
+      abortController.abort(new DOMException('Locale changed', 'AbortError'));
+    });
+
     setIsStreamingOnEnter(true);
     setOnEnterError(null);
     setStreamingBody('');
@@ -182,6 +189,9 @@ export function PostDetailScreen() {
         const discoverMeta = discoverMetaRef.current;
 
         // 1. Stream the body content from the appropriate generator
+        // D-15 scope: signal threading is on the generatePostEssay branch;
+        // connection/discover branches rely on the abort-guard return pattern
+        // for unmount cancellation.
         if (post.sourceType === 'connection' && connectionMeta) {
           for await (const chunk of conceptFeedService.generateConnectionPost(
             connectionMeta.questionA,
@@ -189,7 +199,7 @@ export function PostDetailScreen() {
             connectionMeta.conceptNounA,
             connectionMeta.conceptNounB,
           )) {
-            if (aborted) return;
+            if (abortController.signal.aborted) return;
             accumulated += chunk;
             setStreamingBody(accumulated);
           }
@@ -198,27 +208,29 @@ export function PostDetailScreen() {
             discoverMeta.concept,
             discoverMeta.title,
           )) {
-            if (aborted) return;
+            if (abortController.signal.aborted) return;
             accumulated += chunk;
             setStreamingBody(accumulated);
           }
         } else {
-          for await (const chunk of generatePostEssay(post, questionsRef.current)) {
-            if (aborted) return;
+          for await (const chunk of generatePostEssay(post, questionsRef.current, { signal: abortController.signal })) {
+            if (abortController.signal.aborted) return; // D-08
             accumulated += chunk;
             setStreamingBody(accumulated);
           }
         }
 
-        if (aborted) return;
+        if (abortController.signal.aborted) return; // D-08 — discard, no persist
 
         // 2. Generate meta (whyCare, takeaway, quickAskPrompts) after body completes
-        const meta = await generateEssayMeta(post, accumulated);
-        if (aborted) return;
+        // D-16: Same AbortController for post-stream meta call
+        const meta = await generateEssayMeta(post, accumulated, { signal: abortController.signal });
+        if (abortController.signal.aborted) return; // D-08
 
         const essay: EssayContent = { bodyMarkdown: accumulated, ...meta };
 
         // 3. Save the finalized post to the appropriate store/cache
+        // D-08: patchPostEssayInCache ONLY reached when not aborted
         let savedPost: DailyPost | null = null;
         if (post.sourceType === 'connection' && connectionMeta) {
           savedPost = conceptFeedService.saveConnectionPost(
@@ -236,7 +248,7 @@ export function PostDetailScreen() {
           savedPost = { ...post, ...essay };
         }
 
-        if (aborted) return;
+        if (abortController.signal.aborted) return;
 
         // 4. Update state with finalized post and create session if needed
         setPost(savedPost);
@@ -246,15 +258,17 @@ export function PostDetailScreen() {
           setSession(sessionService.getOrCreatePostSession(savedPost, questionsRef.current));
         }
       } catch (err) {
-        if (!aborted) {
-          setOnEnterError(err instanceof Error ? err.message : i18n.t('posts.detail.generationFailedFallback'));
-        }
+        if (abortController.signal.aborted) return; // clean cancel — no error toast
+        setOnEnterError(err instanceof Error ? err.message : i18n.t('posts.detail.generationFailedFallback'));
       } finally {
-        if (!aborted) setIsStreamingOnEnter(false);
+        setIsStreamingOnEnter(false);
+        unsubLocale(); // D-06 cleanup — idempotent; safe even if unmount cleanup already ran
       }
     })();
 
-    return () => { aborted = true; };
+    return () => {
+      abortController.abort(); // unmount trigger (D-06)
+    };
   }, [post?.id, post?.bodyMarkdown]); // eslint-disable-line react-hooks/exhaustive-deps
 
 
