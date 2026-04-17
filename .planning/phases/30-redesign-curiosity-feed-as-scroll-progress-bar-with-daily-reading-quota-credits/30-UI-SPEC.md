@@ -38,7 +38,7 @@ Declared values (reuse existing `--space-*` tokens from Phase 28 D-26):
 | 2xl / `--space-2xl` | 24px | Bento card internal padding (matches existing bento cards) |
 | 3xl / `--space-3xl` | 32px | Not used this phase |
 
-Exceptions: none
+Exceptions: `--space-md: 12px` is a pre-existing Phase 28 token (D-26) already declared in `app/src/index.css`. It is reused here, not newly introduced. While 12px is not in the standard 8-point set {4, 8, 16, 24, 32, 48, 64}, it is grandfathered as an established project token.
 
 ---
 
@@ -57,12 +57,14 @@ Source: matches existing HomeScreen bento card typography (e.g., `<h4>` at defau
 
 ## Color
 
+Primary focal point: FeedProgressHeader progress bar fill (the colored bar element that advances as the user reads posts).
+
 | Role | Value (Light) | Value (Dark) | Usage |
 |------|---------------|--------------|-------|
 | Dominant (60%) | `var(--surface)` #FFFBF5 | `var(--surface)` #111111 | Progress bar header background |
 | Secondary (30%) | `var(--surface-variant)` #F5F0E8 | `var(--surface-variant)` #1F1F1F | Progress bar track background (via ProgressBar component default) |
-| Accent — in-progress (10%) | `var(--primary-40)` #558B2F | `var(--primary-40)` #4CAF50 | Progress bar fill during active reading |
-| Accent — complete | `#E8A838` (gold) | `#E8A838` (gold) | Progress bar fill at 100% quota completion |
+| Accent -- in-progress (10%) | `var(--primary-40)` #558B2F | `var(--primary-40)` #4CAF50 | Progress bar fill during active reading |
+| Accent -- complete | `#E8A838` (gold) | `#E8A838` (gold) | Progress bar fill at 100% quota completion |
 | Destructive | `var(--danger)` #E53935 | `var(--danger)` #E53935 | Not used this phase |
 | Muted text | `var(--muted-foreground)` #6B6B6B | `var(--muted-foreground)` #A0A0A0 | Progress label text, bento card secondary text |
 | Border | `var(--border)` | `var(--border)` | Bottom border of progress bar header |
@@ -92,7 +94,7 @@ New CSS variable to declare in `:root` and `.dark`:
 ### 1. FeedProgressHeader (new inline component in HomeScreen)
 
 **Renders when:** `dailyPosts.length > 0`
-**Hidden when:** `dailyPosts.length === 0` (D-13, D-14 — never show 0/0)
+**Hidden when:** `dailyPosts.length === 0` (D-13, D-14 -- never show 0/0)
 
 | Property | Value |
 |----------|-------|
@@ -190,7 +192,7 @@ No fly-to-counter animation from HomeScreen (cross-screen ref not available). Pl
 | Trigger | Behavior |
 |---------|----------|
 | Card bottom edge exits viewport top | `onPostRead(postId)` fires |
-| Same card scrolled past again | Idempotent — no state change |
+| Same card scrolled past again | Idempotent -- no state change |
 | App restart same day | `dailyReadService.getState()` restores `readIds` from localStorage |
 | App restart next day | `dailyReadService` auto-resets (date mismatch) |
 | Mount race (Pitfall 2) | 200ms grace period OR track previously-intersecting cards before marking as read |
@@ -261,7 +263,7 @@ No shadcn, no third-party registries. All components are project-local inline-st
 | Progress bar semantics | Add `role="progressbar"`, `aria-valuenow={readCount}`, `aria-valuemin={0}`, `aria-valuemax={totalCount}`, `aria-label={t('home.feed.progress', { read, total })}` on the ProgressBar wrapper |
 | Color contrast (label on surface) | `var(--muted-foreground)` on `var(--surface)` = #6B6B6B on #FFFBF5 = 4.8:1 ratio (passes AA) |
 | Color contrast (dark mode) | #A0A0A0 on #111111 = 7.4:1 ratio (passes AAA) |
-| Gold bar on surface | #E8A838 on #F5F0E8 track = 2.5:1 (decorative, not text — acceptable) |
+| Gold bar on surface | #E8A838 on #F5F0E8 track = 2.5:1 (decorative, not text -- acceptable) |
 | Empty state icon | Decorative only (`aria-hidden="true"`) |
 | Bento card tap target | Entire card is a `<button>` (matches existing bento pattern) with min 44px height |
 
