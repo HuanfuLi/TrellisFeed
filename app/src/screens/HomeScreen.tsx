@@ -416,8 +416,9 @@ export function HomeScreen() {
     <>
       <Confetti active={showConfetti} />
       {/* Compact progress bar — slides in as header when inline card scrolls away */}
-      {showCompactBar && (
-        <div style={{
+      <div
+        aria-hidden={!showCompactBar}
+        style={{
           position: 'fixed',
           top: 'var(--safe-area-top)',
           left: 0,
@@ -425,16 +426,23 @@ export function HomeScreen() {
           height: '64px',
           zIndex: 190,
           backgroundColor: isComplete ? 'color-mix(in srgb, #E8A838 8%, var(--surface))' : 'var(--surface)',
-          boxShadow: 'var(--shadow-1)',
+          boxShadow: showCompactBar ? 'var(--shadow-1)' : 'none',
           display: 'flex',
           alignItems: 'center',
           padding: '0 16px',
-        }}>
-          <div style={{ maxWidth: '448px', margin: '0 auto', width: '100%' }}>
-            <CompactProgressBar explored={exploredCount} total={conceptQuota} isComplete={isComplete} />
-          </div>
+          opacity: showCompactBar ? 1 : 0,
+          transform: showCompactBar ? 'translateY(0)' : 'translateY(-100%)',
+          transition: 'opacity 300ms ease, transform 300ms ease, box-shadow 300ms ease',
+          pointerEvents: showCompactBar ? 'auto' : 'none',
+          visibility: showCompactBar ? 'visible' : 'hidden',
+          transitionProperty: 'opacity, transform, box-shadow, visibility',
+          transitionDelay: showCompactBar ? '0ms' : '0ms, 0ms, 0ms, 300ms',
+        }}
+      >
+        <div style={{ maxWidth: '448px', margin: '0 auto', width: '100%' }}>
+          <CompactProgressBar explored={exploredCount} total={conceptQuota} isComplete={isComplete} />
         </div>
-      )}
+      </div>
       <div
         ref={containerRef}
         data-home-scroll
