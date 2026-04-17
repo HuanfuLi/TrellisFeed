@@ -1,186 +1,123 @@
-# Phase 30: Redesign curiosity feed as scroll progress bar with daily reading quota credits - Discussion Log
+# Phase 30: Redesign curiosity feed — Discussion Log (v2)
 
 > **Audit trail only.** Do not use as input to planning, research, or execution agents.
 > Decisions are captured in CONTEXT.md — this log preserves the alternatives considered.
 
-**Date:** 2026-04-16
+**Date:** 2026-04-17
 **Phase:** 30-redesign-curiosity-feed-as-scroll-progress-bar-with-daily-reading-quota-credits
-**Areas discussed:** Progress bar behavior, Daily quota & credits, Reading detection, Visual design, Zero-post & edge states, Curiosity Feed island fate, Bento grid interaction, Credits amount & i18n
+**Areas discussed:** Reading definition, Collapsing header, Card states, Quota target, PostDetailScreen tracking, Concept grouping, Non-concept items, Signal mechanism
+**Note:** v2 re-scope after v1 UAT failure. v1 tracked "scroll past = read" with a fixed sticky header. User rejected: too passive, greeting replacement looked bad.
 
 ---
 
-## Progress Bar Tracking
+## Reading Definition (v2 — replaces v1 D-07)
 
 | Option | Description | Selected |
 |--------|-------------|----------|
-| Posts viewed | Each post that enters viewport and is read increments the bar. Discrete, satisfying progression. | ✓ |
-| Scroll position | Bar reflects how far down the feed you've scrolled. Simple but doesn't distinguish skimming from reading. | |
-| Concepts explored | Track unique concepts/anchors represented in viewed posts. Encourages breadth over volume. | |
+| Open post + scroll 70% | User taps post, scrolls past 70%. Passive proof of engagement. | |
+| Open post + ask follow-up | User taps post AND asks follow-up question. Active engagement. | |
+| Either action counts | Scroll 70% OR follow-up OR 30s dwell — any triggers credit. | ✓ |
 
-**User's choice:** Posts viewed
-**Notes:** Clear cause-effect preferred over scroll position gaming or concept-level abstraction.
+**User's choice:** Either action counts
+**Notes:** Three paths to mark a concept explored. Most forgiving.
 
 ---
 
-## Progress Bar Placement
+## Collapsing Header (v2 — replaces v1 D-02)
 
 | Option | Description | Selected |
 |--------|-------------|----------|
-| Sticky top, replaces greeting | The 'Good Evening' banner transforms into a compact sticky progress header. Always visible. | ✓ |
-| Inline above feed | Progress bar sits above the first post card, scrolls away with the feed. | |
-| Floating pill overlay | Small floating pill at top of screen showing progress, overlays content. | |
+| Title scrolls away, bar always visible | Progress bar fixed at top from start. Title scrolls under. | |
+| Title + bar both visible, title collapses | iOS-style collapsing header. | |
+| Transform CURIOSITY FEED card into progress bar | Card lives inline. When scrolled to top, sticks and compresses. Greeting pushed out naturally. | ✓ |
 
-**User's choice:** Sticky top, replaces greeting
-**Notes:** Greeting banner considered too vague — progress bar is a meaningful replacement.
+**User's choice:** Transform CURIOSITY FEED card (custom idea)
+**Notes:** User proposed: modify the existing CURIOSITY FEED banner to become the progress bar. When scrolled to top, squeeze greeting out and transform card into compact header.
 
 ---
 
-## Daily Quota Target
+## Card Visual States
 
 | Option | Description | Selected |
 |--------|-------------|----------|
-| Match daily posts count | Quota = however many posts the feed generated today. Always achievable. | ✓ |
-| Fixed daily target | Set a fixed number regardless of feed size. May be unachievable. | |
-| User-configurable | Let user set their own daily reading goal in Settings. | |
+| Card → thin bar | Full card with icon/title/bar shrinks to thin bar when sticky. 200ms CSS transition. | ✓ |
+| Card stays full-size when sticky | Sticks in original form. Simpler but wastes space. | |
 
-**User's choice:** Match daily posts count
-**Notes:** Natural scaling with content availability. No arbitrary numbers.
+**User's choice:** Card → thin bar
 
 ---
 
-## Reward on Completion
+## Quota Target
 
 | Option | Description | Selected |
 |--------|-------------|----------|
-| Trellis credits + animation | Reuse existing trellis credits system. Confetti + credits fly to counter. | ✓ |
-| Animation only, no credits | Just a satisfying visual celebration. Progress itself is the reward. | |
-| New 'reading credits' type | Separate credit currency for reading. More complex. | |
+| Unique concepts in today's feed | Count distinct anchorIds. Natural and achievable. | ✓ |
+| Fixed daily target (e.g. 3) | Consistent but may be unachievable. | |
+| You decide | | |
 
-**User's choice:** Trellis credits + animation
-**Notes:** Reusing existing credits system keeps economy simple and unified.
+**User's choice:** Unique concepts in today's feed
 
 ---
 
-## Reading Detection
+## PostDetailScreen Tracking
 
 | Option | Description | Selected |
 |--------|-------------|----------|
-| Viewport dwell time | Post counts as read when >50% visible for ~2 seconds. Anti-gaming. | |
-| Scroll past threshold | Post counts as read once user scrolls past its bottom edge. Simplest. | ✓ |
-| Tap to mark read | Post only counts when user explicitly taps. Most accurate but adds friction. | |
+| Scroll 70% of essay | IntersectionObserver at 70% depth. | |
+| Scroll 70% OR 30s dwell | Either scrolling deep or staying 30s. | ✓ |
+| Scroll 70% OR follow-up | Two distinct engagement paths. | |
 
-**User's choice:** Scroll past threshold
-**Notes:** Simplest implementation chosen. Fast-scroll gaming accepted as non-issue.
+**User's choice:** Scroll 70% OR spend 30s on post
+**Notes:** Plus asking follow-up also counts (decided in separate question).
 
 ---
 
-## Read State Persistence
+## Concept Grouping
 
 | Option | Description | Selected |
 |--------|-------------|----------|
-| Yes, localStorage | Track read post IDs in localStorage with daily reset. Progress survives restart. | ✓ |
-| Session only | Progress resets when app is closed/refreshed. | |
+| Use anchor node IDs | Group by anchorId. Already in post data. | ✓ |
+| Topic/title clustering | Fuzzy clustering. Less precise. | |
+| You decide | | |
 
-**User's choice:** Yes, localStorage
-**Notes:** Same pattern as trellis credits.
+**User's choice:** Use anchor node IDs
 
 ---
 
-## Zero-Post State
+## Non-Concept Feed Items
 
 | Option | Description | Selected |
 |--------|-------------|----------|
-| Hidden progress bar | Progress header doesn't render. Feed shows encouraging empty state. | ✓ |
-| Show bar at 0/0 | Display the progress bar empty with a message. | |
+| Excluded from quota | News, videos, connections = bonus content. Don't affect bar. | ✓ |
+| Include everything | All items count. Dilutes theme. | |
+| Separate bonus indicator | Badge on non-concept items. | |
 
-**User's choice:** Hidden progress bar
-**Notes:** No awkward 0/0 bar.
+**User's choice:** Excluded from quota
 
 ---
 
-## Post-Quota Behavior
+## Signal Mechanism
 
 | Option | Description | Selected |
 |--------|-------------|----------|
-| Feed stays browsable | Posts remain scrollable. Bar stays at 100%. No gate. | ✓ |
-| Collapse feed to summary | Feed collapses to summary card. Posts hidden unless expanded. | |
+| Event bus | CONCEPT_EXPLORED event. HomeScreen subscribes. Same as REVIEW_COMPLETED. | ✓ |
+| Service + polling | Direct service write, HomeScreen re-reads on focus. | |
+| React context | Shared state. Works with always-mounted screens. | |
 
-**User's choice:** Feed stays browsable
-**Notes:** No friction after completion. Credits awarded once, bar is decorative after.
+**User's choice:** Event bus
 
 ---
 
-## Curiosity Feed Island Fate
+## Bento Card
 
-| Option | Description | Selected |
-|--------|-------------|----------|
-| Remove entirely | Progress bar replaces it. No duplication. | |
-| Keep as compact summary | Shrink to mini card with concept topics. | |
-| Transform into bento card | Move feed info into bento grid as a new card showing concept topics. | ✓ |
-
-**User's choice:** Transform into bento card
-**Notes:** Shows concept topics covered today. Different info from the progress bar (qualitative vs quantitative).
-
----
-
-## Bento Card Content
-
-| Option | Description | Selected |
-|--------|-------------|----------|
-| Concept topics covered | Shows names of concepts explored today. Complements progress bar. | ✓ |
-| Mini progress ring | Compact circular progress indicator. Same info as sticky bar. | |
-| Drop the bento card idea | Sticky progress bar is enough. | |
-
-**User's choice:** Concept topics covered
-**Notes:** Adds value by showing qualitative info (topic names) vs the bar's quantitative info (count).
-
----
-
-## Bento Grid Interaction
-
-| Option | Description | Selected |
-|--------|-------------|----------|
-| Bento scrolls under sticky bar | Progress bar is fixed at top. All content scrolls underneath. | ✓ |
-| Bar appears on scroll past bento | Bar hidden initially, fades in after user scrolls past bento grid. | |
-
-**User's choice:** Bento scrolls under sticky bar
-**Notes:** Always visible, clean.
-
----
-
-## Credits Amount
-
-| Option | Description | Selected |
-|--------|-------------|----------|
-| 1 credit per quota | Complete all posts = +1 credit. Balanced with harvest. | ✓ |
-| Scaled by post count | Credits = number of posts read. More generous. | |
-| You decide | Let Claude pick. | |
-
-**User's choice:** 1 credit per quota
-**Notes:** Simple. Balanced with harvest (also 1 credit each).
-
----
-
-## i18n
-
-| Option | Description | Selected |
-|--------|-------------|----------|
-| Yes, full i18n | All labels go into en.json + zh/es/ja bundles. Phase 27 workflow. | ✓ |
-| English only for now | Ship hardcoded English. Translate later. | |
-
-**User's choice:** Yes, full i18n
-**Notes:** New keys under `home.feed.*` namespace. All 4 locales in same PR.
+Deferred to UI-SPEC design review. v1 implementation caused layout issues (big empty space). Will decide during `/gsd:ui-phase`.
 
 ---
 
 ## Claude's Discretion
 
-- Exact confetti particle count, animation duration, and easing curves
-- Progress bar height, padding, and exact sticky positioning
-- Bento card layout, icon choice, and truncation behavior for topic names
-- IntersectionObserver vs manual scroll listener for read detection
-- Whether the empty state message includes an icon/illustration
-
-## Deferred Ideas
-
-None — discussion stayed within phase scope
+- CSS transition details for card-to-bar animation
+- IntersectionObserver thresholds and sentinel placement
+- Timer implementation for 30s dwell
+- Empty state icon/illustration
+- Progress card styling in both states

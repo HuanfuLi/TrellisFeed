@@ -1,59 +1,70 @@
 # Phase 30: Redesign curiosity feed as scroll progress bar with daily reading quota credits - Context
 
-**Gathered:** 2026-04-16
+**Gathered:** 2026-04-17 (v2 — full re-scope after v1 UAT failure)
 **Status:** Ready for planning
 
 <domain>
 ## Phase Boundary
 
-Replace the static "Curiosity Feed" island and vague "Good Evening" greeting banner on HomeScreen with two new surfaces:
+Transform the static "CURIOSITY FEED" island card on HomeScreen into a scroll-aware progress tracker that monitors active concept exploration. The card lives inline in the feed, showing progress like "2 of 5 concepts explored". When the user scrolls it to the top, it pushes the "Good Morning" greeting off-screen and sticks as a compact progress bar header. Reading is tracked by active engagement (opening a post and scrolling 70%, spending 30s, or asking a follow-up) — not passive scrolling past feed items. Completing all concepts awards +1 trellis credit with celebration animation.
 
-1. A **sticky progress bar header** at the top of HomeScreen that tracks daily post reading progress, awards trellis credits on completion, and plays a celebration animation.
-2. A **bento card** in the existing bento grid that shows the concept topics covered in today's feed.
-
-The old greeting banner and CURIOSITY FEED static island are removed entirely.
+**Key difference from v1:** The previous implementation tracked "posts scrolled past" with a fixed sticky header replacing the greeting. v2 tracks "concepts actively explored" with a transforming inline card that collapses on scroll. This is a fundamentally different interaction model.
 
 </domain>
 
 <decisions>
 ## Implementation Decisions
 
-### Progress Bar Behavior
-- **D-01:** Progress bar tracks **posts viewed** (discrete count, e.g. "2 of 4 today"). Not scroll position, not concepts, not time.
-- **D-02:** Progress bar is a **sticky header** fixed at the top of HomeScreen. Replaces the "Good Evening" greeting banner entirely. All HomeScreen content (bento grid, posts) scrolls underneath it.
-- **D-03:** Bar is **always visible** from the moment posts exist — no fade-in-on-scroll behavior.
+### Progress Tracking
+- **D-01:** Progress tracks **unique concepts explored**, not posts viewed or scrolled past. Concepts are identified by `anchorId` on posts. Two posts with the same anchorId = one concept.
+- **D-02:** Quota target = **number of unique concept anchors** in today's feed. If 4 posts cover 3 distinct concepts, quota is 3.
+- **D-03:** Reading one post per concept is enough — user does NOT need to read every post for the same concept.
 
-### Daily Quota & Credits
-- **D-04:** Daily quota target = **number of posts the feed generated today** (currently max 4 via `MAX_POSTS`). If feed has 3 posts, quota is 3/3. Always achievable.
-- **D-05:** Completing the daily quota awards **+1 trellis credit** via the existing `trellisCreditsService`. Credits awarded once per day; re-reading doesn't re-award.
-- **D-06:** After quota completion, feed **stays fully browsable**. Progress bar stays at 100% with "All caught up!" label. No gate, no collapse.
+### Reading Detection (active engagement)
+- **D-04:** A concept is marked "explored" when user opens a post for that concept in PostDetailScreen AND meets ANY of three triggers:
+  1. **Scroll 70%** of the post essay content (IntersectionObserver on a sentinel at 70% depth)
+  2. **Spend 30 seconds** on the post (timer starts on PostDetailScreen mount for that post)
+  3. **Ask a follow-up question** in the post thread
+- **D-05:** PostDetailScreen communicates exploration via **event bus** — emits `CONCEPT_EXPLORED` with `anchorId`. HomeScreen subscribes and updates progress. Same pattern as `REVIEW_COMPLETED`.
+- **D-06:** Each trigger fires once per concept per day (idempotent via `dailyReadService`). Re-opening an already-explored concept does not re-trigger.
 
-### Reading Detection
-- **D-07:** A post counts as **read when user scrolls past its bottom edge** (bottom edge exits top of viewport). Simplest approach — no dwell timer, no tap required.
-- **D-08:** Read post IDs persisted in **localStorage with daily reset**. Key pattern: `echolearn_daily_read_posts` with `{ date, readIds[], quotaCompleted }`. Progress survives app restart within the same day.
+### Card-to-Bar Transformation
+- **D-07:** The CURIOSITY FEED card is **replaced in-place** with a progress card that lives inline in its current position (between bento grid and feed posts).
+- **D-08:** Progress card uses `position: sticky; top: 0`. As user scrolls, the card sticks at the top, pushing the "Good Morning" greeting naturally off-screen above it.
+- **D-09:** When stuck, an IntersectionObserver triggers a CSS class that **animates the card from full-size to compact bar** — shrinks height, padding, font-size over ~200ms ease transition.
+- **D-10:** Full card state shows: icon, "Today's Concepts" title, "N of M explored" label, progress bar. Compact bar state shows: icon, "N/M", progress bar — one thin row.
+- **D-11:** The "Good Morning" greeting **stays as-is** — it scrolls away naturally as the user scrolls down. No code change to the greeting itself.
 
-### Visual Design
-- **D-09:** Progress bar is a **continuous smooth bar** (not segmented, not dots). Reuses the existing `ProgressBar` component pattern from `src/components/ui/ProgressBar.tsx`.
-- **D-10:** Completion celebration: **bar color shifts from primary to gold/green**, brief **confetti burst** (reuse harvest confetti pattern from TrellisStatusPanel), **"+1 🍒" flies to trellis counter**. Label changes to "All caught up!".
+### Non-Concept Feed Items
+- **D-12:** Connection cards, news posts, video posts, and other non-anchored items are **excluded from the quota**. They appear in the feed as bonus content but don't affect the progress bar.
+- **D-13:** No visual "bonus" badge on non-concept items — they just exist in the feed without any quota indicator.
 
-### Curiosity Feed Island Fate
-- **D-11:** The current static CURIOSITY FEED island card is **removed entirely**. Its function is split between the progress bar (numeric progress) and the new bento card (topic info).
-- **D-12:** A new **bento card** in the HomeScreen bento grid shows **concept topics covered** in today's feed (e.g. "Quantum Computing, Neural Networks, +2 more"). Tapping could scroll to the feed section.
+### Reward & Celebration
+- **D-14:** Completing all concepts awards **+1 trellis credit** via `trellisCreditsService.add(1)`. Credits awarded once per day (idempotent).
+- **D-15:** Celebration: progress bar **turns gold** (`#E8A838`), **confetti burst** (reuse harvest pattern), label changes to "All caught up!". Same as v1 celebration design.
+- **D-16:** After completion, feed **stays fully browsable**. Progress bar stays gold at 100%. No gate or collapse.
 
-### Zero-Post & Edge States
-- **D-13:** When no posts exist today, the progress bar header is **hidden** (not rendered). Feed area shows an encouraging empty state ("Your feed is brewing — ask a question to get started").
-- **D-14:** 0/0 bar is **never shown**. Progress bar only renders when `dailyPosts.length > 0`.
+### Edge States
+- **D-17:** When no concept posts exist today, the progress card is **hidden** (not rendered). Feed area shows an encouraging empty state.
+- **D-18:** 0/0 progress is **never shown**. Card only renders when at least 1 concept post exists.
+
+### Persistence
+- **D-19:** Explored concept IDs and quota state persisted in **localStorage with daily reset**. Progress survives app restart within the same day.
+
+### Bento Card
+- **D-20:** Bento card showing concept topic names is **deferred to UI-SPEC design review**. The layout from v1 caused empty space issues. Will decide during `/gsd:ui-phase` based on visual design.
 
 ### i18n
-- **D-15:** All new user-facing strings go through **full i18n** — added to `en.json` and translated to zh/es/ja via the Phase 27 Sonnet subagent workflow. All 4 locale bundles ship in the same PR.
-- **D-16:** New i18n keys under `home.feed.*` namespace: `progress` ("{{read}} of {{total}} today"), `complete` ("All caught up!"), `empty` (empty state message), `bentoTitle` ("Today's Feed"), `bentoMore` ("+{{count}} more"), `credits` ("+{{count}} earned!").
+- **D-21:** All new strings go through **full i18n** — en/zh/es/ja bundles in same PR.
+- **D-22:** New i18n keys under `home.feed.*` namespace for progress labels, completion text, empty state. Exact key list determined during planning.
 
 ### Claude's Discretion
-- Exact confetti particle count, animation duration, and easing curves
-- Progress bar height, padding, and exact sticky positioning
-- Bento card layout, icon choice, and truncation behavior for topic names
-- IntersectionObserver vs manual scroll listener for read detection
-- Whether the empty state message includes an icon/illustration
+- Exact CSS transition properties for card-to-bar shrink animation
+- IntersectionObserver threshold values and sentinel element placement
+- Timer implementation for 30s dwell detection
+- Whether to debounce concept exploration events
+- Empty state icon and illustration choice
+- Progress card border-radius, shadow, and background color in both states
 
 </decisions>
 
@@ -64,25 +75,27 @@ The old greeting banner and CURIOSITY FEED static island are removed entirely.
 
 ### HomeScreen & Feed
 - `app/src/screens/HomeScreen.tsx` — Current HomeScreen with greeting, bento grid, and InfoFlow integration
-- `app/src/components/InfoFlow.tsx` — Feed card rendering (concept, connection, milestone types)
-- `app/src/services/concept-feed.service.ts` — Daily post generation, caching, `MAX_POSTS`, `getCachedDailyPosts()`
+- `app/src/components/InfoFlow.tsx` — Feed card rendering with CURIOSITY FEED island (to be transformed)
+- `app/src/services/concept-feed.service.ts` — Daily post generation, caching, post-to-anchor mapping
+
+### Post Detail & Reading
+- `app/src/screens/PostDetailScreen.tsx` — Post detail view where reading triggers fire
+- `app/src/services/post-essay.service.ts` — Essay content generation (scroll depth target)
 
 ### Credits & Celebration Patterns
-- `app/src/services/trellis-credits.service.ts` — Existing credits service (`add()`, `getTotal()`, localStorage pattern)
-- `app/src/screens/PlannerScreen.tsx` — TrellisStatusPanel harvest confetti + fly-to-counter animation pattern
+- `app/src/services/trellis-credits.service.ts` — Existing credits service (pattern for dailyReadService)
+- `app/src/screens/PlannerScreen.tsx` — TrellisStatusPanel harvest confetti pattern
 
-### Reusable Components
-- `app/src/components/ui/ProgressBar.tsx` — Existing progress bar component (value 0-100, color, height, label, transition animation)
+### Event Bus & Types
+- `app/src/lib/event-bus.ts` — Event bus for CONCEPT_EXPLORED signal
+- `app/src/types/index.ts` — AppEvent union type (add CONCEPT_EXPLORED)
 
 ### i18n
-- `app/src/locales/en.json` — Canonical locale bundle (add `home.feed.*` keys here)
-- `app/src/locales/index.ts` — i18next init, `SUPPORTED_LOCALES`
-- `app/scripts/translate-locales.md` — Sonnet subagent translation prompt template
-- `.planning/phases/27-add-i18n-l10n-support/27-CONTEXT.md` — i18n decisions and workflow
+- `app/src/locales/en.json` — Canonical locale bundle
+- `app/scripts/translate-locales.md` — Sonnet subagent translation prompt
 
-### Existing Patterns
-- `app/src/lib/date.ts` — `getGreeting()` function (being replaced)
-- `app/src/lib/event-bus.ts` — Event bus for cross-screen notifications (may need new events)
+### Existing Components
+- `app/src/components/ui/ProgressBar.tsx` — Reusable progress bar component
 
 </canonical_refs>
 
@@ -90,44 +103,44 @@ The old greeting banner and CURIOSITY FEED static island are removed entirely.
 ## Existing Code Insights
 
 ### Reusable Assets
-- `ProgressBar` component: accepts `value` (0-100), `color`, `height`, `label` props with `transition: width 0.4s ease`
-- `trellisCreditsService`: localStorage-backed counter with `add(count)` and `getTotal()` — direct reuse for reading credits
-- Harvest confetti pattern in `TrellisStatusPanel`: cherry particles fly to counter + confetti burst — reuse for quota completion
-- `conceptFeedService.getCachedDailyPosts()`: returns today's posts from cache — use `.length` for quota target
+- `ProgressBar` component: accepts `value` (0-100), `color`, `height`, `label` with smooth transition
+- `trellisCreditsService`: localStorage counter pattern — reuse for dailyReadService
+- Harvest confetti in TrellisStatusPanel: reuse for quota completion celebration
+- `eventBus`: existing REVIEW_COMPLETED, HARVEST_COMPLETED patterns — add CONCEPT_EXPLORED
 
 ### Established Patterns
-- All services return `ServiceResult<T> = { success, data?, error? }`
-- Settings/state stored in localStorage with service abstractions
-- Event bus (`EventBus`) for cross-screen notifications (REVIEW_COMPLETED, HARVEST_COMPLETED, etc.)
+- Services return `ServiceResult<T>` (except simple localStorage wrappers like trellis-credits)
 - Inline styles with CSS variables (`--primary-40`, `--surface`, `--shadow-1`)
-- i18n: `useTranslation()` hook, `t('namespace.key', { interpolation })` pattern
+- Event bus for cross-screen communication
+- i18n via `useTranslation()` hook + `t('namespace.key')` pattern
 
 ### Integration Points
-- HomeScreen: replace greeting banner region + remove CURIOSITY FEED island + add bento card
-- InfoFlow or its scroll container: add scroll/intersection observer for read detection
-- Event bus: may need DAILY_QUOTA_COMPLETED event for cross-screen awareness
-- Trellis credits counter in PlannerScreen header: already displays credit total
+- HomeScreen: transform CURIOSITY FEED island region into progress card
+- PostDetailScreen: add scroll/timer/follow-up detection, emit CONCEPT_EXPLORED
+- InfoFlow: the card markup currently lives here, may need to move to HomeScreen
+- concept-feed.service: extract unique anchorIds for quota calculation
 
 </code_context>
 
 <specifics>
 ## Specific Ideas
 
-- Progress bar label format: "2 of 4 today" (in-progress), "All caught up!" (complete)
-- Bento card shows concept topic names (not post titles), with "+N more" overflow
-- Confetti + credit fly animation mirrors the existing trellis harvest celebration
-- Empty state copy: "Your feed is brewing — ask a question to get started"
+- Card-to-bar transition: full card → thin bar via CSS sticky + IntersectionObserver class toggle
+- Three exploration paths: scroll 70%, dwell 30s, ask follow-up — any one marks the concept
+- Greeting is not removed — it scrolls naturally away as the progress card pushes it out
+- Confetti + gold bar + "+1 earned!" toast mirrors the harvest celebration
+- Posts from same concept anchor share exploration state — reading one is enough
 
 </specifics>
 
 <deferred>
 ## Deferred Ideas
 
-None — discussion stayed within phase scope
+- **Bento card with concept topics** — Layout from v1 caused empty space. Defer to UI-SPEC design review during `/gsd:ui-phase`. May add as a sub-task if the design works, or drop entirely.
 
 </deferred>
 
 ---
 
 *Phase: 30-redesign-curiosity-feed-as-scroll-progress-bar-with-daily-reading-quota-credits*
-*Context gathered: 2026-04-16*
+*Context gathered: 2026-04-17 (v2 re-scope)*
