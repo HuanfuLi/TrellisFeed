@@ -1,11 +1,11 @@
 import type { FlashCard, ChatSession, ReviewSchedule } from '../types';
-import { today } from '../lib/date';
-import { eventBus } from '../lib/event-bus';
-import { toast } from '../lib/toast';
-import i18n from '../locales';
-import { settingsService } from './settings.service';
-import { chatCompletion } from '../providers/llm';
-import { questionService } from './question.service';
+import { today } from '../lib/date.ts';
+import { eventBus } from '../lib/event-bus.ts';
+import { toast } from '../lib/toast.ts';
+import i18n from '../locales/index.ts';
+import { settingsService } from './settings.service.ts';
+import { chatCompletion } from '../providers/llm/index.ts';
+import { questionService } from './question.service.ts';
 // Projected flashcards removed (D-02 revised: only LLM-extracted flashcards shown)
 
 const STORAGE_KEY = 'echolearn_flashcards';

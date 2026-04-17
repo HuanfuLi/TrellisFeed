@@ -5,12 +5,12 @@ import { eventBus } from '../lib/event-bus.ts';
 import { settingsService } from './settings.service.ts';
 import { plannerService } from './planner.service.ts';
 import { graphService } from './graph.service.ts';
-import { youtubeService } from './youtube.service';
-import { newsService } from './news.service';
-import { webSearch } from './web-search.service';
-import { defaultStrategy } from './orchestration-strategy.service';
-import { trajectoryAnalyzerService } from './trajectoryAnalyzer.service';
-import { questionService } from './question.service';
+import { youtubeService } from './youtube.service.ts';
+import { newsService } from './news.service.ts';
+import { webSearch } from './web-search.service.ts';
+import { defaultStrategy } from './orchestration-strategy.service.ts';
+import { trajectoryAnalyzerService } from './trajectoryAnalyzer.service.ts';
+import { questionService } from './question.service.ts';
 
 const STORAGE_KEY = 'echolearn_daily_posts';
 const CONNECTION_POSTS_KEY = 'echolearn_connection_posts';

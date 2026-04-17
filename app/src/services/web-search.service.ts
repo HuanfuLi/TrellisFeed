@@ -5,7 +5,7 @@
  */
 
 import { Capacitor, CapacitorHttp } from '@capacitor/core';
-import { settingsService } from './settings.service';
+import { settingsService } from './settings.service.ts';
 import type { ServiceResult, WebSearchResult, WebSearchResponse, SourceCitation } from '../types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────

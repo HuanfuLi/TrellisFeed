@@ -7,8 +7,8 @@
  */
 
 import type { TrajectorySignal } from '../types';
-import { questionService } from './question.service';
-import { flashcardService } from './flashcard.service';
+import { questionService } from './question.service.ts';
+import { flashcardService } from './flashcard.service.ts';
 
 // ── Cache ──────────────────────────────────────────────────────────────────
 

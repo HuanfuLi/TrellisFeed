@@ -1,7 +1,7 @@
 import { Capacitor, CapacitorHttp } from '@capacitor/core';
 import type { LLMConfig } from '../../types';
-import { tokenUsageReporter, type UsageMetadata } from '../../services/token-usage.service';
-import { applyLocaleDirective } from './locale-directive';
+import { tokenUsageReporter, type UsageMetadata } from '../../services/token-usage.service.ts';
+import { applyLocaleDirective } from './locale-directive.ts';
 
 // Re-export so downstream code (including tests that CAN import this file)
 // has a single documented entry point for the central locale-injection helper.

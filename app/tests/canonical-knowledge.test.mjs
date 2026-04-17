@@ -78,7 +78,7 @@ test('getDueProjectedFlashcards and buildDailyReviewMap stay synchronized on nod
       rootLabel: 'Memory',
       branchLabel: 'Forgetting',
       clusterLabel: 'Forgetting curve',
-      reviewSchedule: { nextReviewDate: '2026-03-22', reviewCount: 0, easeFactor: 2.5 },
+      reviewSchedule: { nextReviewDate: '2020-01-01', reviewCount: 0, easeFactor: 2.5 },
     }),
     makeQuestion({
       id: 'q-2',
@@ -87,7 +87,7 @@ test('getDueProjectedFlashcards and buildDailyReviewMap stay synchronized on nod
       rootLabel: 'Memory',
       branchLabel: 'Retrieval',
       clusterLabel: 'Testing effect',
-      reviewSchedule: { nextReviewDate: '2026-03-24', reviewCount: 1, easeFactor: 2.5 },
+      reviewSchedule: { nextReviewDate: '2099-12-31', reviewCount: 1, easeFactor: 2.5 },
     }),
   ];
 

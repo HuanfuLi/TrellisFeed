@@ -4,8 +4,8 @@ import en from './en.json';
 import zh from './zh.json';
 import es from './es.json';
 import ja from './ja.json';
-import { detectInitialLocale } from '../lib/locale';
-import { settingsService } from '../services/settings.service';
+import { detectInitialLocale } from '../lib/locale.ts';
+import { settingsService } from '../services/settings.service.ts';
 
 export const SUPPORTED_LOCALES = ['en', 'zh', 'es', 'ja'] as const;
 export type SupportedLocale = typeof SUPPORTED_LOCALES[number];
