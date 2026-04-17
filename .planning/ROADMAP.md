@@ -732,13 +732,13 @@ Scope bundles:
    - Phase 26: harvest animation (fly + confetti), fruit glow, heal/replant/prune under simplified UX, autoGen dedup edge case, priority ordering (7 items, all post-hashStr-fix retest)
    - Produce `UAT-LOG.md` capturing results; update each archived phase's VERIFICATION.md `status` + re_verification frontmatter.
 
-**Plans:** 1/4 plans executed
+**Plans:** 4/4 plans complete
 
 Plans:
 - [x] 29-01-PLAN.md — TD-01 curiosity-signal wiring (plannerAutoGen.service.ts:115 + concept-feed.service.ts:759)
-- [ ] 29-02-PLAN.md — TD-02 + TD-03 AbortSignal plumbing (PostDetailScreen + post-essay.service + classifyAndAnchorIncremental)
+- [x] 29-02-PLAN.md — TD-02 + TD-03 AbortSignal plumbing (PostDetailScreen + post-essay.service + classifyAndAnchorIncremental)
 - [x] 29-03-PLAN.md — Pre-existing tsc fixes (4 target files + same-file siblings) + Node 25 extension sweep (8 files in failing-test chain)
-- [ ] 29-04-PLAN.md — UAT walkthrough (22 active + 3 SKIP items across phases 20/21/22/26) + inline fix sub-loop + VERIFICATION.md frontmatter flip
+- [x] 29-04-PLAN.md — UAT walkthrough (22 active + 3 SKIP items across phases 20/21/22/26) + inline fix sub-loop + VERIFICATION.md frontmatter flip
 
 **Out of scope for Phase 29:**
 - 23-05 DEDUP plan (symmetric labelKey + NEW→existing coercion) — intentionally still deferred; revisit only if classification dedup surfaces as a real problem in practice.
