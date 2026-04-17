@@ -64,6 +64,15 @@
     },
     "toast": {
       "noMorePosts": "現在これ以上投稿を生成できません"
+    },
+    "feed": {
+      "title": "今日のコンセプト",
+      "progress": "{{explored}}/{{total}} 探索済み",
+      "progressCompact": "{{explored}}/{{total}}",
+      "complete": "すべて完了!",
+      "creditToast": "+1 クレジット獲得!",
+      "emptyTitle": "今日は新しいものはありません",
+      "emptyBody": "後で新しいコンセプトを探しに来てください。"
     }
   },
   "planner": {

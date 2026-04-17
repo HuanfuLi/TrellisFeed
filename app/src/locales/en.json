@@ -64,6 +64,15 @@
     },
     "toast": {
       "noMorePosts": "No more posts to generate right now"
+    },
+    "feed": {
+      "title": "Today's Concepts",
+      "progress": "{{explored}} of {{total}} explored",
+      "progressCompact": "{{explored}}/{{total}}",
+      "complete": "All caught up!",
+      "creditToast": "+1 credit earned!",
+      "emptyTitle": "Nothing new today",
+      "emptyBody": "Check back later for fresh concepts to explore."
     }
   },
   "planner": {

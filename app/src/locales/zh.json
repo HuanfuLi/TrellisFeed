@@ -64,6 +64,15 @@
     },
     "toast": {
       "noMorePosts": "暂时无法生成更多内容"
+    },
+    "feed": {
+      "title": "今日概念",
+      "progress": "已探索 {{explored}}/{{total}}",
+      "progressCompact": "{{explored}}/{{total}}",
+      "complete": "全部看完了!",
+      "creditToast": "+1 积分已获得!",
+      "emptyTitle": "今天没有新内容",
+      "emptyBody": "稍后再来看看有没有新概念可以探索。"
     }
   },
   "planner": {

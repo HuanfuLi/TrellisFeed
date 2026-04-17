@@ -64,6 +64,15 @@
     },
     "toast": {
       "noMorePosts": "No hay más publicaciones por ahora"
+    },
+    "feed": {
+      "title": "Conceptos de hoy",
+      "progress": "{{explored}} de {{total}} explorados",
+      "progressCompact": "{{explored}}/{{total}}",
+      "complete": "Todo al dia!",
+      "creditToast": "+1 credito ganado!",
+      "emptyTitle": "Nada nuevo hoy",
+      "emptyBody": "Vuelve mas tarde para explorar nuevos conceptos."
     }
   },
   "planner": {
