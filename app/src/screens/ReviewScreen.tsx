@@ -8,8 +8,8 @@ import { Confetti } from '../components/Confetti';
 import { ProgressBar } from '../components/ui/ProgressBar';
 import { useReview } from '../state/useReview';
 import { toast } from '../lib/toast';
-import type { DailyReviewMap, FlashCard, StructuralSignalType } from '../types';
-import { buildDailyReviewMap, recordStructuralSignalPatch } from '../services/canonical-knowledge.service';
+import type { DailyReviewMap, FlashCard } from '../types';
+import { buildDailyReviewMap } from '../services/canonical-knowledge.service';
 import { questionService } from '../services/question.service';
 import { graphService } from '../services/graph.service';
 
@@ -333,20 +333,6 @@ export function ReviewScreen() {
     currentItem?.nodeId,
   );
 
-  const handleSignal = (signal: StructuralSignalType) => {
-    if (!currentItem?.nodeId) return;
-    const question = questionService.getAll().find((candidate) => candidate.id === currentItem.nodeId);
-    if (!question) return;
-    questionService.patchQuestion(question.id, recordStructuralSignalPatch(question, signal));
-    toast(
-      signal === 'sameIdea'
-        ? t('review.session.signalToastSameIdea')
-        : signal === 'connect'
-          ? t('review.session.signalToastConnect')
-          : t('review.session.signalToastRefine'),
-      'success',
-    );
-  };
 
   const handleRate = async (rating: number) => {
     if (!currentItem) return;
@@ -626,37 +612,6 @@ export function ReviewScreen() {
       )}
 
       <ReviewMiniMap map={reviewMap} />
-
-      <div style={{ padding: '0 16px', marginTop: '14px' }}>
-        <p style={{ fontSize: '0.74rem', color: 'var(--muted-foreground)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          {t('review.session.shapeMapHeading')}
-        </p>
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          {[
-            { id: 'sameIdea', label: t('review.session.signalSameIdea') },
-            { id: 'connect', label: t('review.session.signalConnect') },
-            { id: 'refine', label: t('review.session.signalRefine') },
-          ].map((action) => (
-            <button
-              key={action.id}
-              onClick={() => handleSignal(action.id as StructuralSignalType)}
-              style={{
-                padding: '8px 12px',
-                borderRadius: '999px',
-                border: '1px solid var(--border)',
-                backgroundColor: 'var(--surface-variant)',
-                color: 'var(--foreground)',
-                fontSize: '0.8rem',
-              }}
-            >
-              {action.label}
-            </button>
-          ))}
-        </div>
-        <p style={{ fontSize: '0.78rem', lineHeight: 1.5, color: 'var(--muted-foreground)', marginTop: '10px' }}>
-          {t('review.session.shapeMapDescription')}
-        </p>
-      </div>
 
       {/* Skip */}
       <div style={{ textAlign: 'center', marginTop: '16px', padding: '0 16px' }}>

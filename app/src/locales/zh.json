@@ -180,15 +180,7 @@
       "moveBreadcrumb": "建议行动：{{title}}",
       "progress": "已复习 {{reviewed}} / {{total}}",
       "skip": "暂时跳过",
-      "completedToast": "今天的复习全部完成！🎉",
-      "shapeMapHeading": "塑造地图",
-      "shapeMapDescription": "复习也是你与脑图共同创作的过程。当你评价卡片并调整这些关系时，图谱会学习你的知识如何相互关联。",
-      "signalSameIdea": "同一概念",
-      "signalConnect": "保持相连",
-      "signalRefine": "更深入",
-      "signalToastSameIdea": "已保存：这张卡片感觉是同一概念。",
-      "signalToastConnect": "已保存：这张卡片应保持相连。",
-      "signalToastRefine": "已保存：这感觉是更深层的细化。"
+      "completedToast": "今天的复习全部完成！🎉"
     }
   },
   "graph": {

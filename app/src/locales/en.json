@@ -180,15 +180,7 @@
       "moveBreadcrumb": "Suggested move: {{title}}",
       "progress": "{{reviewed}} / {{total}} reviewed",
       "skip": "Skip for now",
-      "completedToast": "All reviews done for today! 🎉",
-      "shapeMapHeading": "Shape the map",
-      "shapeMapDescription": "Review is also how you co-create the mindmap. As you rate cards and nudge these relationships, the graph learns how your knowledge fits together.",
-      "signalSameIdea": "Same idea",
-      "signalConnect": "Keep connected",
-      "signalRefine": "Feels deeper",
-      "signalToastSameIdea": "Saved: this card feels like the same idea.",
-      "signalToastConnect": "Saved: this card should stay connected.",
-      "signalToastRefine": "Saved: this feels like a deeper refinement."
+      "completedToast": "All reviews done for today! 🎉"
     }
   },
   "graph": {

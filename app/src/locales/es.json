@@ -180,15 +180,7 @@
       "moveBreadcrumb": "Movimiento sugerido: {{title}}",
       "progress": "{{reviewed}} / {{total}} repasadas",
       "skip": "Omitir por ahora",
-      "completedToast": "¡Repasos completos por hoy! 🎉",
-      "shapeMapHeading": "Moldea el mapa",
-      "shapeMapDescription": "Repasar también es cocrear el mapa mental. Al evaluar fichas y ajustar estas relaciones, el grafo aprende cómo encaja tu conocimiento.",
-      "signalSameIdea": "Misma idea",
-      "signalConnect": "Mantener conectado",
-      "signalRefine": "Es más profundo",
-      "signalToastSameIdea": "Guardado: esta ficha parece la misma idea.",
-      "signalToastConnect": "Guardado: esta ficha debe seguir conectada.",
-      "signalToastRefine": "Guardado: esto parece un refinamiento más profundo."
+      "completedToast": "¡Repasos completos por hoy! 🎉"
     }
   },
   "graph": {

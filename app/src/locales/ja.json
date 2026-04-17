@@ -180,15 +180,7 @@
       "moveBreadcrumb": "おすすめアクション：{{title}}",
       "progress": "{{reviewed}} / {{total}} 復習済み",
       "skip": "今はスキップ",
-      "completedToast": "今日の復習がすべて完了しました！🎉",
-      "shapeMapHeading": "マップを形づくる",
-      "shapeMapDescription": "復習はマインドマップを共に作る工程でもあります。カードを評価し関係を調整することで、知識のつながりをグラフが学習します。",
-      "signalSameIdea": "同じ考え",
-      "signalConnect": "つながりを保つ",
-      "signalRefine": "より深い",
-      "signalToastSameIdea": "保存：このカードは同じ考えに感じます。",
-      "signalToastConnect": "保存：このカードはつながりを保つべきです。",
-      "signalToastRefine": "保存：これはより深い洗練に感じます。"
+      "completedToast": "今日の復習がすべて完了しました！🎉"
     }
   },
   "graph": {
