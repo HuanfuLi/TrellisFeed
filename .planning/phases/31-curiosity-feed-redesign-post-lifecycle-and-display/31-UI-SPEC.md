@@ -39,6 +39,8 @@ Declared values (existing project tokens from `index.css`, Phase 28 D-26):
 | 2xl | 24px (`--space-2xl` / `--section-gap`) | Section breaks, history day-group gaps |
 | 3xl | 32px (`--space-3xl`) | Page-level spacing |
 
+**Note on non-standard values:** 12px (`--space-md`) and 20px (`--space-xl`) are inherited project tokens established in Phase 28 D-26 (`index.css`). These predate Phase 31 and are reused unchanged. Both are multiples of 4 and do not break grid alignment. Phase 31 introduces no new spacing values outside the standard set (4, 8, 16, 24, 32, 48, 64).
+
 Exceptions:
 - Scroll-to-top FAB: 44x44px minimum touch target (WCAG 2.5.5)
 - Bottom offset for scroll-to-top FAB: 96px from bottom edge (clears BottomNavigation + safe area)
@@ -111,6 +113,8 @@ Accent reserved for: vine illustration (stem color, leaf fill), checklist expand
 
 **Update timing (D-06):** Re-renders on Home screen mount/focus, not real-time.
 
+**History icon:** `Clock` from lucide-react, 20px, `var(--muted-foreground)`, positioned top-right of vine inline card. `aria-label="View post history"` (i18n: `home.history.iconLabel`). Tappable, navigates to `/history`.
+
 ### 2. SuggestionCard (new post type)
 
 **Card layout:**
@@ -169,7 +173,7 @@ Accent reserved for: vine illustration (stem color, leaf fill), checklist expand
 ### 5. PostHistoryScreen
 
 **Entry points:**
-- History icon near vine card area: `Clock` from lucide-react, 20px, `var(--muted-foreground)`, positioned top-right of vine inline card
+- History icon near vine card area: `Clock` from lucide-react, 20px, `var(--muted-foreground)`, positioned top-right of vine inline card, `aria-label="View post history"` (i18n: `home.history.iconLabel`)
 - Settings > Data section: tappable row "Post History"
 
 **Route:** `/history` (sub-screen overlay, same pattern as `/review`, `/podcast`)
@@ -190,6 +194,13 @@ Accent reserved for: vine illustration (stem color, leaf fill), checklist expand
 - Tap: navigate to PostDetailScreen
 - Item gap: 8px between items
 
+**Error state:**
+- Displayed when history data fails to load from localStorage
+- Layout: centered in content area, 200px height
+- Icon: `AlertCircle` from lucide-react, 32px, `var(--muted-foreground)`
+- Message: "Couldn't load history" (i18n: `home.history.errorTitle`), 14px weight 400, `var(--muted-foreground)`, centered
+- Action: "Try again" button (i18n: `home.history.errorRetry`), 14px weight 600, `var(--primary-40)`, tappable, retriggers data load
+
 ### 6. BotanicalLoadingState (empty queue)
 
 **Displayed when:** Queue is empty and generation is in progress.
@@ -200,8 +211,16 @@ Accent reserved for: vine illustration (stem color, leaf fill), checklist expand
 - Below illustration: "Growing your feed..." (i18n: `home.feed.loadingTitle`), 14px weight 400, `var(--muted-foreground)`, centered
 - Subtle pulse animation on illustration (opacity 0.5 to 1.0, 1.5s ease-in-out infinite)
 
+**Generation fallback error state:**
+- Displayed when generation itself fails (all fallbacks exhausted, or network/LLM error)
+- Layout: replaces the botanical loading illustration in the same 200px centered area
+- Icon: `AlertCircle` from lucide-react, 32px, `var(--muted-foreground)`
+- Message: "Couldn't generate posts" (i18n: `home.feed.generationErrorTitle`), 14px weight 400, `var(--muted-foreground)`, centered
+- Sub-message: "Check your API keys in Settings" (i18n: `home.feed.generationErrorBody`), 12px weight 400, `var(--muted-foreground)`, centered, 4px top margin
+- Action: "Retry" button (i18n: `home.feed.generationErrorRetry`), 14px weight 600, `var(--primary-40)`, tappable, retriggers queue refill
+
 **Feedback button:**
-- Below loading text, 16px top margin
+- Below loading text (or below error action), 16px top margin
 - Text: "Posts not interesting?" (i18n: `home.feed.feedbackPrompt`), 12px weight 400, `var(--primary-40)`, underline
 - Tap: opens device email client via `mailto:` link with pre-filled to and subject
 
@@ -228,9 +247,15 @@ Use existing `SettingRow`, `SelectInput`, `TextInput` from `SettingsShared.tsx`.
 | Suggestion card heading | "You may also like" | `home.feed.suggestionTitle` |
 | Empty queue loading | "Growing your feed..." | `home.feed.loadingTitle` |
 | Empty queue feedback | "Posts not interesting?" | `home.feed.feedbackPrompt` |
+| Generation error title | "Couldn't generate posts" | `home.feed.generationErrorTitle` |
+| Generation error body | "Check your API keys in Settings" | `home.feed.generationErrorBody` |
+| Generation error retry | "Retry" | `home.feed.generationErrorRetry` |
 | History screen title | "Post History" | `home.history.title` |
+| History icon a11y label | "View post history" | `home.history.iconLabel` |
 | History empty state heading | "No posts yet" | `home.history.emptyTitle` |
 | History empty state body | "Posts you explore will appear here." | `home.history.emptyBody` |
+| History error title | "Couldn't load history" | `home.history.errorTitle` |
+| History error retry | "Try again" | `home.history.errorRetry` |
 | Post retention setting label | "Post retention" | `settings.fields.postRetention` |
 | Post retention option 7d | "7 days" | `settings.fields.postRetention7d` |
 | Post retention option all | "Keep all" | `settings.fields.postRetentionAll` |
@@ -306,6 +331,7 @@ Style: all three as text-art posts (no image generation dependency on first laun
 ## Accessibility Notes
 
 - VineProgress: `role="progressbar"`, `aria-valuenow={explored}`, `aria-valuemax={total}`, `aria-label` from `home.feed.vineProgress`
+- History icon (Clock): `aria-label="View post history"` (i18n: `home.history.iconLabel`), `role="button"`, `tabIndex={0}`
 - ScrollToTopFAB: `aria-label="Scroll to top"`, `role="button"`
 - SuggestionCard topic buttons: `role="button"`, descriptive `aria-label` with topic text
 - Checklist items: `role="listitem"` inside `role="list"`, explored items marked `aria-disabled="true"`
