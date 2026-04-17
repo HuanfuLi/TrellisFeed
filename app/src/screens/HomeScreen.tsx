@@ -489,47 +489,45 @@ export function HomeScreen() {
             </Card>
           </button>
 
-          {/* Concept Progress Card — per D-07, placed between bento grid and feed */}
-          {conceptQuota > 0 && (
-            <div style={{ gridColumn: '1 / -1' }}>
-              <ConceptProgressCard explored={exploredCount} total={conceptQuota} isComplete={isComplete} />
-            </div>
-          )}
-
-          {/* Empty state when feed has posts but no concept posts (D-17) */}
-          {conceptQuota === 0 && dailyPosts.length > 0 && (
-            <div style={{
-              gridColumn: '1 / -1',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              minHeight: '160px',
-              textAlign: 'center',
-            }}>
-              <Sparkles size={32} color="var(--muted-foreground)" style={{ opacity: 0.5, marginBottom: '12px' }} />
-              <p style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--foreground)', marginBottom: '4px' }}>
-                {t('home.feed.emptyTitle')}
-              </p>
-              <p style={{ fontSize: '0.875rem', fontWeight: 400, color: 'var(--muted-foreground)' }}>
-                {t('home.feed.emptyBody')}
-              </p>
-            </div>
-          )}
-
-          {/* Inline Info Flow — full width */}
-          <div style={{ gridColumn: '1 / -1' }}>
-            <InlineInfoFlow
-              items={infoFlowItems}
-              onOpenConnection={handleOpenConnection}
-              showConnectionScores={settingsService.getSync().embeddingDebug.showScores}
-              onOpenPost={(postId, post) => {
-                navigate(`/posts/${postId}`, { state: { post } });
-              }}
-            />
-          </div>
-
         </div>
+
+        {/* Concept Progress Card — OUTSIDE grid so position:sticky works */}
+        {conceptQuota > 0 && (
+          <div style={{ marginTop: '16px' }}>
+            <ConceptProgressCard explored={exploredCount} total={conceptQuota} isComplete={isComplete} />
+          </div>
+        )}
+
+        {/* Empty state when feed has posts but no concept posts (D-17) */}
+        {conceptQuota === 0 && dailyPosts.length > 0 && (
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minHeight: '160px',
+            textAlign: 'center',
+            marginTop: '16px',
+          }}>
+            <Sparkles size={32} color="var(--muted-foreground)" style={{ opacity: 0.5, marginBottom: '12px' }} />
+            <p style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--foreground)', marginBottom: '4px' }}>
+              {t('home.feed.emptyTitle')}
+            </p>
+            <p style={{ fontSize: '0.875rem', fontWeight: 400, color: 'var(--muted-foreground)' }}>
+              {t('home.feed.emptyBody')}
+            </p>
+          </div>
+        )}
+
+        {/* Inline Info Flow */}
+        <InlineInfoFlow
+          items={infoFlowItems}
+          onOpenConnection={handleOpenConnection}
+          showConnectionScores={settingsService.getSync().embeddingDebug.showScores}
+          onOpenPost={(postId, post) => {
+            navigate(`/posts/${postId}`, { state: { post } });
+          }}
+        />
 
         {/* Pull-up affordance — always reserves 80px, shows hint when at bottom */}
         <PullUpHint isLoading={isLoadingMore} pullDistance={pullDistance} />
