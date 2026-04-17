@@ -70,7 +70,7 @@ export const reviewService = {
     try {
       const allQs = questionService.getAll();
       const q = allQs.find((x) => x.id === resolvedQuestionId);
-      resolvedAnchorId = q?.anchorId ?? q?.parentId;
+      resolvedAnchorId = q?.parentId;
     } catch {
       // question lookup is best-effort; anchorId stays undefined
     }

@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import MindElixir from 'mind-elixir';
 import 'mind-elixir/style';
 import type { MindElixirData, MindElixirInstance, NodeObj } from 'mind-elixir';
-import { ArrowLeft, RefreshCw, GitBranch, X, ChevronRight, FoldVertical, UnfoldVertical } from 'lucide-react';
+import { RefreshCw, GitBranch, X, ChevronRight, FoldVertical, UnfoldVertical } from 'lucide-react';
 import i18n from '../locales';
 import type { Question } from '../types';
 import { graphService } from '../services/graph.service';

@@ -1,4 +1,4 @@
-import type { FlashCard, Question, ReviewSchedule } from '../types/index.ts';
+import type { Question, ReviewSchedule } from '../types/index.ts';
 import { buildAnchorReflectionTree } from './canonical-knowledge.service.ts';
 import {
   getBlossomDates, setBlossomDate, clearBlossomDate,
@@ -91,7 +91,7 @@ export function computeLeafState(
   return 'green';
 }
 
-const ALL_LEAF_STATES: LeafState[] = ['bud', 'green', 'yellow', 'falling', 'fallen', 'blossom', 'fruit'];
+
 
 // Dev mode: 10 vines with varying heights (1-15 nodes each),
 // showing all 8 botanical categories across all leaf states.
@@ -137,7 +137,7 @@ function buildDevTrellisState(): TrellisLayout {
     const fakeId = `dev-${state}-cat${cat}-v${vineIdx}-${i}`;
     const leafPos = getLeafPosition(fakeId, vine.spec);
     return {
-      anchor: { id: fakeId, content: state, title: `${state} (cat ${cat})`, keywords: [], relatedQuestionIds: [], categoryIds: [], reviewSchedule: { nextReviewDate: '', reviewCount: 0, easeFactor: 2.5 }, createdAt: 0 } as Question,
+      anchor: { id: fakeId, content: state, answer: '', summary: '', date: new Date(0).toISOString(), timestamp: 0, title: `${state} (cat ${cat})`, keywords: [], relatedQuestionIds: [], categoryIds: [], reviewSchedule: { nextReviewDate: '', reviewCount: 0, easeFactor: 2.5 }, createdAt: 0 } as Question,
       qaChildren: [],
       leafState: state,
       branchLabel: vine.branchLabel,
