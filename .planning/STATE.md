@@ -1,8 +1,8 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.3
-milestone_name: gap closure)
-status: Milestone complete
+milestone: v1.4
+milestone_name: next
+status: Planning
 stopped_at: Phase 30 context gathered
 last_updated: "2026-04-17T02:11:32.178Z"
 progress:

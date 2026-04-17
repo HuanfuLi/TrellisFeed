@@ -745,7 +745,7 @@ Plans:
 
 ### Phase 30: Redesign curiosity feed as scroll progress bar with daily reading quota credits
 
-**Goal:** [To be planned]
+**Goal:** Replace the static "Curiosity Feed" island and greeting banner on HomeScreen with a sticky progress bar header tracking daily post reading, a bento card showing concept topics, and trellis credit rewards on quota completion.
 **Requirements**: TBD
 **Depends on:** Phase 28
 **Plans:** 0 plans
@@ -756,4 +756,4 @@ Plans:
 ---
 
 _Created: 2026-03-26 | v1.1 Roadmap | 17 phases | 91 requirements mapped_
-_Updated: 2026-04-16 — phases 20-27 archived as v1.3 (pre-release); Phase 28 opens v1.4; Phase 29 added as v1.3 gap-closure sweep_
+_Updated: 2026-04-16 — phases 20-27 archived as v1.3 (pre-release); Phase 28 opens v1.4; Phase 29 added as v1.3 gap-closure sweep; Phase 30 added_
