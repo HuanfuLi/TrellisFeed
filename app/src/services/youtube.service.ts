@@ -1,11 +1,11 @@
 import { Capacitor, CapacitorHttp } from '@capacitor/core';
 import type { DailyPost, FlashCard, Question, ServiceResult, VideoMetadata } from '../types';
-import { today } from '../lib/date';
-import { settingsService } from './settings.service';
-import { chatCompletion } from '../providers/llm/index';
-import { flashcardService } from './flashcard.service';
-import { questionService } from './question.service';
-import { buildYoutubeSearchUrl } from './youtube-locale-url';
+import { today } from '../lib/date.ts';
+import { settingsService } from './settings.service.ts';
+import { chatCompletion } from '../providers/llm/index.ts';
+import { flashcardService } from './flashcard.service.ts';
+import { questionService } from './question.service.ts';
+import { buildYoutubeSearchUrl } from './youtube-locale-url.ts';
 
 // ─── Local Types ──────────────────────────────────────────────────────────────
 

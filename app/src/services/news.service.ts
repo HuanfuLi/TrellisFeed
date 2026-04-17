@@ -8,11 +8,11 @@
  * serviceName: 'news'
  */
 
-import { webSearch } from './web-search.service';
-import { settingsService } from './settings.service';
-import { questionService } from './question.service';
-import { today } from '../lib/date';
-import { eventBus } from '../lib/event-bus';
+import { webSearch } from './web-search.service.ts';
+import { settingsService } from './settings.service.ts';
+import { questionService } from './question.service.ts';
+import { today } from '../lib/date.ts';
+import { eventBus } from '../lib/event-bus.ts';
 import type { DailyPost } from '../types';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
