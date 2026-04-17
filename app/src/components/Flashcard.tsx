@@ -75,9 +75,9 @@ export function Flashcard({ front, back, onRate, pinned, onTogglePin }: Flashcar
           </button>
         )}
 
-        <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, padding: '0 4px', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+        <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, padding: '0 4px', display: 'flex', flexDirection: 'column' }}>
           {!isFlipped ? (
-            <div style={{ margin: 'auto 0', animation: 'flashcard-face-in 0.25s ease' }}>
+            <div style={{ margin: 'auto 0' }}>
               <p
                 style={{
                   fontSize: '0.75rem',
@@ -95,7 +95,7 @@ export function Flashcard({ front, back, onRate, pinned, onTogglePin }: Flashcar
               </div>
             </div>
           ) : (
-            <div style={{ margin: 'auto 0', animation: 'flashcard-face-in 0.25s ease' }}>
+            <div key="answer" style={{ margin: 'auto 0', animation: 'flashcard-face-in 0.25s ease' }}>
               <p
                 style={{
                   fontSize: '0.75rem',
