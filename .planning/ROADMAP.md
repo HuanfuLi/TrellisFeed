@@ -672,7 +672,7 @@ Plans:
 **Goal:** Introduce i18n/L10n plumbing across EchoLearn (UI chrome, dates, LLM response locale, TTS voice, YouTube params) shipping 4 fully-translated locales (EN canonical + Simplified Chinese + Spanish + Japanese). Auto-detected at launch, confirmed during onboarding, switchable instantly from Settings, persisted in UserPreferences. No RTL, no retroactive translation of stored content, no runtime LLM translation (dev-time Sonnet subagent only).
 **Requirements**: D-01..D-24 (see 27-CONTEXT.md — no tracked REQ-IDs; decisions are the requirement surface)
 **Depends on:** Phase 26
-**Plans:** 7/7 plans complete
+**Plans:** 10 plans (7 complete + 3 gap closure)
 
 Plans:
 - [x] 27-01-PLAN.md — Foundation & Wave 0: install deps, locale bundles + i18n.init, UserPreferences.locale + migration, all Wave 0 test files (wave 1)
@@ -694,7 +694,7 @@ Plans:
 **Goal:** Ship the full UI/UX audit + user-reported fixes + deep audits. Waves A-D (original 30 decisions: spacing tokens, touch targets, nav slide-down, header shadow, trellis interactions, Knowledge Graph rename, AskScreen polish). Wave E (bug fixes: elastic scroll leak, hamburger toggle, Ask FAB width, status panel padding, prune button reposition). Wave F (Settings redesign: iOS-style sub-page navigation with 4 sub-screens, password reveal, button prominence, language label). Wave G (dark theme audit: 13 CSS vars with .dark overrides, news card/text-art/badge/trellis-empty dark compatibility). Wave H (animation audit: toast exit, flashcard flip, sub-screen entry, feed stagger, chat bubbles, BottomSheet sync, milestone cards removed).
 **Requirements**: None net-new REQ-IDs — decisions D-01..D-30 (see 28-CONTEXT.md) are the scope surface
 **Depends on:** Phase 27 (v1.3 — i18n scaffold live)
-**Plans:** 7/7 plans complete
+**Plans:** 10 plans (7 complete + 3 gap closure)
 
 Plans:
 - [x] 28-01-PLAN.md — Wave A + Wave B-spacing foundation: CSS spacing tokens (D-26), SwipeTabContainer desync fix (D-05), BottomNavigation slide-down (D-06), Header scroll-shadow (D-07), Nav border (D-08), Suggested Moves header polish (D-04), sub-screen padding unification (D-27), off-grid fixes (D-28), touch targets (D-29), section rhythm (D-30) — 3 tasks, Wave 1
@@ -759,7 +759,7 @@ Plans:
 **Goal:** Redesign the curiosity feed holistically: (1) replace rigid progress bar with softer, less coercive illustration; (2) make concept checklist transparent so users know which posts count toward quota; (3) design post ordering and generation queue system; (4) define post lifecycle for local-first storage — all AI-generated posts are persisted (some with essays, some stubs awaiting generation on click), with clear display/hide/staleness rules.
 **Requirements**: D-01..D-47 (from 31-CONTEXT.md)
 **Depends on:** Phase 30
-**Plans:** 7/7 plans complete
+**Plans:** 10 plans (7 complete + 3 gap closure)
 
 Plans:
 - [x] 31-01-PLAN.md — Type extensions + post queue service + post history service (Wave 1)
@@ -769,8 +769,11 @@ Plans:
 - [x] 31-05-PLAN.md — VineProgress component + HomeScreen wiring (Wave 3)
 - [x] 31-06-PLAN.md — Inline video + ScrollToTopFAB + warm start + botanical loading (Wave 4)
 - [x] 31-07-PLAN.md — PostHistoryScreen + route + history recording + UAT checkpoint (Wave 5)
+- [ ] 31-08-PLAN.md — Gap closure: queue cycling + await refill + YouTube dedup (Wave 6)
+- [ ] 31-09-PLAN.md — Gap closure: unified video state + touch overlay + close button (Wave 6)
+- [ ] 31-10-PLAN.md — Gap closure: LLM suggestion topics + fresh install empty state + checklist backdrop (Wave 6)
 
 ---
 
 _Created: 2026-03-26 | v1.1 Roadmap | 17 phases | 91 requirements mapped_
-_Updated: 2026-04-17 — Phase 31 planned: 7 plans, 4 waves; vine progress, post queue, suggestion posts, inline video, history screen_
+_Updated: 2026-04-18 — Phase 31: added 3 gap closure plans (31-08..10) from UAT feedback
