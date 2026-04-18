@@ -754,7 +754,23 @@ Plans:
 - [x] 30-01-PLAN.md — dailyReadService + CONCEPT_EXPLORED type + getAnchorIdForPost utility + Wave 0 tests + home.feed.* i18n keys (4 locales)
 - [x] 30-02-PLAN.md — ConceptProgressCard UI (sticky/compact), HomeScreen wiring + celebration, PostDetailScreen 3 reading detectors, InfoFlow island removal
 
+### Phase 31: Curiosity feed redesign — post lifecycle, softer progress UX, and display strategy
+
+**Goal:** Redesign the curiosity feed holistically: (1) replace rigid progress bar with softer, less coercive illustration; (2) make concept checklist transparent so users know which posts count toward quota; (3) design post ordering and generation queue system; (4) define post lifecycle for local-first storage — all AI-generated posts are persisted (some with essays, some stubs awaiting generation on click), with clear display/hide/staleness rules.
+**Requirements**: D-01..D-47 (from 31-CONTEXT.md)
+**Depends on:** Phase 30
+**Plans:** 7 plans
+
+Plans:
+- [ ] 31-01-PLAN.md — Type extensions + post queue service + post history service (Wave 1)
+- [ ] 31-02-PLAN.md — Settings UI + starter posts replacement + i18n keys (Wave 1)
+- [ ] 31-03-PLAN.md — Concept-feed refactor: pre-style assignment + generation pipeline (Wave 2)
+- [ ] 31-04-PLAN.md — SuggestionCard component + InfoFlow wiring + AskScreen autoSend (Wave 2)
+- [ ] 31-05-PLAN.md — VineProgress component + HomeScreen wiring (Wave 3)
+- [ ] 31-06-PLAN.md — Inline video + ScrollToTopFAB + warm start + botanical loading (Wave 3)
+- [ ] 31-07-PLAN.md — PostHistoryScreen + route + history recording + UAT checkpoint (Wave 4)
+
 ---
 
 _Created: 2026-03-26 | v1.1 Roadmap | 17 phases | 91 requirements mapped_
-_Updated: 2026-04-17 — Phase 30 v2 re-planned (concept exploration tracking, not passive scroll); 2 plans, 2 waves_
+_Updated: 2026-04-17 — Phase 31 planned: 7 plans, 4 waves; vine progress, post queue, suggestion posts, inline video, history screen_
