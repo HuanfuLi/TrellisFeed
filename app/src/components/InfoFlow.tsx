@@ -7,6 +7,7 @@ import { imageGenerationService } from '../services/imageGeneration.service';
 import { inferImageStyle, buildImagePrompt } from '../services/postFormatting.service';
 import { normalizePlainText } from '../lib/text-normalization';
 import { settingsService } from '../services/settings.service';
+import { SuggestionCard } from './SuggestionCard';
 
 // ── Text-art theme pool (random selection per render) ──────────────────────────
 
@@ -66,6 +67,12 @@ interface ConceptCardProps {
 
 function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: ConceptCardProps) {
   const { t } = useTranslation();
+
+  // Suggestion post — D-23/D-26: only topic buttons are interactive, card tap is no-op
+  if (post.sourceType === 'suggestion' && post.suggestionMeta?.topics) {
+    return <SuggestionCard topics={post.suggestionMeta.topics} />;
+  }
+
   // ── Image generation state ──────────────────────────────────────────────────
   // Video/short posts skip AI image generation entirely (D-08: use YouTube thumbnail).
   const isVideoPost = post.sourceType === 'video';

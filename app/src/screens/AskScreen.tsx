@@ -40,7 +40,7 @@ const SUGGESTED_PROMPT_KEYS = [
  *  the recent-questions render tree the JSX should walk. */
 export interface RecentQuestionsMarker {
   kind: 'empty' | 'list';
-  i18nKey?: string;
+  i18nKey?: 'ask.recentQuestionsEmpty' | 'ask.recentQuestions';
   count?: number;
 }
 
@@ -381,7 +381,8 @@ export function AskScreen() {
   const lastAutoPrompt = useRef<string | null>(null);
   useEffect(() => {
     if (location.pathname !== '/ask') return;
-    const prompt = (location.state as { prompt?: string } | null)?.prompt?.trim();
+    const stateObj = location.state as { prompt?: string; autoSend?: string } | null;
+    const prompt = (stateObj?.prompt ?? stateObj?.autoSend)?.trim();
     if (!prompt || prompt === lastAutoPrompt.current) return;
     lastAutoPrompt.current = prompt;
     // Clear nav state so back-navigation doesn't re-trigger
