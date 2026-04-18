@@ -571,11 +571,9 @@ function ConnectionCard({ conceptNounA, conceptNounB, bridgeInsight, cosineSimil
     <button
       onClick={() => onOpenConnection(questionA.id, questionB.id)}
       style={{
-        height: '100%',
         width: '100%',
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'space-between',
         gap: '16px',
         padding: '20px',
         boxSizing: 'border-box',
