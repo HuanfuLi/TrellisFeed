@@ -11,6 +11,7 @@ import { webSearch } from './web-search.service';
 // defaultStrategy and trajectoryAnalyzerService removed — applyStrategyBias no longer used (Phase 31)
 import { questionService } from './question.service';
 import { postQueueService } from './post-queue.service';
+import { postHistoryService } from './post-history.service';
 import { assignStyles, reassignFailures, type ApiAvailability } from './style-assignment';
 import { computeLeafState } from './trellis-state.service';
 
@@ -696,7 +697,7 @@ function buildConceptBatch(questions: Question[]): string[] {
     if (!isImportant) {
       try {
         const leaf = computeLeafState(anchor, children);
-        isImportant = leaf === 'falling' || leaf === 'fallen';
+        isImportant = leaf === 'dying' || leaf === 'falling' || leaf === 'fallen';
       } catch { /* non-critical — default to not important */ }
     }
     conceptIds.push(anchor.id);
@@ -759,10 +760,25 @@ async function generatePostBatch(
           const parsed = parseGeneratedPosts(raw, questions, date, [], indexOffset, textStyleAssignments.length);
           // Apply pre-assigned styles to generated posts
           for (let i = 0; i < parsed.posts.length && i < textStyleAssignments.length; i++) {
-            parsed.posts[i].presentationStyle = textStyleAssignments[i].style;
-            parsed.posts[i].sourceType = textStyleAssignments[i].style === 'suggestion'
-              ? 'suggestion' as DailyPost['sourceType']
-              : parsed.posts[i].sourceType;
+            const assignment = textStyleAssignments[i];
+            parsed.posts[i].presentationStyle = assignment.style;
+            if (assignment.style === 'suggestion') {
+              parsed.posts[i].sourceType = 'suggestion' as DailyPost['sourceType'];
+              // D-27: populate suggestion topics from knowledge graph neighbors
+              const concept = byId.get(assignment.conceptId);
+              if (concept) {
+                const neighbors = questions
+                  .filter(q => q.parentId === concept.parentId && q.id !== concept.id)
+                  .slice(0, 5);
+                const topics = neighbors
+                  .map(n => n.title?.trim() || n.content?.slice(0, 50)?.trim())
+                  .filter((t): t is string => !!t)
+                  .slice(0, 3);
+                if (topics.length > 0) {
+                  parsed.posts[i].suggestionMeta = { topics };
+                }
+              }
+            }
           }
           posts.push(...parsed.posts);
         } catch {
@@ -902,11 +918,11 @@ export async function refillQueue(questions: Question[]): Promise<void> {
     const conceptIds = buildConceptBatch(questions);
     if (conceptIds.length === 0) return;
 
-    // Step 2: Pre-check API keys (D-21 step 1)
+    // Step 2: Pre-check API keys — validate non-empty strings (D-20, D-21 step 1)
     const availability: ApiAvailability = {
-      hasYoutubeKey: !!(settings.youtube?.apiKey),
-      hasTavilyKey: !!(settings.webSearch?.tavilyApiKey),
-      hasImageGenKey: !!(settings.imageGeneration?.nanoBananaApiKey),
+      hasYoutubeKey: typeof settings.youtube?.apiKey === 'string' && settings.youtube.apiKey.trim().length > 0,
+      hasTavilyKey: typeof settings.webSearch?.tavilyApiKey === 'string' && settings.webSearch.tavilyApiKey.trim().length > 0,
+      hasImageGenKey: typeof settings.imageGeneration?.nanoBananaApiKey === 'string' && settings.imageGeneration.nanoBananaApiKey.trim().length > 0,
     };
 
     // Step 3: Assign styles before generation (D-18)
@@ -954,7 +970,8 @@ export async function refillQueue(questions: Question[]): Promise<void> {
     // Step 6: Generate posts with pre-assigned styles (D-21 step 4)
     const posts = await generatePostBatch(questions, assignments);
 
-    // Step 7: Enqueue results
+    // Step 7: Persist to history (D-33) and enqueue
+    for (const p of posts) { try { postHistoryService.addPost(p); } catch { /* non-critical */ } }
     postQueueService.enqueue(posts);
     postQueueService.incrementCycle();
   } finally {
@@ -1009,7 +1026,8 @@ export const conceptFeedService = {
     const enrichedPosts = await generateTextArtContent(feedPosts);
     _persistStylesToCache(enrichedPosts);
 
-    // Seed the queue with initial posts for infinite scroll
+    // Persist to history (D-33) and seed queue
+    for (const p of enrichedPosts) { try { postHistoryService.addPost(p); } catch { /* non-critical */ } }
     postQueueService.enqueue(enrichedPosts);
 
     return enrichedPosts;
@@ -1102,8 +1120,22 @@ export const conceptFeedService = {
     // Exclude off-topic/flagged questions
     questions = questions.filter((q) => !q.flagged);
 
+    // D-39: bonus cap — if all concepts explored, enforce bonus post limit
+    const exploredAnchors = dailyReadService.getExploredAnchors();
+    const anchors = questions.filter(q => q.isAnchorNode);
+    const allExplored = anchors.length > 0 && anchors.every(a => exploredAnchors.includes(a.id));
+    if (allExplored) {
+      const settings = settingsService.getSync();
+      const bonusCap = settings.feed?.bonusPostCap ?? 8;
+      const bonusServed = postQueueService.getCycleNumber() * 4;
+      if (bonusServed >= bonusCap) return [];
+    }
+
     // Drain from queue
     const posts = postQueueService.dequeue(count);
+
+    // Persist to history (D-33)
+    for (const p of posts) { try { postHistoryService.addPost(p); } catch { /* non-critical */ } }
 
     // Trigger background refill if needed (D-11)
     if (postQueueService.needsRefill()) {
