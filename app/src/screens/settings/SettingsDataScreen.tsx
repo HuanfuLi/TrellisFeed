@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { Shield, Trash2, BarChart3, Download, Upload, RotateCcw } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -11,11 +12,13 @@ import { getRateLimitStatus } from '../../services/ask-rate-limiter.service';
 import { imageGenerationService } from '../../services/imageGeneration.service';
 import { conceptFeedService } from '../../services/concept-feed.service';
 import { clearAllTables } from '../../services/db.service';
-import { SectionHeader, SettingRow, MaterialSwitch, SUB_SCREEN_STYLE } from './SettingsShared';
+import { SectionHeader, SettingRow, MaterialSwitch, SelectInput, TextInput, SUB_SCREEN_STYLE } from './SettingsShared';
 
 export function SettingsDataScreen() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
 
+  const [settings, setSettings] = useState(() => settingsService.getSync());
   const [aiConsent, setAiConsent] = useState(() => settingsService.getSync().preferences.aiConsentGiven ?? false);
   const [tokenUsage, setTokenUsage] = useState<Record<string, ServiceAggregate>>(() => tokenUsageReporter.getByService());
   const [askMonthlyLimit, setAskMonthlyLimit] = useState<number>(() => settingsService.getSync().preferences.askMonthlyLimit ?? 0);
@@ -138,7 +141,65 @@ export function SettingsDataScreen() {
         <p style={{ fontSize: '0.72rem', color: 'var(--muted-foreground)', marginTop: '-8px', marginBottom: '16px', lineHeight: 1.4 }}>
           {t('settings.descriptions.trellisDevModeHint')}
         </p>
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        <SettingRow label={t('settings.fields.postRetention')}>
+          <SelectInput
+            value={settings.feed?.postRetentionDays === null ? 'all' : '7'}
+            options={[
+              { value: '7', label: t('settings.fields.postRetention7d') },
+              { value: 'all', label: t('settings.fields.postRetentionAll') },
+            ]}
+            onChange={(v) => {
+              const feed = { ...settings.feed, postRetentionDays: v === 'all' ? null : 7 };
+              settingsService.set('feed', feed as typeof settings.feed);
+              setSettings((s) => ({ ...s, feed: feed as typeof s.feed }));
+            }}
+          />
+        </SettingRow>
+        <SettingRow
+          label={t('settings.fields.generationCap')}
+          description={t('settings.descriptions.generationCap')}
+        >
+          <TextInput
+            value={String(settings.feed?.dailyGenerationCapMultiplier ?? 5)}
+            type="number"
+            onChange={(v) => {
+              const feed = { ...settings.feed, dailyGenerationCapMultiplier: Math.max(1, parseInt(v) || 5) };
+              settingsService.set('feed', feed as typeof settings.feed);
+              setSettings((s) => ({ ...s, feed: feed as typeof s.feed }));
+            }}
+          />
+        </SettingRow>
+        <SettingRow
+          label={t('settings.fields.bonusCap')}
+          description={t('settings.descriptions.bonusCap')}
+        >
+          <TextInput
+            value={String(settings.feed?.bonusPostCap ?? 8)}
+            type="number"
+            onChange={(v) => {
+              const feed = { ...settings.feed, bonusPostCap: Math.max(1, parseInt(v) || 8) };
+              settingsService.set('feed', feed as typeof settings.feed);
+              setSettings((s) => ({ ...s, feed: feed as typeof s.feed }));
+            }}
+          />
+        </SettingRow>
+        <SettingRow label={t('settings.fields.sendFeedback')}>
+          <a
+            href="mailto:huanfuli4408@gmail.com?subject=EchoLearn%20Feed%20Feedback"
+            style={{ color: 'var(--primary-40)', fontSize: '14px', textDecoration: 'underline' }}
+          >
+            {t('settings.fields.sendFeedback')}
+          </a>
+        </SettingRow>
+        <SettingRow label={t('home.history.title')}>
+          <button
+            onClick={() => navigate('/history')}
+            style={{ color: 'var(--primary-40)', fontSize: '14px', background: 'none', border: 'none', cursor: 'pointer' }}
+          >
+            {t('home.history.title')}
+          </button>
+        </SettingRow>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '16px' }}>
           <Button
             variant="danger"
             size="sm"

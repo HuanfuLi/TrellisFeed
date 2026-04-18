@@ -237,6 +237,11 @@ export interface AppSettings {
   webSearch: {
     tavilyApiKey: string;
   };
+  feed: {
+    postRetentionDays: number | null; // null = keep all
+    dailyGenerationCapMultiplier: number;
+    bonusPostCap: number;
+  };
 }
 
 export interface EmbeddingConfig {
@@ -634,7 +639,8 @@ export type ErrorCode =
   | 'TOO_FEW'
   | 'PARSE_ERROR'
   | 'SEARCH_FAILED'
-  | 'LLM_ERROR';
+  | 'LLM_ERROR'
+  | 'COVERAGE_ERROR';
 
 export interface AskResult {
   question: Question;
@@ -676,4 +682,5 @@ export type AppEvent =
   | { type: 'ANCHOR_DELETED'; payload: { anchorId: string } }
   | { type: 'HARVEST_COMPLETED'; payload: { count: number } }
   | { type: 'NEWS_POSTS_READY'; payload: { posts: DailyPost[] } }
-  | { type: 'CONCEPT_EXPLORED'; payload: { anchorId: string } };
+  | { type: 'CONCEPT_EXPLORED'; payload: { anchorId: string } }
+  | { type: 'GRAPH_UPDATED' };

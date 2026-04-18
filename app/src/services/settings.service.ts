@@ -68,6 +68,11 @@ const defaultSettings: AppSettings = {
   webSearch: {
     tavilyApiKey: '',
   },
+  feed: {
+    postRetentionDays: 7,
+    dailyGenerationCapMultiplier: 5,
+    bonusPostCap: 8,
+  },
 };
 
 function deepMerge(defaults: AppSettings, stored: Partial<AppSettings>): AppSettings {
