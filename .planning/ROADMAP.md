@@ -759,7 +759,7 @@ Plans:
 **Goal:** Redesign the curiosity feed holistically: (1) replace rigid progress bar with softer, less coercive illustration; (2) make concept checklist transparent so users know which posts count toward quota; (3) design post ordering and generation queue system; (4) define post lifecycle for local-first storage — all AI-generated posts are persisted (some with essays, some stubs awaiting generation on click), with clear display/hide/staleness rules.
 **Requirements**: D-01..D-47 (from 31-CONTEXT.md)
 **Depends on:** Phase 30
-**Plans:** 6/7 plans executed
+**Plans:** 7/7 plans complete
 
 Plans:
 - [x] 31-01-PLAN.md — Type extensions + post queue service + post history service (Wave 1)
@@ -768,7 +768,7 @@ Plans:
 - [x] 31-04-PLAN.md — SuggestionCard component + InfoFlow wiring + AskScreen autoSend (Wave 2)
 - [x] 31-05-PLAN.md — VineProgress component + HomeScreen wiring (Wave 3)
 - [x] 31-06-PLAN.md — Inline video + ScrollToTopFAB + warm start + botanical loading (Wave 4)
-- [ ] 31-07-PLAN.md — PostHistoryScreen + route + history recording + UAT checkpoint (Wave 5)
+- [x] 31-07-PLAN.md — PostHistoryScreen + route + history recording + UAT checkpoint (Wave 5)
 
 ---
 
