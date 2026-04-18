@@ -69,25 +69,20 @@ interface ConceptCardProps {
 function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen, videoPlaying, setVideoPlaying }: ConceptCardProps & { videoPlaying: string | null; setVideoPlaying: (id: string | null) => void }) {
   const { t } = useTranslation();
 
-  // Suggestion post — D-23/D-26: only topic buttons are interactive, card tap is no-op
-  if (post.sourceType === 'suggestion' && post.suggestionMeta?.topics) {
-    return <SuggestionCard topics={post.suggestionMeta.topics} />;
-  }
-
   // ── Image generation state ──────────────────────────────────────────────────
   // Video/short posts skip AI image generation entirely (D-08: use YouTube thumbnail).
+  const isSuggestion = post.sourceType === 'suggestion' && !!post.suggestionMeta?.topics;
   const isVideoPost = post.sourceType === 'video';
   const isShortPost = post.sourceType === 'short';
   const isNewsPost = post.sourceType === 'news';
   const presentationStyle = post.presentationStyle;
 
-  // Short video inline playback state (D-02)
-  const [shortPlaying, setShortPlaying] = useState(false);
+  // Short video playback now uses parent videoPlaying/setVideoPlaying (unified state, D-02/D-28/D-29)
 
   // Non-image presentation styles and video/short posts skip image generation entirely
   const [image, setImage] = useState<GeneratedImage | null>(null);
   const [imageResolved, setImageResolved] = useState(
-    () => isVideoPost || isShortPost || isNewsPost
+    () => isSuggestion || isVideoPost || isShortPost || isNewsPost
       || presentationStyle === 'text-art'
       || presentationStyle === 'image-less'
       || presentationStyle === 'short'
@@ -98,7 +93,7 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen, videoP
 
   useEffect(() => {
     // Skip AI image generation for non-image presentation styles
-    if (isVideoPost || isShortPost || isNewsPost) return;
+    if (isSuggestion || isVideoPost || isShortPost || isNewsPost) return;
     if (presentationStyle && presentationStyle !== 'image') {
       setImageResolved(true);
       return;
@@ -126,7 +121,12 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen, videoP
 
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [post.id, isVideoPost, isShortPost, isNewsPost, presentationStyle]);
+  }, [post.id, isSuggestion, isVideoPost, isShortPost, isNewsPost, presentationStyle]);
+
+  // Suggestion post — D-23/D-26: only topic buttons are interactive, card tap is no-op
+  if (isSuggestion) {
+    return <SuggestionCard topics={post.suggestionMeta!.topics} />;
+  }
 
   // Don't render the card until the image request has resolved (success or failure)
   if (!imageResolved) return null;
@@ -298,11 +298,11 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen, videoP
                 }}
                 style={{ cursor: 'pointer', position: 'relative', width: '100%', height: '100%' }}
               >
-                <img
+                {post.videoMeta.thumbnailUrl && <img
                   src={post.videoMeta.thumbnailUrl}
                   alt={normalizedTitle}
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
+                />}
                 <div
                   style={{
                     position: 'absolute',
@@ -345,17 +345,17 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen, videoP
         {isShortPost && post.videoMeta?.videoId && (
           <div
             onClick={(e) => {
-              if (!shortPlaying) {
+              if (videoPlaying !== post.id) {
                 e.stopPropagation();
-                setShortPlaying(true);
+                setVideoPlaying(post.id);
               }
             }}
             style={{
-              cursor: shortPlaying ? 'default' : 'pointer',
+              cursor: videoPlaying === post.id ? 'default' : 'pointer',
               width: '100%',
             }}
           >
-            {shortPlaying ? (
+            {videoPlaying === post.id ? (
               <div style={{
                 position: 'relative',
                 width: '100%',
@@ -377,11 +377,11 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen, videoP
                 aspectRatio: '9/16',
                 overflow: 'hidden',
               }}>
-                <img
+                {post.videoMeta.thumbnailUrl && <img
                   src={post.videoMeta.thumbnailUrl}
                   alt={normalizedTitle}
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
+                />}
                 <span style={{
                   position: 'absolute',
                   top: 12,
@@ -877,14 +877,10 @@ interface InlineInfoFlowProps {
   isLoadingMore?: boolean;
 }
 
-// Track post IDs that have already been rendered in this session so we only
-// animate genuinely new posts, not posts that were already visible before
-// the user navigated away and came back.
-const _seenPostIds = new Set<string>();
-
 export function InlineInfoFlow({ items, onOpenConnection, showConnectionScores = false, onOpenPost, onLoadMore, isLoadingMore }: InlineInfoFlowProps) {
   const { t } = useTranslation();
   const [videoPlaying, setVideoPlaying] = useState<string | null>(null);
+  const seenPostIdsRef = useRef(new Set<string>());
 
   // D-29: Stop all videos when tab loses visibility (swipe-away or browser tab switch)
   const swipeCtx = useContext(SwipeTabContext);
@@ -910,22 +906,24 @@ export function InlineInfoFlow({ items, onOpenConnection, showConnectionScores =
   // On first render, mark all current items as "already seen" so they
   // don't animate. Only items added AFTER mount will animate.
   const [newPostIds] = useState<Set<string>>(() => {
+    const seen = seenPostIdsRef.current;
     const incoming = new Set<string>();
     for (const item of items) {
       const id = item.kind === 'concept' ? item.post.id : item.kind === 'connection' ? `conn-${item.questionA.id}-${item.questionB.id}` : item.kind === 'milestone' ? item.item.id : '';
-      if (id && !_seenPostIds.has(id)) {
+      if (id && !seen.has(id)) {
         incoming.add(id);
       }
-      if (id) _seenPostIds.add(id);
+      if (id) seen.add(id);
     }
     return incoming;
   });
 
   // Mark any items that arrive after mount as new (for animation on load-more)
   useEffect(() => {
+    const seen = seenPostIdsRef.current;
     for (const item of items) {
       const id = item.kind === 'concept' ? item.post.id : item.kind === 'connection' ? `conn-${item.questionA.id}-${item.questionB.id}` : item.kind === 'milestone' ? item.item.id : '';
-      if (id) _seenPostIds.add(id);
+      if (id) seen.add(id);
     }
   }, [items]);
 
