@@ -59,50 +59,93 @@ export function TrellisCanvas({ layout, ambientEnabled, focusedAnchorId }: Trell
       role="img"
       aria-label={t('planner.trellis.ariaLabel')}
     >
-      {/* Vines — thicker stems with staggered draw-on animation */}
+      {/* Vines — tapered stems with staggered draw-on animation */}
       <g>
-        {vines.map((v, i) => (
-          <g key={v.branchId}>
-            {/* Thicker backdrop for depth */}
-            <motion.path
-              d={v.spec.d}
-              stroke={v.color}
-              strokeWidth={6}
-              fill="none"
-              opacity={0.15}
-              strokeLinecap="round"
-              initial={{ pathLength: 0 }}
-              animate={{ pathLength: 1 }}
-              transition={{ duration: 1.2, delay: i * 0.2, ease: 'easeInOut' }}
-            />
-            {/* Main vine stem */}
-            <motion.path
-              d={v.spec.d}
-              stroke={v.color}
-              strokeWidth={4}
-              fill="none"
-              opacity={0.85}
-              strokeLinecap="round"
-              initial={{ pathLength: 0 }}
-              animate={{ pathLength: 1 }}
-              transition={{ duration: 1.2, delay: i * 0.2, ease: 'easeInOut' }}
-            />
-          </g>
-        ))}
+        {vines.map((v, i) => {
+          const segCount = v.spec.segments?.length ?? 4;
+          return (
+            <g key={v.branchId}>
+              {/* Soft shadow for depth */}
+              <motion.path
+                d={v.spec.d}
+                stroke={v.color}
+                strokeWidth={8}
+                fill="none"
+                opacity={0.08}
+                strokeLinecap="round"
+                initial={{ pathLength: 0 }}
+                animate={{ pathLength: 1 }}
+                transition={{ duration: 1.2, delay: i * 0.2, ease: 'easeInOut' }}
+              />
+              {/* Tapering segments: thick at base, thin at tip */}
+              {Array.from({ length: Math.min(segCount, 6) }, (_, si) => {
+                const frac = si / Math.max(segCount - 1, 1);
+                const sw = 5.5 - frac * 3;
+                const dashLen = 100 / segCount;
+                return (
+                  <motion.path
+                    key={si}
+                    d={v.spec.d}
+                    stroke={v.color}
+                    strokeWidth={sw}
+                    fill="none"
+                    opacity={0.85}
+                    strokeLinecap="round"
+                    strokeDasharray={`${dashLen}% ${100 - dashLen}%`}
+                    strokeDashoffset={`${-si * dashLen}%`}
+                    pathLength={100}
+                    initial={{ pathLength: 0 }}
+                    animate={{ pathLength: 100 }}
+                    transition={{ duration: 1.2, delay: i * 0.2, ease: 'easeInOut' }}
+                  />
+                );
+              })}
+            </g>
+          );
+        })}
       </g>
-      {/* Short branch stems from vine to leaf */}
+      {/* Branch stems — curved, not straight lines */}
       <g>
-        {nodes.map((n) => (
-          <line
-            key={`stem-${n.anchor.id}`}
-            x1={n.vineAttach.x} y1={n.vineAttach.y}
-            x2={n.layoutPosition.x} y2={n.layoutPosition.y}
-            stroke={vines.find((v) => v.branchId === n.branchId)?.color ?? '#6B8E5A'}
-            strokeWidth={2.5}
-            strokeLinecap="round"
-            opacity={0.6}
-          />
-        ))}
+        {nodes.map((n) => {
+          const vx = n.vineAttach.x;
+          const vy = n.vineAttach.y;
+          const lx = n.layoutPosition.x;
+          const ly = n.layoutPosition.y;
+          const dx = lx - vx;
+          const dy = ly - vy;
+          const cpx = vx + dx * 0.5 + dy * 0.15;
+          const cpy = vy + dy * 0.5 - dx * 0.1;
+          return (
+            <path
+              key={`stem-${n.anchor.id}`}
+              d={`M${vx},${vy} Q${cpx},${cpy} ${lx},${ly}`}
+              stroke={vines.find((v) => v.branchId === n.branchId)?.color ?? '#6B8E5A'}
+              strokeWidth={2}
+              strokeLinecap="round"
+              fill="none"
+              opacity={0.55}
+            />
+          );
+        })}
+      </g>
+      {/* Tendrils at branch attachment points */}
+      <g>
+        {nodes.filter((_, i) => i % 3 === 1).map((n) => {
+          const vx = n.vineAttach.x;
+          const vy = n.vineAttach.y;
+          const side = n.side === 'left' ? -1 : 1;
+          return (
+            <path
+              key={`tendril-${n.anchor.id}`}
+              d={`M${vx},${vy} C${vx + side * 6},${vy - 8} ${vx + side * 12},${vy - 4} ${vx + side * 10},${vy - 14}`}
+              stroke={vines.find((v) => v.branchId === n.branchId)?.color ?? '#6B8E5A'}
+              strokeWidth={0.8}
+              fill="none"
+              opacity={0.25}
+              strokeLinecap="round"
+            />
+          );
+        })}
       </g>
       {/* Leaves / blossoms / fruits */}
       <g>

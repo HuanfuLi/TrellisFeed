@@ -12,6 +12,12 @@ interface VineProgressProps {
   onHistoryTap?: () => void;
 }
 
+// Deterministic pseudo-random from seed
+function seededRand(seed: number): number {
+  const x = Math.sin(seed * 127.1 + 311.7) * 43758.5453;
+  return x - Math.floor(x);
+}
+
 function PottedPlant({ x, y, color }: { x: number; y: number; color: string }) {
   return (
     <g transform={`translate(${x}, ${y})`}>
@@ -27,17 +33,31 @@ function VineLeaf({ x, y, size, flip, color }: { x: number; y: number; size: num
   const scaleY = flip ? -1 : 1;
   return (
     <g transform={`translate(${x}, ${y}) scale(1, ${scaleY})`}>
-      <ellipse cx={size * 0.5} cy={-size * 0.45} rx={size * 0.5} ry={size * 0.35} fill={color} opacity={0.8} />
-      <line x1={0} y1={0} x2={size * 0.5} y2={-size * 0.45} stroke={color} strokeWidth={0.8} opacity={0.5} />
+      <path
+        d={`M0,0 Q${size * 0.3},${-size * 0.9} ${size * 0.8},${-size * 0.5} Q${size * 0.5},${-size * 0.15} 0,0`}
+        fill={color} opacity={0.8}
+      />
+      <path d={`M0,0 Q${size * 0.35},${-size * 0.55} ${size * 0.7},${-size * 0.45}`}
+        fill="none" stroke={color} strokeWidth={0.6} opacity={0.4} />
     </g>
+  );
+}
+
+function Tendril({ x, y, flip, size }: { x: number; y: number; flip: boolean; size: number }) {
+  const dir = flip ? -1 : 1;
+  return (
+    <path
+      d={`M${x},${y} C${x + dir * size * 0.3},${y - size * 0.6} ${x + dir * size * 0.8},${y - size * 0.3} ${x + dir * size * 0.6},${y - size * 0.9}`}
+      fill="none" stroke="var(--primary-40)" strokeWidth={0.8} opacity={0.3} strokeLinecap="round"
+    />
   );
 }
 
 function VineBud({ cx, cy }: { cx: number; cy: number }) {
   return (
     <g>
-      <circle cx={cx} cy={cy} r={3.5} fill="var(--muted-foreground)" opacity={0.2} />
-      <circle cx={cx} cy={cy} r={1.8} fill="var(--muted-foreground)" opacity={0.12} />
+      <circle cx={cx} cy={cy} r={3.5} fill="var(--muted-foreground)" opacity={0.18} />
+      <circle cx={cx} cy={cy} r={1.5} fill="var(--muted-foreground)" opacity={0.1} />
     </g>
   );
 }
@@ -51,10 +71,10 @@ function VineFlower({ cx, cy, size }: { cx: number; cy: number; size: number }) 
         const angle = (i * 2 * Math.PI) / petals - Math.PI / 2;
         const px = cx + Math.cos(angle) * petalR;
         const py = cy + Math.sin(angle) * petalR;
-        return <ellipse key={i} cx={px} cy={py} rx={size * 0.32} ry={size * 0.28} fill="#F48FB1" opacity={0.75}
-          transform={`rotate(${(angle * 180) / Math.PI}, ${px}, ${py})`} />;
+        return <ellipse key={i} cx={px} cy={py} rx={size * 0.32} ry={size * 0.26} fill="#F48FB1" opacity={0.75}
+          transform={`rotate(${(angle * 180) / Math.PI + 15}, ${px}, ${py})`} />;
       })}
-      <circle cx={cx} cy={cy} r={size * 0.22} fill="#FFE082" />
+      <circle cx={cx} cy={cy} r={size * 0.2} fill="#FFE082" />
     </g>
   );
 }
@@ -66,7 +86,7 @@ function VineFruit({ cx, cy }: { cx: number; cy: number }) {
       <ellipse cx={cx} cy={cy} rx={5.5} ry={7} fill="#E8A838" />
       <ellipse cx={cx - 1.5} cy={cy - 2} rx={2} ry={2.5} fill="#F0C060" opacity={0.4} />
       <ellipse cx={cx + 2} cy={cy + 2} rx={1.2} ry={1.5} fill="#D4931A" opacity={0.3} />
-      <path d={`M${cx},${cy - 9} C${cx - 3},${cy - 13} ${cx + 1},${cy - 14} ${cx + 4},${cy - 11}`} fill="#66BB6A" strokeWidth={0} />
+      <path d={`M${cx},${cy - 9} C${cx - 3},${cy - 13} ${cx + 1},${cy - 14} ${cx + 4},${cy - 11}`} fill="#66BB6A" />
     </g>
   );
 }
@@ -80,29 +100,82 @@ function GoldFlower({ cx, cy, size }: { cx: number; cy: number; size: number }) 
         const angle = (i * 2 * Math.PI) / petals - Math.PI / 2;
         const px = cx + Math.cos(angle) * petalR;
         const py = cy + Math.sin(angle) * petalR;
-        return <ellipse key={i} cx={px} cy={py} rx={size * 0.3} ry={size * 0.25} fill="#E8A838" opacity={0.8}
+        return <ellipse key={i} cx={px} cy={py} rx={size * 0.3} ry={size * 0.22} fill="#E8A838" opacity={0.8}
           transform={`rotate(${(angle * 180) / Math.PI}, ${px}, ${py})`} />;
       })}
-      <circle cx={cx} cy={cy} r={size * 0.2} fill="#FFF176" />
+      <circle cx={cx} cy={cy} r={size * 0.18} fill="#FFF176" />
     </g>
   );
 }
 
-function buildWavyStemPath(startX: number, endX: number, baseY: number, amplitude: number): string {
-  if (endX <= startX) return '';
+// Build an organic vine path with asymmetric curves and slight vertical drift
+function buildOrganicStem(startX: number, endX: number, baseY: number, amplitude: number): {
+  path: string;
+  yAt: (x: number) => number;
+} {
+  if (endX <= startX) return { path: '', yAt: () => baseY };
   const len = endX - startX;
-  const segments = Math.max(Math.round(len / 40), 2);
+  const segments = Math.max(Math.round(len / 30), 3);
   const segLen = len / segments;
-  let d = `M${startX},${baseY}`;
-  for (let i = 0; i < segments; i++) {
-    const x0 = startX + i * segLen;
-    const x1 = startX + (i + 1) * segLen;
-    const cpY = baseY + (i % 2 === 0 ? -amplitude : amplitude);
-    const cx1 = x0 + segLen * 0.4;
-    const cx2 = x1 - segLen * 0.4;
-    d += ` C${cx1},${cpY} ${cx2},${cpY} ${x1},${baseY}`;
+
+  const points: Array<{ x: number; y: number }> = [{ x: startX, y: baseY }];
+  for (let i = 1; i <= segments; i++) {
+    const x = startX + i * segLen;
+    const drift = (seededRand(i * 13 + 7) - 0.5) * amplitude * 1.8;
+    const y = baseY + drift * (i % 2 === 0 ? 1 : -1);
+    points.push({ x, y });
   }
-  return d;
+
+  let d = `M${points[0].x.toFixed(1)},${points[0].y.toFixed(1)}`;
+  for (let i = 0; i < segments; i++) {
+    const p0 = points[i];
+    const p1 = points[i + 1];
+    const dx = p1.x - p0.x;
+    const dy = p1.y - p0.y;
+    const bulge = amplitude * (0.6 + seededRand(i * 31 + 5) * 0.8);
+    const side = seededRand(i * 17 + 3) > 0.5 ? 1 : -1;
+    const skew = 0.25 + seededRand(i * 23 + 11) * 0.2;
+    const cx1 = p0.x + dx * skew + side * bulge * 0.4;
+    const cy1 = p0.y + dy * skew - bulge * 0.6;
+    const cx2 = p0.x + dx * (1 - skew) - side * bulge * 0.3;
+    const cy2 = p0.y + dy * (1 - skew) + bulge * 0.4;
+    d += ` C${cx1.toFixed(1)},${cy1.toFixed(1)} ${cx2.toFixed(1)},${cy2.toFixed(1)} ${p1.x.toFixed(1)},${p1.y.toFixed(1)}`;
+  }
+
+  const yAt = (x: number): number => {
+    if (x <= startX) return baseY;
+    if (x >= endX) return points[points.length - 1].y;
+    const segIdx = Math.min(Math.floor(((x - startX) / len) * segments), segments - 1);
+    const p0 = points[segIdx];
+    const p1 = points[segIdx + 1];
+    const t = (x - p0.x) / (p1.x - p0.x);
+    return p0.y + (p1.y - p0.y) * t;
+  };
+
+  return { path: d, yAt };
+}
+
+// Tapering: split path into segments with decreasing stroke width
+function TaperingPath({ d, baseWidth, tipWidth, color, opacity, segments }: {
+  d: string; baseWidth: number; tipWidth: number; color: string; opacity: number; segments: number;
+}) {
+  const widths: number[] = [];
+  for (let i = 0; i < segments; i++) {
+    widths.push(baseWidth - (baseWidth - tipWidth) * (i / (segments - 1 || 1)));
+  }
+  const dashLen = 100 / segments;
+  return (
+    <g>
+      {widths.map((w, i) => (
+        <path key={i} d={d} fill="none" stroke={color} strokeWidth={w} opacity={opacity}
+          strokeLinecap="round"
+          strokeDasharray={`${dashLen}% ${100 - dashLen}%`}
+          strokeDashoffset={`${-i * dashLen}%`}
+          pathLength={100}
+        />
+      ))}
+    </g>
+  );
 }
 
 export function VineProgress({
@@ -135,8 +208,8 @@ export function VineProgress({
   if (conceptTotal === 0) return null;
 
   const isInline = mode === 'inline';
-  const svgHeight = isInline ? 56 : 44;
-  const stemY = svgHeight * 0.58;
+  const svgHeight = isInline ? 58 : 46;
+  const stemY = svgHeight * 0.55;
   const potX = 18;
   const stemStart = potX + 14;
   const rightPad = 4;
@@ -150,25 +223,32 @@ export function VineProgress({
   });
 
   const lastFlowerX = flowerPositions[flowerPositions.length - 1] ?? stemStart;
-  const stemEndX = vineComplete ? lastFlowerX + 8 : stemStart + (conceptExplored / conceptTotal) * (lastFlowerX - stemStart + 8);
+  const stemEndFull = lastFlowerX + 8;
+  const stemEndX = vineComplete ? stemEndFull : stemStart + (conceptExplored / conceptTotal) * (lastFlowerX - stemStart + 8);
 
   const vineColor = vineComplete ? '#66BB6A' : '#4CAF50';
   const stemColor = vineComplete ? '#E8A838' : '#6A9F4D';
-  const stemWave = isInline ? 3 : 2;
+  const stemWave = isInline ? 4 : 3;
 
-  const ghostPath = buildWavyStemPath(stemStart, lastFlowerX + 8, stemY, stemWave);
-  const grownPath = stemEndX > stemStart ? buildWavyStemPath(stemStart, stemEndX, stemY, stemWave) : '';
+  const ghost = buildOrganicStem(stemStart, stemEndFull, stemY, stemWave);
+  const grown = stemEndX > stemStart ? buildOrganicStem(stemStart, stemEndX, stemY, stemWave) : null;
 
-  const leafSpacing = isInline ? 14 : 18;
+  const leafSpacing = isInline ? 12 : 16;
   const grownLen = stemEndX - stemStart;
   const leafCount = Math.max(Math.floor(grownLen / leafSpacing), 0);
   const leaves = Array.from({ length: leafCount }, (_, i) => {
-    const t = (i + 1) / (leafCount + 1);
-    const x = stemStart + t * grownLen;
+    const frac = (i + 1) / (leafCount + 1);
+    const x = stemStart + frac * grownLen;
+    const y = grown ? grown.yAt(x) : stemY;
     const flip = i % 2 === 1;
-    const leafSize = isInline ? (5 + (((i * 7 + 3) % 5) / 5) * 3) : (4 + (((i * 7 + 3) % 5) / 5) * 2);
-    return { x, y: stemY, flip, size: leafSize, key: i };
+    const leafSize = isInline ? (5 + (((i * 7 + 3) % 5) / 5) * 4) : (4 + (((i * 7 + 3) % 5) / 5) * 3);
+    return { x, y, flip, size: leafSize, key: i };
   });
+
+  // Tendrils at every 3rd leaf position
+  const tendrils = leaves.filter((_, i) => i % 3 === 1).map((l, i) => ({
+    x: l.x, y: l.y, flip: i % 2 === 0, size: isInline ? 8 : 6, key: `t-${i}`,
+  }));
 
   const toggleExpand = useCallback(() => setExpanded(prev => !prev), []);
 
@@ -216,15 +296,25 @@ export function VineProgress({
         >
           <PottedPlant x={potX} y={stemY} color={vineColor} />
 
-          {/* Ghost stem — wavy path to last flower */}
-          {ghostPath && (
-            <path d={ghostPath} fill="none" stroke="var(--muted-foreground)" strokeWidth={2} opacity={0.1} strokeLinecap="round" />
+          {/* Ghost stem — organic tapered path */}
+          {ghost.path && (
+            <TaperingPath d={ghost.path} baseWidth={3} tipWidth={1.2} color="var(--muted-foreground)" opacity={0.1} segments={4} />
           )}
 
-          {/* Grown vine — thicker wavy stem */}
-          {grownPath && (
-            <path d={grownPath} fill="none" stroke={stemColor} strokeWidth={4} strokeLinecap="round" />
+          {/* Grown vine — organic tapered stem */}
+          {grown && grown.path && (
+            <>
+              {/* Shadow layer */}
+              <path d={grown.path} fill="none" stroke={stemColor} strokeWidth={6} opacity={0.08} strokeLinecap="round" />
+              {/* Main tapering stem */}
+              <TaperingPath d={grown.path} baseWidth={5} tipWidth={2.5} color={stemColor} opacity={0.85} segments={5} />
+            </>
           )}
+
+          {/* Tendrils — small spiral curls */}
+          {tendrils.map(tr => (
+            <Tendril key={tr.key} x={tr.x} y={tr.y} flip={tr.flip} size={tr.size} />
+          ))}
 
           {/* Leaves along grown stem */}
           {leaves.map(l => (
@@ -234,19 +324,20 @@ export function VineProgress({
           {/* Concept markers at flower positions */}
           {concepts.map((concept, i) => {
             const fx = flowerPositions[i];
+            const fy = ghost.yAt(fx);
             if (vineComplete) {
               return i % 2 === 0
-                ? <VineFruit key={concept.id} cx={fx} cy={stemY - 10} />
-                : <GoldFlower key={concept.id} cx={fx} cy={stemY} size={flowerSize} />;
+                ? <VineFruit key={concept.id} cx={fx} cy={fy - 10} />
+                : <GoldFlower key={concept.id} cx={fx} cy={fy} size={flowerSize} />;
             }
             if (concept.explored) {
-              return <VineFlower key={concept.id} cx={fx} cy={stemY} size={flowerSize} />;
+              return <VineFlower key={concept.id} cx={fx} cy={fy} size={flowerSize} />;
             }
-            return <VineBud key={concept.id} cx={fx} cy={stemY} />;
+            return <VineBud key={concept.id} cx={fx} cy={fy} />;
           })}
         </svg>
 
-        {/* Right-side icons: history + chevron */}
+        {/* Right-side icons */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
           {isInline && onHistoryTap && (
             <button
@@ -278,7 +369,7 @@ export function VineProgress({
         </div>
       </div>
 
-      {/* Concept checklist — shows uncovered concepts only (D-09) */}
+      {/* Concept checklist */}
       <div
         role="list"
         style={{
