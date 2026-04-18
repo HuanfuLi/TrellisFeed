@@ -554,6 +554,42 @@ function _persistStylesToCache(styledPosts: DailyPost[]): void {
   saveCache(cachedNow);
 }
 
+/**
+ * Spread posts so no two adjacent items share the same presentationStyle.
+ * Groups by style, then round-robin interleaves. Mutates in place.
+ */
+function spreadByStyle(posts: DailyPost[]): void {
+  if (posts.length <= 2) return;
+  const byStyle = new Map<string, DailyPost[]>();
+  for (const p of posts) {
+    const key = p.presentationStyle ?? 'unknown';
+    const arr = byStyle.get(key) ?? [];
+    arr.push(p);
+    byStyle.set(key, arr);
+  }
+  const buckets = Array.from(byStyle.values()).sort((a, b) => b.length - a.length);
+  const result: DailyPost[] = [];
+  let lastStyle = '';
+  while (result.length < posts.length) {
+    let placed = false;
+    for (const bucket of buckets) {
+      if (bucket.length === 0) continue;
+      const style = bucket[0].presentationStyle ?? '';
+      if (style === lastStyle && buckets.some(b => b.length > 0 && (b[0].presentationStyle ?? '') !== lastStyle)) continue;
+      result.push(bucket.shift()!);
+      lastStyle = style;
+      placed = true;
+      break;
+    }
+    if (!placed) {
+      const remaining = buckets.find(b => b.length > 0);
+      if (remaining) { result.push(remaining.shift()!); lastStyle = result[result.length - 1].presentationStyle ?? ''; }
+      else break;
+    }
+  }
+  for (let i = 0; i < result.length; i++) posts[i] = result[i];
+}
+
 /** Fisher-Yates shuffle — returns a new shuffled copy. */
 function shuffleArray<T>(array: T[]): T[] {
   const arr = [...array];
@@ -972,6 +1008,9 @@ export async function refillQueue(questions: Question[]): Promise<void> {
     // Step 6: Generate posts with pre-assigned styles (D-21 step 4)
     const posts = await generatePostBatch(questions, assignments);
 
+    // Step 6b: Spread styles to prevent clustering (D-17 weighted round-robin)
+    spreadByStyle(posts);
+
     // Step 7: Persist to history (D-33) and enqueue
     for (const p of posts) { try { postHistoryService.addPost(p); } catch { /* non-critical */ } }
     postQueueService.enqueue(posts);
@@ -1028,7 +1067,8 @@ export const conceptFeedService = {
     const enrichedPosts = await generateTextArtContent(feedPosts);
     _persistStylesToCache(enrichedPosts);
 
-    // Persist to history (D-33) and seed queue
+    // Spread styles and persist to history (D-33) + seed queue
+    spreadByStyle(enrichedPosts);
     for (const p of enrichedPosts) { try { postHistoryService.addPost(p); } catch { /* non-critical */ } }
     postQueueService.enqueue(enrichedPosts);
 
