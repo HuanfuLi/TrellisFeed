@@ -2,6 +2,12 @@ import type { AppPreferences, AppSettings, ServiceResult, SupportedLocale } from
 
 const STORAGE_KEY = 'echolearn_settings';
 
+export const FEED_DEFAULTS = {
+  postRetentionDays: 7 as number | null,
+  dailyGenerationCapMultiplier: 5,
+  bonusPostCap: 8,
+} as const;
+
 const defaultSettings: AppSettings = {
   llm: {
     provider: 'openai',
@@ -69,9 +75,9 @@ const defaultSettings: AppSettings = {
     tavilyApiKey: '',
   },
   feed: {
-    postRetentionDays: 7,
-    dailyGenerationCapMultiplier: 5,
-    bonusPostCap: 8,
+    postRetentionDays: FEED_DEFAULTS.postRetentionDays,
+    dailyGenerationCapMultiplier: FEED_DEFAULTS.dailyGenerationCapMultiplier,
+    bonusPostCap: FEED_DEFAULTS.bonusPostCap,
   },
 };
 

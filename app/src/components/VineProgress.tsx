@@ -342,8 +342,6 @@ export function VineProgress({
             <button
               onClick={(e) => { e.stopPropagation(); onHistoryTap(); }}
               aria-label={t('home.history.iconLabel')}
-              role="button"
-              tabIndex={0}
               style={{
                 background: 'none',
                 border: 'none',

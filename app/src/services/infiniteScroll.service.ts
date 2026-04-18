@@ -48,7 +48,11 @@ export const infiniteScrollService = {
       const batch = await conceptFeedService.generateMorePosts(questions, limit);
       const deduplicated = batch.filter((post) => !seenPostIds.has(post.id));
       deduplicated.forEach((post) => {
-        if (seenPostIds.size < 500) seenPostIds.add(post.id);
+        seenPostIds.add(post.id);
+        if (seenPostIds.size > 500) {
+          const oldest = seenPostIds.values().next().value;
+          if (oldest) seenPostIds.delete(oldest);
+        }
       });
 
       offset += deduplicated.length;

@@ -5,7 +5,7 @@ import { Shield, Trash2, BarChart3, Download, Upload, RotateCcw } from 'lucide-r
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Header } from '../../components/ui/Header';
-import { settingsService } from '../../services/settings.service';
+import { settingsService, FEED_DEFAULTS } from '../../services/settings.service';
 import { toast } from '../../lib/toast';
 import { tokenUsageReporter, type ServiceAggregate } from '../../services/token-usage.service';
 import { getRateLimitStatus } from '../../services/ask-rate-limiter.service';
@@ -145,13 +145,13 @@ export function SettingsDataScreen() {
         </p>
         <SettingRow label={t('settings.fields.postRetention')}>
           <SelectInput
-            value={settings.feed?.postRetentionDays === null ? 'all' : '7'}
+            value={settings.feed?.postRetentionDays === null ? 'all' : String(settings.feed?.postRetentionDays ?? FEED_DEFAULTS.postRetentionDays)}
             options={[
               { value: '7', label: t('settings.fields.postRetention7d') },
               { value: 'all', label: t('settings.fields.postRetentionAll') },
             ]}
             onChange={(v) => {
-              const feed = { ...settings.feed, postRetentionDays: v === 'all' ? null : 7 };
+              const feed = { ...settings.feed, postRetentionDays: v === 'all' ? null : FEED_DEFAULTS.postRetentionDays };
               settingsService.set('feed', feed as typeof settings.feed);
               setSettings((s) => ({ ...s, feed: feed as typeof s.feed }));
             }}
@@ -162,10 +162,10 @@ export function SettingsDataScreen() {
           description={t('settings.descriptions.generationCap')}
         >
           <TextInput
-            value={String(settings.feed?.dailyGenerationCapMultiplier ?? 5)}
+            value={String(settings.feed?.dailyGenerationCapMultiplier ?? FEED_DEFAULTS.dailyGenerationCapMultiplier)}
             type="number"
             onChange={(v) => {
-              const feed = { ...settings.feed, dailyGenerationCapMultiplier: Math.max(1, parseInt(v) || 5) };
+              const feed = { ...settings.feed, dailyGenerationCapMultiplier: Math.max(1, parseInt(v) || FEED_DEFAULTS.dailyGenerationCapMultiplier) };
               settingsService.set('feed', feed as typeof settings.feed);
               setSettings((s) => ({ ...s, feed: feed as typeof s.feed }));
             }}
@@ -176,10 +176,10 @@ export function SettingsDataScreen() {
           description={t('settings.descriptions.bonusCap')}
         >
           <TextInput
-            value={String(settings.feed?.bonusPostCap ?? 8)}
+            value={String(settings.feed?.bonusPostCap ?? FEED_DEFAULTS.bonusPostCap)}
             type="number"
             onChange={(v) => {
-              const feed = { ...settings.feed, bonusPostCap: Math.max(1, parseInt(v) || 8) };
+              const feed = { ...settings.feed, bonusPostCap: Math.max(1, parseInt(v) || FEED_DEFAULTS.bonusPostCap) };
               settingsService.set('feed', feed as typeof settings.feed);
               setSettings((s) => ({ ...s, feed: feed as typeof s.feed }));
             }}

@@ -563,7 +563,7 @@ interface ConnectionCardProps {
   onOpenConnection: (idA: string, idB: string) => void;
 }
 
-function ConnectionCard({ conceptNounA, conceptNounB, bridgeInsight, cosineSimilarity: _cosineSimilarity, showScore: _showScore, questionA, questionB, onOpenConnection }: ConnectionCardProps) {
+function ConnectionCard({ conceptNounA, conceptNounB, bridgeInsight, questionA, questionB, onOpenConnection }: ConnectionCardProps) {
   const { t } = useTranslation();
   const colors = pickConnectionColors(questionA.id, questionB.id);
 

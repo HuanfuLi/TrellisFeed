@@ -44,8 +44,8 @@ function load(): QueueState {
 function save(state: QueueState): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  } catch {
-    // localStorage quota exceeded — silently drop
+  } catch (err) {
+    console.warn('[postQueueService] localStorage save failed:', err);
   }
 }
 

@@ -2,13 +2,12 @@ import { chatCompletion, chatStream } from '../providers/llm/index.ts';
 import type { ChatSession, DailyPost, PostNarrativeMode, PostOriginContext, PostSnapshot, PresentationStyle, Question } from '../types';
 import { today } from '../lib/date.ts';
 import { eventBus } from '../lib/event-bus.ts';
-import { settingsService } from './settings.service.ts';
+import { settingsService, FEED_DEFAULTS } from './settings.service.ts';
 import { plannerService } from './planner.service.ts';
 import { graphService } from './graph.service.ts';
 import { youtubeService } from './youtube.service';
 import { newsService } from './news.service';
 import { webSearch } from './web-search.service';
-// defaultStrategy and trajectoryAnalyzerService removed — applyStrategyBias no longer used (Phase 31)
 import { questionService } from './question.service';
 import { postQueueService } from './post-queue.service';
 import { postHistoryService } from './post-history.service';
@@ -686,7 +685,6 @@ function _backgroundGenerateNews(): void {
     .finally(() => { _newsBgRunning = false; });
 }
 
-// interleaveNewsPosts removed in Phase 31 — news posts now handled by weighted round-robin at generation time (D-44)
 
 
 
@@ -711,7 +709,6 @@ export function buildPostOriginContext(post: DailyPost, questions: Question[]): 
   };
 }
 
-// applyStrategyBias removed in Phase 31 — concept prioritization now handled by buildConceptBatch (D-12/D-13/D-14)
 
 // ─── Queue-based generation pipeline (Phase 31, D-17/D-18/D-21/D-44) ────────
 
@@ -948,7 +945,7 @@ export async function refillQueue(questions: Question[]): Promise<void> {
     // D-38: check daily generation cap
     const dueConcepts = questions.filter(q => q.isAnchorNode);
     const feedSettings = (settings as Record<string, unknown>).feed as { dailyGenerationCapMultiplier?: number } | undefined;
-    const maxPosts = (feedSettings?.dailyGenerationCapMultiplier ?? 5) * Math.max(dueConcepts.length, 1);
+    const maxPosts = (feedSettings?.dailyGenerationCapMultiplier ?? FEED_DEFAULTS.dailyGenerationCapMultiplier) * Math.max(dueConcepts.length, 1);
     const cycleNumber = postQueueService.getCycleNumber();
     const alreadyGenerated = cycleNumber * 8; // rough estimate
     if (alreadyGenerated >= maxPosts) return;
@@ -1169,7 +1166,7 @@ export const conceptFeedService = {
     const allExplored = anchors.length > 0 && anchors.every(a => exploredAnchors.includes(a.id));
     if (allExplored) {
       const settings = settingsService.getSync();
-      const bonusCap = settings.feed?.bonusPostCap ?? 8;
+      const bonusCap = settings.feed?.bonusPostCap ?? FEED_DEFAULTS.bonusPostCap;
       const bonusServed = postQueueService.getCycleNumber() * 4;
       if (bonusServed >= bonusCap) return [];
     }
