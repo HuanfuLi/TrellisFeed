@@ -95,7 +95,10 @@ export function VineProgress({
     return () => document.removeEventListener('click', handleClickOutside, true);
   }, [expanded]);
 
-  if (total === 0) return null;
+  const conceptTotal = concepts.length;
+  const conceptExplored = concepts.filter(c => c.explored).length;
+
+  if (conceptTotal === 0) return null;
 
   const svgHeight = mode === 'inline' ? 52 : 40;
   const stemY = svgHeight * 0.6;
@@ -103,11 +106,11 @@ export function VineProgress({
   const rightPad = 8;
   const svgWidth = 300;
   const availableWidth = svgWidth - potX - 12 - rightPad;
-  const progress = total > 0 ? explored / total : 0;
+  const progress = conceptTotal > 0 ? conceptExplored / conceptTotal : 0;
   const stemLength = progress * availableWidth;
 
-  const vineColor = isComplete ? '#66BB6A' : 'var(--primary-40)';
-  const stemColor = isComplete ? '#E8A838' : '#4CAF50';
+  const vineColor = vineComplete ? '#66BB6A' : 'var(--primary-40)';
+  const stemColor = vineComplete ? '#E8A838' : '#4CAF50';
 
   const flowerPositions = concepts.map((_, i) => {
     const segment = availableWidth / Math.max(concepts.length, 1);
@@ -124,9 +127,10 @@ export function VineProgress({
 
   const toggleExpand = useCallback(() => setExpanded(prev => !prev), []);
 
-  const ariaLabel = isComplete
+  const vineComplete = conceptTotal > 0 && conceptExplored >= conceptTotal;
+  const ariaLabel = vineComplete
     ? t('home.feed.vineComplete')
-    : t('home.feed.vineProgress', { explored, total });
+    : t('home.feed.vineProgress', { explored: conceptExplored, total: conceptTotal });
 
   const uncoveredConcepts = concepts.filter(c => !c.explored);
 
@@ -150,9 +154,9 @@ export function VineProgress({
     <div ref={containerRef} style={containerStyle}>
       <div
         role="progressbar"
-        aria-valuenow={explored}
+        aria-valuenow={conceptExplored}
         aria-valuemin={0}
-        aria-valuemax={total}
+        aria-valuemax={conceptTotal}
         aria-label={ariaLabel}
         onClick={toggleExpand}
         style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
@@ -200,13 +204,13 @@ export function VineProgress({
               cx={flowerPositions[i]}
               cy={stemY}
               explored={concept.explored}
-              isGold={isComplete}
+              isGold={vineComplete}
               size={mode === 'inline' ? 8 : 6}
             />
           ))}
 
           {/* Fruit when complete */}
-          {isComplete && flowerPositions.filter((_, i) => i < 3).map((fx, i) => (
+          {vineComplete && flowerPositions.filter((_, i) => i < 3).map((fx, i) => (
             <VineFruit key={`fruit-${i}`} cx={fx} cy={stemY - 14} />
           ))}
         </svg>
