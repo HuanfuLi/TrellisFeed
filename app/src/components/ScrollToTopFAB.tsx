@@ -40,8 +40,9 @@ export function ScrollToTopFAB({ scrollRef }: ScrollToTopFABProps) {
         justifyContent: 'center',
         cursor: 'pointer',
         opacity: visible ? 1 : 0,
+        transform: visible ? 'scale(1)' : 'scale(0.6)',
         pointerEvents: visible ? 'auto' : 'none',
-        transition: 'opacity 200ms ease',
+        transition: 'opacity 200ms ease, transform 200ms ease',
         zIndex: 40,
       }}
     >

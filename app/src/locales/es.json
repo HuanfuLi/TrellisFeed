@@ -89,7 +89,9 @@
       "emptyTitle": "Sin publicaciones aun",
       "emptyBody": "Las publicaciones que explores apareceran aqui.",
       "errorTitle": "No se pudo cargar el historial",
-      "errorRetry": "Reintentar"
+      "errorRetry": "Reintentar",
+      "today": "Hoy",
+      "yesterday": "Ayer"
     }
   },
   "planner": {

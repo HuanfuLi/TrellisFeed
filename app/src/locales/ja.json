@@ -89,7 +89,9 @@
       "emptyTitle": "投稿はまだありません",
       "emptyBody": "閲覧した投稿がここに表示されます。",
       "errorTitle": "履歴を読み込めませんでした",
-      "errorRetry": "もう一度試す"
+      "errorRetry": "もう一度試す",
+      "today": "今日",
+      "yesterday": "昨日"
     }
   },
   "planner": {

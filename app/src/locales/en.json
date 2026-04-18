@@ -89,7 +89,9 @@
       "emptyTitle": "No posts yet",
       "emptyBody": "Posts you explore will appear here.",
       "errorTitle": "Couldn't load history",
-      "errorRetry": "Try again"
+      "errorRetry": "Try again",
+      "today": "Today",
+      "yesterday": "Yesterday"
     }
   },
   "planner": {

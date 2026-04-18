@@ -1,6 +1,45 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Sparkles, ChevronRight } from 'lucide-react';
+
+function TopicButton({ topic, onTap }: { topic: string; onTap: (t: string) => void }) {
+  const [pressed, setPressed] = useState(false);
+  return (
+    <button
+      aria-label={topic}
+      onClick={() => onTap(topic)}
+      onPointerDown={() => setPressed(true)}
+      onPointerUp={() => setPressed(false)}
+      onPointerLeave={() => setPressed(false)}
+      style={{
+        width: '100%',
+        minHeight: '48px',
+        background: pressed ? 'var(--surface)' : 'var(--surface-variant)',
+        borderRadius: 'var(--radius)',
+        border: `1px solid ${pressed ? 'var(--primary-40)' : 'transparent'}`,
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '0 16px',
+        textAlign: 'left',
+        transition: 'background 150ms ease, border-color 150ms ease, transform 150ms ease',
+        transform: pressed ? 'scale(0.98)' : 'scale(1)',
+      }}
+    >
+      <span style={{
+        fontSize: '14px',
+        fontWeight: 400,
+        color: 'var(--foreground)',
+        flex: 1,
+      }}>
+        {topic}
+      </span>
+      <ChevronRight size={16} style={{ color: 'var(--muted-foreground)', flexShrink: 0 }} />
+    </button>
+  );
+}
 
 interface SuggestionCardProps {
   topics: string[];
@@ -51,34 +90,7 @@ export function SuggestionCard({ topics }: SuggestionCardProps) {
         flex: 1,
       }}>
         {topics.map((topic, i) => (
-          <button
-            key={i}
-            aria-label={topic}
-            onClick={() => handleTopicTap(topic)}
-            style={{
-              width: '100%',
-              minHeight: '48px',
-              background: 'var(--surface-variant)',
-              borderRadius: 'var(--radius)',
-              border: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '0 16px',
-              textAlign: 'left',
-            }}
-          >
-            <span style={{
-              fontSize: '14px',
-              fontWeight: 400,
-              color: 'var(--foreground)',
-              flex: 1,
-            }}>
-              {topic}
-            </span>
-            <ChevronRight size={16} style={{ color: 'var(--muted-foreground)', flexShrink: 0 }} />
-          </button>
+          <TopicButton key={i} topic={topic} onTap={handleTopicTap} />
         ))}
       </div>
     </div>
