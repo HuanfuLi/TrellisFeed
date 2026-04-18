@@ -72,7 +72,23 @@
       "complete": "Todo al dia!",
       "creditToast": "+1 credito ganado!",
       "emptyTitle": "Nada nuevo hoy",
-      "emptyBody": "Vuelve mas tarde para explorar nuevos conceptos."
+      "emptyBody": "Vuelve mas tarde para explorar nuevos conceptos.",
+      "suggestionTitle": "Quizas te interese",
+      "loadingTitle": "Generando tu feed...",
+      "feedbackPrompt": "No te interesan las publicaciones?",
+      "generationErrorTitle": "No se pudieron generar publicaciones",
+      "generationErrorBody": "Revisa tus claves API en Ajustes",
+      "generationErrorRetry": "Reintentar",
+      "vineComplete": "Todos los conceptos explorados",
+      "vineProgress": "{{explored}} de {{total}} conceptos explorados"
+    },
+    "history": {
+      "title": "Historial de publicaciones",
+      "iconLabel": "Ver historial",
+      "emptyTitle": "Sin publicaciones aun",
+      "emptyBody": "Las publicaciones que explores apareceran aqui.",
+      "errorTitle": "No se pudo cargar el historial",
+      "errorRetry": "Reintentar"
     }
   },
   "planner": {
@@ -322,7 +338,13 @@
       "nanoBananaApiKey": "Clave API Nano Banana",
       "geminiApiKey": "Clave API Gemini",
       "geminiModel": "Modelo Gemini",
-      "language": "Idioma"
+      "language": "Idioma",
+      "postRetention": "Retencion de publicaciones",
+      "postRetention7d": "7 dias",
+      "postRetentionAll": "Conservar todo",
+      "generationCap": "Limite diario de generacion",
+      "bonusCap": "Limite de publicaciones extra",
+      "sendFeedback": "Enviar comentarios"
     },
     "descriptions": {
       "embeddingBlurb": "Usado para la similitud semántica entre conceptos. Impulsa la calidad de las tarjetas de conexión. Independiente del LLM — Anthropic no tiene modelo de embeddings.",
@@ -357,7 +379,9 @@
       "developerBlurb": "Herramientas de depuración. Las acciones destructivas no se pueden deshacer.",
       "usageBlurb": "Límite mensual de preguntas y uso de tokens de la API del LLM.",
       "privacyBlurb": "EchoLearn es local-first. Todas las notas, fichas y sesiones se guardan solo en este dispositivo. Ningún servidor de EchoLearn recibe tus datos.",
-      "aiConsentHint": "Permitir que las preguntas se envíen a tu proveedor de IA"
+      "aiConsentHint": "Permitir que las preguntas se envíen a tu proveedor de IA",
+      "generationCap": "Publicaciones max por concepto al dia",
+      "bonusCap": "Publicaciones extra tras explorar todos los conceptos"
     },
     "providerLabels": {
       "openai": "OpenAI",

@@ -72,7 +72,23 @@
       "complete": "すべて完了!",
       "creditToast": "+1 クレジット獲得!",
       "emptyTitle": "今日は新しいものはありません",
-      "emptyBody": "後で新しいコンセプトを探しに来てください。"
+      "emptyBody": "後で新しいコンセプトを探しに来てください。",
+      "suggestionTitle": "こちらもおすすめ",
+      "loadingTitle": "フィードを生成中...",
+      "feedbackPrompt": "投稿に興味がありませんか？",
+      "generationErrorTitle": "投稿を生成できませんでした",
+      "generationErrorBody": "設定で API キーを確認してください",
+      "generationErrorRetry": "再試行",
+      "vineComplete": "すべてのコンセプトを探索済み",
+      "vineProgress": "{{total}} 件中 {{explored}} 件のコンセプトを探索済み"
+    },
+    "history": {
+      "title": "投稿履歴",
+      "iconLabel": "投稿履歴を表示",
+      "emptyTitle": "投稿はまだありません",
+      "emptyBody": "閲覧した投稿がここに表示されます。",
+      "errorTitle": "履歴を読み込めませんでした",
+      "errorRetry": "もう一度試す"
     }
   },
   "planner": {
@@ -322,7 +338,13 @@
       "nanoBananaApiKey": "Nano Banana API キー",
       "geminiApiKey": "Gemini API キー",
       "geminiModel": "Gemini モデル",
-      "language": "言語"
+      "language": "言語",
+      "postRetention": "投稿の保持",
+      "postRetention7d": "7 日間",
+      "postRetentionAll": "すべて保持",
+      "generationCap": "1日の生成上限",
+      "bonusCap": "ボーナス投稿の上限",
+      "sendFeedback": "フィードバックを送信"
     },
     "descriptions": {
       "embeddingBlurb": "概念間の意味的類似度に使用され、コネクションカードの品質を支えます。LLM とは別 — Anthropic に埋め込みモデルはありません。",
@@ -357,7 +379,9 @@
       "developerBlurb": "開発用のデバッグツール。破壊的操作は元に戻せません。",
       "usageBlurb": "月間の質問上限と LLM API トークン使用状況。",
       "privacyBlurb": "EchoLearn はローカル優先です。ノート、フラッシュカード、セッションはこの端末のみに保存されます。EchoLearn サーバーがデータを受け取ることはありません。",
-      "aiConsentHint": "質問を設定済みの AI プロバイダーへ送信することを許可"
+      "aiConsentHint": "質問を設定済みの AI プロバイダーへ送信することを許可",
+      "generationCap": "コンセプトごとの1日最大生成数",
+      "bonusCap": "全コンセプト探索後の追加投稿数"
     },
     "providerLabels": {
       "openai": "OpenAI",

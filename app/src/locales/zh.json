@@ -72,7 +72,23 @@
       "complete": "全部看完了!",
       "creditToast": "+1 积分已获得!",
       "emptyTitle": "今天没有新内容",
-      "emptyBody": "稍后再来看看有没有新概念可以探索。"
+      "emptyBody": "稍后再来看看有没有新概念可以探索。",
+      "suggestionTitle": "你可能还感兴趣",
+      "loadingTitle": "正在生成你的动态...",
+      "feedbackPrompt": "内容不感兴趣？",
+      "generationErrorTitle": "无法生成内容",
+      "generationErrorBody": "请在设置中检查 API 密钥",
+      "generationErrorRetry": "重试",
+      "vineComplete": "所有概念已探索",
+      "vineProgress": "已探索 {{explored}}/{{total}} 个概念"
+    },
+    "history": {
+      "title": "内容历史",
+      "iconLabel": "查看内容历史",
+      "emptyTitle": "暂无内容",
+      "emptyBody": "你浏览过的内容会出现在这里。",
+      "errorTitle": "无法加载历史",
+      "errorRetry": "再试一次"
     }
   },
   "planner": {
@@ -322,7 +338,13 @@
       "nanoBananaApiKey": "Nano Banana API 密钥",
       "geminiApiKey": "Gemini API 密钥",
       "geminiModel": "Gemini 模型",
-      "language": "语言"
+      "language": "语言",
+      "postRetention": "内容保留",
+      "postRetention7d": "7 天",
+      "postRetentionAll": "全部保留",
+      "generationCap": "每日生成上限",
+      "bonusCap": "额外内容上限",
+      "sendFeedback": "发送反馈"
     },
     "descriptions": {
       "embeddingBlurb": "用于概念之间的语义相似度计算，为连接卡片质量提供支持。与 LLM 分开 — Anthropic 没有嵌入模型。",
@@ -357,7 +379,9 @@
       "developerBlurb": "开发用的调试工具。破坏性操作无法撤销。",
       "usageBlurb": "每月提问限额和 LLM API Token 使用情况。",
       "privacyBlurb": "EchoLearn 采用本地优先策略。所有笔记、闪卡和会话都仅存储在本设备上。任何 EchoLearn 服务器都不会收到你的数据。",
-      "aiConsentHint": "允许将问题发送到你配置的 AI 提供商"
+      "aiConsentHint": "允许将问题发送到你配置的 AI 提供商",
+      "generationCap": "每个概念每天最多生成数",
+      "bonusCap": "所有概念探索完后的额外内容数"
     },
     "providerLabels": {
       "openai": "OpenAI",
