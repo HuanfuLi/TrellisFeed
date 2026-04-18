@@ -767,6 +767,9 @@ async function generatePostBatch(
   const shortAssignments = assignments.filter(a => a.style === 'short');
   const newsAssignments = assignments.filter(a => a.style === 'news');
 
+  // Track seen YouTube videoIds to prevent duplicates within a batch (MAJOR 4 fix)
+  const seenVideoIds = new Set<string>();
+
   const posts: DailyPost[] = [];
   const existingPosts = loadCache()?.posts ?? [];
   const indexOffset = existingPosts.length;
@@ -829,66 +832,72 @@ async function generatePostBatch(
     }
   }
 
-  // Generate video posts from YouTube
+  // Generate video posts from YouTube (with dedup via seenVideoIds)
   for (const a of videoAssignments) {
     try {
       const concept = byId.get(a.conceptId);
       const conceptName = concept?.title ?? concept?.content?.slice(0, 50) ?? a.conceptId;
-      const searchResult = await youtubeService.searchVideos(conceptName, 1);
-      if (searchResult.success && searchResult.data && searchResult.data.length > 0) {
-        const video = searchResult.data[0];
-        posts.push({
-          id: `post-${date}-video-${a.conceptId}`,
-          date,
-          title: video.title || conceptName,
-          teaser: { hook: video.title || conceptName, preview: video.description?.slice(0, 170) || '' },
-          bodyMarkdown: '',
-          whyCare: '',
-          takeaway: '',
-          quickAskPrompts: [],
-          narrativeMode: 'mechanism-breakdown' as PostNarrativeMode,
-          contextLabel: 'Video',
-          sourceType: 'video',
-          sourceQuestionIds: [a.conceptId],
-          sourceQuestionTitles: [conceptName],
-          keywords: concept?.keywords?.slice(0, 4) ?? [],
-          generatedAt: Date.now(),
-          origin: 'ai',
-          presentationStyle: 'video',
-          videoMeta: { videoId: video.videoId, channelTitle: video.channelTitle, thumbnailUrl: video.thumbnailUrl },
-        });
+      const searchResult = await youtubeService.searchVideos(conceptName, 3);
+      if (searchResult.success && searchResult.data) {
+        const freshVideo = searchResult.data.find(v => !seenVideoIds.has(v.videoId));
+        if (freshVideo) {
+          seenVideoIds.add(freshVideo.videoId);
+          posts.push({
+            id: `post-${date}-video-${a.conceptId}`,
+            date,
+            title: freshVideo.title || conceptName,
+            teaser: { hook: freshVideo.title || conceptName, preview: freshVideo.description?.slice(0, 170) || '' },
+            bodyMarkdown: '',
+            whyCare: '',
+            takeaway: '',
+            quickAskPrompts: [],
+            narrativeMode: 'mechanism-breakdown' as PostNarrativeMode,
+            contextLabel: 'Video',
+            sourceType: 'video',
+            sourceQuestionIds: [a.conceptId],
+            sourceQuestionTitles: [conceptName],
+            keywords: concept?.keywords?.slice(0, 4) ?? [],
+            generatedAt: Date.now(),
+            origin: 'ai',
+            presentationStyle: 'video',
+            videoMeta: { videoId: freshVideo.videoId, channelTitle: freshVideo.channelTitle, thumbnailUrl: freshVideo.thumbnailUrl },
+          });
+        }
       }
     } catch { /* video fetch failed — already reassigned in pre-validation */ }
   }
 
-  // Generate short posts from YouTube (use shorts query modifier)
+  // Generate short posts from YouTube (use shorts query modifier, with dedup via seenVideoIds)
   for (const a of shortAssignments) {
     try {
       const concept = byId.get(a.conceptId);
       const conceptName = concept?.title ?? concept?.content?.slice(0, 50) ?? a.conceptId;
-      const searchResult = await youtubeService.searchVideos(conceptName + ' #shorts', 1);
-      if (searchResult.success && searchResult.data && searchResult.data.length > 0) {
-        const short = searchResult.data[0];
-        posts.push({
-          id: `post-${date}-short-${a.conceptId}`,
-          date,
-          title: short.title || conceptName,
-          teaser: { hook: short.title || conceptName, preview: short.description?.slice(0, 170) || '' },
-          bodyMarkdown: '',
-          whyCare: '',
-          takeaway: '',
-          quickAskPrompts: [],
-          narrativeMode: 'mechanism-breakdown' as PostNarrativeMode,
-          contextLabel: 'Short',
-          sourceType: 'short',
-          sourceQuestionIds: [a.conceptId],
-          sourceQuestionTitles: [conceptName],
-          keywords: concept?.keywords?.slice(0, 4) ?? [],
-          generatedAt: Date.now(),
-          origin: 'ai',
-          presentationStyle: 'short',
-          videoMeta: { videoId: short.videoId, title: short.title, channelTitle: short.channelTitle, thumbnailUrl: short.thumbnailUrl },
-        });
+      const searchResult = await youtubeService.searchVideos(conceptName + ' #shorts', 3);
+      if (searchResult.success && searchResult.data) {
+        const freshShort = searchResult.data.find(v => !seenVideoIds.has(v.videoId));
+        if (freshShort) {
+          seenVideoIds.add(freshShort.videoId);
+          posts.push({
+            id: `post-${date}-short-${a.conceptId}`,
+            date,
+            title: freshShort.title || conceptName,
+            teaser: { hook: freshShort.title || conceptName, preview: freshShort.description?.slice(0, 170) || '' },
+            bodyMarkdown: '',
+            whyCare: '',
+            takeaway: '',
+            quickAskPrompts: [],
+            narrativeMode: 'mechanism-breakdown' as PostNarrativeMode,
+            contextLabel: 'Short',
+            sourceType: 'short',
+            sourceQuestionIds: [a.conceptId],
+            sourceQuestionTitles: [conceptName],
+            keywords: concept?.keywords?.slice(0, 4) ?? [],
+            generatedAt: Date.now(),
+            origin: 'ai',
+            presentationStyle: 'short',
+            videoMeta: { videoId: freshShort.videoId, channelTitle: freshShort.channelTitle, thumbnailUrl: freshShort.thumbnailUrl },
+          });
+        }
       }
     } catch { /* short fetch failed */ }
   }
