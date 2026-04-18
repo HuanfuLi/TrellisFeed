@@ -491,13 +491,9 @@ export function HomeScreen() {
           top: 'var(--safe-area-top)',
           left: 0,
           right: 0,
-          height: '64px',
           zIndex: 190,
           backgroundColor: isComplete ? 'color-mix(in srgb, #E8A838 8%, var(--surface))' : 'var(--surface)',
           boxShadow: showCompactBar ? 'var(--shadow-1)' : 'none',
-          display: 'flex',
-          alignItems: 'center',
-          padding: '0 16px',
           opacity: showCompactBar ? 1 : 0,
           transform: showCompactBar ? 'translateY(0)' : 'translateY(-100%)',
           transition: 'opacity 300ms ease, transform 300ms ease, box-shadow 300ms ease',
@@ -507,16 +503,14 @@ export function HomeScreen() {
           transitionDelay: showCompactBar ? '0ms' : '0ms, 0ms, 0ms, 300ms',
         }}
       >
-        <div style={{ maxWidth: '448px', margin: '0 auto', width: '100%' }}>
-          <VineProgress
-              mode="compact"
-              explored={exploredCount}
-              total={conceptQuota}
-              isComplete={isComplete}
-              concepts={conceptList}
-              onConceptTap={handleConceptTap}
-            />
-        </div>
+        <VineProgress
+          mode="compact"
+          explored={exploredCount}
+          total={conceptQuota}
+          isComplete={isComplete}
+          concepts={conceptList}
+          onConceptTap={handleConceptTap}
+        />
       </div>
       <div
         ref={containerRef}
