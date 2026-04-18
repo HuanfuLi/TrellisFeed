@@ -54,7 +54,7 @@ export function SuggestionCard({ topics }: SuggestionCardProps) {
   };
 
   if (!topics.length) return null;
-  const displayTopics = topics.slice(0, 3);
+  const displayTopics = topics.slice(0, 4);
 
   return (
     <div

@@ -102,6 +102,9 @@ function makeStarterPost(
     keywords: ['echolearn', 'getting-started'],
     generatedAt: Date.now(),
     origin: 'ai',
+    whyCare: '',
+    takeaway: '',
+    quickAskPrompts: [],
   };
 }
 
@@ -719,11 +722,14 @@ export function buildPostOriginContext(post: DailyPost, questions: Question[]): 
  * Per D-14: important concepts get 2 posts per cycle, others get 1.
  */
 function buildConceptBatch(questions: Question[]): string[] {
+  // D-13: skip concepts with pending posts in queue (current cycle coverage),
+  // and skip concepts the user has already explored today (checkedoff).
   const queuePosts = postQueueService.getQueue();
-  const exploredIds = new Set(queuePosts.flatMap(p => p.sourceQuestionIds ?? []));
+  const pendingIds = new Set(queuePosts.flatMap(p => p.sourceQuestionIds ?? []));
+  const exploredIds = new Set(dailyReadService.getExploredAnchors());
 
   const anchors = questions.filter(q => q.isAnchorNode);
-  const dueAnchors = anchors.filter(a => !exploredIds.has(a.id));
+  const dueAnchors = anchors.filter(a => !pendingIds.has(a.id) && !exploredIds.has(a.id));
 
   const conceptIds: string[] = [];
   for (const anchor of dueAnchors) {
@@ -800,18 +806,49 @@ async function generatePostBatch(
             parsed.posts[i].presentationStyle = assignment.style;
             if (assignment.style === 'suggestion') {
               parsed.posts[i].sourceType = 'suggestion' as DailyPost['sourceType'];
-              // D-27: populate suggestion topics from knowledge graph neighbors
+              // D-24: generate novel suggestion topics via LLM
               const concept = byId.get(assignment.conceptId);
               if (concept) {
-                const neighbors = questions
-                  .filter(q => q.parentId === concept.parentId && q.id !== concept.id)
-                  .slice(0, 5);
-                const topics = neighbors
-                  .map(n => n.title?.trim() || n.content?.slice(0, 50)?.trim())
-                  .filter((t): t is string => !!t)
-                  .slice(0, 3);
-                if (topics.length > 0) {
-                  parsed.posts[i].suggestionMeta = { topics };
+                const existingTopics = questions
+                  .filter(q => q.parentId === concept.parentId || q.parentId === concept.id)
+                  .map(q => q.title?.trim() || q.content?.slice(0, 50)?.trim())
+                  .filter((t): t is string => !!t);
+
+                try {
+                  const topicPrompt = `Given the concept "${concept.title || concept.content?.slice(0, 80)}", the user already knows about: ${existingTopics.slice(0, 8).join(', ') || 'nothing yet'}.
+
+Suggest exactly 4 NEW topics they might find interesting. Topics should be:
+- Related but unexplored (deeper dives, applications, contrasts, prerequisites, cross-domain connections)
+- Phrased as questions or short phrases (max 60 chars each)
+- NOT repeating any existing topic listed above
+
+Return ONLY a JSON array of 4 strings, nothing else. Example: ["What is X?", "How does Y compare to Z?", "Applications of X in medicine", "Prerequisites for understanding X"]`;
+
+                  const topicRaw = await chatCompletion(
+                    [
+                      { role: 'system', content: 'You generate concise topic suggestions. Return only valid JSON.' },
+                      { role: 'user', content: topicPrompt },
+                    ],
+                    settings.llm,
+                    { serviceName: 'suggestions' },
+                  );
+
+                  const cleaned = topicRaw.replace(/```json\n?|\n?```/g, '').trim();
+                  const topics = JSON.parse(cleaned) as string[];
+                  if (Array.isArray(topics) && topics.length > 0) {
+                    parsed.posts[i].suggestionMeta = { topics: topics.slice(0, 4) };
+                  }
+                } catch {
+                  // Fallback: use different-anchor questions if LLM fails
+                  const neighbors = questions
+                    .filter(q => q.parentId !== concept.parentId && q.isAnchorNode)
+                    .slice(0, 4);
+                  const fallbackTopics = neighbors
+                    .map(n => n.title?.trim() || n.content?.slice(0, 50)?.trim())
+                    .filter((t): t is string => !!t);
+                  if (fallbackTopics.length > 0) {
+                    parsed.posts[i].suggestionMeta = { topics: fallbackTopics };
+                  }
                 }
               }
             }
@@ -944,8 +981,7 @@ export async function refillQueue(questions: Question[]): Promise<void> {
     const settings = settingsService.getSync();
     // D-38: check daily generation cap
     const dueConcepts = questions.filter(q => q.isAnchorNode);
-    const feedSettings = (settings as Record<string, unknown>).feed as { dailyGenerationCapMultiplier?: number } | undefined;
-    const maxPosts = (feedSettings?.dailyGenerationCapMultiplier ?? FEED_DEFAULTS.dailyGenerationCapMultiplier) * Math.max(dueConcepts.length, 1);
+    const maxPosts = (settings.feed?.dailyGenerationCapMultiplier ?? FEED_DEFAULTS.dailyGenerationCapMultiplier) * Math.max(dueConcepts.length, 1);
     if (postQueueService.getTotalGenerated() >= maxPosts) return;
 
     // Step 1: Build concept batch for this cycle
@@ -1028,7 +1064,6 @@ export const conceptFeedService = {
     if (cached?.date === date && cached.fingerprint === fingerprint && cached.posts.length > 0) {
       const feedPosts = cached.posts.filter((p) => p.sourceType !== 'connection');
       _backgroundGenerateTextArt(feedPosts);
-      // Trigger queue refill in background
       refillQueue(questions).catch(console.error);
       return feedPosts;
     }
@@ -1043,32 +1078,26 @@ export const conceptFeedService = {
       return feedPosts;
     }
 
-    // No cache: generate initial posts via LLM (legacy path for first load)
-    let generated: ParsedGeneration = { posts: [], connectionCards: [] };
-    try {
-      generated = await generateDailyPostsWithLLM(questions, date);
-    } catch {
-      generated = { posts: [], connectionCards: [] };
+    // No cache for today — drain queue if it has posts (D-10).
+    postQueueService.loadQueue();
+    const queuedPosts = postQueueService.dequeue(postQueueService.size());
+
+    if (queuedPosts.length > 0) {
+      for (const p of queuedPosts) { try { postHistoryService.addPost(p); } catch { /* non-critical */ } }
+      saveCache({ date, fingerprint, posts: queuedPosts, connectionCards: [] });
+      _backgroundGenerateTextArt(queuedPosts);
+      refillQueue(questions).catch(console.error);
+      return queuedPosts;
     }
 
-    const newPosts = generated.posts;
-    const oldPosts = cached?.posts ?? [];
-    const newIds = new Set(newPosts.map((p) => p.id));
-    const preserved = oldPosts.filter((p) => !newIds.has(p.id));
-    const allPosts = [...newPosts, ...preserved];
+    // Queue and cache both empty — trigger refill in background (D-11, D-30).
+    // HomeScreen warm-start initializer shows yesterday's queue or history while
+    // today's queue fills via refillQueue.
+    refillQueue(questions).catch(console.error);
 
-    saveCache({ date, fingerprint, posts: allPosts, connectionCards: generated.connectionCards });
-
-    const feedPosts = allPosts.filter((p) => p.sourceType !== 'connection');
-    const enrichedPosts = await generateTextArtContent(feedPosts);
-    _persistStylesToCache(enrichedPosts);
-
-    // Spread styles and persist to history (D-33) + seed queue
-    spreadByStyle(enrichedPosts);
-    for (const p of enrichedPosts) { try { postHistoryService.addPost(p); } catch { /* non-critical */ } }
-    postQueueService.enqueue(enrichedPosts);
-
-    return enrichedPosts;
+    // D-43: first-ever load with no questions — show starter tutorial posts
+    if (questions.length === 0) return STARTER_POSTS;
+    return [];
   },
 
   /** Return cached connection card data for the current session. */
@@ -1147,8 +1176,10 @@ export const conceptFeedService = {
 
   /** Append dynamically loaded posts to the daily cache so they survive page refresh. */
   appendToCache(posts: DailyPost[]): void {
-    const cached = loadCache();
-    if (!cached) return;
+    let cached = loadCache();
+    if (!cached) {
+      cached = { date: today(), fingerprint: '', posts: [], connectionCards: [] };
+    }
     const existingIds = new Set(cached.posts.map(p => p.id));
     const fresh = posts.filter(p => !existingIds.has(p.id));
     if (fresh.length === 0) return;
@@ -1159,6 +1190,7 @@ export const conceptFeedService = {
   /** Explicitly clear the post cache (e.g. after "Clear All Data"). */
   clearCache(): void {
     try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
+    try { sessionStorage.removeItem(CONNECTION_POSTS_KEY); } catch { /* ignore */ }
   },
 
   /**
