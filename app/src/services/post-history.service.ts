@@ -11,7 +11,9 @@ function loadPosts(): DailyPost[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
-    return JSON.parse(raw) as DailyPost[];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((p: Record<string, unknown>) => p && typeof p.id === 'string');
   } catch {
     return [];
   }
@@ -44,7 +46,7 @@ export const postHistoryService = {
     const posts = this.getPosts();
     const grouped = new Map<string, DailyPost[]>();
     for (const post of posts) {
-      const day = post.date;
+      const day = post.date || new Date(post.generatedAt || Date.now()).toISOString().slice(0, 10);
       const arr = grouped.get(day) || [];
       arr.push(post);
       grouped.set(day, arr);
