@@ -1,22 +1,22 @@
 /**
  * infiniteScroll.service.ts
  * Manages paginated post batch fetching and client-side deduplication.
- * Phase 8: Post Detail & Infinite Scroll
+ * Phase 31: Adapted to use postQueueService (FIFO queue with 4-post serve, D-45).
  *
  * Wraps conceptFeedService.generateMorePosts() with:
  * - Deduplication via seenPostIds Set
- * - Batch size control (default 10)
+ * - Batch size control (default 4, D-45)
  * - State reset between sessions
  */
 
 import type { DailyPost, Question } from '../types';
 import { conceptFeedService } from './concept-feed.service';
+import { postQueueService } from './post-queue.service';
 
 // ─── Internal State ───────────────────────────────────────────────────────────
 
 let seenPostIds: Set<string> = new Set();
 let offset = 0;
-let pendingQueue: DailyPost[] = [];
 
 // ─── Service ──────────────────────────────────────────────────────────────────
 
@@ -24,59 +24,35 @@ export const infiniteScrollService = {
   /**
    * Initialize (or reset) the service state.
    * Call this on HomeScreen mount to start fresh with empty dedup state.
+   * Loads queue from localStorage to detect day-change resets.
    */
   initialize(): void {
     seenPostIds = new Set();
     offset = 0;
+    postQueueService.loadQueue();
   },
 
   /**
    * Load the next batch of posts.
    *
-   * Calls conceptFeedService.generateMorePosts() to generate fresh content,
-   * then filters out any posts whose IDs have already been seen.
+   * Phase 31: Serves from postQueueService via conceptFeedService.generateMorePosts().
+   * Deduplicates and triggers background refill when queue runs low.
    *
-   * @param questions - Current user questions (required for LLM generation)
-   * @param limit - Number of posts to request (default 10)
+   * @param questions - Current user questions (required for queue refill)
+   * @param limit - Number of posts to request (default 4, D-45)
    * @returns Deduplicated array of new posts (may be < limit if duplicates filtered)
    */
-  async loadNextBatch(questions: Question[], limit = 6): Promise<DailyPost[]> {
+  async loadNextBatch(questions: Question[], limit = 4): Promise<DailyPost[]> {
     try {
-      // Drain pending queue first (session-generated posts waiting to be shown)
-      const fromQueue: DailyPost[] = [];
-      while (pendingQueue.length > 0 && fromQueue.length < limit) {
-        const post = pendingQueue.shift()!;
-        if (!seenPostIds.has(post.id)) {
-          fromQueue.push(post);
-          if (seenPostIds.size < 500) seenPostIds.add(post.id);
-        }
-      }
-      if (fromQueue.length >= limit) {
-        offset += fromQueue.length;
-        return fromQueue;
-      }
-
-      // Generate fresh posts to fill remaining slots
-      const remaining = limit - fromQueue.length;
-      const batch = await conceptFeedService.generateMorePosts(questions, remaining);
+      // Serve from postQueueService via conceptFeedService
+      const batch = await conceptFeedService.generateMorePosts(questions, limit);
       const deduplicated = batch.filter((post) => !seenPostIds.has(post.id));
       deduplicated.forEach((post) => {
         if (seenPostIds.size < 500) seenPostIds.add(post.id);
       });
 
-      offset += fromQueue.length + deduplicated.length;
-      const result = [...fromQueue, ...deduplicated];
-
-      // Background-refill: if queue is empty after serving, pre-generate 6 for next swipe
-      if (pendingQueue.length === 0) {
-        void conceptFeedService.generateMorePosts(questions, 6).then((posts) => {
-          if (posts.length > 0) {
-            pendingQueue.push(...posts);
-          }
-        }).catch(() => { /* silent — next swipe will generate fresh */ });
-      }
-
-      return result;
+      offset += deduplicated.length;
+      return deduplicated;
     } catch (err) {
       console.error('[infiniteScrollService] Batch load failed:', err);
       throw err; // Caller handles retry
@@ -84,18 +60,18 @@ export const infiniteScrollService = {
   },
 
   /**
-   * Push pre-generated posts into the pending queue.
+   * Push pre-generated posts into the persistent queue.
    * These will be served first on the next loadNextBatch call.
    */
   enqueuePosts(posts: DailyPost[]): void {
-    pendingQueue.push(...posts);
+    postQueueService.enqueue(posts);
   },
 
   /**
-   * Get the current pending queue size.
+   * Get the current persistent queue size.
    */
   getPendingCount(): number {
-    return pendingQueue.length;
+    return postQueueService.size();
   },
 
   /**
@@ -104,7 +80,6 @@ export const infiniteScrollService = {
   reset(): void {
     seenPostIds = new Set();
     offset = 0;
-    pendingQueue = [];
   },
 
   /**

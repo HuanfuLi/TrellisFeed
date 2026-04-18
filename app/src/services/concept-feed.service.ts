@@ -8,9 +8,11 @@ import { graphService } from './graph.service.ts';
 import { youtubeService } from './youtube.service';
 import { newsService } from './news.service';
 import { webSearch } from './web-search.service';
-import { defaultStrategy } from './orchestration-strategy.service';
-import { trajectoryAnalyzerService } from './trajectoryAnalyzer.service';
+// defaultStrategy and trajectoryAnalyzerService removed — applyStrategyBias no longer used (Phase 31)
 import { questionService } from './question.service';
+import { postQueueService } from './post-queue.service';
+import { assignStyles, reassignFailures, type ApiAvailability } from './style-assignment';
+import { computeLeafState } from './trellis-state.service';
 
 const STORAGE_KEY = 'echolearn_daily_posts';
 const CONNECTION_POSTS_KEY = 'echolearn_connection_posts';
@@ -47,7 +49,7 @@ interface CachedDailyPosts {
   connectionCards?: ConnectionCardData[];
 }
 
-const VALID_SOURCE_TYPES = new Set<DailyPost['sourceType']>(['recent', 'related', 'resurfaced', 'starter', 'mixed', 'connection', 'video', 'short', 'text-art', 'news']);
+const VALID_SOURCE_TYPES = new Set<DailyPost['sourceType']>(['recent', 'related', 'resurfaced', 'starter', 'mixed', 'connection', 'video', 'short', 'text-art', 'news', 'suggestion']);
 
 export const STARTER_POSTS: DailyPost[] = [
   makeStarterPost(
@@ -566,63 +568,7 @@ function shuffleArray<T>(array: T[]): T[] {
   return arr;
 }
 
-/**
- * Assign a presentationStyle to every post and interleave video posts among AI posts.
- * Non-video weights: image 40%, text-art 33%, image-less 27% (when image gen enabled).
- * When image generation is off, image weight redistributes to text-art (55%) and image-less (45%).
- */
-export function assignPresentationStyles(
-  aiPosts: DailyPost[],
-  videoPosts: DailyPost[],
-): DailyPost[] {
-  const imageEnabled = settingsService.getSync().imageGeneration.enabled;
-
-  // Video posts keep their sourceType-based presentation
-  const styledVideos = videoPosts.map(p => ({
-    ...p,
-    presentationStyle: (p.sourceType === 'short' ? 'short' : 'video') as PresentationStyle,
-  }));
-
-  const nonVideoCount = aiPosts.length;
-  if (nonVideoCount === 0) return styledVideos;
-
-  // Weights for AI posts only (video/short already separated).
-  // Spec: ~30% image, ~25% text-art, ~20% image-less of AI posts (remaining ~25% is video/short via interleave).
-  // When image generation is off, redistribute image slots to text-art and image-less.
-  const effectiveWeights = imageEnabled
-    ? { image: 0.40, 'text-art': 0.33, 'image-less': 0.27 }
-    : { image: 0, 'text-art': 0.55, 'image-less': 0.45 };
-
-  const imageCount = Math.round(nonVideoCount * effectiveWeights.image);
-  const textArtCount = Math.round(nonVideoCount * effectiveWeights['text-art']);
-  const imageLessCount = nonVideoCount - imageCount - textArtCount;
-
-  const styles: PresentationStyle[] = [
-    ...Array(imageCount).fill('image' as PresentationStyle),
-    ...Array(textArtCount).fill('text-art' as PresentationStyle),
-    ...Array(imageLessCount).fill('image-less' as PresentationStyle),
-  ];
-  const shuffled = shuffleArray(styles);
-
-  const styledAi = aiPosts.map((post, i) => ({
-    ...post,
-    presentationStyle: shuffled[i] ?? ('image-less' as PresentationStyle),
-  }));
-
-  // Interleave: place video posts at regular intervals among AI posts
-  if (styledVideos.length === 0) return styledAi;
-  const result: DailyPost[] = [];
-  const interval = Math.max(2, Math.floor(styledAi.length / (styledVideos.length + 1)));
-  let vIdx = 0;
-  for (let i = 0; i < styledAi.length; i++) {
-    result.push(styledAi[i]);
-    if ((i + 1) % interval === 0 && vIdx < styledVideos.length) {
-      result.push(styledVideos[vIdx++]);
-    }
-  }
-  while (vIdx < styledVideos.length) result.push(styledVideos[vIdx++]);
-  return result;
-}
+// assignPresentationStyles removed in Phase 31 — replaced by pre-style assignment via style-assignment.ts (D-18)
 
 /**
  * Generate text-art content for posts assigned the 'text-art' presentationStyle.
@@ -707,23 +653,7 @@ function _backgroundGenerateNews(): void {
     .finally(() => { _newsBgRunning = false; });
 }
 
-/**
- * Interleave news posts into the feed. Inserts a news post after every 3rd
- * feed post. Remaining news posts are appended at the end.
- */
-function interleaveNewsPosts(feedPosts: DailyPost[], news: DailyPost[]): DailyPost[] {
-  if (news.length === 0) return feedPosts;
-  const result: DailyPost[] = [];
-  let nIdx = 0;
-  for (let i = 0; i < feedPosts.length; i++) {
-    result.push(feedPosts[i]);
-    if ((i + 1) % 3 === 0 && nIdx < news.length) {
-      result.push(news[nIdx++]);
-    }
-  }
-  while (nIdx < news.length) result.push(news[nIdx++]);
-  return result;
-}
+// interleaveNewsPosts removed in Phase 31 — news posts now handled by weighted round-robin at generation time (D-44)
 
 
 
@@ -748,26 +678,291 @@ export function buildPostOriginContext(post: DailyPost, questions: Question[]): 
   };
 }
 
+// applyStrategyBias removed in Phase 31 — concept prioritization now handled by buildConceptBatch (D-12/D-13/D-14)
+
+// ─── Queue-based generation pipeline (Phase 31, D-17/D-18/D-21/D-44) ────────
+
 /**
- * Apply strategy bias: sort posts so those whose sourceQuestionIds overlap
- * with priorityConceptIds appear first. This is a light bias (sorting, not
- * filtering) per D-01 "strategy provides hints".
+ * Build the derived concept list for this generation cycle.
+ * Per D-12: driven by today's due concepts from SM-2.
+ * Per D-13: exclude already-explored concepts (via seen IDs in post queue).
+ * Per D-14: important concepts get 2 posts per cycle, others get 1.
  */
-function applyStrategyBias(posts: DailyPost[]): DailyPost[] {
-  try {
-    const signals = trajectoryAnalyzerService.aggregateSignals();
-    const hints = defaultStrategy.computeHints(signals);
-    if (hints.priorityConceptIds.length > 0) {
-      posts.sort((a, b) => {
-        const aMatch = hints.priorityConceptIds.some(id => a.sourceQuestionIds?.includes(id)) ? 1 : 0;
-        const bMatch = hints.priorityConceptIds.some(id => b.sourceQuestionIds?.includes(id)) ? 1 : 0;
-        return bMatch - aMatch;
-      });
-    }
-  } catch {
-    // Strategy bias is optional — don't break feed if signals unavailable
+function buildConceptBatch(questions: Question[]): string[] {
+  const queuePosts = postQueueService.getQueue();
+  const exploredIds = new Set(queuePosts.flatMap(p => p.sourceQuestionIds ?? []));
+
+  const dueAnchors = questions.filter(q =>
+    q.isAnchorNode && !exploredIds.has(q.id),
+  );
+
+  const conceptIds: string[] = [];
+  for (const anchor of dueAnchors) {
+    const leaf = computeLeafState(anchor);
+    const isImportant =
+      (anchor.reviewSchedule?.easeFactor != null && anchor.reviewSchedule.easeFactor < 1.5) ||
+      leaf === 'falling' || leaf === 'fallen';
+    conceptIds.push(anchor.id);
+    if (isImportant) conceptIds.push(anchor.id); // D-14: important gets 2 posts
   }
-  return posts;
+  return conceptIds;
+}
+
+/**
+ * Generate a batch of posts from pre-assigned style assignments.
+ * Reuses the existing LLM generation prompt for text-style posts,
+ * fetches from YouTube/Tavily for video/news, and generates text-art content.
+ */
+async function generatePostBatch(
+  questions: Question[],
+  assignments: import('./style-assignment').StyleAssignment[],
+): Promise<DailyPost[]> {
+  const date = today();
+  const byId = new Map(questions.map(q => [q.id, q]));
+  const settings = settingsService.getSync();
+
+  // Group assignments by style for batch processing
+  const textStyleAssignments = assignments.filter(a =>
+    a.style === 'text-art' || a.style === 'image' || a.style === 'suggestion',
+  );
+  const videoAssignments = assignments.filter(a => a.style === 'video');
+  const shortAssignments = assignments.filter(a => a.style === 'short');
+  const newsAssignments = assignments.filter(a => a.style === 'news');
+
+  const posts: DailyPost[] = [];
+  const existingPosts = loadCache()?.posts ?? [];
+  const indexOffset = existingPosts.length;
+
+  // Generate text-style posts via LLM (text-art, image, suggestion)
+  if (textStyleAssignments.length > 0 && settings.preferences.aiConsentGiven && settings.llm.isConfigured) {
+    const textQuestions = textStyleAssignments
+      .map(a => byId.get(a.conceptId))
+      .filter((q): q is Question => Boolean(q));
+
+    if (textQuestions.length > 0) {
+      const context = buildDailyKnowledgeContext(textQuestions.slice(0, CONTEXT_LIMIT));
+      if (context.recent.length > 0 || context.resurfaced.length > 0) {
+        try {
+          const raw = await chatCompletion(
+            [
+              {
+                role: 'system',
+                content: [
+                  'You are an editorial learning writer.',
+                  'Write rich, intriguing, accurate educational posts from the supplied user knowledge.',
+                  'Do not write flashcards, tiny summaries, or listicles without a narrative spine.',
+                  'Return only valid JSON.',
+                ].join('\n'),
+              },
+              { role: 'user', content: buildGenerationPrompt(date, context, [], textStyleAssignments.length) },
+            ],
+            settings.llm,
+            { serviceName: 'posts' },
+          );
+          const parsed = parseGeneratedPosts(raw, questions, date, [], indexOffset, textStyleAssignments.length);
+          // Apply pre-assigned styles to generated posts
+          for (let i = 0; i < parsed.posts.length && i < textStyleAssignments.length; i++) {
+            parsed.posts[i].presentationStyle = textStyleAssignments[i].style;
+            parsed.posts[i].sourceType = textStyleAssignments[i].style === 'suggestion'
+              ? 'suggestion' as DailyPost['sourceType']
+              : parsed.posts[i].sourceType;
+          }
+          posts.push(...parsed.posts);
+        } catch {
+          // LLM generation failed — skip text posts for this batch
+        }
+      }
+    }
+  }
+
+  // Generate video posts from YouTube
+  for (const a of videoAssignments) {
+    try {
+      const concept = byId.get(a.conceptId);
+      const conceptName = concept?.title ?? concept?.content?.slice(0, 50) ?? a.conceptId;
+      const searchResult = await youtubeService.searchVideos(conceptName, 1);
+      if (searchResult.success && searchResult.data && searchResult.data.length > 0) {
+        const video = searchResult.data[0];
+        posts.push({
+          id: `post-${date}-video-${a.conceptId}`,
+          date,
+          title: video.title || conceptName,
+          teaser: { hook: video.title || conceptName, preview: video.description?.slice(0, 170) || '' },
+          bodyMarkdown: '',
+          whyCare: '',
+          takeaway: '',
+          quickAskPrompts: [],
+          narrativeMode: 'mechanism-breakdown' as PostNarrativeMode,
+          contextLabel: 'Video',
+          sourceType: 'video',
+          sourceQuestionIds: [a.conceptId],
+          sourceQuestionTitles: [conceptName],
+          keywords: concept?.keywords?.slice(0, 4) ?? [],
+          generatedAt: Date.now(),
+          origin: 'ai',
+          presentationStyle: 'video',
+          videoMeta: { videoId: video.videoId, channelTitle: video.channelTitle, thumbnailUrl: video.thumbnailUrl },
+        });
+      }
+    } catch { /* video fetch failed — already reassigned in pre-validation */ }
+  }
+
+  // Generate short posts from YouTube (use shorts query modifier)
+  for (const a of shortAssignments) {
+    try {
+      const concept = byId.get(a.conceptId);
+      const conceptName = concept?.title ?? concept?.content?.slice(0, 50) ?? a.conceptId;
+      const searchResult = await youtubeService.searchVideos(conceptName + ' #shorts', 1);
+      if (searchResult.success && searchResult.data && searchResult.data.length > 0) {
+        const short = searchResult.data[0];
+        posts.push({
+          id: `post-${date}-short-${a.conceptId}`,
+          date,
+          title: short.title || conceptName,
+          teaser: { hook: short.title || conceptName, preview: short.description?.slice(0, 170) || '' },
+          bodyMarkdown: '',
+          whyCare: '',
+          takeaway: '',
+          quickAskPrompts: [],
+          narrativeMode: 'mechanism-breakdown' as PostNarrativeMode,
+          contextLabel: 'Short',
+          sourceType: 'short',
+          sourceQuestionIds: [a.conceptId],
+          sourceQuestionTitles: [conceptName],
+          keywords: concept?.keywords?.slice(0, 4) ?? [],
+          generatedAt: Date.now(),
+          origin: 'ai',
+          presentationStyle: 'short',
+          videoMeta: { videoId: short.videoId, title: short.title, channelTitle: short.channelTitle, thumbnailUrl: short.thumbnailUrl },
+        });
+      }
+    } catch { /* short fetch failed */ }
+  }
+
+  // Generate news posts from Tavily
+  for (const a of newsAssignments) {
+    try {
+      const concept = byId.get(a.conceptId);
+      const conceptName = concept?.title ?? concept?.content?.slice(0, 50) ?? a.conceptId;
+      const searchResult = await webSearch(conceptName + ' latest research findings', { maxResults: 1 });
+      if (searchResult.success && searchResult.data?.results.length) {
+        const result = searchResult.data.results[0];
+        posts.push({
+          id: `post-${date}-news-${a.conceptId}`,
+          date,
+          title: result.title || conceptName,
+          teaser: { hook: result.title || conceptName, preview: result.content?.slice(0, 170) || '' },
+          bodyMarkdown: result.content || '',
+          whyCare: '',
+          takeaway: '',
+          quickAskPrompts: [],
+          narrativeMode: 'mechanism-breakdown' as PostNarrativeMode,
+          contextLabel: 'News',
+          sourceType: 'news',
+          sourceQuestionIds: [a.conceptId],
+          sourceQuestionTitles: [conceptName],
+          keywords: concept?.keywords?.slice(0, 4) ?? [],
+          generatedAt: Date.now(),
+          origin: 'ai',
+          presentationStyle: 'news',
+          newsMeta: {
+            sources: [{ index: 0, title: result.title, url: result.url }],
+            fetchedAt: Date.now(),
+          },
+        });
+      }
+    } catch { /* news fetch failed */ }
+  }
+
+  // Generate text-art content for text-art styled posts
+  const enrichedPosts = await generateTextArtContent(posts);
+  return enrichedPosts;
+}
+
+let _queueRefillRunning = false;
+
+/**
+ * Refill the post queue using the pre-style assignment pipeline (D-21).
+ * Builds concept batch, pre-assigns styles, pre-validates external APIs,
+ * reassigns failures, generates posts, and enqueues results.
+ */
+export async function refillQueue(questions: Question[]): Promise<void> {
+  if (_queueRefillRunning) return;
+  if (!postQueueService.needsRefill()) return;
+  _queueRefillRunning = true;
+
+  try {
+    const settings = settingsService.getSync();
+    // D-38: check daily generation cap
+    const dueConcepts = questions.filter(q => q.isAnchorNode);
+    const feedSettings = (settings as Record<string, unknown>).feed as { dailyGenerationCapMultiplier?: number } | undefined;
+    const maxPosts = (feedSettings?.dailyGenerationCapMultiplier ?? 5) * Math.max(dueConcepts.length, 1);
+    const cycleNumber = postQueueService.getCycleNumber();
+    const alreadyGenerated = cycleNumber * 8; // rough estimate
+    if (alreadyGenerated >= maxPosts) return;
+
+    // Step 1: Build concept batch for this cycle
+    const conceptIds = buildConceptBatch(questions);
+    if (conceptIds.length === 0) return;
+
+    // Step 2: Pre-check API keys (D-21 step 1)
+    const availability: ApiAvailability = {
+      hasYoutubeKey: !!(settings.youtube?.apiKey),
+      hasTavilyKey: !!(settings.webSearch?.tavilyApiKey),
+      hasImageGenKey: !!(settings.imageGeneration?.nanoBananaApiKey),
+    };
+
+    // Step 3: Assign styles before generation (D-18)
+    let assignments = assignStyles(conceptIds, availability);
+
+    // Step 4: Pre-validate YouTube/Tavily in parallel (D-21 step 2, D-20 fallback)
+    const videoAssigns = assignments.filter(a => a.style === 'video' || a.style === 'short');
+    const newsAssigns = assignments.filter(a => a.style === 'news');
+    const failedIds = new Set<string>();
+
+    const getConceptName = (id: string) => {
+      const q = questions.find(q => q.id === id);
+      return q?.title ?? q?.content?.slice(0, 50) ?? id;
+    };
+
+    await Promise.all([
+      ...videoAssigns.map(async (a) => {
+        try {
+          const conceptName = getConceptName(a.conceptId);
+          const query = a.style === 'short' ? conceptName + ' #shorts' : conceptName;
+          const searchResult = await youtubeService.searchVideos(query, 1);
+          if (!searchResult.success || !searchResult.data?.length) {
+            failedIds.add(a.conceptId);
+          }
+        } catch {
+          failedIds.add(a.conceptId);
+        }
+      }),
+      ...newsAssigns.map(async (a) => {
+        try {
+          const conceptName = getConceptName(a.conceptId);
+          const results = await webSearch(conceptName + ' latest', { maxResults: 1 });
+          if (!results.success || !results.data?.results.length) {
+            failedIds.add(a.conceptId);
+          }
+        } catch {
+          failedIds.add(a.conceptId);
+        }
+      }),
+    ]);
+
+    // Step 5: Reassign failures to text-art (D-20, D-21 step 3)
+    assignments = reassignFailures(assignments, failedIds);
+
+    // Step 6: Generate posts with pre-assigned styles (D-21 step 4)
+    const posts = await generatePostBatch(questions, assignments);
+
+    // Step 7: Enqueue results
+    postQueueService.enqueue(posts);
+    postQueueService.incrementCycle();
+  } finally {
+    _queueRefillRunning = false;
+  }
 }
 
 export const conceptFeedService = {
@@ -777,39 +972,27 @@ export const conceptFeedService = {
     const date = today();
     const fingerprint = computeFingerprint(questions);
     const cached = loadCache();
+
+    // Cache hit: return cached posts with background enrichment
     if (cached?.date === date && cached.fingerprint === fingerprint && cached.posts.length > 0) {
-      const aiPosts = cached.posts.filter((p) => p.sourceType !== 'connection');
-      const allVideos = youtubeService.getCachedVideoPosts();
-      _backgroundGenerateVideos();
-      _backgroundGenerateNews();
-      const allStyled = aiPosts.length > 0 && aiPosts.every(p => p.presentationStyle);
-      const styledResult = allStyled
-        ? [...aiPosts, ...allVideos.map(p => ({ ...p, presentationStyle: (p.sourceType === 'short' ? 'short' : 'video') as PresentationStyle }))]
-        : assignPresentationStyles(aiPosts, allVideos);
-      if (!allStyled && aiPosts.length > 0) _persistStylesToCache(styledResult);
-      _backgroundGenerateTextArt(styledResult);
-      const newsPosts = newsService.getCachedNewsPosts();
-      return applyStrategyBias(interleaveNewsPosts(styledResult, newsPosts));
+      const feedPosts = cached.posts.filter((p) => p.sourceType !== 'connection');
+      _backgroundGenerateTextArt(feedPosts);
+      // Trigger queue refill in background
+      refillQueue(questions).catch(console.error);
+      return feedPosts;
     }
 
+    // Fingerprint mismatch but same day: update fingerprint, return cached
     const hasPostsForToday = cached?.date === date && cached.posts.length > 0;
-
     if (hasPostsForToday && cached.fingerprint !== fingerprint) {
       saveCache({ ...cached, fingerprint });
-      const aiPosts = cached.posts.filter((p) => p.sourceType !== 'connection');
-      const allVideos = youtubeService.getCachedVideoPosts();
-      _backgroundGenerateVideos();
-      _backgroundGenerateNews();
-      const allStyled2 = aiPosts.length > 0 && aiPosts.every(p => p.presentationStyle);
-      const styledResult2 = allStyled2
-        ? [...aiPosts, ...allVideos.map(p => ({ ...p, presentationStyle: (p.sourceType === 'short' ? 'short' : 'video') as PresentationStyle }))]
-        : assignPresentationStyles(aiPosts, allVideos);
-      if (!allStyled2 && aiPosts.length > 0) _persistStylesToCache(styledResult2);
-      _backgroundGenerateTextArt(styledResult2);
-      const newsPosts2 = newsService.getCachedNewsPosts();
-      return applyStrategyBias(interleaveNewsPosts(styledResult2, newsPosts2));
+      const feedPosts = cached.posts.filter((p) => p.sourceType !== 'connection');
+      _backgroundGenerateTextArt(feedPosts);
+      refillQueue(questions).catch(console.error);
+      return feedPosts;
     }
 
+    // No cache: generate initial posts via LLM (legacy path for first load)
     let generated: ParsedGeneration = { posts: [], connectionCards: [] };
     try {
       generated = await generateDailyPostsWithLLM(questions, date);
@@ -818,7 +1001,6 @@ export const conceptFeedService = {
     }
 
     const newPosts = generated.posts;
-
     const oldPosts = cached?.posts ?? [];
     const newIds = new Set(newPosts.map((p) => p.id));
     const preserved = oldPosts.filter((p) => !newIds.has(p.id));
@@ -826,22 +1008,14 @@ export const conceptFeedService = {
 
     saveCache({ date, fingerprint, posts: allPosts, connectionCards: generated.connectionCards });
 
-    const allVideos = youtubeService.getCachedVideoPosts();
-    _backgroundGenerateVideos();
-    _backgroundGenerateNews();
     const feedPosts = allPosts.filter((p) => p.sourceType !== 'connection');
-    const unstyledPosts = feedPosts.filter(p => !p.presentationStyle);
-    const alreadyStyled = feedPosts.filter(p => p.presentationStyle);
-    const newlyStyled = unstyledPosts.length > 0
-      ? assignPresentationStyles(unstyledPosts, allVideos)
-      : [...alreadyStyled, ...allVideos.map(p => ({ ...p, presentationStyle: (p.sourceType === 'short' ? 'short' : 'video') as PresentationStyle }))];
-    const styledPosts = unstyledPosts.length > 0 ? [...alreadyStyled, ...newlyStyled] : newlyStyled;
-    const enrichedPosts = await generateTextArtContent(styledPosts);
-
+    const enrichedPosts = await generateTextArtContent(feedPosts);
     _persistStylesToCache(enrichedPosts);
 
-    const newsPosts3 = newsService.getCachedNewsPosts();
-    return applyStrategyBias(interleaveNewsPosts(enrichedPosts, newsPosts3));
+    // Seed the queue with initial posts for infinite scroll
+    postQueueService.enqueue(enrichedPosts);
+
+    return enrichedPosts;
   },
 
   /** Return cached connection card data for the current session. */
@@ -887,16 +1061,9 @@ export const conceptFeedService = {
   },
 
   getCachedDailyPosts(): DailyPost[] {
-    const aiPosts = (loadCache()?.posts ?? []).filter((p) => p.sourceType !== 'connection');
-    const allVideos = youtubeService.getCachedVideoPosts();
-    const allStyled = aiPosts.length > 0 && aiPosts.every(p => p.presentationStyle);
-    const result = allStyled
-      ? [...aiPosts, ...allVideos.map(p => ({ ...p, presentationStyle: (p.sourceType === 'short' ? 'short' : 'video') as PresentationStyle }))]
-      : assignPresentationStyles(aiPosts, allVideos);
-    if (!allStyled && aiPosts.length > 0) _persistStylesToCache(result);
-    _backgroundGenerateTextArt(result);
-    const newsPosts = newsService.getCachedNewsPosts();
-    return applyStrategyBias(interleaveNewsPosts(result, newsPosts));
+    const feedPosts = (loadCache()?.posts ?? []).filter((p) => p.sourceType !== 'connection');
+    _backgroundGenerateTextArt(feedPosts);
+    return feedPosts;
   },
 
   /** Delete a single post by ID from both the daily cache and the connection store. */
@@ -931,74 +1098,24 @@ export const conceptFeedService = {
   },
 
   /**
-   * Generate additional posts that differ from the ones already cached.
-   * Appends to the existing cache so old post IDs remain valid.
+   * Serve posts from the queue. Triggers background refill when needed (D-11).
+   * Phase 31: drains from postQueueService instead of generating inline.
    */
-  async generateMorePosts(questions: Question[], count = 6): Promise<DailyPost[]> {
-    // Exclude off-topic/flagged questions from post generation
+  async generateMorePosts(questions: Question[], count = 4): Promise<DailyPost[]> {
+    // Exclude off-topic/flagged questions
     questions = questions.filter((q) => !q.flagged);
-    const date = today();
-    const cached = loadCache();
-    const existingPosts = cached?.posts ?? [];
-    const existingIds = new Set(existingPosts.map((p) => p.id));
-    const existingTitles = existingPosts.map((p) => p.title);
 
-    let newPosts: DailyPost[] = [];
+    // Drain from queue
+    const posts = postQueueService.dequeue(count);
 
-    const settings = settingsService.getSync();
-    if (settings.preferences.aiConsentGiven && settings.llm.isConfigured && questions.length > 0) {
-      const context = buildDailyKnowledgeContext(questions.slice(0, CONTEXT_LIMIT));
-      if (context.recent.length > 0 || context.resurfaced.length > 0 || context.related.length > 0) {
-        const avoidClause = existingTitles.length > 0
-          ? `\nIMPORTANT: Do NOT repeat topics already covered. Existing post titles to avoid:\n${existingTitles.map((t) => `- ${t}`).join('\n')}\nChoose different angles, examples, or connections.`
-          : '';
-
-        try {
-          const raw = await chatCompletion(
-            [
-              {
-                role: 'system',
-                content: [
-                  'You are an editorial learning writer.',
-                  'Write rich, intriguing, accurate educational posts from the supplied user knowledge.',
-                  'Do not write flashcards, tiny summaries, or listicles without a narrative spine.',
-                  'Return only valid JSON.',
-                ].join('\n'),
-              },
-              { role: 'user', content: buildGenerationPrompt(date, context, [], count) + avoidClause },
-            ],
-            settings.llm,
-            { serviceName: 'posts' },
-          );
-          newPosts = parseGeneratedPosts(raw, questions, date, [], existingPosts.length, count).posts
-            .filter((p) => !existingIds.has(p.id));
-        } catch {
-          newPosts = [];
-        }
-      }
+    // Trigger background refill if needed (D-11)
+    if (postQueueService.needsRefill()) {
+      refillQueue(questions).catch(console.error);
     }
 
-    newPosts = newPosts.slice(0, count);
-
-    // Append to cache
-    if (newPosts.length > 0) {
-      const allPosts = [...existingPosts, ...newPosts];
-      const fingerprint = computeFingerprint(questions);
-      saveCache({ date, fingerprint, posts: allPosts, connectionCards: cached?.connectionCards });
-    }
-
-    // Generate more video posts and interleave
-    let moreVideos: DailyPost[] = [];
-    try {
-      moreVideos = await youtubeService.generateMoreVideoPosts(4);
-    } catch { /* YouTube integration is optional */ }
-    const styledMore = assignPresentationStyles(newPosts, moreVideos);
-    const enrichedMore = await generateTextArtContent(styledMore);
-
-    _persistStylesToCache(enrichedMore);
-
-    return enrichedMore;
+    return posts;
   },
+
 
   /**
    * Generate posts based on a completed session's Q&As, weighted by concept.
@@ -1133,8 +1250,21 @@ export const conceptFeedService = {
         .filter(p => !existingIds.has(p.id));
       newPosts = newPosts.slice(0, 6);
 
-      // Assign presentation styles and generate text-art
-      const styled = assignPresentationStyles(newPosts, []);
+      // Assign presentation styles via pre-style assignment and generate text-art
+      const settings2 = settingsService.getSync();
+      const availability: ApiAvailability = {
+        hasYoutubeKey: !!(settings2.youtube?.apiKey),
+        hasTavilyKey: !!(settings2.webSearch?.tavilyApiKey),
+        hasImageGenKey: !!(settings2.imageGeneration?.nanoBananaApiKey),
+      };
+      const sessionAssignments = assignStyles(
+        newPosts.map(p => p.sourceQuestionIds[0] ?? p.id),
+        availability,
+      );
+      const styled = newPosts.map((post, i) => ({
+        ...post,
+        presentationStyle: sessionAssignments[i]?.style ?? ('text-art' as PresentationStyle),
+      }));
       const enriched = await generateTextArtContent(styled);
 
       // Do NOT save to daily cache — session posts go only to the pending queue
