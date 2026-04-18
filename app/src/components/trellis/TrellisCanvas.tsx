@@ -59,21 +59,35 @@ export function TrellisCanvas({ layout, ambientEnabled, focusedAnchorId }: Trell
       role="img"
       aria-label={t('planner.trellis.ariaLabel')}
     >
-      {/* Vines — staggered draw-on animation */}
+      {/* Vines — thicker stems with staggered draw-on animation */}
       <g>
         {vines.map((v, i) => (
-          <motion.path
-            key={v.branchId}
-            d={v.spec.d}
-            stroke={v.color}
-            strokeWidth={3}
-            fill="none"
-            opacity={0.8}
-            strokeLinecap="round"
-            initial={{ pathLength: 0 }}
-            animate={{ pathLength: 1 }}
-            transition={{ duration: 1.2, delay: i * 0.2, ease: 'easeInOut' }}
-          />
+          <g key={v.branchId}>
+            {/* Thicker backdrop for depth */}
+            <motion.path
+              d={v.spec.d}
+              stroke={v.color}
+              strokeWidth={6}
+              fill="none"
+              opacity={0.15}
+              strokeLinecap="round"
+              initial={{ pathLength: 0 }}
+              animate={{ pathLength: 1 }}
+              transition={{ duration: 1.2, delay: i * 0.2, ease: 'easeInOut' }}
+            />
+            {/* Main vine stem */}
+            <motion.path
+              d={v.spec.d}
+              stroke={v.color}
+              strokeWidth={4}
+              fill="none"
+              opacity={0.85}
+              strokeLinecap="round"
+              initial={{ pathLength: 0 }}
+              animate={{ pathLength: 1 }}
+              transition={{ duration: 1.2, delay: i * 0.2, ease: 'easeInOut' }}
+            />
+          </g>
         ))}
       </g>
       {/* Short branch stems from vine to leaf */}
@@ -84,7 +98,7 @@ export function TrellisCanvas({ layout, ambientEnabled, focusedAnchorId }: Trell
             x1={n.vineAttach.x} y1={n.vineAttach.y}
             x2={n.layoutPosition.x} y2={n.layoutPosition.y}
             stroke={vines.find((v) => v.branchId === n.branchId)?.color ?? '#6B8E5A'}
-            strokeWidth={1.5}
+            strokeWidth={2.5}
             strokeLinecap="round"
             opacity={0.6}
           />
