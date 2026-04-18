@@ -1,14 +1,17 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { BookOpen, CheckSquare, Headphones, Sparkles } from 'lucide-react';
+import { BookOpen, CheckSquare, Headphones, Sparkles, AlertCircle } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { InlineInfoFlow, type InfoFlowItem } from '../components/InfoFlow';
 import { VineProgress } from '../components/VineProgress';
 import { Confetti } from '../components/Confetti';
+import { ScrollToTopFAB } from '../components/ScrollToTopFAB';
 import { PullUpHint, PULL_THRESHOLD } from '../components/PullUpHint';
 import { infiniteScrollService } from '../services/infiniteScroll.service';
+import { postQueueService } from '../services/post-queue.service';
+import { postHistoryService } from '../services/post-history.service';
 import type { DailyPost, Question } from '../types';
 import { useQuestions } from '../state/useQuestions';
 import { useReview } from '../state/useReview';
@@ -32,8 +35,19 @@ export function HomeScreen() {
   const { questions, isLoading: questionsLoading } = useQuestions();
   const { reviewCount } = useReview();
   const { getPodcastForDate } = usePodcast();
-  const [dailyPosts, setDailyPosts] = useState<DailyPost[]>(() => conceptFeedService.getCachedDailyPosts());
+  const [dailyPosts, setDailyPosts] = useState<DailyPost[]>(() => {
+    // Warm start (D-30): If today's cache is empty, show yesterday's remaining queue
+    const cached = conceptFeedService.getCachedDailyPosts();
+    if (cached.length > 0) return cached;
+    postQueueService.loadQueue();
+    const yesterday = postQueueService.getYesterdayQueue();
+    if (yesterday.length > 0) return yesterday.slice(0, 8);
+    // D-32 fallback: show last 4 from history
+    return postHistoryService.getPosts().slice(0, 4);
+  });
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generationError, setGenerationError] = useState(false);
   const [pullDistance, setPullDistance] = useState(0);
   const isLoadingMoreRef = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -64,9 +78,20 @@ export function HomeScreen() {
     };
 
     let cancelled = false;
+    setIsGenerating(true);
+    setGenerationError(false);
     void conceptFeedService.getDailyPosts(questions).then((posts) => {
-      if (!cancelled) setDailyPosts(posts);
-    }).catch((err) => console.warn('[HomeScreen] feed generation failed:', err));
+      if (!cancelled) {
+        setDailyPosts(posts);
+        setIsGenerating(false);
+      }
+    }).catch((err) => {
+      console.warn('[HomeScreen] feed generation failed:', err);
+      if (!cancelled) {
+        setIsGenerating(false);
+        setGenerationError(true);
+      }
+    });
     refreshPlannerSummary();
 
     const unsubPlanner = eventBus.subscribe('PLANNER_UPDATED', (event) => {
@@ -139,10 +164,25 @@ export function HomeScreen() {
   const handleLoadRef = useRef(handleLoad);
   handleLoadRef.current = handleLoad;
 
-  // Initialize infiniteScrollService on mount; reset on unmount
+  // Initialize infiniteScrollService on mount; reset on unmount; purge old history
   useEffect(() => {
     infiniteScrollService.initialize();
+    postHistoryService.purgeExpired();
     return () => { infiniteScrollService.reset(); };
+  }, []);
+
+  // Retry generation after error
+  const retryGeneration = useCallback(() => {
+    setIsGenerating(true);
+    setGenerationError(false);
+    void conceptFeedService.getDailyPosts(questionsRef.current).then((posts) => {
+      setDailyPosts(posts);
+      setIsGenerating(false);
+    }).catch((err) => {
+      console.warn('[HomeScreen] feed retry failed:', err);
+      setIsGenerating(false);
+      setGenerationError(true);
+    });
   }, []);
 
   // Pull-to-load gesture: track overscroll at the bottom via touch events.
@@ -616,6 +656,78 @@ export function HomeScreen() {
           </div>
         )}
 
+        {/* Botanical loading state — queue empty, generation in progress */}
+        {dailyPosts.length === 0 && isGenerating && (
+          <div style={{
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center',
+            height: '200px', gap: '16px', marginTop: '16px',
+          }}>
+            <svg width="64" height="64" viewBox="0 0 64 64" style={{
+              stroke: 'var(--primary-40)', strokeWidth: 2, fill: 'none',
+              animation: 'vineLoadingPulse 1.5s ease-in-out infinite',
+            }}>
+              <rect x="20" y="44" width="24" height="16" rx="2" />
+              <line x1="32" y1="44" x2="32" y2="24" />
+              <ellipse cx="24" cy="22" rx="8" ry="6" />
+              <ellipse cx="40" cy="22" rx="8" ry="6" />
+            </svg>
+            <span style={{
+              fontSize: '14px', fontWeight: 400,
+              color: 'var(--muted-foreground)', textAlign: 'center',
+            }}>
+              {t('home.feed.loadingTitle')}
+            </span>
+            <a
+              href="mailto:huanfuli4408@gmail.com?subject=EchoLearn%20Feed%20Feedback"
+              style={{
+                fontSize: '12px', fontWeight: 400,
+                color: 'var(--primary-40)', textDecoration: 'underline',
+                marginTop: '16px',
+              }}
+            >
+              {t('home.feed.feedbackPrompt')}
+            </a>
+          </div>
+        )}
+
+        {/* Generation error state */}
+        {dailyPosts.length === 0 && generationError && !isGenerating && (
+          <div style={{
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center',
+            height: '200px', gap: '4px', marginTop: '16px',
+          }}>
+            <AlertCircle size={32} style={{ color: 'var(--muted-foreground)', marginBottom: '8px' }} />
+            <span style={{ fontSize: '14px', color: 'var(--muted-foreground)' }}>
+              {t('home.feed.generationErrorTitle')}
+            </span>
+            <span style={{ fontSize: '12px', color: 'var(--muted-foreground)' }}>
+              {t('home.feed.generationErrorBody')}
+            </span>
+            <button
+              onClick={retryGeneration}
+              style={{
+                fontSize: '14px', fontWeight: 600,
+                color: 'var(--primary-40)',
+                background: 'none', border: 'none', cursor: 'pointer',
+                marginTop: '12px',
+              }}
+            >
+              {t('home.feed.generationErrorRetry')}
+            </button>
+            <a
+              href="mailto:huanfuli4408@gmail.com?subject=EchoLearn%20Feed%20Feedback"
+              style={{
+                fontSize: '12px', color: 'var(--primary-40)',
+                textDecoration: 'underline', marginTop: '16px',
+              }}
+            >
+              {t('home.feed.feedbackPrompt')}
+            </a>
+          </div>
+        )}
+
         {/* Inline Info Flow */}
         <InlineInfoFlow
           items={infoFlowItems}
@@ -632,6 +744,16 @@ export function HomeScreen() {
       </div>
       </div>
 
+      {/* Scroll-to-top FAB (D-40) */}
+      <ScrollToTopFAB scrollRef={containerRef} />
+
+      {/* Botanical loading pulse animation */}
+      <style>{`
+        @keyframes vineLoadingPulse {
+          0%, 100% { opacity: 0.5; }
+          50% { opacity: 1; }
+        }
+      `}</style>
     </>
   );
 }
