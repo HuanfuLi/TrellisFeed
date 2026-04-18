@@ -471,7 +471,7 @@ export type PostNarrativeMode =
   | 'starter';
 
 /** Visual presentation style assigned to each feed post by the weighted mix algorithm. */
-export type PresentationStyle = 'image' | 'text-art' | 'image-less' | 'video' | 'short' | 'news';
+export type PresentationStyle = 'image' | 'text-art' | 'image-less' | 'video' | 'short' | 'news' | 'suggestion';
 
 export interface FeedTeaser {
   hook: string;
@@ -489,7 +489,7 @@ export interface PostSnapshot {
   quickAskPrompts: string[];
   narrativeMode: PostNarrativeMode;
   contextLabel: string;
-  sourceType: 'recent' | 'related' | 'resurfaced' | 'starter' | 'mixed' | 'connection' | 'video' | 'short' | 'text-art' | 'news';
+  sourceType: 'recent' | 'related' | 'resurfaced' | 'starter' | 'mixed' | 'connection' | 'video' | 'short' | 'text-art' | 'news' | 'suggestion';
   sourceQuestionIds: string[];
   sourceQuestionTitles: string[];
   keywords: string[];
@@ -539,6 +539,13 @@ export interface DailyPost extends PostSnapshot {
     fetchedAt: number;
     imageUrl?: string;
   };
+  /** Suggestion post metadata with topic suggestions for further exploration. */
+  suggestionMeta?: SuggestionMeta;
+}
+
+/** Metadata for suggestion-type posts that propose new topics to explore. */
+export interface SuggestionMeta {
+  topics: string[]; // exactly 3 topic strings
 }
 
 export interface PostOriginContext {
