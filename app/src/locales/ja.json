@@ -80,7 +80,8 @@
       "generationErrorBody": "設定で API キーを確認してください",
       "generationErrorRetry": "再試行",
       "vineComplete": "すべてのコンセプトを探索済み",
-      "vineProgress": "{{total}} 件中 {{explored}} 件のコンセプトを探索済み"
+      "vineProgress": "{{total}} 件中 {{explored}} 件のコンセプトを探索済み",
+      "allExplored": "今日のコンテンツは全て完了！お疲れ様でした。"
     },
     "history": {
       "title": "投稿履歴",

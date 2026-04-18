@@ -80,7 +80,8 @@
       "generationErrorBody": "Revisa tus claves API en Ajustes",
       "generationErrorRetry": "Reintentar",
       "vineComplete": "Todos los conceptos explorados",
-      "vineProgress": "{{explored}} de {{total}} conceptos explorados"
+      "vineProgress": "{{explored}} de {{total}} conceptos explorados",
+      "allExplored": "¡Todo al día! Buen trabajo hoy."
     },
     "history": {
       "title": "Historial de publicaciones",

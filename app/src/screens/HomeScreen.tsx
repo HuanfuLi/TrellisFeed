@@ -401,15 +401,22 @@ export function HomeScreen() {
   // Build concepts list for VineProgress checklist
   const conceptList = useMemo(() => {
     const exploredSet = new Set(exploredAnchors);
-    return Array.from(quotaAnchorIds).map(anchorId => {
-      const q = questionsById.get(anchorId);
-      return {
-        id: anchorId,
-        name: q?.title ?? q?.content?.slice(0, 40) ?? anchorId,
-        explored: exploredSet.has(anchorId),
-      };
-    });
-  }, [quotaAnchorIds, exploredAnchors, questionsById]);
+    const seen = new Set<string>();
+    return Array.from(quotaAnchorIds)
+      .map(anchorId => {
+        const q = questionsById.get(anchorId);
+        let name = q?.title?.trim() || q?.content?.slice(0, 50)?.trim() || '';
+        if (!name) {
+          const child = questions.find(cq => cq.parentId === anchorId);
+          name = child?.title?.trim() || child?.content?.slice(0, 50)?.trim() || '';
+        }
+        if (!name) name = anchorId.replace(/^anchor-/, '').slice(0, 20);
+        if (seen.has(name)) return null;
+        seen.add(name);
+        return { id: anchorId, name, explored: exploredSet.has(anchorId) };
+      })
+      .filter((c): c is NonNullable<typeof c> => c !== null);
+  }, [quotaAnchorIds, exploredAnchors, questionsById, questions]);
 
   // Scroll to the first post matching a concept (D-04)
   const handleConceptTap = useCallback((conceptId: string) => {

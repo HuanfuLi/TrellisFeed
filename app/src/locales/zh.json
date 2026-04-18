@@ -80,7 +80,8 @@
       "generationErrorBody": "请在设置中检查 API 密钥",
       "generationErrorRetry": "重试",
       "vineComplete": "所有概念已探索",
-      "vineProgress": "已探索 {{explored}}/{{total}} 个概念"
+      "vineProgress": "已探索 {{explored}}/{{total}} 个概念",
+      "allExplored": "今天的内容都看完了！干得漂亮。"
     },
     "history": {
       "title": "内容历史",

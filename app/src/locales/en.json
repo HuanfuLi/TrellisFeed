@@ -80,7 +80,8 @@
       "generationErrorBody": "Check your API keys in Settings",
       "generationErrorRetry": "Retry",
       "vineComplete": "All concepts explored",
-      "vineProgress": "{{explored}} of {{total}} concepts explored"
+      "vineProgress": "{{explored}} of {{total}} concepts explored",
+      "allExplored": "All caught up! Great work today."
     },
     "history": {
       "title": "Post History",
