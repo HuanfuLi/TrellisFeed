@@ -118,7 +118,7 @@ export function VineProgress({
   const leaves = Array.from({ length: leafCount }, (_, i) => {
     const x = potX + 12 + ((i + 1) / (leafCount + 1)) * stemLength;
     const flip = i % 2 === 1;
-    const leafSize = 5 + Math.random() * 3;
+    const leafSize = 5 + (((i * 7 + 3) % 5) / 5) * 3;
     return { x, y: stemY, flip, size: leafSize, key: i };
   });
 
