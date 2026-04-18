@@ -575,7 +575,9 @@ function ConnectionCard({ conceptNounA, conceptNounB, bridgeInsight, cosineSimil
         width: '100%',
         display: 'flex',
         flexDirection: 'column',
-        padding: '24px 20px',
+        justifyContent: 'space-between',
+        gap: '16px',
+        padding: '20px',
         boxSizing: 'border-box',
         cursor: 'pointer',
         userSelect: 'none',
@@ -594,14 +596,13 @@ function ConnectionCard({ conceptNounA, conceptNounB, bridgeInsight, cosineSimil
           fontWeight: 700,
           lineHeight: 1.35,
           color: 'var(--foreground)',
-          marginBottom: '20px',
         }}
       >
         {bridgeInsight}
       </p>
 
       {/* Concept noun blocks */}
-      <div style={{ display: 'flex', gap: '10px', flex: 1 }}>
+      <div style={{ display: 'flex', gap: '10px' }}>
         <div
           style={{
             flex: 1,
