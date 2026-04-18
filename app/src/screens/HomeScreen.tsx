@@ -153,11 +153,8 @@ export function HomeScreen() {
             return imageGenerationService.generateImage(post.id, prompt, style);
           }),
         );
-        setDailyPosts((prev) => {
-          const updated = [...prev, ...newPosts];
-          conceptFeedService.appendToCache(newPosts);
-          return updated;
-        });
+        conceptFeedService.appendToCache(newPosts);
+        setDailyPosts((prev) => [...prev, ...newPosts]);
       } else {
         toast(t('home.toast.noMorePosts'), 'info');
       }
@@ -381,9 +378,9 @@ export function HomeScreen() {
 
   const [suggestedMoveCount, setSuggestedMoveCount] = useState(0);
 
-  // --- Concept exploration progress (Phase 30, D-04/D-07) ---
+  // --- Concept exploration progress (Phase 31, D-12: SM-2 due concepts) ---
   const questionsById = useMemo(() => new Map(questions.map(q => [q.id, q])), [questions]);
-  const quotaAnchorIds = useMemo(() => getConceptQuota(dailyPosts, questionsById), [dailyPosts, questionsById]);
+  const quotaAnchorIds = useMemo(() => getConceptQuota([], questionsById), [questions, questionsById]);
   const conceptQuota = quotaAnchorIds.size;
 
   const [exploredAnchors, setExploredAnchors] = useState<string[]>(() => dailyReadService.getExploredAnchors());
@@ -630,16 +627,16 @@ export function HomeScreen() {
         )}
 
         {/* Empty state when feed has posts but no concept posts (D-17) */}
-        {conceptQuota === 0 && dailyPosts.length > 0 && (
+        {conceptQuota === 0 && dailyPosts.length > 0 && questions.length > 0 && (
           <div style={{
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            minHeight: '160px',
+            minHeight: '100px',
             textAlign: 'center',
             marginTop: '16px',
-            padding: '24px 16px',
+            padding: '16px',
             background: 'var(--card)',
             borderRadius: 'var(--radius)',
             boxShadow: 'var(--shadow-1)',

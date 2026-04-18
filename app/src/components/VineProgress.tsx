@@ -275,7 +275,22 @@ export function VineProgress({
       };
 
   return (
-    <div ref={containerRef} style={containerStyle}>
+    <>
+    {expanded && !isInline && (
+      <div
+        onClick={(e) => {
+          e.stopPropagation();
+          setExpanded(false);
+        }}
+        style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 89,
+          background: 'rgba(0, 0, 0, 0.15)',
+        }}
+      />
+    )}
+    <div ref={containerRef} style={{ ...containerStyle, ...(expanded && !isInline ? { zIndex: 90, position: 'relative' as const } : {}) }}>
       <div
         role="progressbar"
         aria-valuenow={conceptExplored}
@@ -419,5 +434,6 @@ export function VineProgress({
         ))}
       </div>
     </div>
+    </>
   );
 }
