@@ -122,4 +122,59 @@ describe('postQueueService', () => {
     copy.push(makePost('intruder'));
     assert.equal(postQueueService.size(), 2);
   });
+
+  // ─── D-30: getYesterdayQueue() — warm-start recovery of unviewed posts ────
+  // Contract (post-queue.service.ts:124):
+  //   1. Reads localStorage directly (bypasses in-memory _state).
+  //   2. Returns [] when no saved state exists.
+  //   3. Returns [] when saved state's date === today().
+  //   4. Returns parsed.posts || [] when saved state's date !== today().
+  //   5. Returns [] on malformed JSON (catch block).
+
+  it('getYesterdayQueue returns [] when localStorage is empty', () => {
+    // beforeEach cleared localStorage; nothing saved yet.
+    const yesterday = postQueueService.getYesterdayQueue();
+    assert.deepEqual(yesterday, []);
+  });
+
+  it('getYesterdayQueue returns [] when stored date matches today', () => {
+    // Enqueue triggers save() with today's date.
+    postQueueService.enqueue([makePost('today-1'), makePost('today-2')]);
+    const yesterday = postQueueService.getYesterdayQueue();
+    assert.deepEqual(yesterday, [], 'same-day state should not be treated as yesterday');
+  });
+
+  it('getYesterdayQueue returns stored posts when stored date is different (simulated yesterday)', () => {
+    // Write a stale-dated state directly to localStorage WITHOUT calling loadQueue()
+    // (loadQueue would wipe it via freshState on date mismatch).
+    const staleState = {
+      date: '1999-01-01',
+      posts: [makePost('y1'), makePost('y2'), makePost('y3')],
+      cycleNumber: 2,
+      totalGenerated: 12,
+      totalServed: 4,
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(staleState));
+
+    const yesterday = postQueueService.getYesterdayQueue();
+    assert.equal(yesterday.length, 3, 'should return all 3 stored yesterday posts');
+    assert.equal(yesterday[0].id, 'y1');
+    assert.equal(yesterday[1].id, 'y2');
+    assert.equal(yesterday[2].id, 'y3');
+  });
+
+  it('getYesterdayQueue returns [] when stale state has no posts field', () => {
+    // Defensive: `parsed.posts || []` handles missing posts key.
+    const staleState = { date: '1999-01-01', cycleNumber: 0, totalGenerated: 0, totalServed: 0 };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(staleState));
+
+    const yesterday = postQueueService.getYesterdayQueue();
+    assert.deepEqual(yesterday, []);
+  });
+
+  it('getYesterdayQueue returns [] gracefully on malformed JSON', () => {
+    localStorage.setItem(STORAGE_KEY, '{not-valid-json}');
+    const yesterday = postQueueService.getYesterdayQueue();
+    assert.deepEqual(yesterday, [], 'malformed JSON should be caught and return empty array');
+  });
 });
