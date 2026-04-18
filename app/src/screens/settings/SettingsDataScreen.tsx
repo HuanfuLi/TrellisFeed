@@ -216,7 +216,6 @@ export function SettingsDataScreen() {
             onClick={() => {
               dailyReadService.reset();
               postQueueService.resetForNewDay();
-              conceptFeedService.clearCache();
               toast('Today\'s review/post status reset', 'success');
               setTimeout(() => window.location.reload(), 600);
             }}
