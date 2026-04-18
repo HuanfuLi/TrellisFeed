@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useContext } from 'react';
 import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { SwipeTabContext } from '../lib/swipe-tab-context';
 import type { BlindboxItem, DailyPost, GeneratedImage, Question } from '../types';
 import { FeedPostImage } from './FeedPostImage';
 import { imageGenerationService } from '../services/imageGeneration.service';
@@ -65,7 +66,7 @@ interface ConceptCardProps {
   onOpen: (postId: string, post: DailyPost) => void;
 }
 
-function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: ConceptCardProps) {
+function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen, videoPlaying, setVideoPlaying }: ConceptCardProps & { videoPlaying: string | null; setVideoPlaying: (id: string | null) => void }) {
   const { t } = useTranslation();
 
   // Suggestion post — D-23/D-26: only topic buttons are interactive, card tap is no-op
@@ -276,49 +277,67 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen }: Conc
       }}
     >
 
-        {/* Video card: show YouTube thumbnail with play overlay (D-08) */}
-        {isVideoPost && post.videoMeta?.thumbnailUrl && (
+        {/* Video card: inline landscape playback (D-28) — tapping play does NOT trigger essay generation */}
+        {isVideoPost && post.videoMeta?.videoId && (
           <div
-            style={{ position: 'relative', width: '100%', aspectRatio: '16/9', overflow: 'hidden' }}
+            style={{ position: 'relative', width: '100%', aspectRatio: '16 / 9', overflow: 'hidden' }}
           >
-            <img
-              src={post.videoMeta.thumbnailUrl}
-              alt={normalizedTitle}
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-            />
-            <div
-              style={{
-                position: 'absolute',
-                inset: 0,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: 'rgba(0,0,0,0.15)',
-              }}
-            >
+            {videoPlaying === post.id ? (
+              <iframe
+                src={`https://www.youtube.com/embed/${post.videoMeta.videoId}?autoplay=1&playsinline=1&rel=0`}
+                style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none' }}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                title={normalizedTitle || t('infoFlow.postImageAlt')}
+              />
+            ) : (
               <div
-                style={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: '50%',
-                  background: 'rgba(0,0,0,0.7)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setVideoPlaying(post.id);
                 }}
+                style={{ cursor: 'pointer', position: 'relative', width: '100%', height: '100%' }}
               >
+                <img
+                  src={post.videoMeta.thumbnailUrl}
+                  alt={normalizedTitle}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
                 <div
                   style={{
-                    width: 0,
-                    height: 0,
-                    borderLeft: '16px solid white',
-                    borderTop: '10px solid transparent',
-                    borderBottom: '10px solid transparent',
-                    marginLeft: 4,
+                    position: 'absolute',
+                    inset: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: 'rgba(0,0,0,0.15)',
                   }}
-                />
+                >
+                  <div
+                    style={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: '50%',
+                      background: 'rgba(0,0,0,0.7)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 0,
+                        height: 0,
+                        borderLeft: '16px solid white',
+                        borderTop: '10px solid transparent',
+                        borderBottom: '10px solid transparent',
+                        marginLeft: 4,
+                      }}
+                    />
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         )}
 
@@ -676,6 +695,7 @@ export function ImmersiveInfoFlow({ items, onOpenConnection, onClose, onOpenPost
   const { t } = useTranslation();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [videoPlaying, setVideoPlaying] = useState<string | null>(null);
 
   useEffect(() => {
     const container = scrollRef.current;
@@ -819,7 +839,7 @@ export function ImmersiveInfoFlow({ items, onOpenConnection, onClose, onOpenPost
                 }}
               >
               {item.kind === 'concept' ? (
-                <ConceptCard post={item.post} feedIndex={index} isActive={index === activeIndex} onOpen={onOpenPost} />
+                <ConceptCard post={item.post} feedIndex={index} isActive={index === activeIndex} onOpen={onOpenPost} videoPlaying={videoPlaying} setVideoPlaying={setVideoPlaying} />
               ) : item.kind === 'connection' ? (
                 <ConnectionCard
                   questionA={item.questionA}
@@ -864,6 +884,29 @@ const _seenPostIds = new Set<string>();
 
 export function InlineInfoFlow({ items, onOpenConnection, showConnectionScores = false, onOpenPost, onLoadMore, isLoadingMore }: InlineInfoFlowProps) {
   const { t } = useTranslation();
+  const [videoPlaying, setVideoPlaying] = useState<string | null>(null);
+
+  // D-29: Stop all videos when tab loses visibility (swipe-away or browser tab switch)
+  const swipeCtx = useContext(SwipeTabContext);
+  useEffect(() => {
+    const onVisChange = () => {
+      if (document.hidden) setVideoPlaying(null);
+    };
+    document.addEventListener('visibilitychange', onVisChange);
+
+    // Also stop videos when user swipes away from Home tab (index 0)
+    let unsub: (() => void) | undefined;
+    if (swipeCtx) {
+      unsub = swipeCtx.swipeProgress.on('change', (v) => {
+        if (Math.round(v) !== 0) setVideoPlaying(null);
+      });
+    }
+
+    return () => {
+      document.removeEventListener('visibilitychange', onVisChange);
+      unsub?.();
+    };
+  }, [swipeCtx]);
   // On first render, mark all current items as "already seen" so they
   // don't animate. Only items added AFTER mount will animate.
   const [newPostIds] = useState<Set<string>>(() => {
@@ -928,6 +971,8 @@ export function InlineInfoFlow({ items, onOpenConnection, showConnectionScores =
                   feedIndex={index}
                   isActive={shouldAnimate}
                   onOpen={onOpenPost}
+                  videoPlaying={videoPlaying}
+                  setVideoPlaying={setVideoPlaying}
                 />
               ) : item.kind === 'connection' ? (
                 <ConnectionCard
