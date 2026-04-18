@@ -117,7 +117,7 @@ export default function PostHistoryScreen() {
     return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   };
 
-  let cardIndex = 0;
+  const allPosts = Array.from(groups.values()).flat();
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
@@ -195,7 +195,7 @@ export default function PostHistoryScreen() {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {posts.map(post => (
-                  <HistoryPostCard key={post.id} post={post} index={cardIndex++} />
+                  <HistoryPostCard key={post.id} post={post} index={allPosts.indexOf(post)} />
                 ))}
               </div>
             </div>

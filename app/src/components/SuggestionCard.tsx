@@ -53,6 +53,9 @@ export function SuggestionCard({ topics }: SuggestionCardProps) {
     navigate('/ask', { state: { autoSend: topic } });
   };
 
+  if (!topics.length) return null;
+  const displayTopics = topics.slice(0, 3);
+
   return (
     <div
       style={{
@@ -89,8 +92,8 @@ export function SuggestionCard({ topics }: SuggestionCardProps) {
         gap: '8px',
         flex: 1,
       }}>
-        {topics.map((topic, i) => (
-          <TopicButton key={i} topic={topic} onTap={handleTopicTap} />
+        {displayTopics.map(topic => (
+          <TopicButton key={topic} topic={topic} onTap={handleTopicTap} />
         ))}
       </div>
     </div>

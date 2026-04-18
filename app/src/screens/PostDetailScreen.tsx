@@ -151,7 +151,7 @@ export function PostDetailScreen() {
   // Record viewed post in history (idempotent — deduplicates by id)
   useEffect(() => {
     if (post) {
-      postHistoryService.addPost(post);
+      try { postHistoryService.addPost(post); } catch { /* non-critical */ }
     }
   }, [post?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 

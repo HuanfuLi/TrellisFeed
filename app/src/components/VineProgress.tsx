@@ -249,22 +249,16 @@ export function VineProgress({
 
       {/* Concept checklist — shows uncovered concepts only (D-09) */}
       <div
+        role="list"
         style={{
           maxHeight: expanded ? '200px' : '0',
-          overflow: 'hidden',
+          overflowY: expanded ? 'auto' : 'hidden',
           transition: 'max-height 200ms ease-out',
+          borderTop: expanded ? '1px solid var(--border)' : 'none',
+          marginTop: expanded ? '8px' : '0',
+          paddingTop: expanded ? '4px' : '0',
         }}
       >
-        <div
-          role="list"
-          style={{
-            marginTop: '8px',
-            overflowY: 'auto',
-            maxHeight: '200px',
-            borderTop: '1px solid var(--border)',
-            paddingTop: '4px',
-          }}
-        >
           {uncoveredConcepts.length === 0 && (
             <div style={{
               padding: '8px',
@@ -304,7 +298,6 @@ export function VineProgress({
               {concept.name}
             </div>
           ))}
-        </div>
       </div>
     </div>
   );
