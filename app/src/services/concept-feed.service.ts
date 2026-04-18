@@ -1147,6 +1147,17 @@ export const conceptFeedService = {
     return deleted;
   },
 
+  /** Append dynamically loaded posts to the daily cache so they survive page refresh. */
+  appendToCache(posts: DailyPost[]): void {
+    const cached = loadCache();
+    if (!cached) return;
+    const existingIds = new Set(cached.posts.map(p => p.id));
+    const fresh = posts.filter(p => !existingIds.has(p.id));
+    if (fresh.length === 0) return;
+    cached.posts.push(...fresh);
+    saveCache(cached);
+  },
+
   /** Explicitly clear the post cache (e.g. after "Clear All Data"). */
   clearCache(): void {
     try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }

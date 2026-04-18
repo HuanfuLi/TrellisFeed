@@ -153,7 +153,11 @@ export function HomeScreen() {
             return imageGenerationService.generateImage(post.id, prompt, style);
           }),
         );
-        setDailyPosts((prev) => [...prev, ...newPosts]);
+        setDailyPosts((prev) => {
+          const updated = [...prev, ...newPosts];
+          conceptFeedService.appendToCache(newPosts);
+          return updated;
+        });
       } else {
         toast(t('home.toast.noMorePosts'), 'info');
       }
