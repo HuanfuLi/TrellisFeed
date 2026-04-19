@@ -4,7 +4,7 @@
 // Heal (D-11, D-12):   dying node → add to today's podcast + navigate to review filtered to anchor's Q&As
 // Re-plant (D-13, D-14): dead node → reset flashcard schedules + reset question schedules + generate post + navigate to review
 // Prune (D-15, D-17):  dying/dead → soft-delete via flagged=true + emit ANCHOR_DELETED so trellis removes it
-// Unprune:             restore pruned node → flagged=false + emit CLASSIFICATION_COMPLETED so trellis recomputes
+// Unprune:             restore pruned node → flagged=false + emit GRAPH_UPDATED so trellis recomputes
 // Hard-delete:         permanent removal via questionService.delete (already emits QUESTION_DELETED)
 //
 // Returns navigation intents rather than invoking navigate() directly — caller owns routing.
@@ -104,7 +104,7 @@ export const trellisActionsService = {
 
     // Emit so useTrellisData recomputes — the dead anchor immediately demotes
     // to dying and the Suggested Moves list refreshes.
-    eventBus.emit({ type: 'CLASSIFICATION_COMPLETED', payload: { anchorId, anchorName: '' } });
+    eventBus.emit({ type: 'GRAPH_UPDATED' });
 
     const title = anchorQuestion.title ?? anchorQuestion.content ?? 'anchor';
     return {
@@ -131,15 +131,11 @@ export const trellisActionsService = {
 
   /**
    * Restore a pruned anchor back to the trellis. Flips flagged=false and emits
-   * CLASSIFICATION_COMPLETED to trigger useTrellisData recompute (pattern reuse —
-   * the payload's anchorName is cosmetic for the trellis recompute subscriber).
+   * GRAPH_UPDATED to trigger useTrellisData recompute.
    */
   unpruneQuestion(anchorId: string): void {
     questionService.patchQuestion(anchorId, { flagged: false, prunedFromTrellis: false });
-    eventBus.emit({
-      type: 'CLASSIFICATION_COMPLETED',
-      payload: { anchorId, anchorName: '' },
-    });
+    eventBus.emit({ type: 'GRAPH_UPDATED' });
   },
 
   /**

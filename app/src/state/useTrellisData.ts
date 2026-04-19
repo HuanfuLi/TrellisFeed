@@ -31,7 +31,7 @@ export function useTrellisData(): UseTrellisDataResult {
     recompute();
     // D-48 subscriptions
     const unsubReview = eventBus.subscribe('REVIEW_COMPLETED', () => recompute());
-    const unsubClass = eventBus.subscribe('CLASSIFICATION_COMPLETED', () => recompute());
+    const unsubClass = eventBus.subscribe('GRAPH_UPDATED', () => recompute());
     const unsubDelete = eventBus.subscribe('ANCHOR_DELETED', () => recompute());
     const unsubHarvest = eventBus.subscribe('HARVEST_COMPLETED', () => recompute());
     return () => {

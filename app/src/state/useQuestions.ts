@@ -59,10 +59,21 @@ export function useQuestions(): UseQuestionsReturn {
 
     // Sync with questions created by OTHER hook instances (e.g. AskScreen's
     // useQuestions adds a question, HomeScreen's instance needs to know).
-    const unsub = eventBus.subscribe('QUESTION_ASKED', (event) => {
+    const unsubAsked = eventBus.subscribe('QUESTION_ASKED', (event) => {
       setQuestions((prev) => [event.payload, ...prev.filter((q) => q.id !== event.payload.id)]);
     });
-    return unsub;
+    // Reload from store after the async classification step creates anchor/cluster
+    // nodes. QUESTION_ASKED only carries the Q&A node; new anchors land in storage
+    // later when commitClassificationResult runs and emits GRAPH_UPDATED. Without
+    // this subscriber, useQuestions never sees the new anchors → buildConceptBatch
+    // returns 0 anchors → refillQueue exits early → home/planner stay empty after
+    // the first question on a fresh-install device.
+    const unsubGraph = eventBus.subscribe('GRAPH_UPDATED', () => {
+      void questionService.getRecent(50).then((result) => {
+        if (result.success && result.data) setQuestions(result.data);
+      });
+    });
+    return () => { unsubAsked(); unsubGraph(); };
   }, []);
 
   const ask = useCallback(async (content: string): Promise<Question | null> => {

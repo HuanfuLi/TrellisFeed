@@ -11,13 +11,13 @@ test('AppEvent includes REVIEW_COMPLETED', async () => {
   assert.equal(received?.payload?.anchorId, 'a1');
 });
 
-test('AppEvent includes CLASSIFICATION_COMPLETED', async () => {
+test('AppEvent includes GRAPH_UPDATED (unified graph-mutation signal)', async () => {
   const { eventBus } = await import('../src/lib/event-bus.ts');
   let received = null;
-  const unsub = eventBus.subscribe('CLASSIFICATION_COMPLETED', (e) => { received = e; });
-  eventBus.emit({ type: 'CLASSIFICATION_COMPLETED', payload: { anchorId: 'a1', anchorName: 'Transformer' } });
+  const unsub = eventBus.subscribe('GRAPH_UPDATED', (e) => { received = e; });
+  eventBus.emit({ type: 'GRAPH_UPDATED' });
   unsub();
-  assert.equal(received?.payload?.anchorName, 'Transformer');
+  assert.equal(received?.type, 'GRAPH_UPDATED');
 });
 
 test('AppEvent includes ANCHOR_DELETED', async () => {

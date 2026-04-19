@@ -1,6 +1,6 @@
 // Pruned archive section — rendered at the bottom of the Planner screen
 // (after Suggested Moves). Reads pruned anchors from questionService and
-// refreshes on ANCHOR_DELETED / CLASSIFICATION_COMPLETED / QUESTION_DELETED
+// refreshes on ANCHOR_DELETED / GRAPH_UPDATED / QUESTION_DELETED
 // events emitted by trellisActionsService.
 
 import { useEffect, useState } from 'react';
@@ -22,7 +22,7 @@ export function PrunedSection() {
   useEffect(() => {
     const refresh = () => setPrunedNodes(questionService.getPrunedQuestions());
     const u1 = eventBus.subscribe('ANCHOR_DELETED', refresh);
-    const u2 = eventBus.subscribe('CLASSIFICATION_COMPLETED', refresh);
+    const u2 = eventBus.subscribe('GRAPH_UPDATED', refresh);
     const u3 = eventBus.subscribe('QUESTION_DELETED', refresh);
     return () => { u1(); u2(); u3(); };
   }, []);

@@ -543,6 +543,45 @@ export function extractAnchorsUnderCluster(
 
 // ─── Shared node-creation logic ─────────────────────────────────────────────
 
+/**
+ * Normalize an LLM-supplied anchor name into a clean concept noun phrase.
+ * The classification prompt instructs the LLM to return a 1-3 word noun phrase
+ * (e.g. "Spaced Repetition") but models periodically ignore the constraint and
+ * return question paraphrases (e.g. "Spaced repetition and why does it work").
+ * This guard catches that disobedience and recovers a usable concept noun.
+ *
+ * Steps (applied in order):
+ *  1. Strip trailing punctuation
+ *  2. Strip leading question/intro phrases ("what is", "why does", "how do", ...)
+ *  3. Strip "and (why|how|when|where|whether|...) ..." tails
+ *  4. If still > 4 words, take the first 3
+ *  5. Title-case (preserving all-caps acronyms like "LLM", "API")
+ *
+ * Examples:
+ *   "Spaced repetition and why does it work" → "Spaced Repetition"
+ *   "What is spaced repetition?"             → "Spaced Repetition"
+ *   "How do transformers handle attention?"  → "Transformers Handle Attention"
+ *   "LLM tokenization basics"                → "LLM Tokenization Basics"
+ */
+export function normalizeAnchorName(raw: string): string {
+  let name = raw.trim();
+  if (!name) return name;
+  // 1. Strip trailing punctuation
+  name = name.replace(/[?!.,;:]+$/, '').trim();
+  // 2. Strip leading question/intro phrases
+  name = name.replace(
+    /^(what is|what are|what does|what do|why does|why is|why do|why are|how does|how do|how can|how to|when does|when is|where does|where is|is|are|does|do|can)\s+/i,
+    '',
+  ).trim();
+  // 3. Strip trailing "and (question-word) ..." clauses
+  name = name.replace(/\s+and\s+(why|how|when|where|whether|if|what|who)\s+.+$/i, '').trim();
+  // 4. Truncate to first 3 words if still too long
+  const words = name.split(/\s+/).filter(Boolean);
+  const kept = words.length > 4 ? words.slice(0, 3) : words;
+  // 5. Title-case, preserving acronyms
+  return kept.map((w) => (/^[A-Z]{2,}$/.test(w) ? w : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())).join(' ');
+}
+
 async function commitClassificationResult(
   question: Question,
   result: ClassificationResult,
@@ -550,6 +589,12 @@ async function commitClassificationResult(
 ): Promise<void> {
   // Import questionService lazily to avoid circular dependency
   const { questionService } = await import('./question.service.ts');
+
+  // Normalize anchor name BEFORE any lookup or persistence — guards against LLM
+  // disobedience to the buildStepPrompt naming constraint (commit 93162265).
+  // All downstream uses (existing-by-name lookup, anchor creation) read the
+  // normalized form so anchors are stored with clean concept-noun titles.
+  result = { ...result, anchorName: normalizeAnchorName(result.anchorName) || result.anchorName };
 
   // Use a mutable reference to allQuestions so anchor resolution sees newly created cluster
   let freshQuestions: Question[] = allQuestions;

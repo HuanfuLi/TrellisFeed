@@ -685,9 +685,13 @@ export type AppEvent =
   | { type: 'REORG_COMPLETED'; payload: { anchorCount: number; clusterCount: number } }
   | { type: 'REORG_FAILED'; payload: { error: string } }
   | { type: 'REVIEW_COMPLETED'; payload: { questionId: string; anchorId?: string } }
-  | { type: 'CLASSIFICATION_COMPLETED'; payload: { anchorId: string; anchorName: string } }
   | { type: 'ANCHOR_DELETED'; payload: { anchorId: string } }
   | { type: 'HARVEST_COMPLETED'; payload: { count: number } }
   | { type: 'NEWS_POSTS_READY'; payload: { posts: DailyPost[] } }
   | { type: 'CONCEPT_EXPLORED'; payload: { anchorId: string } }
+  // Unified graph-mutation signal. Fires after any classification commit, anchor
+  // creation, prune, replant, or reorg step. Subscribers don't need to discriminate
+  // why the graph changed — just re-read store. Replaces the former
+  // CLASSIFICATION_COMPLETED event (semantic duplicate of this one; payload was
+  // never read by any subscriber).
   | { type: 'GRAPH_UPDATED' };
