@@ -504,13 +504,20 @@ export function HomeScreen() {
         data-home-scroll
         style={{
           overflowY: 'auto',
-          height: '100dvh',
+          height: 'calc(100dvh - var(--safe-area-top))',
           WebkitOverflowScrolling: 'touch',
           overscrollBehavior: 'contain',
           touchAction: 'pan-y',
         }}
       >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingTop: '16px', paddingLeft: '16px', paddingRight: '16px', paddingBottom: 'var(--bottom-nav-safe)', maxWidth: '448px', margin: '0 auto' }}>
+      <div style={{
+        display: 'flex', flexDirection: 'column', gap: '16px',
+        paddingTop: '16px', paddingLeft: '16px', paddingRight: '16px',
+        paddingBottom: 'var(--bottom-nav-safe)',
+        maxWidth: '448px', margin: '0 auto',
+        transform: `translateY(-${Math.min(pullDistance * 0.4, 60)}px)`,
+        transition: pullDistance === 0 ? 'transform 0.3s ease' : 'none',
+      }}>
 
         {/* Inline greeting — scrolls away naturally */}
         <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--foreground)' }}>

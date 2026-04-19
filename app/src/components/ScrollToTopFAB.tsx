@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ArrowUp } from 'lucide-react';
 
 interface ScrollToTopFABProps {
@@ -6,6 +7,7 @@ interface ScrollToTopFABProps {
 }
 
 export function ScrollToTopFAB({ scrollRef }: ScrollToTopFABProps) {
+  const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -22,12 +24,11 @@ export function ScrollToTopFAB({ scrollRef }: ScrollToTopFABProps) {
 
   return (
     <button
-      aria-label="Scroll to top"
-      role="button"
+      aria-label={t('home.feed.scrollToTop')}
       onClick={() => scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
       style={{
         position: 'fixed',
-        bottom: '96px',
+        bottom: 'calc(96px + var(--safe-area-bottom))',
         right: '16px',
         width: '44px',
         height: '44px',

@@ -1,16 +1,9 @@
 /**
  * PullUpHint
  *
- * Pull-to-load affordance at the bottom of the feed.
- *
- * States:
- *  - Idle (pullDistance = 0, not loading): shows "Pull up to load more" at 80px height
- *  - Pulling (pullDistance > 0): elastically stretches with the finger
- *      - below threshold: arrow points up, "Pull up to load more"
- *      - at/past threshold: arrow flips down, "Release to load" in primary colour
- *  - Loading: spinner + "Loading more posts..."
- *
- * Snap-back is handled via CSS transition on height when pullDistance returns to 0.
+ * Pull-to-load affordance at the bottom of the feed. Fixed 80px height — the
+ * elastic rubber-band lives on the parent feed container's transform, not here.
+ * This component just renders state (icon + text + threshold colour).
  */
 
 import { ArrowUp, Loader2 } from 'lucide-react';
@@ -20,7 +13,7 @@ export const PULL_THRESHOLD = 100;
 
 interface PullUpHintProps {
   isLoading?: boolean;
-  /** Raw overscroll distance in px driven by touch handlers in the parent. */
+  /** Raw overscroll distance in px — used only for threshold colour/arrow flip. */
   pullDistance?: number;
 }
 
@@ -28,16 +21,10 @@ export function PullUpHint({ isLoading = false, pullDistance = 0 }: PullUpHintPr
   const { t } = useTranslation();
   const isPastThreshold = pullDistance >= PULL_THRESHOLD;
 
-  // Elastic rubber-band: 40% ratio, capped at 60px expansion so it never feels infinite
-  const elasticPx = pullDistance > 0 ? Math.min(pullDistance * 0.4, 60) : 0;
-  const totalHeight = 80 + elasticPx;
-
   return (
     <div
       style={{
-        height: `${totalHeight}px`,
-        // Smooth snap-back only when finger has lifted (pullDistance === 0)
-        transition: pullDistance === 0 ? 'height 0.3s ease' : 'none',
+        height: '80px',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -45,7 +32,6 @@ export function PullUpHint({ isLoading = false, pullDistance = 0 }: PullUpHintPr
         gap: '8px',
         fontSize: '0.875rem',
         color: isPastThreshold && !isLoading ? 'var(--primary-40)' : 'var(--muted-foreground)',
-        overflow: 'hidden',
         userSelect: 'none',
         WebkitUserSelect: 'none',
       }}

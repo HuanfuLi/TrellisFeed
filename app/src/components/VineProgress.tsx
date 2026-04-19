@@ -259,8 +259,6 @@ export function VineProgress({
         boxShadow: 'var(--shadow-1)',
         padding: '12px 16px',
         position: 'relative',
-        marginTop: '16px',
-        marginBottom: '16px',
       }
     : {
         background: 'var(--surface)',
