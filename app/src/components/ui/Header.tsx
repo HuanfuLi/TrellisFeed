@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { HeaderScrollContext } from '../../lib/header-scroll-context';
+import { SwipeTabContext } from '../../lib/swipe-tab-context';
 
 /** Height of the header bar (excluding safe-area). Use in content padding. */
 export const HEADER_HEIGHT = 56;
@@ -135,8 +136,21 @@ export function Header({ title, left, right, centered, backTo, style, scrolled: 
     </div>
   );
 
-  // Portal to document.body so position:fixed always anchors to the viewport
-  // regardless of any ancestor's transform / overflow / will-change / contain.
-  // See class-doc above for the full rationale.
-  return createPortal(headerNode, document.body);
+  // Portal ONLY for sub-screen Headers (rendered inside the App's Outlet wrapper,
+  // a sibling of SwipeTabContainer). Top-level swipe-tab Headers (Settings, Planner,
+  // Graph, Ask) MUST render in-tree — their slots have transform:translateZ(0) which
+  // creates a per-slot containing block, so position:fixed Headers stay scoped to
+  // the active slot and float off-screen with their slot when inactive (per the
+  // 8df7980c "comprehensive swipe navigation rewrite" pattern).
+  //
+  // If we portal a top-level swipe-tab Header to document.body it becomes ALWAYS
+  // visible regardless of which tab is active — operator caught this as a global
+  // Settings banner appearing on Home/Planner/etc.
+  //
+  // Detection: SwipeTabContext is provided ONLY by SwipeTabContainer, wrapping the
+  // strip slots. Sub-screens rendered through Outlet are siblings of SwipeTabContainer
+  // and have ctx === null. So `insideSwipeTab` cleanly distinguishes the two cases
+  // without needing a prop.
+  const insideSwipeTab = useContext(SwipeTabContext) !== null;
+  return insideSwipeTab ? headerNode : createPortal(headerNode, document.body);
 }
