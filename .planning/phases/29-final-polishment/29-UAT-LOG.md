@@ -102,5 +102,5 @@ Skip items (per D-23) are recorded for audit completeness but require NO walkthr
 | Superseded by | Phase 31 D-14 (31-CONTEXT.md) — generation-time weak-concept prioritization |
 | Rationale | Phase 31's `buildConceptBatch` generates 2 posts per important concept (ease < 1.5 or dying/falling/dead LeafState) AT generation time. The Phase 29 runtime sort bias would double-layer the weighting. |
 | Code evidence | applyStrategyBias removed from concept-feed.service.ts; plannerAutoGen.service.ts retains wiring |
-| Closure commit | PENDING — backfilled post-commit |
+| Closure commit | e6ca3d35 |
 | Recorded by | Phase 33 TD-04 resolution (33-CONTEXT.md D-05) |
