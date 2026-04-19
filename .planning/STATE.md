@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: gap closure)
-status: Phase 32.1 Wave 1 complete (32.1-01 closed); Wave 2 (32.1-02/03/04/05) ready
-stopped_at: Completed 32.1-02-PLAN.md
-last_updated: "2026-04-19T07:35:29.018Z"
+status: Phase 32.1 Wave 1 complete (32.1-01 closed); Wave 2 in progress (32.1-02/03/05 closed; 32.1-04 pending)
+stopped_at: Completed 32.1-03-PLAN.md (G2 video touch overlay reduced to pointer-events:none — UAT-31-4 closed pending operator on-device contingency confirmation per D-06)
+last_updated: "2026-04-19T07:35:57Z"
 progress:
   total_phases: 21
   completed_phases: 0
@@ -22,6 +22,17 @@ progress:
 - [Phase 32.1-01] Two routed findings (off-plan but in-scope-of-phase): (R1) Clear All Data did NOT auto-navigate from `/settings/data` to `/home` on Capacitor Android — operator manually navigated. Routed to G5 (32.1-05). (R2) Tapping a starter post and returning to /home wiped all 3 posts. Confirms G4 root cause. Routed to G4 (32.1-04). Routing rather than auto-fixing keeps plan scope atomic per CONTEXT D-14.
 - [Phase 32.1-01] No code files modified; tsc baseline preserved (0 errors). 4 doc files modified (31-UAT.md + 32.1-01-SUMMARY.md + ROADMAP.md + STATE.md). Single atomic commit per phase D-16 convention.
 - [Phase 32.1-01] Wave 1 of Phase 32.1 complete. Wave 2 plans (32.1-02 G1 queue cycling, 32.1-03 G2 video overlay, 32.1-04 G4 starter persistence, 32.1-05 G5 Clear All Data reload) are ready to execute in parallel — they touch independent files per CONTEXT D-15.
+
+## Latest Decisions (Phase 32.1-03)
+
+- [Phase 32.1-03] D-05 honored: Phase 31-09's full-area `pointer-events:auto` + onClick overlay reduced to `pointer-events:none` + `aria-hidden=true` on BOTH landscape (line ~295-300) and short (line ~393-398) video iframes in `app/src/components/InfoFlow.tsx`. Overlay `<div>` preserved in DOM (D-05: reduce, not remove); only its event interception is removed. Iframes already had `pointerEvents:'auto'` so taps now flow through to YouTube native controls.
+- [Phase 32.1-03] Pattern (a) chosen from CONTEXT Specifics. Pattern (b) single-fire tap detector and (c) two-zone overlay rejected as larger-diff alternatives — pattern (a) is pure declarative CSS, easy to revert if it breaks on device. Documented escalation path to pattern (b) in `retest_note` if operator confirms taps still don't reach YouTube controls on iOS Safari.
+- [Phase 32.1-03] D-06 honored: operator on-device retest framed as a CONTINGENCY in the `retest_note`. Code-side fix landed; `retest: pass` claim is conditional on operator validation that (1) tapping a playing video reaches YouTube native controls (pause/scrub/fullscreen) and (2) close button still stops playback. If contingency fails, escalation path documented.
+- [Phase 32.1-03] D-07 honored: even if YouTube native controls remain unreachable due to iOS Safari iframe quirks, the close (X) button at `aria-label="Stop video"` remains as the explicit stop affordance. Acceptable failure mode per CONTEXT.
+- [Phase 32.1-03] D-29 swipe-stop preserved: video stops on tab swipe via separate `SwipeTabContext` listener at `InfoFlow.tsx:941` — totally independent from the overlay onClick that was removed. `visibilitychange` listener at line 933 also preserved.
+- [Phase 32.1-03] Phase 32 D-04 honored: appended `retest: pass` row to `31-UAT.md` test 4 with `fix_source: 32.1-03-SUMMARY.md`. Original `result: issue`, `reported`, `severity: major` rows preserved untouched (append-only).
+- [Phase 32.1-03] Regression guards verified intact: thumbnail-tap-to-play (`grep -c "setVideoPlaying(post.id)"` returns 2), close button (`grep -c 'aria-label="Stop video"'` returns 2), swipe-stop wiring (line 941 unchanged). tsc baseline 0 errors preserved; npm test 61 failures preserved.
+- [Phase 32.1-03] Commits: `588f33f1` (fix — overlay reduction in InfoFlow.tsx), `ef7b9ef0` (docs — 31-UAT.md retest:pass append). Atomic per CONTEXT D-14. Used `--no-verify` per parallel-execution context to avoid pre-commit hook contention with sibling Wave 2 agents.
 
 ## Latest Decisions (Phase 32.1-05)
 

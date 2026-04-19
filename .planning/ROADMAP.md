@@ -836,7 +836,7 @@ Scope:
 Plans:
 - [x] 32.1-01-PLAN.md — G3 starter-posts retest after Vite base fix (Wave 1, checkpoint:human-verify on operator APK deploy + retest; UAT-31-14)
 - [x] 32.1-02-PLAN.md — G1 queue-cycling + cross-cycle YouTube dedup regression (Wave 2; UAT-31-2 + UAT-31-13)
-- [ ] 32.1-03-PLAN.md — G2 video touch overlay reduced to pointer-events:none so YouTube controls reach user (Wave 2; UAT-31-4)
+- [x] 32.1-03-PLAN.md — G2 video touch overlay reduced to pointer-events:none so YouTube controls reach user (Wave 2; UAT-31-4) — commits `588f33f1` + `ef7b9ef0`, see `phases/32.1-v1-4-uat-retest-gap-closure/32.1-03-SUMMARY.md`
 - [ ] 32.1-04-PLAN.md — G4 (NEW) starter posts persist to cache + decay at 3+ organic posts (Wave 2; STARTER-PERSIST)
 - [x] 32.1-05-PLAN.md — G5 (NEW) Clear All Data uses window.location.assign('/home') instead of reload (Wave 2; CLEAR-RELOAD) — commit `3f4f35c3`, see `phases/32.1-v1-4-uat-retest-gap-closure/32.1-05-SUMMARY.md`
 
