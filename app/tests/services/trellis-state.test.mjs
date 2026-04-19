@@ -41,12 +41,12 @@ test('computeLeafState returns bud when reviewCount is zero everywhere', async (
   assert.equal(computeLeafState(anchor, []), 'bud');
 });
 
-test('computeLeafState returns yellow for 1-7 day overdue child', async () => {
+test('computeLeafState returns dying for 1-7 day overdue child', async () => {
   storage.clear();
   const { computeLeafState } = await import('../../src/services/trellis-state.service.ts');
   const anchor = mkQ({ reviewSchedule: { ...mkQ().reviewSchedule, reviewCount: 1 } });
   const child = mkQ({ reviewSchedule: { nextReviewDate: daysAgo(3), reviewCount: 1, easeFactor: 2.0, interval: 2, lastReviewedAt: null } });
-  assert.equal(computeLeafState(anchor, [child]), 'yellow');
+  assert.equal(computeLeafState(anchor, [child]), 'dying');
 });
 
 test('worst-child-wins: one 14-day child beats healthy sibling', async () => {
@@ -55,7 +55,7 @@ test('worst-child-wins: one 14-day child beats healthy sibling', async () => {
   const anchor = mkQ({ reviewSchedule: { ...mkQ().reviewSchedule, reviewCount: 1 } });
   const bad = mkQ({ reviewSchedule: { nextReviewDate: daysAgo(14), reviewCount: 1, easeFactor: 2.0, interval: 2, lastReviewedAt: null } });
   const good = mkQ({ reviewSchedule: { nextReviewDate: daysAgo(-5), reviewCount: 1, easeFactor: 2.5, interval: 2, lastReviewedAt: null } });
-  assert.equal(computeLeafState(anchor, [bad, good]), 'fallen');
+  assert.equal(computeLeafState(anchor, [bad, good]), 'dead');
 });
 
 test('blossom state when all reviewed AND easeFactor > 2.5', async () => {

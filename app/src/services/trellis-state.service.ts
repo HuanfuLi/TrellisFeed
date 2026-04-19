@@ -6,7 +6,7 @@ import {
 import { generateVinePath, getLeafPosition, getVineColor, hashStr, type VinePathSpec } from './trellis-layout.service.ts';
 import { flashcardService } from './flashcard.service.ts';
 
-export type LeafState = 'bud' | 'green' | 'yellow' | 'falling' | 'fallen' | 'blossom' | 'fruit';
+export type LeafState = 'bud' | 'green' | 'dying' | 'falling' | 'dead' | 'blossom' | 'fruit';
 
 export interface TrellisAnchorNode {
   anchor: Question;
@@ -85,9 +85,9 @@ export function computeLeafState(
     const d = computeDaysOverdue(nrd);
     if (d > maxOverdue) maxOverdue = d;
   }
-  if (maxOverdue >= 14 || aggregateEase < 1.5) return 'fallen';
+  if (maxOverdue >= 14 || aggregateEase < 1.5) return 'dead';
   if (maxOverdue >= 7) return 'falling';
-  if (maxOverdue >= 1) return 'yellow';
+  if (maxOverdue >= 1) return 'dying';
   return 'green';
 }
 
@@ -114,11 +114,11 @@ function buildDevTrellisState(): TrellisLayout {
     // Vine 1 (2 nodes): bud + green
     { state: 'bud', cat: 1, vineIdx: 1 }, { state: 'green', cat: 1, vineIdx: 1 },
     // Vine 2 (3 nodes): green leaves
-    { state: 'green', cat: 2, vineIdx: 2 }, { state: 'green', cat: 3, vineIdx: 2 }, { state: 'yellow', cat: 2, vineIdx: 2 },
+    { state: 'green', cat: 2, vineIdx: 2 }, { state: 'green', cat: 3, vineIdx: 2 }, { state: 'dying', cat: 2, vineIdx: 2 },
     // Vine 3: mixed health
-    { state: 'yellow', cat: 4, vineIdx: 3 }, { state: 'falling', cat: 4, vineIdx: 3 }, { state: 'green', cat: 5, vineIdx: 3 },
+    { state: 'dying', cat: 4, vineIdx: 3 }, { state: 'falling', cat: 4, vineIdx: 3 }, { state: 'green', cat: 5, vineIdx: 3 },
     // Vine 4: decay
-    { state: 'falling', cat: 6, vineIdx: 4 }, { state: 'fallen', cat: 7, vineIdx: 4 }, { state: 'yellow', cat: 6, vineIdx: 4 },
+    { state: 'falling', cat: 6, vineIdx: 4 }, { state: 'dead', cat: 7, vineIdx: 4 }, { state: 'dying', cat: 6, vineIdx: 4 },
     // Vine 5: blossoms
     { state: 'blossom', cat: 0, vineIdx: 5 }, { state: 'blossom', cat: 1, vineIdx: 5 }, { state: 'green', cat: 0, vineIdx: 5 },
     // Vine 6: more blossoms

@@ -12,9 +12,9 @@ test('pluralize handles singular and plural', async () => {
 test('resolveHealthCopy returns exact UI-SPEC copy per state', async () => {
   const mod = await import('../../src/components/trellis/TrellisTooltip.tsx');
   assert.equal(mod.resolveHealthCopy('green', 0, 0), 'On track — keep going');
-  assert.equal(mod.resolveHealthCopy('yellow', 2, 0), 'Due soon — 2 cards need a quick review');
+  assert.equal(mod.resolveHealthCopy('dying', 2, 0), 'Due soon — 2 cards need a quick review');
   assert.equal(mod.resolveHealthCopy('falling', 1, 0), 'Slipping — 1 card overdue by a week');
-  assert.equal(mod.resolveHealthCopy('fallen', 3, 0), 'Needs attention — 3 cards long overdue');
+  assert.equal(mod.resolveHealthCopy('dead', 3, 0), 'Needs attention — 3 cards long overdue');
   assert.equal(mod.resolveHealthCopy('blossom', 0, 0), 'Mastered — beautifully done');
   assert.equal(mod.resolveHealthCopy('fruit', 0, 14), 'Sustained mastery — 14 days strong');
   assert.equal(mod.resolveHealthCopy('bud', 0, 0), 'Newly planted');
@@ -22,7 +22,7 @@ test('resolveHealthCopy returns exact UI-SPEC copy per state', async () => {
 
 test('LEAF_STATE_COLOR covers all 7 states', async () => {
   const { LEAF_STATE_COLOR } = await import('../../src/components/trellis/TrellisLeaf.tsx');
-  const expected = ['bud', 'green', 'yellow', 'falling', 'fallen', 'blossom', 'fruit'];
+  const expected = ['bud', 'green', 'dying', 'falling', 'dead', 'blossom', 'fruit'];
   for (const s of expected) {
     assert.ok(LEAF_STATE_COLOR[s], `missing color for ${s}`);
     assert.match(LEAF_STATE_COLOR[s], /^var\(--/, `${s} should be a CSS var`);

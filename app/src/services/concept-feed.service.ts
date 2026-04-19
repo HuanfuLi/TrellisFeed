@@ -668,7 +668,7 @@ function buildConceptBatch(questions: Question[]): string[] {
     if (!isImportant) {
       try {
         const leaf = computeLeafState(anchor, children);
-        isImportant = leaf === 'yellow' || leaf === 'falling' || leaf === 'fallen';
+        isImportant = leaf === 'dying' || leaf === 'falling' || leaf === 'dead';
       } catch { /* non-critical — default to not important */ }
     }
     const count = isImportant ? BASE_ENTRIES_PER_CONCEPT * 2 : BASE_ENTRIES_PER_CONCEPT;

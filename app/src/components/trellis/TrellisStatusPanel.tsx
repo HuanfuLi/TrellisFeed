@@ -41,8 +41,8 @@ export function TrellisStatusPanel({ nodes, onCreditsChange, counterRef }: Trell
   const fruitRef = useRef<HTMLButtonElement>(null);
 
   const fruitNodes = nodes.filter((n) => n.leafState === 'fruit');
-  const dyingNodes = nodes.filter((n) => n.leafState === 'yellow' || n.leafState === 'falling');
-  const deadNodes = nodes.filter((n) => n.leafState === 'fallen');
+  const dyingNodes = nodes.filter((n) => n.leafState === 'dying' || n.leafState === 'falling');
+  const deadNodes = nodes.filter((n) => n.leafState === 'dead');
 
   const handleHarvest = () => {
     const count = fruitNodes.length;

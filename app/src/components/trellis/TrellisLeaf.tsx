@@ -70,9 +70,9 @@ export type BotanicalCategory = typeof BOTANICAL_CATEGORIES[number];
 const STATE_COLOR: Record<LeafState, string> = {
   bud: '#7CB342',
   green: '#388E3C',
-  yellow: '#F9A825',
+  dying: '#F9A825',
   falling: '#E65100',
-  fallen: '#8D6E63',
+  dead: '#8D6E63',
   blossom: '#CE93D8', // default, overridden per category
   fruit: '#C62828',   // default, overridden per category
 };
@@ -80,9 +80,9 @@ const STATE_COLOR: Record<LeafState, string> = {
 const STATE_VEIN: Record<LeafState, string> = {
   bud: '#558B2F',
   green: '#1B5E20',
-  yellow: '#F57F17',
+  dying: '#F57F17',
   falling: '#BF360C',
-  fallen: '#5D4037',
+  dead: '#5D4037',
   blossom: '#7B1FA2',
   fruit: '#B71C1C',
 };
@@ -511,18 +511,18 @@ const FRUIT_SHAPES: Record<BotanicalCategory, ShapeFn> = {
 };
 
 // ── Decay modifiers ────────────────────────────────────────────────────────
-// Yellow/falling/fallen wrap the base leaf with visual decay cues.
+// Dying/falling/dead wrap the base leaf with visual decay cues.
 
-function withDecay(leaf: React.ReactNode, state: 'yellow' | 'falling' | 'fallen'): React.ReactNode {
-  const extraRotation = state === 'falling' ? 20 : state === 'fallen' ? -15 : 0;
-  const opacity = state === 'fallen' ? 0.75 : 1;
+function withDecay(leaf: React.ReactNode, state: 'dying' | 'falling' | 'dead'): React.ReactNode {
+  const extraRotation = state === 'falling' ? 20 : state === 'dead' ? -15 : 0;
+  const opacity = state === 'dead' ? 0.75 : 1;
   return (
     <g transform={extraRotation ? `rotate(${extraRotation})` : undefined} opacity={opacity}>
       {leaf}
       {state === 'falling' && (
         <path d="M -3,-6 C -1,0 2,3 5,6" fill="none" stroke={STATE_VEIN[state]} strokeWidth={0.6} opacity={0.4} />
       )}
-      {state === 'fallen' && (
+      {state === 'dead' && (
         <line x1={0} y1={-5} x2={-1} y2={3} stroke={STATE_VEIN[state]} strokeWidth={0.6} opacity={0.3} strokeDasharray="2 1.5" />
       )}
     </g>
@@ -567,7 +567,7 @@ export function TrellisLeaf(props: TrellisLeafProps) {
     const Fn = FRUIT_SHAPES[cat];
     shape = <Fn fill={fill} stroke={stroke} />;
   } else {
-    // green, yellow, falling, fallen — use category leaf shape with state color
+    // green, dying, falling, dead — use category leaf shape with state color
     const color = STATE_COLOR[state];
     const vein = STATE_VEIN[state];
     const LeafFn = LEAF_SHAPES[cat];

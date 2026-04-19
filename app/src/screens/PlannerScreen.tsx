@@ -43,8 +43,8 @@ export function PlannerScreen() {
   // Phase 28 D-12 — track which anchor should pulse on the trellis when the
   // Trellis-derived action moves (per D-19, D-20, D-23).
   // Re-derived every render so layout updates flow through immediately.
-  const deadNodes = layout.nodes.filter((n) => n.leafState === 'fallen');
-  const dyingNodes = layout.nodes.filter((n) => n.leafState === 'yellow' || n.leafState === 'falling');
+  const deadNodes = layout.nodes.filter((n) => n.leafState === 'dead');
+  const dyingNodes = layout.nodes.filter((n) => n.leafState === 'dying' || n.leafState === 'falling');
 
   // D-23: AutoGen dedup — drop any autoGen move whose conceptId matches
   // a dying or dead anchor so the user does not see the same anchor twice.

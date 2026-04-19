@@ -12,7 +12,7 @@
  *   1. pendingIds = Set of sourceQuestionIds from all posts currently in the queue
  *   2. exploredIds = Set from dailyReadService.getExploredAnchors()
  *   3. dueAnchors = anchors WHERE id NOT IN pendingIds AND id NOT IN exploredIds
- *   4. For each dueAnchor: push id once; push a SECOND time if isImportant (ease < 1.5 or dying/falling/fallen)
+ *   4. For each dueAnchor: push id once; push a SECOND time if isImportant (ease < 1.5 or dying/falling/dead)
  */
 
 import assert from 'node:assert/strict';
