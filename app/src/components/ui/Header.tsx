@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { useContext, useEffect, useRef } from 'react';
+import { useContext } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
@@ -56,86 +56,6 @@ export function Header({ title, left, right, centered, backTo, style, scrolled: 
   const navigate = useNavigate();
   const ctx = useContext(HeaderScrollContext);
   const scrolled = scrolledProp ?? ctx?.scrolled ?? false;
-  const headerRef = useRef<HTMLDivElement | null>(null);
-
-  // Bug 2 diagnostic + defensive fix.
-  //
-  // Symptom: on Capacitor Android, Header initially renders at "upper middle" of
-  // viewport (~hundreds of px below correct position) then snaps to top edge after
-  // ~100-300ms. Web browser doesn't reproduce. Removing transform from sub-screen-in
-  // keyframes (opacity-only animation) did NOT help — so the cause isn't a transformed
-  // ancestor reparenting our containing block.
-  //
-  // Defensive fix: measure env(safe-area-inset-top) via a probe element AND publish
-  // the result as --status-bar-height. This gives Header a guaranteed-resolved fallback
-  // chain `env() → var(--status-bar-height) → 0`. If Android Capacitor returns a stale
-  // env() value initially then corrects, our JS measurement can detect that and update.
-  //
-  // Diagnostic: log Header position + safe-area values at multiple timing checkpoints
-  // (mount, raf, +100ms, +300ms). Look for [Bug2-Header] in chrome://inspect Console.
-  useEffect(() => {
-    const probe = document.createElement('div');
-    probe.style.cssText = 'position:fixed;top:env(safe-area-inset-top);left:0;width:1px;height:1px;pointer-events:none;visibility:hidden;z-index:-1';
-    document.body.appendChild(probe);
-
-    const snapshot = (label: string) => {
-      const el = headerRef.current;
-      if (!el) return;
-      const cs = getComputedStyle(el);
-      const root = getComputedStyle(document.documentElement);
-      const probeTop = probe.getBoundingClientRect().top;
-      const headerRect = el.getBoundingClientRect();
-
-      // Walk up DOM and find any ancestor with transform/will-change/filter/contain/perspective.
-      const offenders: string[] = [];
-      let p: HTMLElement | null = el.parentElement;
-      while (p && p !== document.body) {
-        const ps = getComputedStyle(p);
-        const props: string[] = [];
-        if (ps.transform !== 'none') props.push(`transform=${ps.transform}`);
-        if (ps.willChange !== 'auto') props.push(`will-change=${ps.willChange}`);
-        if (ps.filter !== 'none') props.push(`filter=${ps.filter}`);
-        if (ps.contain !== 'none') props.push(`contain=${ps.contain}`);
-        if (ps.perspective !== 'none') props.push(`perspective=${ps.perspective}`);
-        if (props.length > 0) {
-          offenders.push(`${p.tagName}.${p.className || '(no-class)'}: ${props.join(', ')}`);
-        }
-        p = p.parentElement;
-      }
-
-      // Promote env() measurement to --status-bar-height so the var() fallback chain
-      // has a concrete value even when env() is briefly unresolved.
-      if (probeTop > 0 && root.getPropertyValue('--status-bar-height').trim() !== `${probeTop}px`) {
-        document.documentElement.style.setProperty('--status-bar-height', `${probeTop}px`);
-      }
-
-      // eslint-disable-next-line no-console
-      console.log(`[Bug2-Header ${label}]`, {
-        headerTop: cs.top,
-        headerPosition: cs.position,
-        headerRect: { top: headerRect.top, height: headerRect.height },
-        safeAreaTopVar: root.getPropertyValue('--safe-area-top').trim(),
-        statusBarHeightVar: root.getPropertyValue('--status-bar-height').trim(),
-        envProbeTop: probeTop,
-        viewport: { innerHeight: window.innerHeight, innerWidth: window.innerWidth },
-        ancestorOffenders: offenders.length > 0 ? offenders : 'none',
-      });
-    };
-
-    snapshot('mount');
-    const rafId = requestAnimationFrame(() => snapshot('raf'));
-    const t100 = window.setTimeout(() => snapshot('+100ms'), 100);
-    const t300 = window.setTimeout(() => snapshot('+300ms'), 300);
-    const t1000 = window.setTimeout(() => snapshot('+1000ms'), 1000);
-
-    return () => {
-      cancelAnimationFrame(rafId);
-      clearTimeout(t100);
-      clearTimeout(t300);
-      clearTimeout(t1000);
-      document.body.removeChild(probe);
-    };
-  }, []);
 
   const effectiveLeft = left ?? (backTo ? (
     <button onClick={() => navigate(backTo)} style={{ background: 'none', border: 'none', padding: '8px', marginLeft: '-8px', color: 'var(--primary-40)', display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
@@ -145,7 +65,6 @@ export function Header({ title, left, right, centered, backTo, style, scrolled: 
   const effectiveCentered = centered ?? !!backTo;
   const headerNode = (
     <div
-      ref={headerRef}
       style={{
         position: 'fixed',
         top: 'var(--safe-area-top)',
