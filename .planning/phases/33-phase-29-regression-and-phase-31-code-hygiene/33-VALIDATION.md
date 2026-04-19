@@ -30,7 +30,7 @@ updated: 2026-04-19
 
 - **After every task commit:** Run the targeted test for the files touched (e.g., `node --test tests/services/trellis-state.test.mjs` after TD-06 rename task).
 - **After every plan wave:** Run `cd app && npm test` + `cd app && npx tsc -b --noEmit`.
-- **Before `/gsd:verify-work`:** Full suite must show only the 24-26 pre-existing Node-25 trellis failures (zero new failures) AND `tsc -b --noEmit` must be exit 0.
+- **Before `/gsd:verify-work`:** Full suite must show ZERO v1.4-specific regressions vs. the pre-rename baseline captured in Plan 33-03 Task 3.5 Step 3 (`/tmp/phase-33-pre-rename-baseline.log` + `/tmp/phase-33-baseline-signatures.txt`). Post-suite fail count ≤ baseline fail count AND post-suite signature set ⊆ baseline signature set. `tsc -b --noEmit` must be exit 0.
 - **Max feedback latency:** 45 seconds.
 
 ---
@@ -49,10 +49,10 @@ updated: 2026-04-19
 | 2.2 | 33-02 | 1 | TD-04 | grep doc status | `grep -c "SUPERSEDED-BY-PHASE-31" .planning/phases/29-final-polishment/29-VERIFICATION.md` ≥ 1; `grep -c "TD-01 SUPERSEDED" .planning/phases/29-final-polishment/29-UAT-LOG.md` ≥ 1 | n/a — grep | ⬜ pending |
 | 3.1 | 33-03 | 2 | TD-06 | grep LeafState type | `grep -c "'yellow'\|'fallen'" app/src/services/trellis-state.service.ts` == 0; `grep -c "'dying'\|'dead'" app/src/services/trellis-state.service.ts` ≥ 5 | n/a — grep | ⬜ pending |
 | 3.2 | 33-03 | 2 | TD-06 | grep comparisons | `grep -c "'yellow'\|'fallen'" app/src/services/concept-feed.service.ts app/src/screens/PlannerScreen.tsx` == 0 | n/a — grep | ⬜ pending |
-| 3.3 | 33-03 | 2 | TD-06 | grep trellis components | `grep -rn "'yellow'\|'fallen'" app/src/components/trellis/ \| wc -l` == 0 | n/a — grep | ⬜ pending |
+| 3.3 | 33-03 | 2 | TD-06 | grep trellis components (scope: 5 existing trellis files — `TrellisStatusPanel`, `TrellisLeaf`, `TrellisCanvas`, `TrellisHero`, `TrellisEmptyState`, `PrunedSection`; `TrellisTooltip.tsx` absent per Plan 33-03 Scope boundary) | `grep -rn "'yellow'\|'fallen'" app/src/components/trellis/ \| wc -l` == 0 | n/a — grep | ⬜ pending |
 | 3.4 | 33-03 | 2 | TD-06 | grep test fixtures | `grep -rn "'yellow'\|'fallen'" app/tests/ \| wc -l` == 0 | n/a — grep | ⬜ pending |
-| 3.5 | 33-03 | 2 | TD-06 | tsc + build + test-baseline | `cd app && npx tsc -b --noEmit` exit 0; `cd app && npx vite build` exit 0; `cd app && npm test \| tail -5` fail count within 0-6 of pre-plan-03 baseline | n/a — tooling | ⬜ pending |
-| 4.1 | 33-04 | 3 | TSC-HYGIENE | full success-criteria sweep | `cd app && npx tsc -b --noEmit`; `cd app && npx vite build`; `cd app && npm test`; `cd /Users/Code/EchoLearn && git status --porcelain` all pass | n/a — tooling | ⬜ pending |
+| 3.5 | 33-03 | 2 | TD-06 | tsc + build + baseline-relative test diff | `cd app && npx tsc -b --noEmit` exit 0; `cd app && npx vite build` exit 0; post-rename `npm test` fail count ≤ pre-rename baseline AND post-rename signature set ⊆ baseline signature set (captured at `/tmp/phase-33-pre-rename-baseline.log` / `/tmp/phase-33-baseline-signatures.txt`) | n/a — tooling | ⬜ pending |
+| 4.1 | 33-04 | 3 | TSC-HYGIENE | full success-criteria sweep (baseline-relative) | `cd app && npx tsc -b --noEmit`; `cd app && npx vite build`; `cd app && npm test` with closure fail count ≤ baseline AND closure signatures ⊆ baseline; `cd /Users/Code/EchoLearn && git status --porcelain` all pass | n/a — tooling | ⬜ pending |
 | 4.2 | 33-04 | 3 | TSC-HYGIENE | file-presence + frontmatter | `test -f .planning/phases/33-phase-29-regression-and-phase-31-code-hygiene/33-CLOSURE.md`; `grep "nyquist_compliant: true" .planning/phases/33-phase-29-regression-and-phase-31-code-hygiene/33-VALIDATION.md` | n/a — file check | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
@@ -84,12 +84,12 @@ updated: 2026-04-19
 
 | Criterion (from ROADMAP) | Test |
 |--------------------------|------|
-| `npm test` shows only pre-existing Node-25 trellis failures — zero v1.4-specific failures | `cd app && npm test` — diff against 24-26-failure baseline (26 currently) |
+| `npm test` shows zero v1.4-specific regressions vs. pre-rename baseline | `cd app && npm test` — compare `FAIL_COUNT_CLOSURE` ≤ `FAIL_COUNT_BASELINE` AND closure signature set ⊆ `/tmp/phase-33-baseline-signatures.txt`. Pre-existing failure kinds carried from v1.3/1.4 (`ERR_IMPORT_ATTRIBUTE_MISSING`, `ERR_MODULE_NOT_FOUND`, `ERR_UNKNOWN_FILE_EXTENSION`, `ERR_ASSERTION`) all expected; no new kinds permitted. |
 | `npx tsc -b --noEmit` shows only the 4 pre-existing errors documented in 29-03-SUMMARY | `cd app && npx tsc -b --noEmit` — researcher found exit 0 is achievable (760fa4f8 already cleared them, including the 4 "pre-existing" ones) |
 | `git status` is clean (or WIP carried with explicit commit) | `git status --porcelain` returns empty string after WIP flush commit (Plan 33-00) |
 | `29-VERIFICATION.md` is no longer stale w.r.t. TD-01 | grep `SUPERSEDED-BY-PHASE-31` in `29-VERIFICATION.md` returns a hit (after Plan 33-02) |
 | Bundle parity holds after locale key removal (D-09) | `cd app && node --test tests/locales/bundle-parity.test.mjs` — exit 0 (after Plan 33-01) |
-| LeafState rename did not break state derivation | `cd app && node --test tests/services/trellis-state.test.mjs` — assertions for `'dying'`/`'dead'` pass (after Plan 33-03; failures must match pre-rename import-attribute count) |
+| LeafState rename did not break state derivation | `cd app && node --test tests/services/trellis-state.test.mjs` — assertions for `'dying'`/`'dead'` pass structurally; the test file continues to surface the pre-existing `ERR_IMPORT_ATTRIBUTE_MISSING` signature at module load (baseline carry-through, NOT a rename regression — Pitfall #4). |
 | `concept-feed.service.ts` LeafState predicate clears TS2367 after rename | `cd app && npx tsc -b --noEmit` — exit 0 (after Plan 33-03) |
 
 ---
@@ -98,7 +98,7 @@ updated: 2026-04-19
 
 - **Wave 0** — Plan 33-00 (WIP flush). Prerequisite for everything; must land first per D-19.
 - **Wave 1** — Plan 33-01 (TD-05 delete) + Plan 33-02 (TD-04 supersession). Parallelizable — different files, no overlap.
-- **Wave 2** — Plan 33-03 (TD-06 rename). Atomic commit per D-15; touches 9 files. Depends on both Wave 1 plans.
+- **Wave 2** — Plan 33-03 (TD-06 rename). Atomic commit per D-15; touches 8 files (TrellisTooltip.tsx explicitly out of scope — absent from working tree, deferred to v1.5). Depends on both Wave 1 plans.
 - **Wave 3** — Plan 33-04 (closure + verification). Depends on Wave 2.
 
 ---
