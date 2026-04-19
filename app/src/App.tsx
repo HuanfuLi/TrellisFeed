@@ -267,14 +267,6 @@ function RootLayout() {
             paddingBottom: 'var(--safe-area-bottom)',
             overflow: 'auto',
             overscrollBehavior: 'contain',
-            // Bug 2 fix: force this wrapper to be a containing block for position:fixed
-            // descendants (Header). Without this, Android Chromium WebView treats
-            // position:fixed children of an overflow:auto container as scroll-relative,
-            // causing Header to flicker from "scrolled position" to viewport-top on every
-            // sub-screen entry. SwipeTabContainer slots have the same translateZ(0) for
-            // the same reason (see SwipeTabContainer.tsx:10-13). Web browsers don't
-            // exhibit this Chromium-Android quirk — that's why the bug is device-only.
-            transform: 'translateZ(0)',
             animation: subScreenClosing ? 'sub-screen-out 0.2s ease forwards' : 'sub-screen-in 0.2s ease',
             pointerEvents: subScreenClosing ? 'none' : 'auto',
           }}
