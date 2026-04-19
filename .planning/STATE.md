@@ -2,15 +2,72 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: gap closure)
-status: Phase 32.1 Wave 3 complete (32.1-06/07 + 6 retest-cycle bug fixes closed); awaiting next APK deploy for full UAT
-stopped_at: Wave 3 retest-cycle bug fixes (Bug 1/2/3/4 + news regression + dead news.service cleanup)
-last_updated: "2026-04-19T16:00:00Z"
+status: Phase 32.1 Wave 4 complete; Phase 33 CONTEXT.md re-evaluated 2026-04-19 evening — original scope partly DONE (33-00 WIP flush + 33-04 tsc errors) and partly STILL NEEDED (33-01 ConceptProgressCard delete, 33-02 strategy test cleanup, 33-03 LeafState rename); v2 additions added: Plan 33-05 Wave 4 WIP re-flush, 33-06 perf memoization (settings + React.memo), 33-07 cosmetic polish (touch targets + spacing tokens); token-cost optimizations researched but DEFERRED to v1.5 (no characterization tests)
+stopped_at: Phase 33 CONTEXT.md revision — ready for /gsd:plan-phase 33 to generate Plans 33-05/33-06/33-07
+last_updated: "2026-04-19T23:00:00Z"
 progress:
   total_phases: 21
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
 ---
+
+# Project State: Phase 33 CONTEXT v2 ready — original scope re-scoped + perf/cosmetic additions
+
+## Latest Decisions (Phase 33 v2 revision, 2026-04-19 evening)
+
+After Phase 32.1 Wave 4 close-out, the codebase was re-evaluated against Phase 33's original CONTEXT.md to determine which items are still needed. Findings:
+
+- **DONE (no Phase 33 action):** 33-00 WIP flush (commit `fe4a2387`); 33-04 5 Phase 31 tsc errors (`tsc -b --noEmit` exit 0).
+- **STILL NEEDED (original scope):** 33-01 (delete `ConceptProgressCard.tsx` + 4 orphan i18n keys), 33-02 (delete `concept-feed-strategy.test.mjs` + TD-01 plumbing assertion), 33-03 (LeafState rename `'yellow'`→`'dying'`, `'fallen'`→`'dead'`).
+- **NEW (v2 additions, this revision):**
+  - Plan 33-05: Wave 4 WIP re-flush (12 working-tree files from Phase 32.1 Wave 4 cleanup).
+  - Plan 33-06: Perf memoization — settings.getSync() at `InfoFlow.tsx:103` + HomeScreen; React.memo on `ConceptCard` + `VineProgress` (NOT TrellisLeaf, deferred). Decisions D-22/D-23.
+  - Plan 33-07: Cosmetic polish — touch targets (`PlannerScreen.tsx:152` 28→44px; `ChatInput.tsx:110-111` 34→44px); spacing tokens (`PlannerScreen.tsx:24/302/317`); shadow tokens (`ChatInput.tsx:97`). Decisions D-24/D-25/D-26.
+- **DEFERRED to v1.5 (researched but not safe enough for Phase 33):** Question-filter LLM threshold tuning (`question-filter.service.ts:122-127` — no tests), combined LLM call refactor in `canonical-knowledge.service.ts:906`, text-art prompt batching, useTrellisData event-bus debounce (touches GRAPH_UPDATED system), TrellisLeaf React.memo, IntersectionObserver for trellis perf-mask, bundle splitting, i18n string-overflow audit.
+
+CONTEXT.md updates landed at `.planning/phases/33-phase-29-regression-and-phase-31-code-hygiene/33-CONTEXT.md`. Plans 33-01/02/03/04 unchanged. Plans 33-05/06/07 to be generated via `/gsd:plan-phase 33` (scope is locked in CONTEXT decisions D-29 through D-31 for re-flush, D-22/D-23 for perf, D-24/D-25/D-26 for cosmetic).
+
+# Project State: Phase 32.1 Wave 4 COMPLETE — second-pass retest bugs + classification quality + UI consistency
+
+## Latest Decisions (Phase 32.1 Wave 4, 2026-04-19 evening)
+
+After Wave 3 shipped, the operator surfaced a second batch of bugs from the same UAT session: persistent text-only cards with massive padding, "only 1 post per swipe" symptom, repeated YouTube videos across reloads, half-width vine progress bar, lazy `${branch} fundamentals` cluster names from the incremental classifier, and inconsistent shadow on suggestion cards. All 9 closed in 32.1 (per operator instruction "DO NOT EVER ADD NEW PHASES"). Architectural hardening + decisions encoded as D-W4-01..08.
+
+### Bug fixes landed
+
+- **Bug A — "Only 1 post per swipe" (concept-feed.service.ts:833/868/901):** News, video, and short post IDs were deterministic per concept per day (`post-${date}-news-${conceptId}`). Across refill cycles for the same anchor, identical IDs were generated. `enqueue` dedup blocks within the current queue snapshot but doesn't see already-served IDs in `infiniteScrollService.seenPostIds` — so duplicates re-entered the queue silently, then `loadNextBatch` filtered them at serve time. Operator's queue snapshot showed two queue slots with literally identical news IDs. Fix: append `-c${cycleNumber}` from `postQueueService.getCycleNumber()` to all three id templates so each generation produces a unique post-id.
+- **Bug B — Empty cards from session post path (concept-feed.service.ts:1376-1385):** `generateSessionPosts` (post-Ask follow-up posts) called `assignStyles` which returns ANY of `image | text-art | suggestion | news | video | short`. But session-post path only generates LLM TEXT — no YouTube/Tavily fetch, so a `'short'`/`'video'`/`'news'` assignment shipped with no `videoMeta`/`newsMeta`. At render time the visual block requires `post.videoMeta?.videoId` → no block → empty card with `background: var(--card)` and wrapper `minHeight: 320px` (matched operator's "massive padding" symptom). Fix: `TEXT_ONLY_STYLES = new Set(['text-art', 'image', 'suggestion'])` filter on assignments before applying.
+- **Bug C — YouTube non-video items (youtube.service.ts:206-222):** Even with `&type=video` in the search URL, YouTube has been observed to return channel/playlist items with `id.channelId`/`id.playlistId` shape (no `videoId`). `data.items.map(...)` produced posts with `videoMeta.videoId: undefined`. Fix: `filter(item => typeof item.id?.videoId === 'string' && item.id.videoId.length > 0)` with type-narrowing predicate before map. Defense in depth.
+- **Bug D — Render fallback only catches 'image' (InfoFlow.tsx:140-167):** Previous fallback `isFailedImage = imageResolved && !image && presentationStyle === 'image'` only converted ONE failure mode to text-art. Suggestion-without-topics, video-without-videoId, news-without-newsMeta, undefined/'image-less' presentationStyle all slipped through to text-only render. Fix: replaced with `wouldRenderVisual` exhaustive check (video+videoId, short+videoId, news, image, text-art); ANY post that wouldn't render a visual block forces `effectivePresentationStyle = 'text-art'`. Adds dev-mode `console.warn` so future regressions surface in logs without users seeing broken cards.
+- **YouTube dedup persistence (concept-feed-dedup.ts):** `_seenVideoIds` was in-memory only — cleared on every page reload (= every Capacitor Android app close/reopen). Combined with deterministic top-N results, users saw the SAME video reappear on swipe-for-more after reopens. Fix: `maybeBackfillFromHistory()` lazily reads today's `videoMeta.videoId` entries from `echolearn_post_history` (already persisted by `postHistoryService`) on first access per session. `typeof localStorage` guard preserves the module's "zero deps for node --test" property. Reverses original D-02 in-memory choice — operator UX cost outweighed the rate-limit-recovery rationale.
+- **YouTube query rotation (concept-feed.service.ts:680-707):** Even with persistent dedup, identical queries returned identical top-N → after N cycles for the same anchor, all results "seen" → no new posts from YouTube for that anchor. Fix: `VIDEO_QUERY_MODIFIERS` (5 variants) and `SHORT_QUERY_MODIFIERS` (4, all preserving `#shorts`); `buildYoutubeQuery(conceptName, cycleNumber, isShort)` keyed by `cycleNumber % modifiers.length`. Pool size bumped 3 → 15 (one API call returns up to 50 with same quota). Pre-validation and actual fetch use the SAME query (no false-pass possible).
+- **Bug 7 — Vine progress half-width (VineProgress.tsx):** SVG had fixed `viewBox="0 0 300 ..."` + `preserveAspectRatio="xMidYMid meet"` → on phones wider than ~330px, content centered with empty side margins. AND the path geometry terminated at `lastFlowerX + 8` so with 1 concept the vine ended at `availableWidth/2`. Two-part fix: (a) `ResizeObserver` measures wrapper `clientWidth` → `viewBox` matches actual canvas; (b) `stemEndFull = stemStart + availableWidth` makes vine reach the right edge regardless of concept count; flowers re-distributed evenly with edge padding. Falls back to 300px on environments without `ResizeObserver`.
+- **Bug 8 — Lazy "X fundamentals" cluster names (canonical-knowledge.service.ts:831-865):** When step 1 of the incremental classifier returned `isNew` (brand-new branch), code short-circuited with hardcoded `clusterName = "${branchName} fundamentals"` and `anchorName = question.title`. Operator: "obviously a lazy implementation." Fix: when branch is new, fire ONE additional combined LLM call (`buildNewBranchClusterAnchorPrompt`) asking for cluster + anchor names with explicit anti-placeholder constraints. `parseClusterAnchorResponse` rejects placeholders (regex `/^(fundamentals|basics|introduction|general|concepts|overview)$/i`) and identical cluster/anchor → falls back to legacy `classifyAndAnchor` rather than ship a placeholder. Step 2's `isNew` short-circuit also removed — anchor name now always LLM-generated via step 3 with empty candidates.
+- **Bug 9 — SuggestionCard shadow inconsistency (SuggestionCard.tsx):** "You may also like" cards used `var(--shadow-1)` and flat `var(--card)` background, while regular concept posts in `InfoFlow.tsx` use `var(--shadow-2)` + gradient + `1.5px` colored border. SuggestionCard stood out visually. Fix: matched all three styles for unified card surface in feed.
+- **Bug 10 — Inconsistent badges on text-art posts (concept-feed.service.ts:1407-1426):** Some text-art posts had concept badges, some didn't. Correlation: daily-path text-art (`generatePostBatch`) explicitly enriches `sourceQuestionIds/Titles` from style assignment after parseGeneratedPosts (commit cd5b6e03, Wave 3). Session-path text-art (`generateSessionPosts`) skipped this step — relied entirely on LLM providing valid `sourceQuestionIds`, which it frequently omits with thin context or smaller models. Empty `sourceQuestionTitles` → no badges render at `InfoFlow.tsx:579`. Fix: mirror the daily-path enrichment pattern — round-robin attribution to session anchors (from `conceptGroups`) for any session post with empty `sourceQuestionIds` after parsing.
+
+### Architectural decisions (durable)
+
+- **D-W4-01 (Cycle-stamped post IDs):** Deterministic post-id schemas that get re-generated across cycles MUST include the cycle number to avoid silent dedup-induced underserving.
+- **D-W4-02 (Caller capability check on assignStyles):** Each caller of `assignStyles` MUST filter assignments to styles it can actually fulfill. `assignStyles` returns the global pool; callers with partial generation capability (e.g., text-only path) must restrict.
+- **D-W4-03 (Render-layer defense net):** `InfoFlow.tsx`'s `wouldRenderVisual` check is the LAST line of defense — any post that wouldn't render a visual block forces text-art. Catches future generation-layer regressions without user-visible breakage.
+- **D-W4-04 (Persisted dedup by derivation):** Prefer derivation from a persistent source (`postHistoryService`) over a standalone in-memory dedup set. Cross-reload persistence comes for free, no separate localStorage key to maintain.
+- **D-W4-05 (Query variation for deterministic search APIs):** When calling a deterministic external search API, vary the query by a cycle/seed value derivable from caller context. Pre-validation and actual fetch MUST use the same query.
+- **D-W4-06 (Vine fills container):** Progress visuals MUST fill their container regardless of decorator count. Fixed-`viewBox` SVG + `preserveAspectRatio` inside flex children produces dead margins; measure with `ResizeObserver` and make path geometry independent of item count.
+- **D-W4-07 (No lazy hardcoded names from LLM pipelines):** Multi-step LLM pipelines must not short-circuit with placeholder names. Trade one extra LLM call for clean names; KV cache amortizes the marginal cost. Reject placeholders defensively in the parser.
+- **D-W4-08 (Card visual consistency):** All feed cards share the same shadow tier (`var(--shadow-2)`) and border treatment. SuggestionCard previously used `var(--shadow-1)` and stood out — fixed.
+
+### Validation status
+
+- tsc: 0 errors (clean)
+- npm test: 359 pass / 32 fail — IDENTICAL to baseline (32 failures are pre-existing JSON-import-attribute issue, NOT Wave 4 regressions)
+- Operator on-device validation: pending next APK deploy (Tests 10-18 in 32.1-HUMAN-UAT.md)
+
+### Carry-overs (NOT done in Wave 4 — flagged for v1.5 or follow-up)
+
+- Session posts could be extended to fetch YouTube/Tavily for video/news/short styles (vs. current text-only restriction). Deferred — current path works and adds latency/quota cost. (User declined to add session-post video/news support when proposed.)
+- Pre-existing 32 baseline test failures (JSON-import-attribute) persist; not regressed by Wave 4.
 
 # Project State: Phase 32.1 Wave 3 COMPLETE — retest-cycle bug fixes + architectural hardening
 
