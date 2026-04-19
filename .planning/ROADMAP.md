@@ -880,12 +880,12 @@ Scope:
 3. `git status` is clean (or WIP is intentionally carried with a commit explaining why).
 4. `29-VERIFICATION.md` is no longer stale w.r.t. TD-01.
 
-**Plans:** 3/8 plans executed
+**Plans:** 4/8 plans executed
 
 Plans:
 - [x] 33-00-PLAN.md — WIP flush: commit 12 working-tree files from Phase 30-31 follow-up edits (Wave 0; WIP-FLUSH)
 - [x] 33-01-PLAN.md — TD-05 orphan sweep: delete ConceptProgressCard.tsx + 4 orphan i18n keys atomically (Wave 1; TD-05)
-- [ ] 33-02-PLAN.md — TD-04 supersession: delete concept-feed-strategy.test.mjs + orphan plumbing assertion + update 29-VERIFICATION / 29-UAT-LOG (Wave 1; TD-04)
+- [x] 33-02-PLAN.md — TD-04 supersession: delete concept-feed-strategy.test.mjs + orphan plumbing assertion + update 29-VERIFICATION / 29-UAT-LOG (Wave 1; TD-04)
 - [ ] 33-03-PLAN.md — TD-06 LeafState rename: yellow -> dying, fallen -> dead atomic commit across 9 files (Wave 2; TD-06)
 - [ ] 33-04-PLAN.md — Closure: verify 4 ROADMAP success criteria + record SATISFIED-BY-760fa4f8 + flip VALIDATION nyquist_compliant (Wave 3; TSC-HYGIENE)
 
