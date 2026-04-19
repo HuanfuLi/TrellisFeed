@@ -2,15 +2,28 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: gap closure)
-status: Phase 32.1 Wave 1 complete (32.1-01 closed); Wave 2 in progress (32.1-02/03/05 closed; 32.1-04 pending)
-stopped_at: Completed 32.1-03-PLAN.md (G2 video touch overlay reduced to pointer-events:none — UAT-31-4 closed pending operator on-device contingency confirmation per D-06)
-last_updated: "2026-04-19T07:35:57Z"
+status: Phase 32.1 Wave 1 complete (32.1-01 closed); Wave 2 complete (32.1-02/03/04/05 all closed)
+stopped_at: Completed 32.1-04-PLAN.md
+last_updated: "2026-04-19T07:44:22Z"
 progress:
   total_phases: 21
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
 ---
+
+# Project State: Phase 32.1 Wave 2 COMPLETE (32.1-02/03/04/05 all closed)
+
+## Latest Decisions (Phase 32.1-04)
+
+- [Phase 32.1-04] G4 / STARTER-PERSIST closed. Root cause from operator regression (HuanfuLi 2026-04-19, 32.1-01-SUMMARY.md): `getDailyPosts([])` returned `STARTER_POSTS` BUT did not write them to the daily cache. `HomeScreen.tsx:130-134` re-syncs `dailyPosts` from `getCachedDailyPosts()` on every /home navigation; cache was empty so starters vanished. Once any question was created via the Welcome CTA, `questions.length > 0` made the empty-state branch unreachable forever.
+- [Phase 32.1-04] D-11 honored: cold-start branch (concept-feed.service.ts:1029-1043) now persists `STARTER_POSTS` via `saveCache({ date, fingerprint: 'starter', posts: STARTER_POSTS, connectionCards: [] })` before returning. Fingerprint sentinel `'starter'` ensures no collision with normal `computeFingerprint(questions)` values; when first question lands, fingerprint-mismatch branch (line 1011) takes over and runs decay logic.
+- [Phase 32.1-04] D-12 honored: decay threshold `cached.posts.filter(p => !STARTER_POST_IDS.has(p.id)).length >= 3` implemented as `filterDecayedStarters` helper invoked at all 3 cache-read sites — main cache hit (line 994), fingerprint mismatch (line 1011), and `getCachedDailyPosts` (line 1085). Cache also mutated in-place via `saveCache({ ...cached, posts: cached.posts.filter(...) })` when starters dropped, preventing stale reads.
+- [Phase 32.1-04] D-13 verified by inspection — NO PostDetailScreen guard added. `grep "narrativeMode"` returns 3 hits, all in skeleton creators (lines 187, 213) or footer label render (line 727); zero error branches on `narrativeMode === 'starter'`. The one `presentationStyle === 'text-art'` branch (line 605) is double-gated on `&& post.textArtContent` which starter posts don't set, so it falls through to standard markdown rendering. On-enter LLM streaming (line 234-238) explicitly skips when `bodyMarkdown` is non-empty (which all 3 starter posts have).
+- [Phase 32.1-04] D-17 honored: G4 has NO 31-UAT.md row (no Phase 31 UAT counterpart) — outcome recorded only in 32.1-04-SUMMARY.md. D-18 honored: new `starter-posts-persist.test.mjs` (9 tests, all GREEN) asserts the persist + decay contract against the helper module's exported surface.
+- [Phase 32.1-04] Pattern reused from Phase 32.1-02: pure-helper module extraction (`starter-posts-decay.ts`) bypasses the i18n JSON-import-attribute chain (`graph.service` → `planner.service` → `locales/en.json`) that blocks importing `concept-feed.service.ts` under plain `node --test`. Second instance of the pattern in Phase 32.1.
+- [Phase 32.1-04] Side-effect: closes G6 (cold-start loading flicker, listed out-of-scope in CONTEXT). Mechanism: warm cache now returns starters synchronously via `getCachedDailyPosts`, eliminating the 3 → 0 → 3 flicker as the async `getDailyPosts` re-fetch was previously needed. If next operator device-build no longer reports G6, this plan can be cited as the closing fix.
+- [Phase 32.1-04] tsc baseline preserved (0 → 0 errors). npm test failures preserved at 61 (no new regressions). Sequential execution after Wave 2A — used standard `git commit` (no `--no-verify` needed). Atomic per CONTEXT D-14: 2 commits (RED test `f549b6a8` + GREEN feat `87850b60`); Task 3 produced no commit (D-13 verified by inspection).
 
 # Project State: Phase 32.1 Wave 1 COMPLETE (32.1-01 closed; G3 retest pass)
 
