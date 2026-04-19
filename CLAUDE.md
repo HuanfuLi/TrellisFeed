@@ -89,6 +89,110 @@ The derived list is **append-only** (grows on new question, shrinks on read). Th
 
 ---
 
+## Header positioning (Phase 32.1 — load-bearing, do not regress)
+
+The `Header` component (`app/src/components/ui/Header.tsx`) auto-portals based on context:
+
+- **Inside `SwipeTabContext`** (top-level swipe-tab screens: Settings, Planner, Graph, Ask) → renders **in-tree**, anchored to the slot's `transform: translateZ(0)` containing block (`SwipeTabContainer.tsx:245`). Each tab's header floats with its slot when the slot is off-screen.
+- **Outside `SwipeTabContext`** (sub-screens via Outlet wrapper: PostDetail, settings sub-pages, Question/Anchor/Cluster detail, etc.) → renders via **`createPortal(headerNode, document.body)`**. Anchors to the viewport, immune to any ancestor's `transform`/`overflow`/`will-change`/`filter`/`contain`.
+
+### Why this exists
+
+`position: fixed` Headers inside `overflow: auto` ancestors flicker on Android Chromium WebView (a known long-standing quirk where fixed children become scroll-relative). This bug class has recurred multiple times — past commits `8df7980c`, `a7203a65`, `2dcef5d7`, `73d657a0`, `b4965feb`, `808c6e85` all touched it. The portal-vs-in-tree split makes regression structurally impossible:
+
+- Sub-screen Headers cannot have a flickering ancestor because they aren't inside any React-tree ancestor (rendered to `document.body`).
+- Top-level swipe Headers cannot leak across tabs because they stay in their slot's translateZ(0) containing block.
+
+### Rules
+
+1. **Don't add `transform`/`will-change`/`filter`/`contain`/`perspective` to any ancestor of a `Header` in the React tree.** This is mostly belt-and-suspenders since portalled Headers are immune, but in-tree Headers (top-level swipe screens) still depend on the slot's translateZ(0) being the only containing-block creator in the chain.
+2. **Don't render a Header inside a screen that's both always-mounted AND always-visible.** SwipeTabContainer's slots are always-mounted but only ONE is visible at a time (others off-screen via translateX). If you create a new layout where multiple Headers could be visible at once, they'll stack.
+3. **Don't move `Header.tsx` out of the portal-vs-in-tree pattern.** Rewriting it as "always in-tree" reintroduces sub-screen flicker. Rewriting as "always portal" makes top-level swipe Headers globally visible (operator-caught regression at commit `808c6e85`).
+
+---
+
+## Event bus — unified GRAPH_UPDATED (Phase 32.1)
+
+There is **ONE event for graph mutations**: `GRAPH_UPDATED`. Used by:
+- `commitClassificationResult` after every classification (canonical-knowledge.service.ts)
+- `trellisActionsService.replant` and `unpruneQuestion`
+- (Future) any code that mutates anchors/clusters/questions in storage
+
+Subscribers must use `GRAPH_UPDATED` only:
+- `useTrellisData.ts` — recomputes trellis on graph mutations
+- `useQuestions.ts` — reloads from store so HomeScreen/PlannerScreen pick up new anchors created asynchronously by classification (load-bearing — without this, home/planner stay empty after the first question on a fresh-install device)
+- `PrunedSection.tsx` — refreshes pruned-archive list
+
+### Don't reintroduce CLASSIFICATION_COMPLETED
+
+The `CLASSIFICATION_COMPLETED` event was deleted from the AppEvent union in commit `b2061554`. It was a semantic duplicate of `GRAPH_UPDATED` — both fired at identical moments. Two events for one signal let subscribers desync from emitters: only `useTrellisData`/`PrunedSection` listened to `CLASSIFICATION_COMPLETED`, while the actual classification path emitted `GRAPH_UPDATED`. Result: trellis didn't recompute after new questions.
+
+If you need a more specific signal in the future, **extend `GRAPH_UPDATED` with a payload field** (e.g., `{ kind: 'classification' | 'replant' | 'prune', anchorId?: string }`) instead of adding a parallel event.
+
+---
+
+## News post pipeline — defer body to on-open streaming (Phase 32.1)
+
+News posts (`sourceType: 'news'`, `presentationStyle: 'news'`) follow a **two-phase content model**:
+
+| Phase | Where | What | LLM? |
+|---|---|---|---|
+| **Creation** (refillQueue news branch) | `concept-feed.service.ts:892-925` | Tavily web-search + construct DailyPost shell with `bodyMarkdown: ''` | NO |
+| **Display** (user opens post) | `post-essay.service.ts:133` `generateNewsEssay` | Stream a 150-250 word LLM essay grounded in `sources[0].snippet` | YES — `chatStream` |
+
+### Invariants (test-enforced at `tests/services/post-essay.service.test.mjs`)
+
+The news creation block in `concept-feed.service.ts` MUST:
+- Set `bodyMarkdown: ''` (an empty string literal — anything else makes `PostDetailScreen.tsx:237` skip the streamer and render whatever's stored as the body)
+- Populate `newsMeta.sources[0].snippet` with the Tavily content blob (so the streamer has article text to ground on)
+- NOT call `chatCompletion` / `chatStream` eagerly (LLM is deferred to on-open)
+- NOT assign `result.content` to `bodyMarkdown` (the exact 2026-04-19 regression we just fixed at commit `3263af4e`)
+
+### Don't recreate `news.service.ts`
+
+There used to be an orphan `news.service.ts` (deleted in `db918264`) that nothing imported. It was a parallel implementation of news-post construction that diverged in field defaults. The presence of two paths confused investigation when bugs landed. **All news post construction lives in `concept-feed.service.ts`'s news branch.** Don't add a second path.
+
+---
+
+## Anchor name normalization (Phase 32.1 — guard at the data layer)
+
+Per the mindmap design: `Knowledge → Branch (discipline) → Cluster (domain) → Concept Anchor (concept noun) → QAs`. Anchor titles MUST be **clean concept noun phrases**, not question paraphrases.
+
+`canonical-knowledge.service.ts` enforces this at TWO layers:
+
+1. **Prompt-side (best-effort):** `buildStepPrompt('anchor', ...)` adds an explicit GOOD/BAD examples constraint when the LLM creates new anchors. See commit `93162265`.
+2. **Post-LLM guard (defensive):** `normalizeAnchorName()` runs in `commitClassificationResult` BEFORE any anchor lookup or persistence. Strips question prefixes (`what is`, `why does`, ...), trailing `and (why|how|...)` clauses, truncates to 3 words if still too long, title-cases. See commit `b2061554`.
+
+Examples it transforms:
+- `"Spaced repetition and why does it work"` → `"Spaced Repetition"`
+- `"What is spaced repetition?"` → `"Spaced Repetition"`
+- `"How do transformers handle attention?"` → `"Transformers Handle Attention"`
+
+### Don't bypass the guard
+
+If you add a new classification path or a new anchor-creation site, route the `anchorName` through `normalizeAnchorName()` before persistence. The legacy `classifyAndAnchor` path and the incremental pipeline both go through `commitClassificationResult` — keep it that way.
+
+### Existing wrong-named anchors
+
+Anchors created BEFORE `b2061554` keep their old question-paraphrase names. There is **no migration** — operator can manually rename or Clear-All-Data + re-classify. Document this if/when a migration becomes needed.
+
+---
+
+## Best practices learned in Phase 32.1 (avoid the same mistakes)
+
+These are meta-rules distilled from session pain. Read before refactoring or chasing a regression:
+
+1. **Search for dead code BEFORE assuming "two parallel paths."** When you see duplicated logic, first verify both ARE called. The `news.service.ts` saga happened because I assumed both paths were live; deleting the dead one was the right answer all along, not factoring out a shared helper.
+2. **Tests must guard the LIVE code path, not aspirational/dead code.** A test that checks an unreachable file is worse than no test — it gives false confidence. When you encounter a regression that "should have been caught by a test," check WHICH file the test was guarding.
+3. **`position: fixed` + `overflow: auto` + Android Chromium WebView = bug class.** Don't put `position: fixed` children inside scrollable React subtrees. Use Portal to `document.body` (sub-screens) or rely on the parent's `translateZ(0)` containing block (top-level swipe slots).
+4. **Async classification needs an explicit re-read trigger.** When you create new anchors/clusters asynchronously (e.g., after a question is asked), you MUST emit an event that `useQuestions` (and any other store consumer) subscribes to and reloads from store. Otherwise the UI shows pre-async state forever.
+5. **Hardcoded fallbacks vs. defer-to-streamer.** When a post type defers content to on-open generation (news, video, AI-text), the creation step MUST set `bodyMarkdown: ''`. Storing a "preview" or "snippet" in `bodyMarkdown` makes `PostDetailScreen` skip the streamer.
+6. **One signal per semantic event.** Don't emit two events for the same outcome — subscribers will drift between them and one camp will silently break.
+7. **Don't ship fixes by hypothesis without verification when device-only bugs are involved.** Multiple of my Bug 2 attempts were wrong because I couldn't reproduce on web. When a bug is platform-specific, prefer adding diagnostic logs over confident-but-untested fixes.
+8. **When the operator says "I've explained this 5+ times," document it in three places:** CLAUDE.md (project-level), auto-memory (cross-conversation), and an inline comment at the load-bearing code site. One location is too easy to miss.
+
+---
+
 ## i18n Workflow (Phase 27+)
 
 EchoLearn supports 4 locales: **English** (canonical/source), **Simplified Chinese**, **Spanish**, **Japanese**.

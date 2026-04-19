@@ -2,15 +2,56 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: gap closure)
-status: Phase 32.1 Wave 1 complete (32.1-01 closed); Wave 2 complete (32.1-02/03/04/05 all closed)
-stopped_at: Completed 32.1-04-PLAN.md
-last_updated: "2026-04-19T07:44:22Z"
+status: Phase 32.1 Wave 3 complete (32.1-06/07 + 6 retest-cycle bug fixes closed); awaiting next APK deploy for full UAT
+stopped_at: Wave 3 retest-cycle bug fixes (Bug 1/2/3/4 + news regression + dead news.service cleanup)
+last_updated: "2026-04-19T16:00:00Z"
 progress:
   total_phases: 21
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
 ---
+
+# Project State: Phase 32.1 Wave 3 COMPLETE — retest-cycle bug fixes + architectural hardening
+
+## Latest Decisions (Phase 32.1 Wave 3, 2026-04-19 afternoon)
+
+Operator-driven UAT retest cycle surfaced 4 new bugs + a news-essay regression. All closed in 32.1 (per operator instruction "DO NOT EVER ADD NEW PHASES"). Architectural hardening + documentation in CLAUDE.md to prevent recurrence.
+
+### Bug fixes landed
+
+- **Bug 1 — text-only post gap (1cc494ff):** `image`-style posts with failed image generation rendered as plain text-only cards (per Phase 30/31 design intent, they should fall back to text-art). Render-time fallback in `ConceptCard`: when `imageResolved && !image && presentationStyle === 'image'`, use `effectivePresentationStyle = 'text-art'` so the dotted text-art square + big title render instead of a bare text card. No data mutation; pure visual layer.
+- **Bug 2 — header flicker on Capacitor Android (b4965feb + 808c6e85 + a7ce48ec):** position:fixed Header inside overflow:auto Outlet wrapper hit Android Chromium WebView quirk where fixed children become scroll-relative. Multiple wrong attempts (transform on wrapper at 73d657a0 — reverted) before landing the architectural fix: `Header.tsx` portals to `document.body` ONLY when outside `SwipeTabContext`. Top-level swipe-tab Headers stay in-tree (slot's translateZ(0) handles containing block). Sub-screen Headers portal. Bug class structurally cannot recur. CLAUDE.md "Header positioning" section.
+- **Bug 3 — concept badges missing / wrong content (cd5b6e03 + 93162265 + b2061554):** Three-part fix. (a) `cd5b6e03`: AI-text-post provenance (sourceQuestionIds/Titles/keywords) derived from style assignment after parseGeneratedPosts, mirroring video/short/news pattern — eliminates LLM-compliance dependency. (b) `93162265`: anchor-naming constraint added to `buildStepPrompt('anchor', ...)` — incremental classifier was emitting question paraphrases instead of concept nouns. (c) `b2061554`: `normalizeAnchorName()` post-LLM guard in `commitClassificationResult` — strips question prefixes / and-clauses / truncates / title-cases before persistence, defense-in-depth when prompt is ignored.
+- **Bug 4 — empty home/planner after first question (b2061554):** Classification path emitted `GRAPH_UPDATED` but `useTrellisData`/`PrunedSection` only listened to `CLASSIFICATION_COMPLETED` (semantic duplicate); `useQuestions` only listened to `QUESTION_ASKED` so it missed async-created anchors. Unified to `GRAPH_UPDATED` (deleted CLASSIFICATION_COMPLETED from AppEvent), added `useQuestions` subscription that reloads from store. Anchors created asynchronously now propagate to all consumers, refilling home/planner immediately.
+- **News essay regression (3263af4e):** `concept-feed.service.ts:905` stored raw Tavily snippet in `bodyMarkdown` (was `result.content || ''`). PostDetailScreen saw non-empty body → skipped on-enter `generateNewsEssay` streamer → user saw truncated snippet as the essay. Fixed by setting `bodyMarkdown: ''` and populating `sources[0].snippet` (so the streamer has grounding text). The exact regression class is now test-enforced.
+- **Dead `news.service.ts` cleanup (db918264):** 203-line orphan file (no callers). Its test in `post-essay.service.test.mjs` was guarding the dead path, which is why the news regression slipped through unguarded. Deleted file + `NEWS_POSTS_READY` event type + HomeScreen subscription. Replaced test with one that guards the LIVE news branch in `concept-feed.service.ts`.
+
+### Architectural changes (commit b2061554 + 808c6e85 + b4965feb)
+
+- **Single graph-mutation signal:** `GRAPH_UPDATED` is the unified event for any graph mutation (classification, replant, unprune, prune, future). `CLASSIFICATION_COMPLETED` deleted from AppEvent union. Pattern: extend `GRAPH_UPDATED` with payload field if more specific signaling needed; do NOT add a parallel event.
+- **Header dual-mode rendering:** in-tree for top-level swipe tabs (relies on slot translateZ(0)), portal-to-body for sub-screens (immune to ancestor CSS quirks). Auto-switches via `SwipeTabContext` presence. Documented in CLAUDE.md "Header positioning."
+- **Concept feed three-list pipeline** (32.1 Wave 2 documented in commit 98692338, refined in Wave 3 fixes): Daily list (SM-2 due anchors) → Derived list (weighted multi-entry per concept; append-only on new question, remove on read) → Queue (length 8, cyclic, serves 4 per swipe). Documented in CLAUDE.md "Concept Feed Generation Pipeline."
+
+### Documentation hardening
+
+- **CLAUDE.md** added 5 new sections: Header positioning, Event bus convention, News post pipeline, Anchor name normalization, Best practices learned in Phase 32.1.
+- **Auto-memory** (`~/.claude/projects/-Users-Code-EchoLearn/memory/`): `feedback_concept_feed_pipeline.md` added in Wave 2; this Wave's lessons consolidate into the same memory file or its index.
+- **Tests as guardrails:** the new news-pipeline test in `post-essay.service.test.mjs` checks the exact regression class. Pattern: when a regression happens, add a test on the LIVE code path (not on the documentation/dead path).
+
+### UAT status (2026-04-19 end-of-day)
+
+Per `32.1-HUMAN-UAT.md`:
+- Pass (operator-confirmed): G2, G4, G5, Bug 2 (header flicker)
+- Pending operator validation on next APK: Bug 1 (post gap), Bug 3 (badges + clean anchor names), Bug 4 (empty home/planner), news essay regression
+- Test instructions for each documented in HUMAN-UAT.md
+
+### Carry-overs (NOT done in 32.1 — flagged for v1.5 or follow-up)
+
+- Persistent cycle position across queue refills (current code rebuilds derived list each refill; implicit cycling works via repeated calls + STYLE_WEIGHTS random sampling).
+- Append-only updates to derived list (vs. rebuilding from scratch).
+- Existing wrong-named anchors created BEFORE `b2061554` not migrated — operator can manually rename or Clear-All-Data.
+- Same factory pattern could apply to video/short post construction if they ever grow a parallel path (currently single-path so deferred).
 
 # Project State: Phase 32.1 Wave 2 COMPLETE (32.1-02/03/04/05 all closed)
 
