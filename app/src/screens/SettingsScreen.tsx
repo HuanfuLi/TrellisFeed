@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Brain, Image, Radio, Shield, Palette, ChevronRight, RotateCcw, Languages } from 'lucide-react';
+import { Brain, Image, Radio, Shield, ChevronRight, RotateCcw, Languages } from 'lucide-react';
 import { SUPPORTED_LOCALES } from '../locales';
 import type { SupportedLocale } from '../types';
 import { eventBus } from '../lib/event-bus';

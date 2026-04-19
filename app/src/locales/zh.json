@@ -81,7 +81,8 @@
       "generationErrorRetry": "重试",
       "vineComplete": "所有概念已探索",
       "vineProgress": "已探索 {{explored}}/{{total}} 个概念",
-      "allExplored": "今天的内容都看完了！干得漂亮。"
+      "allExplored": "今天的内容都看完了！干得漂亮。",
+      "scrollToTop": "回到顶部"
     },
     "history": {
       "title": "内容历史",
@@ -446,7 +447,8 @@
       "reset": "恢复默认设置",
       "generatePlanner": "生成计划",
       "generating": "正在生成…",
-      "viewLicenses": "查看许可证 →"
+      "viewLicenses": "查看许可证 →",
+      "resetToday": "重置今日"
     },
     "debug": "调试",
     "cacheStats": {
@@ -499,7 +501,8 @@
       "tokenUsageCleared": "Token 使用数据已清除。",
       "trellisDevOn": "棚架开发模式已开启 — 显示所有叶子状态",
       "trellisDevOff": "棚架开发模式已关闭",
-      "settingsReset": "设置已重置，正在重新加载…"
+      "settingsReset": "设置已重置，正在重新加载…",
+      "todayReset": "今日复习/帖子状态已重置"
     },
     "confirm": {
       "deleteApiKeys": "删除所有已存储的 API 密钥？这将禁用 AI 和 TTS 功能，直到你重新输入密钥。",

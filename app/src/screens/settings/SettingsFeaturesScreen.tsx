@@ -23,7 +23,7 @@ export function SettingsFeaturesScreen() {
   // Review state
   const [reviewNotif, setReviewNotif] = useState(() => settingsService.getSync().review.notificationsEnabled);
   const [reviewReminderTime, setReviewReminderTime] = useState(() => settingsService.getSync().review.reminderTime);
-  const [reviewLimit, setReviewLimit] = useState(() => String(settingsService.getSync().review.dailyLimit));
+  const [reviewLimit] = useState(() => String(settingsService.getSync().review.dailyLimit));
 
   // Planner state
   const [plannerRefreshEnabled, setPlannerRefreshEnabled] = useState(() => {

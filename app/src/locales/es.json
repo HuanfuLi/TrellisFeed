@@ -81,7 +81,8 @@
       "generationErrorRetry": "Reintentar",
       "vineComplete": "Todos los conceptos explorados",
       "vineProgress": "{{explored}} de {{total}} conceptos explorados",
-      "allExplored": "¡Todo al día! Buen trabajo hoy."
+      "allExplored": "¡Todo al día! Buen trabajo hoy.",
+      "scrollToTop": "Ir arriba"
     },
     "history": {
       "title": "Historial de publicaciones",
@@ -446,7 +447,8 @@
       "reset": "Restaurar valores",
       "generatePlanner": "Generar plan",
       "generating": "Generando…",
-      "viewLicenses": "Ver licencias →"
+      "viewLicenses": "Ver licencias →",
+      "resetToday": "Restablecer hoy"
     },
     "debug": "Depurar",
     "cacheStats": {
@@ -499,7 +501,8 @@
       "tokenUsageCleared": "Datos de uso de tokens borrados.",
       "trellisDevOn": "Modo dev enrejado activado — mostrando todos los estados",
       "trellisDevOff": "Modo dev enrejado desactivado",
-      "settingsReset": "Ajustes restablecidos — recargando…"
+      "settingsReset": "Ajustes restablecidos — recargando…",
+      "todayReset": "Estado de revisión/publicaciones de hoy restablecido"
     },
     "confirm": {
       "deleteApiKeys": "¿Eliminar todas las claves API guardadas? Esto deshabilitará IA y TTS hasta que las vuelvas a introducir.",

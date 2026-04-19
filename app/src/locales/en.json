@@ -81,7 +81,8 @@
       "generationErrorRetry": "Retry",
       "vineComplete": "All concepts explored",
       "vineProgress": "{{explored}} of {{total}} concepts explored",
-      "allExplored": "All caught up! Great work today."
+      "allExplored": "All caught up! Great work today.",
+      "scrollToTop": "Scroll to top"
     },
     "history": {
       "title": "Post History",
@@ -446,7 +447,8 @@
       "reset": "Reset to Defaults",
       "generatePlanner": "Generate Planner",
       "generating": "Generating...",
-      "viewLicenses": "View Licenses →"
+      "viewLicenses": "View Licenses →",
+      "resetToday": "Reset Today"
     },
     "debug": "Debug",
     "cacheStats": {
@@ -499,7 +501,8 @@
       "tokenUsageCleared": "Token usage data cleared.",
       "trellisDevOn": "Trellis dev mode on — showing all leaf states",
       "trellisDevOff": "Trellis dev mode off",
-      "settingsReset": "Settings reset — reloading…"
+      "settingsReset": "Settings reset — reloading…",
+      "todayReset": "Today's review/post status reset"
     },
     "confirm": {
       "deleteApiKeys": "Delete all stored API keys? This will disable AI and TTS features until you re-enter your keys.",

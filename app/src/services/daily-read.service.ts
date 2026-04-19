@@ -88,41 +88,40 @@ export const dailyReadService = {
   },
 };
 
-// --- Anchor ID derivation (per D-01, D-12) ---
-
-/** Non-concept sourceTypes excluded from quota (D-12). */
-const EXCLUDED_SOURCE_TYPES = new Set(['starter', 'connection', 'video', 'short', 'news', 'suggestion']);
+// --- Anchor ID derivation ---
 
 /**
  * Derive the concept anchor ID for a DailyPost.
  * Returns question.parentId for Q&A-backed posts, sourceQuestionIds[0] as surrogate
  * when parentId is missing, or null for posts with no sourceQuestionIds.
+ * Starter/connection/suggestion posts are excluded (they don't represent a concept).
  */
+const NON_CONCEPT_SOURCE_TYPES = new Set(['starter', 'connection', 'suggestion']);
+
 export function getAnchorIdForPost(
   post: Pick<DailyPost, 'sourceQuestionIds' | 'sourceType'>,
   questionsById: Map<string, Pick<Question, 'id' | 'parentId'>>
 ): string | null {
-  if (EXCLUDED_SOURCE_TYPES.has(post.sourceType)) return null;
+  if (NON_CONCEPT_SOURCE_TYPES.has(post.sourceType)) return null;
   for (const qId of post.sourceQuestionIds) {
     const q = questionsById.get(qId);
     if (q?.parentId) return q.parentId;
   }
-  // Surrogate: use first sourceQuestionId when no parentId found
   return post.sourceQuestionIds.length > 0 ? post.sourceQuestionIds[0] : null;
 }
 
 /**
- * Compute unique concept anchor IDs from today's feed (D-02).
- * Returns a Set of anchor IDs that form the daily quota.
+ * Compute today's concept quota from SM-2 due anchor concepts (Phase 31 D-12).
+ * The vine shows ALL due concepts — same source as flashcards and podcasts.
+ * Not derived from posts; posts are generated to serve this plan.
  */
 export function getConceptQuota(
-  posts: Pick<DailyPost, 'sourceQuestionIds' | 'sourceType'>[],
-  questionsById: Map<string, Pick<Question, 'id' | 'parentId'>>
+  _posts: Pick<DailyPost, 'sourceQuestionIds' | 'sourceType'>[],
+  questionsById: Map<string, Pick<Question, 'id' | 'parentId' | 'isAnchorNode'>>
 ): Set<string> {
   const anchors = new Set<string>();
-  for (const post of posts) {
-    const anchorId = getAnchorIdForPost(post, questionsById);
-    if (anchorId) anchors.add(anchorId);
+  for (const [id, q] of questionsById) {
+    if (q.isAnchorNode) anchors.add(id);
   }
   return anchors;
 }

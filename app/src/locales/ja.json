@@ -81,7 +81,8 @@
       "generationErrorRetry": "再試行",
       "vineComplete": "すべてのコンセプトを探索済み",
       "vineProgress": "{{total}} 件中 {{explored}} 件のコンセプトを探索済み",
-      "allExplored": "今日のコンテンツは全て完了！お疲れ様でした。"
+      "allExplored": "今日のコンテンツは全て完了！お疲れ様でした。",
+      "scrollToTop": "トップへ戻る"
     },
     "history": {
       "title": "投稿履歴",
@@ -446,7 +447,8 @@
       "reset": "既定値に戻す",
       "generatePlanner": "プランを生成",
       "generating": "生成中…",
-      "viewLicenses": "ライセンスを表示 →"
+      "viewLicenses": "ライセンスを表示 →",
+      "resetToday": "今日をリセット"
     },
     "debug": "デバッグ",
     "cacheStats": {
@@ -499,7 +501,8 @@
       "tokenUsageCleared": "トークン使用データを消去しました。",
       "trellisDevOn": "トレリス開発モードを ON — すべての葉の状態を表示",
       "trellisDevOff": "トレリス開発モードを OFF",
-      "settingsReset": "設定をリセットしました — 再読み込み中…"
+      "settingsReset": "設定をリセットしました — 再読み込み中…",
+      "todayReset": "今日のレビュー/投稿ステータスをリセットしました"
     },
     "confirm": {
       "deleteApiKeys": "保存済みの API キーをすべて削除しますか？再入力するまで AI と TTS の機能は無効になります。",

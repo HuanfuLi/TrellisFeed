@@ -5,7 +5,6 @@ import type { DailyPost } from '../types/index.ts';
 import { settingsService } from './settings.service.ts';
 
 const STORAGE_KEY = 'echolearn_post_history';
-const DEFAULT_RETENTION_DAYS = 7;
 
 function loadPosts(): DailyPost[] {
   try {

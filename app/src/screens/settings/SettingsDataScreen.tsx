@@ -216,12 +216,12 @@ export function SettingsDataScreen() {
             onClick={() => {
               dailyReadService.reset();
               postQueueService.resetForNewDay();
-              toast('Today\'s review/post status reset', 'success');
+              toast(t('settings.toast.todayReset'), 'success');
               setTimeout(() => window.location.reload(), 600);
             }}
             style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}
           >
-            <RotateCcw size={16} /> Reset Today
+            <RotateCcw size={16} /> {t('settings.buttons.resetToday')}
           </Button>
         </div>
       </Card>

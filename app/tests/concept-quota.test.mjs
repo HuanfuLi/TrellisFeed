@@ -34,48 +34,60 @@ describe('getAnchorIdForPost', () => {
     const post = { sourceType: 'recent', sourceQuestionIds: [] };
     assert.equal(getAnchorIdForPost(post, questionsById), null);
   });
-});
 
-describe('getConceptQuota', () => {
-  it('deduplicates — two posts with same anchorId count as 1 concept', () => {
-    const questionsById = new Map([
-      ['q1', { id: 'q1', parentId: 'anchor-1' }],
-      ['q2', { id: 'q2', parentId: 'anchor-1' }],
-    ]);
-    const posts = [
-      { sourceType: 'recent', sourceQuestionIds: ['q1'] },
-      { sourceType: 'related', sourceQuestionIds: ['q2'] },
-    ];
-    const quota = getConceptQuota(posts, questionsById);
-    assert.equal(quota.size, 1);
-    assert.ok(quota.has('anchor-1'));
-  });
-
-  it('excludes sourceType starter, connection, video, short, news', () => {
+  it('returns null for starter, connection, suggestion sourceTypes', () => {
     const questionsById = new Map([
       ['q1', { id: 'q1', parentId: 'anchor-1' }],
     ]);
-    const excludedTypes = ['starter', 'connection', 'video', 'short', 'news'];
-    for (const sourceType of excludedTypes) {
-      const posts = [{ sourceType, sourceQuestionIds: ['q1'] }];
-      const quota = getConceptQuota(posts, questionsById);
-      assert.equal(quota.size, 0, `sourceType '${sourceType}' should be excluded`);
+    for (const sourceType of ['starter', 'connection', 'suggestion']) {
+      const post = { sourceType, sourceQuestionIds: ['q1'] };
+      assert.equal(getAnchorIdForPost(post, questionsById), null, `${sourceType} should return null`);
     }
   });
 
-  it('includes sourceType recent, related, resurfaced, mixed', () => {
+  it('returns anchorId for video, short, news sourceTypes (unified as concept styles)', () => {
     const questionsById = new Map([
       ['q1', { id: 'q1', parentId: 'anchor-1' }],
-      ['q2', { id: 'q2', parentId: 'anchor-2' }],
-      ['q3', { id: 'q3', parentId: 'anchor-3' }],
-      ['q4', { id: 'q4', parentId: 'anchor-4' }],
     ]);
-    const includedTypes = ['recent', 'related', 'resurfaced', 'mixed'];
-    const posts = includedTypes.map((sourceType, i) => ({
-      sourceType,
-      sourceQuestionIds: [`q${i + 1}`],
-    }));
-    const quota = getConceptQuota(posts, questionsById);
-    assert.equal(quota.size, 4);
+    for (const sourceType of ['video', 'short', 'news']) {
+      const post = { sourceType, sourceQuestionIds: ['q1'] };
+      assert.equal(getAnchorIdForPost(post, questionsById), 'anchor-1', `${sourceType} should resolve to anchor`);
+    }
+  });
+});
+
+describe('getConceptQuota', () => {
+  it('returns all anchor nodes from questionsById (D-12: SM-2 driven, same as flashcards/podcasts)', () => {
+    const questionsById = new Map([
+      ['anchor-1', { id: 'anchor-1', parentId: null, isAnchorNode: true }],
+      ['anchor-2', { id: 'anchor-2', parentId: null, isAnchorNode: true }],
+      ['q1', { id: 'q1', parentId: 'anchor-1', isAnchorNode: false }],
+      ['q2', { id: 'q2', parentId: 'anchor-2', isAnchorNode: false }],
+    ]);
+    const quota = getConceptQuota([], questionsById);
+    assert.equal(quota.size, 2);
+    assert.ok(quota.has('anchor-1'));
+    assert.ok(quota.has('anchor-2'));
+  });
+
+  it('does not depend on posts — posts param is ignored', () => {
+    const questionsById = new Map([
+      ['anchor-1', { id: 'anchor-1', parentId: null, isAnchorNode: true }],
+    ]);
+    const quota1 = getConceptQuota([], questionsById);
+    const quota2 = getConceptQuota(
+      [{ sourceType: 'recent', sourceQuestionIds: ['q1'] }],
+      questionsById,
+    );
+    assert.equal(quota1.size, quota2.size);
+  });
+
+  it('excludes non-anchor nodes', () => {
+    const questionsById = new Map([
+      ['q1', { id: 'q1', parentId: 'anchor-1', isAnchorNode: false }],
+      ['q2', { id: 'q2', parentId: 'anchor-1' }],
+    ]);
+    const quota = getConceptQuota([], questionsById);
+    assert.equal(quota.size, 0);
   });
 });
