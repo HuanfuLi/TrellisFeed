@@ -133,7 +133,15 @@ async function* generateVideoEssay(post: DailyPost, options?: EssayOptions): Asy
 async function* generateNewsEssay(post: DailyPost, options?: EssayOptions): AsyncGenerator<string> {
   const settings = settingsService.getSync();
   const sources = post.newsMeta?.sources ?? [];
-  const sourceText = sources.map(s => `[${s.index}] ${s.title}: ${s.url}`).join('\n');
+  // Include the source snippet (Tavily content blob) in the prompt so the LLM has actual
+  // article text to summarize, not just title + URL. Without this the essay was either
+  // very short or fabricated, since the LLM had nothing to ground on.
+  const sourceText = sources
+    .map(s => {
+      const head = `[${s.index}] ${s.title} — ${s.url}`;
+      return s.snippet ? `${head}\n${s.snippet}` : head;
+    })
+    .join('\n\n');
 
   yield* chatStream(
     [

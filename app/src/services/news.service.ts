@@ -164,7 +164,10 @@ async function generateNewsPosts(count?: number): Promise<DailyPost[]> {
         bodyMarkdown: '',  // Deferred to on-enter streaming (POST-06)
         whyCare: '',
         takeaway: '',
-        newsMeta: { sources: [{ index: 1, title: hit.title, url: hit.url }], fetchedAt: Date.now(), imageUrl: hit.imageUrl },
+        // snippet preserves Tavily's full content blob (~200-500 chars) so generateNewsEssay
+        // has actual article text to summarize, not just the headline. Without it the LLM
+        // had only title + URL → essays came out short/truncated/fabricated.
+        newsMeta: { sources: [{ index: 1, title: hit.title, url: hit.url, snippet: hit.content }], fetchedAt: Date.now(), imageUrl: hit.imageUrl },
         sourceQuestionIds: [],
         sourceQuestionTitles: [],
         keywords: [hit.concept],
