@@ -137,6 +137,14 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen, videoP
   const normalizedHook = normalizePlainText(post.teaser.hook);
   const normalizedPreview = normalizePlainText(post.teaser.preview);
 
+  // Concept badges — prefer LLM-supplied source titles; fall back to contextLabel so
+  // every post shows at least one badge. Without the fallback, starter posts (which
+  // ship sourceQuestionTitles: [] by design) and AI posts where the LLM omits valid
+  // IDs render an empty badge row, making the post look context-less.
+  const badgeTitles: string[] = post.sourceQuestionTitles?.length
+    ? post.sourceQuestionTitles.slice(0, 2)
+    : (post.contextLabel ? [post.contextLabel] : []);
+
   // News card (D-09) — newspaper style
   if (isNewsPost) {
     return (
@@ -547,24 +555,28 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen, videoP
                 {normalizedPreview}
               </p>
             )}
-            {/* Bottom tags: source concepts + narrative mode */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '12px' }}>
-              {post.sourceQuestionTitles?.slice(0, 2).map((title, idx) => (
-                <span
-                  key={idx}
-                  style={{
-                    fontSize: '0.7rem',
-                    color: 'var(--muted-foreground)',
-                    backgroundColor: 'var(--surface)',
-                    border: '1px solid var(--border)',
-                    padding: '3px 8px',
-                    borderRadius: '100px',
-                  }}
-                >
-                  {title}
-                </span>
-              ))}
-            </div>
+            {/* Bottom tags: source concepts (or contextLabel fallback). Skip the
+                wrapper entirely when there's nothing to show — avoids a phantom 12px
+                margin below the preview when the post has no badges. */}
+            {badgeTitles.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '12px' }}>
+                {badgeTitles.map((title, idx) => (
+                  <span
+                    key={idx}
+                    style={{
+                      fontSize: '0.7rem',
+                      color: 'var(--muted-foreground)',
+                      backgroundColor: 'var(--surface)',
+                      border: '1px solid var(--border)',
+                      padding: '3px 8px',
+                      borderRadius: '100px',
+                    }}
+                  >
+                    {title}
+                  </span>
+                ))}
+              </div>
+            )}
             </div>
             )}
             </button>
