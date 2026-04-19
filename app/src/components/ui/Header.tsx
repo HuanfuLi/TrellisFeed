@@ -33,6 +33,12 @@ interface HeaderProps {
  *
  * Each screen using this component should add `paddingTop: HEADER_HEIGHT` (or more)
  * to its scrollable content so it doesn't sit behind the header.
+ *
+ * WARNING: position:fixed children re-parent to a transformed ancestor (CSS spec).
+ * Do NOT add `transform`/`filter`/`perspective` to any ancestor of this Header;
+ * doing so makes `top: var(--safe-area-top)` resolve relative to the ancestor
+ * instead of the viewport and causes a flicker on mount. Use opacity for entry/exit
+ * animations on wrapper elements.
  */
 export function Header({ title, left, right, centered, backTo, style, scrolled: scrolledProp }: HeaderProps) {
   const navigate = useNavigate();

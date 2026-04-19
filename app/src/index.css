@@ -449,13 +449,17 @@ body.keyboard-open #bottom-navigation {
   from { opacity: 0; transform: translateX(40px); }
   to   { opacity: 1; transform: translateX(0); }
 }
+/* Opacity-only — DO NOT add `transform` here. The wrapper that runs this
+   animation hosts position:fixed Header descendants; a transformed ancestor
+   re-parents their containing block (CSS spec) and causes Header to flicker
+   from mid-screen to top edge during the 200ms window. */
 @keyframes sub-screen-in {
-  from { opacity: 0; transform: translateY(12px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 @keyframes sub-screen-out {
-  from { opacity: 1; transform: translateY(0); }
-  to   { opacity: 0; transform: translateY(12px); }
+  from { opacity: 1; }
+  to   { opacity: 0; }
 }
 
 /* Immersive flow — slide up from bottom */
