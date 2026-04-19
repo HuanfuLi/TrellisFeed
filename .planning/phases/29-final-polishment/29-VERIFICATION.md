@@ -18,7 +18,7 @@ score: 10/10 must-haves verified
 
 | # | Truth | Status | Evidence |
 |---|-------|--------|----------|
-| 1 | TD-01: checkInSignals threaded to computeHints at both call sites | VERIFIED | `computeHints(signals, checkInSignals)` present in both service files; 2 TD-01 plumbing tests pass |
+| 1 | TD-01: checkInSignals threaded to computeHints at the plannerAutoGen call site; concept-feed branch superseded by Phase 31 D-14 | VERIFIED / SUPERSEDED | `computeHints(signals, checkInSignals)` present in plannerAutoGen.service.ts; concept-feed applyStrategyBias removed per 33-CONTEXT.md D-01. 1 TD-01 plumbing test passes (orchestration-strategy.test.mjs plannerAutoGen assertion) |
 | 2 | TD-02: PostDetailScreen uses AbortController (not `let aborted` boolean) | VERIFIED | `new AbortController()` count=1; `let aborted = false` count=0; LOCALE_CHANGED subscription present |
 | 3 | TD-02: post-essay.service.ts exports EssayOptions; signal threaded to chatStream/chatCompletion | VERIFIED | `export interface EssayOptions` found; `signal?: AbortSignal` present; 8 post-detail-abort tests pass |
 | 4 | TD-03: classifyAndAnchorIncremental + runStepWithRetry accept optional signal | VERIFIED | `signal?: AbortSignal` count=2 in canonical-knowledge.service.ts; 6 TD-03 pipeline tests pass |
@@ -90,7 +90,7 @@ Not applicable — no new user-facing rendering components were introduced. All 
 
 | Requirement | Source Plan | Description | Status | Evidence |
 |-------------|------------|-------------|--------|----------|
-| TD-01 | 29-01 | Curiosity-signal wiring at plannerAutoGen + concept-feed computeHints call sites | SATISFIED | Both call sites verified; 2 static-grep plumbing tests pass |
+| TD-01 | 29-01 | Curiosity-signal wiring at plannerAutoGen + concept-feed computeHints call sites | SUPERSEDED-BY-PHASE-31 | Phase 31 D-14 (31-CONTEXT.md) implements weak-concept prioritization at generation time — 2 posts per important concept. This subsumes the Phase 29 runtime sort bias. concept-feed.service.ts still calls plannerService.getRecentSignals() for LLM prompt context, but applyStrategyBias is intentionally absent. See Phase 33 TD-04 (33-CONTEXT.md D-01). |
 | TD-02 | 29-02 | PostDetailScreen AbortController + LOCALE_CHANGED subscription replacing `let aborted` boolean | SATISFIED | AbortController present; aborted boolean absent; 10 tests pass |
 | TD-03 | 29-02 | classifyAndAnchorIncremental + runStepWithRetry accept optional signal | SATISFIED | Signal params added; 6 TD-03 pipeline tests pass; D-17 preserved |
 | PRE-EXISTING-TSC | 29-03 | Close 4 documented tsc errors (GRAPH_UPDATED, COVERAGE_ERROR, ArrowLeft, anchorId, FlashCard, ALL_LEAF_STATES) | SATISFIED | 8 errors closed; tsc -b now shows only 4 pre-existing deferred errors |

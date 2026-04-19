@@ -122,16 +122,3 @@ test('TD-01 plumbing: plannerAutoGen.service.ts passes checkInSignals to compute
     'plannerAutoGen.service.ts must call plannerService.getRecentSignals()',
   );
 });
-
-test('TD-01 plumbing: concept-feed.service.ts applyStrategyBias passes checkInSignals to computeHints', () => {
-  const src = readFileSync(path.join(repoRoot, 'src/services/concept-feed.service.ts'), 'utf8');
-  assert.ok(
-    src.includes('computeHints(signals, checkInSignals)'),
-    'concept-feed.service.ts must pass checkInSignals to computeHints',
-  );
-  // Ensure we didn't accidentally remove the pre-existing line-251 recentSignals call
-  assert.ok(
-    src.includes('const recentSignals = plannerService.getRecentSignals()'),
-    'concept-feed.service.ts must retain pre-existing line-251 recentSignals call',
-  );
-});

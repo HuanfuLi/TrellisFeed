@@ -91,3 +91,16 @@ Skip items (per D-23) are recorded for audit completeness but require NO walkthr
 - [x] All walkthrough-surfaced issues fixed and re-tested (none surfaced)
 - [x] Phase 20/21/22/26 VERIFICATION.md frontmatter flipped to `status: passed`
 - [x] Operator sign-off: HuanfuLi 2026-04-16
+
+## Post-sign-off supersession
+
+### TD-01 SUPERSEDED by Phase 31 (recorded 2026-04-19)
+
+| Entry | Value |
+|-------|-------|
+| Original item | TD-01 — curiosity-signal wiring at plannerAutoGen + concept-feed call sites |
+| Superseded by | Phase 31 D-14 (31-CONTEXT.md) — generation-time weak-concept prioritization |
+| Rationale | Phase 31's `buildConceptBatch` generates 2 posts per important concept (ease < 1.5 or dying/falling/dead LeafState) AT generation time. The Phase 29 runtime sort bias would double-layer the weighting. |
+| Code evidence | applyStrategyBias removed from concept-feed.service.ts; plannerAutoGen.service.ts retains wiring |
+| Closure commit | PENDING — backfilled post-commit |
+| Recorded by | Phase 33 TD-04 resolution (33-CONTEXT.md D-05) |
