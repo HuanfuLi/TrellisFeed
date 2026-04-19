@@ -137,6 +137,17 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen, videoP
   const normalizedHook = normalizePlainText(post.teaser.hook);
   const normalizedPreview = normalizePlainText(post.teaser.preview);
 
+  // Failed-image fallback — when an 'image'-style post resolves with no image
+  // (Nano Banana key missing/invalid, network error, sandbox quirk on Android),
+  // render the SAME visual layout as text-art instead of as a text-only card.
+  // Per the original Phase 30/31 design intent: "if image gen failed, turn it
+  // into text-art instead" — never expose plain text-only cards. Pre-validation
+  // in refillQueue only covers video/news; image gen failures arrive here at
+  // render time. Treating them as text-art at the visual layer is the cheapest
+  // alignment without a queue-rebuild architectural change.
+  const isFailedImage = imageResolved && !image && presentationStyle === 'image';
+  const effectivePresentationStyle = isFailedImage ? 'text-art' : presentationStyle;
+
   // News card (D-09) — newspaper style
   if (isNewsPost) {
     return (
@@ -260,9 +271,9 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen, videoP
         width: '100%',
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: (image || isVideoPost || presentationStyle === 'text-art') ? 'space-between' : 'flex-start',
+        justifyContent: (image || isVideoPost || effectivePresentationStyle === 'text-art') ? 'space-between' : 'flex-start',
         gap: '20px',
-        padding: isShortPost ? '0' : (image || isVideoPost || presentationStyle === 'text-art') ? '0 0 20px' : '20px 0',
+        padding: isShortPost ? '0' : (image || isVideoPost || effectivePresentationStyle === 'text-art') ? '0 0 20px' : '20px 0',
         borderRadius: 'var(--radius-xl)',
         background: isShortPost
           ? 'var(--card)'
@@ -474,7 +485,7 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen, videoP
         )}
 
         {/* Text-art notebook card (D-12, D-13, D-14) — square area like image posts */}
-        {presentationStyle === 'text-art' && (() => {
+        {effectivePresentationStyle === 'text-art' && (() => {
           const theme = pickTextArtTheme(post.id);
           const content = post.textArtContent?.split('\n').filter(Boolean).join(' ') || normalizedPreview;
           const fontSize = content.length > 100 ? '1.25rem' : content.length > 60 ? '1.5rem' : '2rem';
@@ -515,7 +526,7 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen, videoP
         })()}
 
         {/* AI-generated image header — only rendered for image presentation style */}
-        {!isVideoPost && !isShortPost && image && presentationStyle !== 'text-art' && (
+        {!isVideoPost && !isShortPost && image && effectivePresentationStyle !== 'text-art' && (
           <FeedPostImage
             imageData={image}
             aspectPadding="100%"
@@ -542,7 +553,7 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen, videoP
               </p>
             )}
             {/* Preview: show when no image is present */}
-            {!image && !isVideoPost && presentationStyle !== 'text-art' && (
+            {!image && !isVideoPost && effectivePresentationStyle !== 'text-art' && (
               <p style={{ fontSize: '0.9rem', color: 'var(--foreground)', lineHeight: 1.6, opacity: 0.88 }}>
                 {normalizedPreview}
               </p>
