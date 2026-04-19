@@ -2,15 +2,26 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: gap closure)
-status: Executing Phase 32
-stopped_at: Phase 33 context gathered
-last_updated: "2026-04-19T05:06:08.874Z"
+status: Phase 32.1 Wave 1 complete (32.1-01 closed); Wave 2 (32.1-02/03/04/05) ready
+stopped_at: "Completed 32.1-01-PLAN.md (G3 starter-posts retest pass — UAT-31-14 closed). Wave 2 plans (G1/G2/G4/G5) ready to execute in parallel."
+last_updated: "2026-04-19T07:30:00.000Z"
 progress:
   total_phases: 21
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
 ---
+
+# Project State: Phase 32.1 Wave 1 COMPLETE (32.1-01 closed; G3 retest pass)
+
+## Latest Decisions (Phase 32.1-01)
+
+- [Phase 32.1-01] Operator (HuanfuLi, 2026-04-19) confirmed `apk-deployed` and reported outcome `(a) qualified pass` for UAT-31-14 retest after Vite `base: '/'` fix (commit `8d8fa5fc`) shipped in a freshly-built APK. The 3 starter posts (Welcome / How knowledge grows / Explore feed) appear in the home feed after Settings → Data → Clear All Data → manual navigation to /home. Phase 31-10's empty-state guard at `concept-feed.service.ts:1020-1022` functions correctly post-deploy.
+- [Phase 32.1-01] D-08 honored: pure retest task, no code change. D-09 escalation gate NOT triggered — empty-state guard works as designed; the disappear-after-view behavior is G4's domain (covered by 32.1-04).
+- [Phase 32.1-01] D-17 honored: `retest: pass` row appended to 31-UAT.md test 14 with `retested_by: HuanfuLi`, `fix_source: 32.1-01-SUMMARY.md`, and a qualification-aware `retest_note` capturing the two adjacent gaps surfaced. Original `result: issue` and `severity: major` rows preserved per Phase 32 D-04.
+- [Phase 32.1-01] Two routed findings (off-plan but in-scope-of-phase): (R1) Clear All Data did NOT auto-navigate from `/settings/data` to `/home` on Capacitor Android — operator manually navigated. Routed to G5 (32.1-05). (R2) Tapping a starter post and returning to /home wiped all 3 posts. Confirms G4 root cause. Routed to G4 (32.1-04). Routing rather than auto-fixing keeps plan scope atomic per CONTEXT D-14.
+- [Phase 32.1-01] No code files modified; tsc baseline preserved (0 errors). 4 doc files modified (31-UAT.md + 32.1-01-SUMMARY.md + ROADMAP.md + STATE.md). Single atomic commit per phase D-16 convention.
+- [Phase 32.1-01] Wave 1 of Phase 32.1 complete. Wave 2 plans (32.1-02 G1 queue cycling, 32.1-03 G2 video overlay, 32.1-04 G4 starter persistence, 32.1-05 G5 Clear All Data reload) are ready to execute in parallel — they touch independent files per CONTEXT D-15.
 
 # Project State: Phase 28 COMPLETE (all 3 plans executed)
 
@@ -300,6 +311,10 @@ Next: run `/gsd:verify 28` for verifier pass, then proceed to Phase 29 or merge 
 - [Phase 12-02] NAV-01 and NAV-02 registered in REQUIREMENTS.md as checked [x] — implemented in Phase 12
 
 ## Last Session
+
+Completed Phase 32.1 Plan 01 (32.1-01-PLAN.md) — G3 starter-posts retest after Vite `base: '/'` fix. Operator (HuanfuLi, 2026-04-19) confirmed `apk-deployed` and reported outcome `(a) qualified pass` on a freshly-built Android APK incorporating commit `8d8fa5fc`: the 3 starter posts (Welcome / How knowledge grows / Explore feed) appear in the home feed after Settings → Data → Clear All Data → manual /home navigation. Phase 31-10's empty-state guard at `concept-feed.service.ts:1020-1022` functions as designed; no D-09 escalation needed. Per CONTEXT D-08 / D-17 / Phase 32 D-04, appended a `retest: pass` row to 31-UAT.md test 14 with `retested_by: HuanfuLi`, `fix_source: 32.1-01-SUMMARY.md`, and a qualification-aware `retest_note` capturing two adjacent gaps. Original `result: issue` and `severity: major` lines preserved. Two routed findings (off-plan, in-scope-of-phase): R1 = Clear All Data did NOT auto-navigate from /settings/data to /home → routed to G5 (32.1-05). R2 = starter posts disappear after viewing one → confirms G4 root cause → routed to G4 (32.1-04). Routing rather than auto-fixing keeps plan scope atomic per CONTEXT D-14. No code files modified; tsc baseline preserved (0 errors). 4 doc files modified in a single atomic commit. Wave 1 of Phase 32.1 complete; Wave 2 plans (32.1-02 G1, 32.1-03 G2, 32.1-04 G4, 32.1-05 G5) ready to execute in parallel — they touch independent files per CONTEXT D-15.
+
+### Previous: Phase 28 Plan 01
 
 Completed Phase 28 Plan 01 (28-01-PLAN.md) — Wave A/B/B-spacing UI/UX polish foundation. Landed 9 CSS custom properties (D-26: `--space-xs..3xl` + `--bottom-nav-safe` + `--section-gap`) on `:root`; SwipeTabContainer desync fix (D-05: `window.resize` + `window.visualViewport.resize` listeners re-snap `stripX`, hardened useLayoutEffect refreshes `screenWidthRef` before reading, dev invariant warns on >2px drift); BottomNavigation slide-down via `motion.nav` + SLIDE_SPRING matching SwipeTabContainer's SPRING (D-06: `isTopLevelScreen` prop toggles y: 0 ↔ '100%', `initial={{y:0}}` prevents first-mount flash); Header scroll-shadow via `HeaderScrollContext` published from App.tsx Outlet `onScroll` (D-07: 4px threshold, 150ms ease-out transition); 10 sub-screens' paddingBottom unified on `var(--bottom-nav-safe)` (D-27: fixed GraphScreen 16px bug, PostDetailScreen dual-value bug, HomeScreen safe-area-top-in-paddingBottom bug); 7 off-grid pixel values normalized (D-28: 11→12 row padding on Planner + Ask, 32×28→32×24 on PostDetail card, Review flashcard Q/A asymmetry → uniform 16px); 4 touch targets to WCAG 44×44 (D-29: Header slots component-level — benefits all back buttons; Planner scissors; Ask flag; Badge conditional on onClick); PlannerScreen section rhythm (D-30: symmetric `var(--section-gap)` boundaries, 12px intra-section preserved) + Suggested Moves h2 visual polish (D-04: 1rem/600 weight, letterSpacing -0.01em). Pure helpers `computeTargetX` + `getNavYTarget` exported for node --test coverage (Wave 0). 18/18 Wave 0 tests green; `npx vite build` green in 3.03s; zero new tsc errors. 2 auto-fixes: HomeScreen paddingBottom arithmetic bug (Rule 1), Node 25 `-0` assert.equal quirk in test (Rule 3). Commits: `38e64309`, `efbb2f7f`, `58cfec24`. Plans 28-02 + 28-03 remain pending.
 

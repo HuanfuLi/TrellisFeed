@@ -87,6 +87,12 @@ result: issue
 reported: "1. In a fresh install, the system shows 'Nothing new today', with broken lower padding and is very interrupting. 2. Introduction posts are too short and brief. Should be more informative"
 severity: major
 
+retest: pass
+retested: 2026-04-19
+retested_by: HuanfuLi
+fix_source: 32.1-01-SUMMARY.md
+retest_note: "Empty-state guard from 31-10 functions on a freshly-built APK incorporating Vite base:'/' fix (commit 8d8fa5fc). Operator observation: after Settings → Data → Clear All Data on Android, the 3 starter posts (Welcome / How knowledge grows / Explore feed) do appear in the home feed. Two qualifications surfaced new gaps both already in scope of this phase: (1) Clear All Data did not auto-navigate to /home — operator had to manually navigate (G5, scheduled in plan 32.1-05); (2) starter posts disappear after viewing one and returning to /home (G4 root-cause confirmed, scheduled in plan 32.1-04). The empty-state guard itself works correctly; no D-09 escalation needed in this plan."
+
 ## Summary
 
 total: 14
