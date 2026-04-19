@@ -725,6 +725,28 @@ async function generatePostBatch(
             if (!parsed.posts[i]) continue;
             const assignment = textStyleAssignments[i];
             parsed.posts[i].presentationStyle = assignment.style;
+
+            // L1 — Provenance from assignment, not LLM. Mirrors the video/short/news pattern
+            // (lines 807, 843, 876) where sourceQuestionIds/Titles/keywords are derived from
+            // the style assignment's conceptId. Fixes Bug 3: AI text posts had empty badges
+            // when the LLM omitted or mangled sourceQuestionIds (frequent when context was
+            // thin or the model — e.g. OpenAI on a fresh-install device — interpreted the
+            // 'use only IDs from the context' clause conservatively). With this, badges are
+            // deterministic and always reflect the anchor we actually generated for.
+            const concept = byId.get(assignment.conceptId);
+            if (concept) {
+              const anchor = concept.parentId ? byId.get(concept.parentId) : undefined;
+              const anchorTitle = anchor?.isAnchorNode ? anchor.title?.trim() : undefined;
+              parsed.posts[i].sourceQuestionIds = [assignment.conceptId];
+              parsed.posts[i].sourceQuestionTitles = [anchorTitle || titleFor(concept)];
+              // keywords only matters for image-style posts (image prompt) and news posts
+              // (news essay context); for other styles it's dead cargo, but keep concept's
+              // keywords when the concept has any so the image path still works.
+              if (concept.keywords?.length) {
+                parsed.posts[i].keywords = concept.keywords.slice(0, 4);
+              }
+            }
+
             if (assignment.style === 'suggestion') {
               parsed.posts[i].sourceType = 'suggestion' as DailyPost['sourceType'];
               // D-24: generate novel suggestion topics via LLM
