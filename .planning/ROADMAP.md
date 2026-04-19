@@ -838,7 +838,7 @@ Plans:
 - [ ] 32.1-02-PLAN.md — G1 queue-cycling + cross-cycle YouTube dedup regression (Wave 2; UAT-31-2 + UAT-31-13)
 - [ ] 32.1-03-PLAN.md — G2 video touch overlay reduced to pointer-events:none so YouTube controls reach user (Wave 2; UAT-31-4)
 - [ ] 32.1-04-PLAN.md — G4 (NEW) starter posts persist to cache + decay at 3+ organic posts (Wave 2; STARTER-PERSIST)
-- [ ] 32.1-05-PLAN.md — G5 (NEW) Clear All Data uses window.location.assign('/home') instead of reload (Wave 2; CLEAR-RELOAD)
+- [x] 32.1-05-PLAN.md — G5 (NEW) Clear All Data uses window.location.assign('/home') instead of reload (Wave 2; CLEAR-RELOAD) — commit `3f4f35c3`, see `phases/32.1-v1-4-uat-retest-gap-closure/32.1-05-SUMMARY.md`
 
 ### Phase 33: Phase 29 regression + Phase 31 code hygiene
 

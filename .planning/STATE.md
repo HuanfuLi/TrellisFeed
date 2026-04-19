@@ -23,6 +23,15 @@ progress:
 - [Phase 32.1-01] No code files modified; tsc baseline preserved (0 errors). 4 doc files modified (31-UAT.md + 32.1-01-SUMMARY.md + ROADMAP.md + STATE.md). Single atomic commit per phase D-16 convention.
 - [Phase 32.1-01] Wave 1 of Phase 32.1 complete. Wave 2 plans (32.1-02 G1 queue cycling, 32.1-03 G2 video overlay, 32.1-04 G4 starter persistence, 32.1-05 G5 Clear All Data reload) are ready to execute in parallel — they touch independent files per CONTEXT D-15.
 
+## Latest Decisions (Phase 32.1-05)
+
+- [Phase 32.1-05] D-19 honored: `setTimeout(() => window.location.reload(), 800)` at `app/src/screens/settings/SettingsDataScreen.tsx:68` replaced with `setTimeout(() => window.location.assign('/home'), 800)`. Closes G5 / CLEAR-RELOAD surfaced by 32.1-01 retest (operator HuanfuLi 2026-04-19 verbatim: "When cleared all, not refreshed: user still in Settings page, not in Home page"). `assign('/home')` chosen over `href = '/home'` because it does not push a history entry — semantically correct for a destructive operation.
+- [Phase 32.1-05] D-20 honored: no regression test created. Single call-site UI behavior change; on-device manual operator retest after the next APK deploy cycle is the acceptance gate (bundles naturally with the next G3-style retest). Acceptance criterion: after Settings → Data → Clear All Data → confirm → ~800ms later, app should auto-navigate to /home with no manual nav.
+- [Phase 32.1-05] D-14 honored: atomic plan, atomic commit. Used `git apply --cached <isolated.patch>` to stage ONLY the line-68 G5 hunk for commit `3f4f35c3`. Two pre-existing unrelated i18n hunks at lines ~219 and ~225 (toast key + button label) remain unstaged in the working tree for separate ownership — they belong to a Phase 27 i18n cleanup concern, not this G5 plan.
+- [Phase 32.1-05] D-17 honored at SUMMARY level: G5 has no Phase 31 UAT counterpart (NEW gap from 32.1-01 retest). Outcome recorded in `32.1-05-SUMMARY.md`, not in `31-UAT.md`. Bidirectional trace complete: `32.1-01-SUMMARY.md ## Routed Findings R1` → `32.1-05-PLAN.md` → commit `3f4f35c3` → `32.1-05-SUMMARY.md`.
+- [Phase 32.1-05] tsc baseline preserved: 0 errors before, 0 errors after (`cd app && npx tsc -b --noEmit | grep -c "error TS"` = 0). One file modified in commit; `^[-+].*window.location` lines in commit = 2 (one removed reload + one added assign).
+- [Phase 32.1-05] Planner-spec ambiguity flagged for verifier: PLAN line 132 acceptance criterion `grep -c "window.location.reload()" returns 0` would technically fail because the file contains 2 OTHER reload calls at lines 91 (handleReset) and 220 (Reset Today button) — those were never in G5's scope (PLAN `<read_first>` lines 51-70 only) and were appropriately not touched. The more specific per-commit criterion at PLAN line 135 (`^[-+].*window.location` returns exactly 2) IS satisfied. Documented transparently in SUMMARY § Verification.
+
 # Project State: Phase 28 COMPLETE (all 3 plans executed)
 
 ## Current Milestone
