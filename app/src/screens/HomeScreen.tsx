@@ -109,10 +109,6 @@ export function HomeScreen() {
       setDailyPosts((prev) => prev.filter((p) => p.id !== event.payload.id));
     });
 
-    const unsubNews = eventBus.subscribe('NEWS_POSTS_READY', () => {
-      if (!cancelled) refreshFeed();
-    });
-
     const delayedRefreshTimer = setTimeout(() => {
       if (!cancelled) refreshFeed();
     }, 8000);
@@ -122,7 +118,6 @@ export function HomeScreen() {
       clearTimeout(delayedRefreshTimer);
       unsubPlanner();
       unsubPostDeleted();
-      unsubNews();
     };
   }, [questions, questionsLoading]);
 

@@ -687,7 +687,6 @@ export type AppEvent =
   | { type: 'REVIEW_COMPLETED'; payload: { questionId: string; anchorId?: string } }
   | { type: 'ANCHOR_DELETED'; payload: { anchorId: string } }
   | { type: 'HARVEST_COMPLETED'; payload: { count: number } }
-  | { type: 'NEWS_POSTS_READY'; payload: { posts: DailyPost[] } }
   | { type: 'CONCEPT_EXPLORED'; payload: { anchorId: string } }
   // Unified graph-mutation signal. Fires after any classification commit, anchor
   // creation, prune, replant, or reorg step. Subscribers don't need to discriminate

@@ -93,24 +93,48 @@ describe('post-essay.service', () => {
     );
   });
 
-  // POST-06: news.service generateNewsPosts does NOT call chatCompletion
-  it('news.service generateNewsPosts does not call chatCompletion (deferred to on-enter)', async () => {
+  // POST-06 (relocated): news posts in the LIVE concept-feed pipeline must defer body
+  // generation to on-enter streaming. The previous version of this test guarded
+  // app/src/services/news.service.ts which was orphan/dead code — that's why the
+  // 2026-04-19 regression (bodyMarkdown: result.content || '' at concept-feed.service.ts:905)
+  // slipped through. The live news branch is in generatePostBatch's `for (const a of newsAssignments)`
+  // loop. Guard THAT.
+  it('news branch in concept-feed.service.ts defers body to streaming (no eager LLM, no Tavily snippet stored)', async () => {
     const fs = await import('node:fs');
-    const source = fs.readFileSync(new URL('../../src/services/news.service.ts', import.meta.url), 'utf-8');
+    const source = fs.readFileSync(new URL('../../src/services/concept-feed.service.ts', import.meta.url), 'utf-8');
 
-    // chatCompletion should not be imported or used anywhere in news.service.ts
+    // Locate the news branch — `for (const a of newsAssignments)` block
+    const fnStart = source.indexOf('for (const a of newsAssignments)');
+    assert.ok(fnStart !== -1, 'concept-feed.service.ts should contain `for (const a of newsAssignments)` block');
+    // Bound the inspected region to the next top-level `// Generate ` comment OR end of generatePostBatch.
+    // 2000 chars is generous enough to cover the entire news loop without spilling into adjacent code.
+    const fnBody = source.slice(fnStart, fnStart + 2000);
+
+    // bodyMarkdown MUST be set to '' (empty string) so PostDetailScreen triggers
+    // generateNewsEssay streaming (post-essay.service.ts:133). Storing the raw Tavily
+    // content here causes the streamer to be skipped and the user sees a truncated snippet.
     assert.ok(
-      !source.includes('chatCompletion'),
-      'news.service.ts should not import or call chatCompletion (LLM summary deferred to on-enter)',
+      fnBody.includes("bodyMarkdown: ''"),
+      "news branch must set bodyMarkdown: '' — storing raw Tavily content here regresses to the 2026-04-19 'truncated news body' bug",
+    );
+    assert.ok(
+      !fnBody.includes('bodyMarkdown: result.content'),
+      "news branch must NOT assign result.content to bodyMarkdown — that bypasses the on-enter LLM essay streamer",
     );
 
-    // bodyMarkdown must be set to empty string in generateNewsPosts
-    const fnStart = source.indexOf('async function generateNewsPosts(');
-    assert.ok(fnStart !== -1, 'news.service.ts should contain generateNewsPosts');
-    const fnBody = source.slice(fnStart, fnStart + 4000);
+    // No eager LLM call inside the creation branch (chatCompletion / chatStream).
+    // The summary IS LLM-generated, but at on-enter (PostDetailScreen → generateNewsEssay),
+    // not during refillQueue's batch creation.
     assert.ok(
-      fnBody.includes("bodyMarkdown: ''") || fnBody.includes("bodyMarkdown: \"\""),
-      'generateNewsPosts should set bodyMarkdown to empty string (deferred generation marker)',
+      !fnBody.includes('chatCompletion(') && !fnBody.includes('chatStream('),
+      'news branch must not call chatCompletion/chatStream eagerly — LLM summary is deferred to on-enter via post-essay.service.ts',
+    );
+
+    // newsMeta.sources must include `snippet:` so generateNewsEssay has article text
+    // to ground the LLM summary on (otherwise the LLM only sees title + URL).
+    assert.ok(
+      fnBody.includes('snippet:'),
+      'news branch must populate sources[].snippet with article content so generateNewsEssay can ground the LLM summary',
     );
   });
 });
