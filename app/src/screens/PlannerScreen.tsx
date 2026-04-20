@@ -21,7 +21,7 @@ import { PortalCard, buildPortalData } from '../components/PortalCard';
 
 function EmptySectionHint({ text }: { text: string }) {
   return (
-    <Card style={{ padding: '14px 16px', marginBottom: '10px', backgroundColor: 'var(--surface-variant)' }}>
+    <Card style={{ padding: 'var(--space-md) var(--space-lg)', marginBottom: '10px', backgroundColor: 'var(--surface-variant)' }}>
       <p style={{ fontSize: '0.82rem', lineHeight: 1.5, color: 'var(--muted-foreground)' }}>{text}</p>
     </Card>
   );
@@ -149,7 +149,7 @@ export function PlannerScreen() {
             title={t('planner.refreshTitle')}
             className="active-squish"
             style={{
-              width: '28px', height: '28px', borderRadius: '50%',
+              width: '44px', height: '44px', borderRadius: '50%',
               backgroundColor: 'var(--surface-variant)',
               color: 'var(--muted-foreground)',
               border: '1px solid var(--border)',
@@ -299,7 +299,7 @@ export function PlannerScreen() {
               <button
                 onClick={() => setShowAllSuggestions(true)}
                 style={{
-                  width: '100%', padding: '10px 16px', borderRadius: '12px',
+                  width: '100%', padding: 'var(--space-sm) var(--space-lg)', borderRadius: '12px',
                   backgroundColor: 'var(--surface-variant)', color: 'var(--primary-40)',
                   border: '1px solid var(--border)', fontSize: '0.82rem', fontWeight: 500,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -314,7 +314,7 @@ export function PlannerScreen() {
               <button
                 onClick={() => setShowAllSuggestions(false)}
                 style={{
-                  width: '100%', padding: '10px 16px', borderRadius: '12px',
+                  width: '100%', padding: 'var(--space-sm) var(--space-lg)', borderRadius: '12px',
                   backgroundColor: 'var(--surface-variant)', color: 'var(--muted-foreground)',
                   border: '1px solid var(--border)', fontSize: '0.82rem', fontWeight: 500,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
