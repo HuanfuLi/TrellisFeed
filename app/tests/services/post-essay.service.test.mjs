@@ -106,9 +106,11 @@ describe('post-essay.service', () => {
     // Locate the news branch — `for (const a of newsAssignments)` block
     const fnStart = source.indexOf('for (const a of newsAssignments)');
     assert.ok(fnStart !== -1, 'concept-feed.service.ts should contain `for (const a of newsAssignments)` block');
-    // Bound the inspected region to the next top-level `// Generate ` comment OR end of generatePostBatch.
-    // 2000 chars is generous enough to cover the entire news loop without spilling into adjacent code.
-    const fnBody = source.slice(fnStart, fnStart + 2000);
+    // Bound the inspected region to cover the entire news loop.
+    // 2500 chars after Phase 33 quota-burn fix (2026-04-20) added a preFetched cache
+    // indirection block before the actual fetch (was 2000). Still tight enough to not
+    // spill into the generateTextArtContent block that follows.
+    const fnBody = source.slice(fnStart, fnStart + 2500);
 
     // bodyMarkdown MUST be set to '' (empty string) so PostDetailScreen triggers
     // generateNewsEssay streaming (post-essay.service.ts:133). Storing the raw Tavily
