@@ -59,10 +59,33 @@ export const postQueueService = {
     return [..._state.posts];
   },
 
-  /** Append posts to the end of the queue (deduplicates by id, caps at MAX_QUEUE_SIZE). */
+  /**
+   * Append posts to the end of the queue. Deduplicates by id across both
+   * existing queue items AND within the incoming batch. Caps at MAX_QUEUE_SIZE.
+   *
+   * Phase 33 gap fix (2026-04-20): the prior dedup filtered the incoming batch
+   * against `existingIds` only, so duplicates WITHIN `posts` both passed through
+   * and landed side-by-side in the queue. With UUID-suffixed IDs (makePostId)
+   * this shouldn't occur, but the defense-in-depth invariant makes the queue's
+   * uniqueness structural — any future ID-generator bug drops silently here
+   * (with a dev-mode warn) instead of manifesting as linked-playback or other
+   * shared-state React bugs downstream.
+   */
   enqueue(posts: DailyPost[]): void {
-    const existingIds = new Set(_state.posts.map(p => p.id));
-    const fresh = posts.filter(p => !existingIds.has(p.id));
+    const seen = new Set(_state.posts.map(p => p.id));
+    const fresh: DailyPost[] = [];
+    const duplicates: string[] = [];
+    for (const p of posts) {
+      if (seen.has(p.id)) {
+        duplicates.push(p.id);
+        continue;
+      }
+      seen.add(p.id);
+      fresh.push(p);
+    }
+    if (duplicates.length > 0 && typeof import.meta !== 'undefined' && import.meta.env?.DEV) {
+      console.warn('[postQueueService] Rejected duplicate post IDs at enqueue:', duplicates);
+    }
     const capacity = MAX_QUEUE_SIZE - _state.posts.length;
     const added = fresh.slice(0, Math.max(0, capacity));
     _state.posts.push(...added);
