@@ -1021,6 +1021,27 @@ export function InlineInfoFlow({ items, onOpenConnection, showConnectionScores =
   useEffect(() => {
     if (location.pathname !== '/home') setVideoPlaying(null);
   }, [location.pathname]);
+
+  // Phase 33 gap fix (Bug 2, 2026-04-20): Stop video when the currently-playing
+  // card is scrolled out of viewport. IntersectionObserver only activates while
+  // a video is playing, so zero perf overhead in the common case. Fullscreen
+  // guard avoids stopping when YouTube's own fullscreen takes over the viewport.
+  useEffect(() => {
+    if (!videoPlaying) return;
+    const card = document.querySelector<HTMLElement>(`[data-feed-id="${videoPlaying}"]`);
+    if (!card) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) return;
+        if (document.fullscreenElement) return;
+        setVideoPlaying(null);
+      },
+      { threshold: 0.3 },
+    );
+    observer.observe(card);
+    return () => observer.disconnect();
+  }, [videoPlaying]);
   // On first render, mark all current items as "already seen" so they
   // don't animate. Only items added AFTER mount will animate.
   const [newPostIds] = useState<Set<string>>(() => {
