@@ -41,21 +41,21 @@ updated: 2026-04-19
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 0.1 | 33-00 | 0 | WIP-FLUSH | targeted tests | `cd app && node --test tests/services/concept-batch-filter.test.mjs tests/services/daily-generation-cap.test.mjs tests/services/starter-posts.test.mjs tests/concept-quota.test.mjs` | ✅ all 4 | ⬜ pending |
-| 0.2 | 33-00 | 0 | WIP-FLUSH | git-state | `cd /Users/Code/EchoLearn && git status --porcelain \| wc -l \| tr -d ' '` must equal `0` | n/a — git | ⬜ pending |
-| 1.1 | 33-01 | 1 | TD-05 | bundle-parity + file-absence | `cd app && node --test tests/locales/bundle-parity.test.mjs tests/locales/missing-key.test.mjs` — fail 0; `test ! -f src/components/ConceptProgressCard.tsx` exit 0 | ✅ | ⬜ pending |
-| 1.1b | 33-01 | 1 | TD-05 | grep orphan sweep | `grep -rn "home\.feed\.\(title\|complete\|progress\|progressCompact\)" app/src/ app/tests/` returns 0 hits | n/a — grep | ⬜ pending |
-| 2.1 | 33-02 | 1 | TD-04 | targeted test + file-absence | `cd app && node --test tests/services/orchestration-strategy.test.mjs` fail 0; `test ! -f tests/services/concept-feed-strategy.test.mjs` exit 0 | ✅ | ⬜ pending |
-| 2.2 | 33-02 | 1 | TD-04 | grep doc status | `grep -c "SUPERSEDED-BY-PHASE-31" .planning/phases/29-final-polishment/29-VERIFICATION.md` ≥ 1; `grep -c "TD-01 SUPERSEDED" .planning/phases/29-final-polishment/29-UAT-LOG.md` ≥ 1 | n/a — grep | ⬜ pending |
-| 3.1 | 33-03 | 2 | TD-06 | grep LeafState type | `grep -c "'yellow'\|'fallen'" app/src/services/trellis-state.service.ts` == 0; `grep -c "'dying'\|'dead'" app/src/services/trellis-state.service.ts` ≥ 5 | n/a — grep | ⬜ pending |
-| 3.2 | 33-03 | 2 | TD-06 | grep comparisons | `grep -c "'yellow'\|'fallen'" app/src/services/concept-feed.service.ts app/src/screens/PlannerScreen.tsx` == 0 | n/a — grep | ⬜ pending |
-| 3.3 | 33-03 | 2 | TD-06 | grep trellis components (scope: 5 existing trellis files — `TrellisStatusPanel`, `TrellisLeaf`, `TrellisCanvas`, `TrellisHero`, `TrellisEmptyState`, `PrunedSection`; `TrellisTooltip.tsx` absent per Plan 33-03 Scope boundary) | `grep -rn "'yellow'\|'fallen'" app/src/components/trellis/ \| wc -l` == 0 | n/a — grep | ⬜ pending |
-| 3.4 | 33-03 | 2 | TD-06 | grep test fixtures | `grep -rn "'yellow'\|'fallen'" app/tests/ \| wc -l` == 0 | n/a — grep | ⬜ pending |
-| 3.5 | 33-03 | 2 | TD-06 | tsc + build + baseline-relative test diff | `cd app && npx tsc -b --noEmit` exit 0; `cd app && npx vite build` exit 0; post-rename `npm test` fail count ≤ pre-rename baseline AND post-rename signature set ⊆ baseline signature set (captured at `/tmp/phase-33-pre-rename-baseline.log` / `/tmp/phase-33-baseline-signatures.txt`) | n/a — tooling | ⬜ pending |
-| 4.1 | 33-04 | 3 | TSC-HYGIENE | full success-criteria sweep (baseline-relative) | `cd app && npx tsc -b --noEmit`; `cd app && npx vite build`; `cd app && npm test` with closure fail count ≤ baseline AND closure signatures ⊆ baseline; `cd /Users/Code/EchoLearn && git status --porcelain` all pass | n/a — tooling | ⬜ pending |
-| 4.2 | 33-04 | 3 | TSC-HYGIENE | file-presence + frontmatter | `test -f .planning/phases/33-phase-29-regression-and-phase-31-code-hygiene/33-CLOSURE.md`; `grep "nyquist_compliant: true" .planning/phases/33-phase-29-regression-and-phase-31-code-hygiene/33-VALIDATION.md` | n/a — file check | ⬜ pending |
+| 0.1 | 33-00 | 0 | WIP-FLUSH | targeted tests | `cd app && node --test tests/services/concept-batch-filter.test.mjs tests/services/daily-generation-cap.test.mjs tests/services/starter-posts.test.mjs tests/concept-quota.test.mjs` | ✅ all 4 | ✅ green |
+| 0.2 | 33-00 | 0 | WIP-FLUSH | git-state | `cd /Users/Code/EchoLearn && git status --porcelain \| wc -l \| tr -d ' '` must equal `0` | n/a — git | ✅ green |
+| 1.1 | 33-01 | 1 | TD-05 | bundle-parity + file-absence | `cd app && node --test tests/locales/bundle-parity.test.mjs tests/locales/missing-key.test.mjs` — fail 0; `test ! -f src/components/ConceptProgressCard.tsx` exit 0 | ✅ | ✅ green |
+| 1.1b | 33-01 | 1 | TD-05 | grep orphan sweep | `grep -rn "home\.feed\.\(title\|complete\|progress\|progressCompact\)" app/src/ app/tests/` returns 0 hits | n/a — grep | ✅ green |
+| 2.1 | 33-02 | 1 | TD-04 | targeted test + file-absence | `cd app && node --test tests/services/orchestration-strategy.test.mjs` fail 0; `test ! -f tests/services/concept-feed-strategy.test.mjs` exit 0 | ✅ | ✅ green |
+| 2.2 | 33-02 | 1 | TD-04 | grep doc status | `grep -c "SUPERSEDED-BY-PHASE-31" .planning/phases/29-final-polishment/29-VERIFICATION.md` ≥ 1; `grep -c "TD-01 SUPERSEDED" .planning/phases/29-final-polishment/29-UAT-LOG.md` ≥ 1 | n/a — grep | ✅ green |
+| 3.1 | 33-03 | 2 | TD-06 | grep LeafState type | `grep -c "'yellow'\|'fallen'" app/src/services/trellis-state.service.ts` == 0; `grep -c "'dying'\|'dead'" app/src/services/trellis-state.service.ts` ≥ 5 | n/a — grep | ✅ green |
+| 3.2 | 33-03 | 2 | TD-06 | grep comparisons | `grep -c "'yellow'\|'fallen'" app/src/services/concept-feed.service.ts app/src/screens/PlannerScreen.tsx` == 0 | n/a — grep | ✅ green |
+| 3.3 | 33-03 | 2 | TD-06 | grep trellis components (scope: 5 existing trellis files — `TrellisStatusPanel`, `TrellisLeaf`, `TrellisCanvas`, `TrellisHero`, `TrellisEmptyState`, `PrunedSection`; `TrellisTooltip.tsx` absent per Plan 33-03 Scope boundary) | `grep -rn "'yellow'\|'fallen'" app/src/components/trellis/ \| wc -l` == 0 | n/a — grep | ✅ green |
+| 3.4 | 33-03 | 2 | TD-06 | grep test fixtures | `grep -rn "'yellow'\|'fallen'" app/tests/ \| wc -l` == 0 | n/a — grep | ✅ green |
+| 3.5 | 33-03 | 2 | TD-06 | tsc + build + baseline-relative test diff | `cd app && npx tsc -b --noEmit` exit 0; `cd app && npx vite build` exit 0; post-rename `npm test` fail count ≤ pre-rename baseline AND post-rename signature set ⊆ baseline signature set (captured at `/tmp/phase-33-pre-rename-baseline.log` / `/tmp/phase-33-baseline-signatures.txt`) | n/a — tooling | ✅ green |
+| 4.1 | 33-04 | 3 | TSC-HYGIENE | full success-criteria sweep (baseline-relative) | `cd app && npx tsc -b --noEmit`; `cd app && npx vite build`; `cd app && npm test` with closure fail count ≤ baseline AND closure signatures ⊆ baseline; `cd /Users/Code/EchoLearn && git status --porcelain` all pass | n/a — tooling | ✅ green |
+| 4.2 | 33-04 | 3 | TSC-HYGIENE | file-presence + frontmatter | `test -f .planning/phases/33-phase-29-regression-and-phase-31-code-hygiene/33-CLOSURE.md`; `grep "nyquist_compliant: true" .planning/phases/33-phase-29-regression-and-phase-31-code-hygiene/33-VALIDATION.md` | n/a — file check | ✅ green |
 
-*Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
+*Status legend: pending (`☐`) · green (`✅`) · red (`❌`) · flaky (`⚠️`)*
 
 ---
 
@@ -112,4 +112,4 @@ updated: 2026-04-19
 - [x] Feedback latency < 45s
 - [x] `nyquist_compliant: true` set in frontmatter — this VALIDATION.md flipped post-planning once 4 PLANs landed with complete verification commands.
 
-**Approval:** approved 2026-04-19 (planner sign-off; executor status flips individual rows from ⬜ pending → ✅ green as waves land)
+**Approval:** approved 2026-04-19 by planner; executor-verified 2026-04-19 (all 13 rows in the Per-Task Verification Map are now ✅ green via Plan 33-04)
