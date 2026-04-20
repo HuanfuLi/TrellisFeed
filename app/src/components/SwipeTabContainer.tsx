@@ -75,6 +75,12 @@ export function SwipeTabContainer({ screens, routes, children }: SwipeTabContain
   });
 
   // ── Keyboard detection (ref-only, no state / no re-renders) ─────────────
+  // Phase 33 UAT-4 (2026-04-20): on focus-out, we also force a stripX
+  // re-snap to recover from any horizontal drift accumulated while the
+  // keyboard was open. Without this, AskScreen stays mis-aligned until
+  // the user navigates to another tab (navigateToTab unconditionally
+  // re-snaps), which is exactly the reported "keyboard deform doesn't
+  // recover" symptom.
   useEffect(() => {
     const onFocusIn = (e: FocusEvent) => {
       const el = e.target as HTMLElement;
@@ -82,25 +88,45 @@ export function SwipeTabContainer({ screens, routes, children }: SwipeTabContain
         keyboardOpenRef.current = true;
       }
     };
-    const onFocusOut = () => { keyboardOpenRef.current = false; };
+    const onFocusOut = () => {
+      keyboardOpenRef.current = false;
+      // Defer one frame so the keyboard-close viewport resize finishes
+      // before we read getScreenWidth(). Unconditional snap — mirrors
+      // navigateToTab's recovery path.
+      requestAnimationFrame(() => {
+        screenWidthRef.current = getScreenWidth();
+        if (!animatingRef.current && lockAxisRef.current !== 'x') {
+          stripX.set(computeTargetX(activeIndexRef.current, screenWidthRef.current));
+        }
+      });
+    };
     document.addEventListener('focusin', onFocusIn);
     document.addEventListener('focusout', onFocusOut);
     return () => {
       document.removeEventListener('focusin', onFocusIn);
       document.removeEventListener('focusout', onFocusOut);
     };
-  }, []);
+  }, [stripX]);
 
-  // ── Viewport resize re-sync (Phase 28 D-05) ─────────────────────────────
-  // Without this, a keyboard open/close, device rotation, or browser-UI
-  // expand/collapse leaves `screenWidthRef` stale — subsequent route syncs
-  // use the old width and the strip ends up pointing at a non-existent slot
-  // (e.g. -1374px on a 375px viewport after a resize). Refresh the width
-  // and re-snap whenever the visual viewport changes. Skip while
-  // mid-gesture or mid-animation so we never fight an in-flight motion.
+  // ── Viewport resize re-sync (Phase 28 D-05, hardened Phase 33 UAT-4) ────
+  // Without re-sync, a device rotation or browser-UI expand/collapse leaves
+  // `screenWidthRef` stale — subsequent route syncs use the old width and
+  // the strip ends up pointing at a non-existent slot. Refresh width and
+  // re-snap whenever the visual viewport width genuinely changes.
+  //
+  // The height-only change guard (Phase 33 UAT-4, 2026-04-20) is load-
+  // bearing: keyboard open/close on Android WebView fires
+  // visualViewport.resize events where HEIGHT shrinks but WIDTH stays the
+  // same — or WIDTH transiently reports pixel-ratio-adjusted values mid-
+  // animation. Re-snapping stripX during those transients placed the
+  // active slot at a wrong X, producing the "Ask screen zooms/deforms"
+  // symptom that didn't recover until the user navigated away. Only
+  // re-snap when width actually changed; keyboard events are now no-ops.
   useEffect(() => {
     const resync = () => {
-      screenWidthRef.current = getScreenWidth();
+      const newWidth = getScreenWidth();
+      if (newWidth === screenWidthRef.current) return; // height-only (e.g. keyboard) → no-op
+      screenWidthRef.current = newWidth;
       const midGesture = lockAxisRef.current === 'x';
       if (!animatingRef.current && !midGesture) {
         stripX.set(computeTargetX(activeIndexRef.current, screenWidthRef.current));
