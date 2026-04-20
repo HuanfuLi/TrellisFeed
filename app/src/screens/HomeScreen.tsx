@@ -155,16 +155,25 @@ export function HomeScreen() {
       // 4 per swipe by design). Was 6; that was an undocumented divergence.
       const newPosts = await infiniteScrollService.loadNextBatch(questionsRef.current, 4);
       if (newPosts.length > 0) {
-        // Pre-generate images for all new posts before showing them
-        const { inferImageStyle, buildImagePrompt } = await import('../services/postFormatting.service');
-        const { imageGenerationService } = await import('../services/imageGeneration.service');
-        await Promise.allSettled(
-          newPosts.map((post) => {
-            const style = inferImageStyle(post);
-            const prompt = buildImagePrompt(post);
-            return imageGenerationService.generateImage(post.id, prompt, style);
-          }),
-        );
+        // Phase 33 UAT-4 fix (2026-04-20): only pre-generate images for posts
+        // that actually RENDER an image. Previously this loop ran generateImage
+        // for every post regardless of presentationStyle, and with a real
+        // Gemini/NanoBanana key each call hit the provider for seconds —
+        // blocking the swipe on "Loading more posts" for 10-30s while 3 of 4
+        // generations were thrown away (video/short/news/text-art ignore the
+        // result). Now we only wait for the subset that will use the image.
+        const imagePosts = newPosts.filter((p) => p.presentationStyle === 'image');
+        if (imagePosts.length > 0) {
+          const { inferImageStyle, buildImagePrompt } = await import('../services/postFormatting.service');
+          const { imageGenerationService } = await import('../services/imageGeneration.service');
+          await Promise.allSettled(
+            imagePosts.map((post) => {
+              const style = inferImageStyle(post);
+              const prompt = buildImagePrompt(post);
+              return imageGenerationService.generateImage(post.id, prompt, style);
+            }),
+          );
+        }
         conceptFeedService.appendToCache(newPosts);
         setDailyPosts((prev) => [...prev, ...newPosts]);
       } else {

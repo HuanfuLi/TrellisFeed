@@ -1095,10 +1095,16 @@ export async function refillQueue(questions: Question[]): Promise<void> {
     // redirects weight to text-art instead of burning more calls on a dead quota.
     const youtubeKeyPresent = typeof settings.youtube?.apiKey === 'string' && settings.youtube.apiKey.trim().length > 0;
     const tavilyKeyPresent = typeof settings.webSearch?.tavilyApiKey === 'string' && settings.webSearch.tavilyApiKey.trim().length > 0;
+    // Phase 33 UAT-4 fix (2026-04-20): honor EITHER image-gen key. imageGeneration.bootstrap.ts
+    // registers the Gemini provider when only geminiApiKey is set (no nanoBanana key), so
+    // image generation IS possible — but assignStyles would skip the 'image' style weight
+    // because this check was nanoBanana-only. Result: no image posts despite a working key.
+    const nanoBananaKeyPresent = typeof settings.imageGeneration?.nanoBananaApiKey === 'string' && settings.imageGeneration.nanoBananaApiKey.trim().length > 0;
+    const geminiImageKeyPresent = typeof settings.imageGeneration?.geminiApiKey === 'string' && settings.imageGeneration.geminiApiKey.trim().length > 0;
     const availability: ApiAvailability = {
       hasYoutubeKey: youtubeKeyPresent && isYoutubeRuntimeAvailable(),
       hasTavilyKey: tavilyKeyPresent && isTavilyRuntimeAvailable(),
-      hasImageGenKey: typeof settings.imageGeneration?.nanoBananaApiKey === 'string' && settings.imageGeneration.nanoBananaApiKey.trim().length > 0,
+      hasImageGenKey: nanoBananaKeyPresent || geminiImageKeyPresent,
     };
 
     // Step 3: Assign styles before generation (D-18)
@@ -1558,7 +1564,8 @@ export const conceptFeedService = {
       const availability: ApiAvailability = {
         hasYoutubeKey: !!(settings2.youtube?.apiKey),
         hasTavilyKey: !!(settings2.webSearch?.tavilyApiKey),
-        hasImageGenKey: !!(settings2.imageGeneration?.nanoBananaApiKey),
+        // Phase 33 UAT-4 fix: either image-gen key counts (nanoBanana OR gemini).
+        hasImageGenKey: !!(settings2.imageGeneration?.nanoBananaApiKey) || !!(settings2.imageGeneration?.geminiApiKey),
       };
       const sessionAssignments = assignStyles(
         newPosts.map(p => p.sourceQuestionIds[0] ?? p.id),
