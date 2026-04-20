@@ -32,10 +32,19 @@ const swipeTab = fs.readFileSync(
 );
 
 describe('root horizontal overflow clip', () => {
-  it('index.css clips horizontal overflow on html + body', () => {
+  it('index.css clips BOTH horizontal AND vertical overflow on html + body', () => {
+    // overflow-x hidden — prevents 500vw strip from making document horizontally scrollable.
+    // overflow-y hidden — prevents body (min-height:100vh, which doesn't shrink with
+    //   keyboard) from becoming a second scroll container nested outside every screen's
+    //   own overflow:auto region. That nesting causes elastic-bounce direction-change
+    //   blocking AND lets body scroll drag ChatInput behind the keyboard on AskScreen.
+    // Both axes can be expressed via the shorthand `overflow: hidden` or separate
+    // `overflow-x: hidden; overflow-y: hidden`. Accept either form.
     assert.ok(
-      /html,\s*body\s*\{\s*overflow-x:\s*hidden/.test(indexCss),
-      'index.css must declare `html, body { overflow-x: hidden }` — the strip is 500vw wide and would otherwise make the document horizontally scrollable, allowing keyboard-triggered scrollIntoView to shift the whole app left',
+      /html,\s*body\s*\{\s*overflow:\s*hidden/.test(indexCss)
+      || /html,\s*body\s*\{[^}]*overflow-x:\s*hidden[^}]*overflow-y:\s*hidden/.test(indexCss)
+      || /html,\s*body\s*\{[^}]*overflow-y:\s*hidden[^}]*overflow-x:\s*hidden/.test(indexCss),
+      'index.css must declare `html, body { overflow: hidden }` (or both overflow-x and overflow-y hidden). Horizontal clip blocks 500vw-strip scroll-into-view drift; vertical clip blocks body-vs-inner-scroll nesting that breaks keyboard scroll on AskScreen.',
     );
   });
 

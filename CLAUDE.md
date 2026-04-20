@@ -128,21 +128,28 @@ Recurring device-only regression. Prior incidents:
 
 ---
 
-## Root horizontal overflow clip (Phase 33 UAT-4 — load-bearing)
+## Root overflow clip — both axes (Phase 33 UAT-4 — load-bearing)
 
-The `SwipeTabContainer` strip is **500vw wide** (5 slots × 100vw). Without a horizontal overflow clip at the document root, the browser becomes horizontally scrollable. On Android WebView, opening the system keyboard on a focused input inside an off-center slot (AskScreen is index 2) triggers Chromium's `scrollIntoView` on the input, which shifts `document.scrollLeft` — the whole app visibly drifts left. On keyboard close, Chromium only reverses the viewport height, NOT the scrollLeft, so the drift persists. Tab navigation recovers because the route change re-layouts and resets scroll position as a side effect.
+`html, body { overflow: hidden }` is load-bearing on BOTH axes. Body is never the right place for app scroll. Every screen owns its own `overflow: auto` scroll container.
 
-Three layers of defense prevent this:
+**Why horizontal clip:** The `SwipeTabContainer` strip is **500vw wide** (5 slots × 100vw). Without clip the document becomes horizontally scrollable. On Android WebView, keyboard open on a focused input inside an off-center slot triggers Chromium's `scrollIntoView`, shifting `document.scrollLeft` — app visibly drifts left, not recovered on close.
 
-1. **`html, body { overflow-x: hidden }`** in `app/src/index.css` — primary structural fix. The document cannot be horizontally scrolled regardless of descendant width.
-2. **`overflowX: 'hidden'`** on the App root div (`app/src/App.tsx`) — React-layer belt-and-suspenders if the CSS rule is ever removed.
-3. **`document.scrollingElement.scrollLeft = 0`** in `SwipeTabContainer.onFocusOut` — recovery path that resets any drift that somehow slipped past layers 1+2.
+**Why vertical clip:** `body { min-height: 100vh }` uses `vh` which does NOT shrink with the keyboard (unlike `dvh`). When the keyboard opens, `SwipeTabContainer` slots shrink (100dvh) but body stays at the initial viewport height → body becomes vertically scrollable. That creates a **second scroll container nested outside** every screen's own `overflow: auto`, producing:
+- Classic elastic-bounce direction-change blocking on AskScreen + keyboard (every swipe-direction change needs two gestures — the first is absorbed by the outer body handoff).
+- Body scroll drags the entire AskScreen including ChatInput off-screen behind the keyboard.
+
+Three layers of defense:
+
+1. **`html, body { overflow: hidden }`** in `app/src/index.css` — primary structural fix.
+2. **`overflowX: 'hidden'`** on the App root div (`app/src/App.tsx`) — React-layer belt for horizontal.
+3. **`document.scrollingElement.scrollLeft = 0`** in `SwipeTabContainer.onFocusOut` — recovery path for any horizontal drift that slipped past 1+2.
 
 ### Rules
 
-1. **Don't remove `html, body { overflow-x: hidden }` from index.css.** `tests/layout/root-horizontal-clip.test.mjs` enforces all three layers.
-2. **Don't add a horizontally-scrolling region outside the SwipeTabContainer** (e.g., a horizontal carousel at the page root). The clip applies globally; design horizontal scrollers to be inside their own `overflow-x: auto` container.
+1. **Don't remove `html, body { overflow: hidden }` from index.css.** `tests/layout/root-horizontal-clip.test.mjs` enforces all three layers.
+2. **Don't add a scrolling region outside SwipeTabContainer** at the page root. The clip applies globally; put scrollers inside their own `overflow: auto` container.
 3. **Don't remove `overflowX: 'hidden'`** from the App root div or the `scrollLeft = 0` reset in `onFocusOut`. Same test.
+4. **Never rely on body scroll** — no `window.scrollTo`, `document.body.scrollTop`, etc. Use the screen's inner scroll container. Zero callers do this today (verified via grep); keep it that way.
 
 ## SwipeTabContainer resize + keyboard handling (Phase 33 UAT-4 — load-bearing)
 

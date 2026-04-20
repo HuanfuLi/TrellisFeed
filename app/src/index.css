@@ -267,16 +267,30 @@ body.keyboard-open #bottom-navigation {
     -webkit-tap-highlight-color: transparent;
   }
 
-  /* Phase 33 UAT-4 fix (2026-04-20): clip horizontal overflow at the root.
-   * The SwipeTabContainer strip is 500vw wide (5 slots × 100vw); without
-   * this clip the document becomes horizontally scrollable. When Android
-   * WebView's system keyboard opens on a focused input inside an off-center
-   * slot, Chromium calls scrollIntoView and shifts document.scrollLeft —
-   * the entire app visibly drifts left. On close, scrollLeft is NOT
-   * reset, so the drift persists until a route change re-layouts. This
-   * rule makes the drift structurally impossible. DO NOT REMOVE. */
+  /* Phase 33 UAT-4 fix (2026-04-20): clip ALL overflow at the root.
+   *
+   * overflow-x hidden — The SwipeTabContainer strip is 500vw wide
+   * (5 slots × 100vw); without this clip the document becomes
+   * horizontally scrollable. When Android WebView's system keyboard
+   * opens on a focused input inside an off-center slot, Chromium calls
+   * scrollIntoView and shifts document.scrollLeft — the entire app
+   * visibly drifts left. On close, scrollLeft is NOT reset.
+   *
+   * overflow-y hidden — Body has min-height: 100vh. On mobile `vh` does
+   * NOT shrink with the keyboard (unlike `dvh`), so body stays at the
+   * initial viewport height while SwipeTabContainer's 100dvh slot shrinks
+   * to the new visible viewport. Body then becomes TALLER than the visible
+   * area → body becomes vertically scrollable. That creates a second
+   * scroll container nested outside every screen's own overflow:auto
+   * region, producing the classic "elastic bounce blocks direction change
+   * until second swipe" symptom on AskScreen + keyboard. It also lets
+   * body scroll drag the ChatInput off-screen behind the keyboard.
+   *
+   * Every screen owns its own overflow:auto scroll container. Body is
+   * never the right place for app scroll. Zero callers read body scroll
+   * (grep confirmed). DO NOT REMOVE — both axes are load-bearing. */
   html, body {
-    overflow-x: hidden;
+    overflow: hidden;
   }
 
   body {
