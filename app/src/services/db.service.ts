@@ -24,16 +24,18 @@ class SQLiteBackend implements DBBackend {
   private db: import('@capacitor-community/sqlite').SQLiteDBConnection | null = null;
 
   async init() {
-    const { CapacitorSQLite } = await import('@capacitor-community/sqlite');
-    // createConnection throws if connection already exists (e.g. hot reload, race).
-    // Catch and reuse the existing connection.
-    try {
-      await CapacitorSQLite.createConnection({ database: 'echolearn', version: 1, encrypted: false, mode: 'no-encryption' });
-    } catch {
-      // Connection already exists — that's fine, reuse it
-    }
-    await CapacitorSQLite.open({ database: 'echolearn' });
-    this.db = (CapacitorSQLite as unknown as { getConnection: (name: string) => import('@capacitor-community/sqlite').SQLiteDBConnection }).getConnection('echolearn');
+    // Phase 33 UAT-4 fix (2026-04-20): CapacitorSQLite.getConnection does not
+    // exist on the native plugin — calling it throws "not implemented on
+    // android". The correct API is the SQLiteConnection wrapper, which
+    // tracks connections in a JS-side map keyed by database name. Use
+    // isConnection to reuse across hot reloads, createConnection otherwise.
+    const { CapacitorSQLite, SQLiteConnection } = await import('@capacitor-community/sqlite');
+    const sqlite = new SQLiteConnection(CapacitorSQLite);
+    const existing = await sqlite.isConnection('echolearn', false);
+    this.db = existing.result
+      ? await sqlite.retrieveConnection('echolearn', false)
+      : await sqlite.createConnection('echolearn', false, 'no-encryption', 1, false);
+    await this.db.open();
     await this._runMigrations();
   }
 
