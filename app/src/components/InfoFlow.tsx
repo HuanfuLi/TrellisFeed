@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useContext } from 'react';
 import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useLocation } from 'react-router-dom';
 import { SwipeTabContext } from '../lib/swipe-tab-context';
 import type { BlindboxItem, DailyPost, GeneratedImage, Question } from '../types';
 import { FeedPostImage } from './FeedPostImage';
@@ -1009,6 +1010,17 @@ export function InlineInfoFlow({ items, onOpenConnection, showConnectionScores =
       unsub?.();
     };
   }, [swipeCtx]);
+
+  // Phase 33 gap fix (Bug 1, 2026-04-20): Stop video when the user navigates
+  // intra-app away from /home (e.g., into PostDetailScreen which mounts as an
+  // Outlet overlay above the swipe strip). The swipeProgress handler above
+  // only fires on horizontal tab-to-tab navigation; the Outlet overlay keeps
+  // Home "active" under the overlay, so this second subscription is required
+  // to prevent two iframes (feed + detail) from playing simultaneously.
+  const location = useLocation();
+  useEffect(() => {
+    if (location.pathname !== '/home') setVideoPlaying(null);
+  }, [location.pathname]);
   // On first render, mark all current items as "already seen" so they
   // don't animate. Only items added AFTER mount will animate.
   const [newPostIds] = useState<Set<string>>(() => {
