@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, Clock } from 'lucide-react';
 
@@ -175,7 +175,7 @@ function TaperingPath({ d, baseWidth, tipWidth, color, opacity, segments }: {
   );
 }
 
-export function VineProgress({
+function VineProgressImpl({
   mode,
   concepts,
   onConceptTap,
@@ -456,3 +456,18 @@ export function VineProgress({
     </>
   );
 }
+
+// D-23 (Phase 33 Plan 06): memoize VineProgress to skip re-render when
+// concepts array contents are unchanged. Custom comparator stringifies
+// (id, explored) pairs since the array reference is rebuilt by parent
+// on every event-bus emission even when nothing changed.
+function vineProgressPropsEqual(prev: VineProgressProps, next: VineProgressProps): boolean {
+  if (prev.mode !== next.mode) return false;
+  if (prev.onConceptTap !== next.onConceptTap) return false;
+  if (prev.onHistoryTap !== next.onHistoryTap) return false;
+  const prevKey = prev.concepts.map(c => c.id + (c.explored ? '1' : '0')).join('|');
+  const nextKey = next.concepts.map(c => c.id + (c.explored ? '1' : '0')).join('|');
+  return prevKey === nextKey;
+}
+
+export const VineProgress = React.memo(VineProgressImpl, vineProgressPropsEqual);

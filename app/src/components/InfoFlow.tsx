@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useContext } from 'react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
 import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { SwipeTabContext } from '../lib/swipe-tab-context';
@@ -607,6 +607,33 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen, videoP
   );
 }
 
+// D-23 (Phase 33 Plan 06): React.memo wrapper around ConceptCard.
+// Custom equality: parent re-renders 8 cards on every event-bus emission;
+// without memo, all 8 re-render. With memo, only cards whose props actually
+// changed re-render. Internal state (image, imageResolved) is not in the
+// comparator because React.memo only sees props — internal state changes
+// always trigger re-render via useState's normal behavior.
+//
+// GUARDRAIL (Phase 32.1 Wave 4 D-W4-03): this wrapper sits OUTSIDE the
+// wouldRenderVisual fallback at the top of ConceptCard. The fallback runs on
+// every render that DOES occur — memo only changes WHETHER a render occurs,
+// not what happens inside one.
+function conceptCardPropsEqual(
+  prev: ConceptCardProps & { videoPlaying: string | null; setVideoPlaying: (id: string | null) => void },
+  next: ConceptCardProps & { videoPlaying: string | null; setVideoPlaying: (id: string | null) => void },
+): boolean {
+  return (
+    prev.post.id === next.post.id &&
+    prev.isActive === next.isActive &&
+    prev.videoPlaying === next.videoPlaying &&
+    prev.onOpen === next.onOpen &&
+    prev.setVideoPlaying === next.setVideoPlaying &&
+    prev.feedIndex === next.feedIndex
+  );
+}
+
+const MemoizedConceptCard = React.memo(ConceptCard, conceptCardPropsEqual);
+
 // Color palette for connection cards — vivid, high-contrast pairs.
 // Each entry: [bg, glowRgba]. No two adjacent colors in the pool are similar.
 const CONNECTION_COLORS = [
@@ -918,7 +945,7 @@ export function ImmersiveInfoFlow({ items, onOpenConnection, onClose, onOpenPost
                 }}
               >
               {item.kind === 'concept' ? (
-                <ConceptCard post={item.post} feedIndex={index} isActive={index === activeIndex} onOpen={onOpenPost} videoPlaying={videoPlaying} setVideoPlaying={setVideoPlaying} />
+                <MemoizedConceptCard post={item.post} feedIndex={index} isActive={index === activeIndex} onOpen={onOpenPost} videoPlaying={videoPlaying} setVideoPlaying={setVideoPlaying} />
               ) : item.kind === 'connection' ? (
                 <ConnectionCard
                   questionA={item.questionA}
@@ -1046,7 +1073,7 @@ export function InlineInfoFlow({ items, onOpenConnection, showConnectionScores =
               }}
             >
               {item.kind === 'concept' ? (
-                <ConceptCard
+                <MemoizedConceptCard
                   post={item.post}
                   feedIndex={index}
                   isActive={shouldAnimate}
