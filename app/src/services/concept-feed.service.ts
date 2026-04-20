@@ -14,6 +14,12 @@ import { assignStyles, reassignFailures, type ApiAvailability } from './style-as
 import { computeLeafState } from './trellis-state.service';
 import { hasSeenVideoId, addSeenVideoId } from './concept-feed-dedup';
 import { STARTER_POST_IDS, filterDecayedStarters } from './starter-posts-decay';
+import {
+  markYoutubeQuotaExhausted,
+  markTavilyQuotaExhausted,
+  isYoutubeRuntimeAvailable,
+  isTavilyRuntimeAvailable,
+} from './api-availability';
 
 const STORAGE_KEY = 'echolearn_daily_posts';
 const CONNECTION_POSTS_KEY = 'echolearn_connection_posts';
@@ -1082,10 +1088,16 @@ export async function refillQueue(questions: Question[]): Promise<void> {
     const conceptIds = buildConceptBatch(questions);
     if (conceptIds.length === 0) return;
 
-    // Step 2: Pre-check API keys — validate non-empty strings (D-20, D-21 step 1)
+    // Step 2: Pre-check API keys — validate non-empty strings (D-20, D-21 step 1).
+    // Phase 33 quota-burn fix (2026-04-20): also honor the runtime availability
+    // circuit breaker. If a 403/quotaExceeded response flipped the flag earlier
+    // today, keep that key "unavailable" for the rest of the day so assignStyles
+    // redirects weight to text-art instead of burning more calls on a dead quota.
+    const youtubeKeyPresent = typeof settings.youtube?.apiKey === 'string' && settings.youtube.apiKey.trim().length > 0;
+    const tavilyKeyPresent = typeof settings.webSearch?.tavilyApiKey === 'string' && settings.webSearch.tavilyApiKey.trim().length > 0;
     const availability: ApiAvailability = {
-      hasYoutubeKey: typeof settings.youtube?.apiKey === 'string' && settings.youtube.apiKey.trim().length > 0,
-      hasTavilyKey: typeof settings.webSearch?.tavilyApiKey === 'string' && settings.webSearch.tavilyApiKey.trim().length > 0,
+      hasYoutubeKey: youtubeKeyPresent && isYoutubeRuntimeAvailable(),
+      hasTavilyKey: tavilyKeyPresent && isTavilyRuntimeAvailable(),
       hasImageGenKey: typeof settings.imageGeneration?.nanoBananaApiKey === 'string' && settings.imageGeneration.nanoBananaApiKey.trim().length > 0,
     };
 
@@ -1128,6 +1140,11 @@ export async function refillQueue(questions: Question[]): Promise<void> {
           const query = buildYoutubeQuery(conceptName, validationCycle, a.style === 'short');
           const searchResult = await youtubeService.searchVideos(query, YOUTUBE_FETCH_POOL_SIZE);
           if (!searchResult.success || !searchResult.data?.length) {
+            // Phase 33 quota-burn fix (2026-04-20): on quota-exhausted, flip the
+            // circuit breaker so subsequent cycles skip YouTube entirely.
+            if (searchResult.error?.code === 'API_QUOTA_EXCEEDED') {
+              markYoutubeQuotaExhausted();
+            }
             failedIds.add(a.conceptId);
           } else {
             preFetched.youtube.set(`${a.conceptId}:${a.style}`, searchResult.data);
@@ -1141,6 +1158,13 @@ export async function refillQueue(questions: Question[]): Promise<void> {
           const conceptName = getConceptName(a.conceptId);
           const results = await webSearch(conceptName + ' latest research findings', { maxResults: 1 });
           if (!results.success || !results.data?.results.length) {
+            // Tavily doesn't distinguish a dedicated quota code today, but if the
+            // error message indicates 403/auth failure, treat as quota-exhausted
+            // for the rest of the day to stop burning calls on a dead key.
+            const msg = results.error?.message?.toLowerCase() ?? '';
+            if (msg.includes('403') || msg.includes('quota') || msg.includes('unauthorized')) {
+              markTavilyQuotaExhausted();
+            }
             failedIds.add(a.conceptId);
           } else {
             preFetched.news.set(a.conceptId, results.data.results[0]);
