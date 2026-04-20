@@ -12,12 +12,12 @@ updated: 2026-04-19T00:00:00Z
 
 ## Current Test
 
-number: 5
-name: Different videos across swipe cycles (Bug 6)
+number: 7
+name: New-branch cluster and anchor names are meaningful (Bug 8/9)
 expected: |
-  Over multiple swipe-for-more cycles for the same concept, video posts show DIFFERENT videos —
-  not the same 3 videos repeating. Query modifier rotates per cycle and the pool widened from
-  3 to 15 candidates.
+  When asking a question that creates a NEW branch + cluster + anchor, the cluster name is
+  meaningful (not "{branchName} fundamentals") and the anchor name is a clean concept noun
+  phrase (not a raw question paraphrase like "What is spaced repetition?").
 awaiting: user response
 
 ## Tests
@@ -46,15 +46,17 @@ severity: major
 
 ### 5. Different videos across swipe cycles (Bug 6)
 expected: Over multiple swipe-for-more cycles for the same concept, video posts show DIFFERENT videos — not the same 3 videos repeating. Query modifier rotates per cycle and the pool widened from 3 to 15 candidates.
-result: [pending]
+result: pass
 
 ### 6. VineProgress spans full container width (Bug 7)
 expected: The vine progress bar on HomeScreen spans the full container width. Flowers are distributed evenly along the vine (not clustered on the left). The bar resizes cleanly when the container width changes.
-result: [pending]
+result: pass
 
 ### 7. New-branch cluster and anchor names are meaningful (Bug 8/9)
 expected: When asking a question that creates a NEW branch + cluster + anchor, the cluster name is meaningful (not "{branchName} fundamentals") and the anchor name is a clean concept noun phrase (not a raw question paraphrase like "What is spaced repetition?").
-result: [pending]
+result: issue
+reported: "Now new questions ALWAYS create a new branch with new cluster and new concept anchor, even though the end concept anchors are almost identical. This may be either design flaw or implementation gap." Device screenshot (2026-04-20) showed 6 branches for 6 Q&As with a 1:1 ratio AND twin "Spaced Repetition" anchors under two different branches (Cognitive Science / Learning Theory AND Educational Technology / Memory Enhancement).
+severity: major
 
 ### 8. Session-post concept badges match session anchors (Bug 10)
 expected: Posts generated from an Ask chat session have concept badges that match the session's anchors. Round-robin fallback fills in provenance when the LLM omits it, so badges are consistent with daily-path posts.
@@ -87,10 +89,10 @@ result: [pending]
 ## Summary
 
 total: 14
-passed: 1
-issues: 1
+passed: 3
+issues: 2
 partial: 1
-pending: 10
+pending: 7
 skipped: 0
 blocked: 0
 
@@ -374,3 +376,74 @@ blocked: 0
     - "@capacitor/keyboard plugin is NOT installed. Current fix works with default adjustResize behavior. If future work needs finer keyboard control, install the plugin but DO NOT use resize:'none' — users rely on the default so the input scrolls above the keyboard."
     - "Initial stripX-race hypothesis (438ec80b) was half-right. The width-change gate + focus-out re-snap are still structurally correct defensive code, but the real keyboard-drift bug was document.scrollLeft shifting (fixed at 9f996789). Keeping 438ec80b landed — it covers a legitimate race that could still occur in other scenarios (device rotation, browser-UI resize)."
   debug_session: "deferred — flagged as partial per user decision 2026-04-20"
+
+- truth: "New questions reuse existing branches/clusters/anchors when concepts match, instead of always minting new ones"
+  status: fixed
+  reason: "User reported (test 7): 'Now new questions ALWAYS create a new branch with new cluster and new concept anchor, even though the end concept anchors are almost identical.' Device screenshot: 6 branches for 6 Q&As (1:1 ratio) AND twin 'Spaced Repetition' anchors under two different branches — clearest possible evidence of duplicate concept creation."
+  severity: major
+  test: 7
+  root_cause: |
+    Three compounding issues, with #1 being structural (not fixable by prompts alone):
+
+    1. STRUCTURAL FLAW — by-layer tree descent design (intentional token-saving
+       pivot for large mindmaps): the LLM must commit to a BRANCH at step 1
+       based on branch names only, BEFORE it can see which anchors exist.
+       Cross-cutting concepts like 'Spaced Repetition' plausibly fit multiple
+       branches (Cognitive Science / Educational Technology / Learning
+       Techniques), and once the LLM picks a branch it's locked into that
+       subtree and CANNOT reach a matching anchor living elsewhere. This
+       produced the twin-anchor pattern the user screenshotted. Real
+       knowledge is a DAG, not a tree — prompt engineering cannot bridge
+       that mismatch.
+
+    2. Anchor lookup asymmetric normalization (canonical-knowledge.service.ts
+       ~line 729): result.anchorName was normalized at line 657, but the
+       stored q.title on the right side of the comparison was compared raw.
+       Pre-b2061554 anchors with un-normalized titles never matched even
+       when the concept was identical.
+
+    3. No case-insensitive coercion of LLM-NEW branch/cluster names: weaker
+       models (Gemini Flash, Haiku) sometimes return
+       {"index":"NEW","name":"psychology"} when the user already has
+       'Psychology'. The pipeline treated it as genuinely new — new branch,
+       new cluster (because anchor lookup is scoped to cluster+branch), new
+       anchor. Cascade to total duplication.
+  artifacts:
+    - path: "app/src/services/canonical-knowledge.service.ts"
+      issue: "By-layer tree descent cannot dedup cross-cutting concepts. Anchor lookup normalized only one side. No case-coercion of LLM-NEW names."
+    - path: "app/src/providers/embedding/index.ts"
+      issue: "Existing cosine() + embedText() infrastructure was unused for anchor dedup"
+  missing:
+    - "Structural: embedding-based anchor pre-check BEFORE tree descent. Cosine similarity between question's embedding and every existing anchor's embedding; above threshold (0.82), reuse + adopt branch/cluster. Zero LLM tokens on match path. Preserves token-saving tree descent for truly novel concepts."
+    - "Opportunistic anchor embedding backfill (cap 8/classification) — anchors created before this feature have no embeddingVector; backfill inline as classifications flow in."
+    - "Normalize anchor lookup on BOTH sides."
+    - "Case-insensitive + trim coercion of LLM-NEW branch/cluster at steps 1 + 2."
+    - "Prompt polish (fallback path): system prompt lists 9 broad-discipline examples + names the actual sub-field regressors; buildStepPrompt bakes in level-specific hierarchy hints + reuse-bias language at every step."
+  fix_commit: "73aeb159, 1ac251a1"
+  fix_approach: |
+    Two commits, Tier A (structural) + Tier B (prompt polish):
+
+    73aeb159 — feat(classification): embedding pre-check + dedup guards +
+    stronger prompts. Adds preCheckAnchorMatch with
+    ANCHOR_PRE_CHECK_SIMILARITY_THRESHOLD=0.82, opportunistic
+    ANCHOR_BACKFILL_PER_CLASSIFICATION=8 anchor-embedding backfill per call.
+    Wires pre-check at the top of classifyAndAnchorIncremental — if hit,
+    reuse existing anchor's labels and skip the 3-step descent. Normalizes
+    anchor lookup on both sides. Coerces LLM-NEW branch/cluster NAMES that
+    case-insensitively match existing. Strengthens PIPELINE_SYSTEM_PROMPT
+    with broad-discipline examples + sub-field warnings; buildStepPrompt
+    with level-specific hints + reuse bias at every level.
+
+    1ac251a1 — test(classification): 8-test regression suite pinning all
+    structural invariants via source-reading asserts (cheaper than
+    stubbing the full LLM+embedding pipeline, covers the code shape that
+    makes duplication impossible).
+
+    Scale: cosine on 256-dim vectors × N_anchors. Negligible even at 10k
+    anchors (<10ms). Preserves the by-layer descent design for novel
+    concepts where creation IS correct.
+  secondary_issues_flagged:
+    - "The user's existing graph has 6 branches that should probably collapse to 1-2 (most concepts are learning/memory/cognition). The Reorganize button (LLM-based, not embedding-based) already exists for retroactive consolidation — user would need to tap it. Deferred: option to wire Reorganize to the same pre-check for embedding-based retroactive merging."
+    - "Threshold 0.82 is a conservative guess without empirical tuning. If too strict (misses real duplicates), lower to 0.78. If too loose (false-positive merges), raise to 0.85. Revisit after device QA shows pass/fail distribution."
+    - "Branch prompt doesn't yet show the CONTENTS of each existing branch (just names). The LLM sees 'Cognitive Science' but not that it contains 'Learning Theory → Spaced Repetition'. Giving one-line content summaries would further improve the fallback-path reuse decisions, but would add tokens. Deferred — evaluate after pre-check effectiveness is measured on-device."
+  debug_session: ""

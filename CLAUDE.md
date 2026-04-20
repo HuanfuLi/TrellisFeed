@@ -233,6 +233,27 @@ Anchors created BEFORE `b2061554` keep their old question-paraphrase names. Ther
 
 ---
 
+## Classification dedup — embedding pre-check (Phase 33 UAT-4 — load-bearing)
+
+The by-layer classification pipeline in `canonical-knowledge.service.ts` (step 1 branch → step 2 cluster → step 3 anchor) was an intentional token-saving pivot for large mindmaps, so the LLM never sees the full graph. But that design has a **structural flaw for cross-cutting concepts**: the LLM commits to a branch at step 1 based on branch names only, before it can see which anchors exist elsewhere. A concept like "Spaced Repetition" plausibly fits Cognitive Science OR Educational Technology; once the LLM picks one, it's locked into that subtree and cannot reach a matching anchor living elsewhere → duplicate anchors across branches.
+
+The fix is an **O(N_anchors) cosine pre-check BEFORE the tree descent** in `classifyAndAnchorIncremental`:
+
+1. **Pre-check (structural):** Embed the question's content. Compare against every existing anchor's `embeddingVector`. If cosine similarity ≥ `ANCHOR_PRE_CHECK_SIMILARITY_THRESHOLD` (0.82), reuse that anchor AND adopt its `branchLabel` + `clusterLabel`. Skip the tree descent entirely. **Zero LLM tokens on the match path.**
+2. **Opportunistic backfill:** Anchors created before this feature have no `embeddingVector`. Backfill up to `ANCHOR_BACKFILL_PER_CLASSIFICATION` (8) per call — embed `anchor.title`, persist via `questionService.patchQuestion`. Converges in a few Q&As without adding perceptible latency.
+3. **Normalize anchor lookup on BOTH sides** in `commitClassificationResult`. Previously only `result.anchorName` was normalized; stored `q.title` was compared raw. Pre-b2061554 un-normalized titles now match.
+4. **Case-insensitive NEW coercion at step 1 + step 2.** If the LLM returns `{"index":"NEW","name":"psychology"}` and "Psychology" already exists, coerce to selection. Prevents case/whitespace duplicates.
+
+### Rules
+
+1. **Don't remove the pre-check from `classifyAndAnchorIncremental`.** `tests/services/classification-dedup.test.mjs` enforces it runs BEFORE `buildStepPrompt('branch')`.
+2. **Don't raise the threshold above 0.95 or drop it below 0.75.** Same test enforces the band. Too high misses legitimate near-duplicates; too low false-positive merges unrelated concepts.
+3. **Don't bypass `normalizeAnchorName` on either side of the anchor lookup.** Both `result.anchorName` (normalized at line ~657) AND `q.title` (normalized inline in the comparison) must pass through it.
+4. **Don't remove the LLM-NEW coercion guards at step 1/step 2.** They catch weak-model behavior where the LLM ignores the reuse bias.
+5. **Threshold tuning is empirical, not mathematical.** If users report missed dedup opportunities, lower to 0.78 first. If they report wrongly-merged concepts, raise to 0.85.
+
+---
+
 ## Best practices learned in Phase 32.1 (avoid the same mistakes)
 
 These are meta-rules distilled from session pain. Read before refactoring or chasing a regression:
