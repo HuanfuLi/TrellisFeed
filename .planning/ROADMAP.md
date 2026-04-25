@@ -958,10 +958,10 @@ Scope:
 7. `git status` shows clean working tree on `gsd/phase-33-hygiene-and-polish`; HEAD includes the WIP commit set.
 8. Re-run `/gsd:audit-milestone v1.4` produces `status: passed` (or `tech_debt` with only deferred items).
 
-**Plans:** 1/8 plans executed
+**Plans:** 2/8 plans executed
 
 Plans:
-- [ ] 34-01-PLAN.md — Seam 11 fix: rename CLASSIFICATION_COMPLETED → GRAPH_UPDATED in trellis-replant + trellis-prune tests (Wave 1; SEAM-11)
+- [x] 34-01-PLAN.md — Seam 11 fix: rename CLASSIFICATION_COMPLETED → GRAPH_UPDATED in trellis-replant + trellis-prune tests (Wave 1; SEAM-11)
 - [x] 34-02-PLAN.md — Seam 12 fix: redirect HomeScreen.image-pregen-filter.test.mjs grep target to concept-feed.service.ts:refillQueue (Wave 1; SEAM-12 — folds into Commit 2)
 - [ ] 34-03-PLAN.md — Write 30-VERIFICATION.md auditing all 22 Phase 30 decisions in Phase 29 abbreviated style (Wave 2; PHASE-30-VERIFICATION)
 - [ ] 34-04-PLAN.md — Write 31-VERIFICATION.md auditing all 47 Phase 31 decisions + inline UAT retest integration (Wave 2; PHASE-31-VERIFICATION)
