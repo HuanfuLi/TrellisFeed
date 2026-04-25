@@ -958,7 +958,17 @@ Scope:
 7. `git status` shows clean working tree on `gsd/phase-33-hygiene-and-polish`; HEAD includes the WIP commit set.
 8. Re-run `/gsd:audit-milestone v1.4` produces `status: passed` (or `tech_debt` with only deferred items).
 
-**Plans:** TBD (run `/gsd:plan-phase 34` to break down — likely 4-6 plans across 2-3 waves).
+**Plans:** 8 plans across 5 waves
+
+Plans:
+- [ ] 34-01-PLAN.md — Seam 11 fix: rename CLASSIFICATION_COMPLETED → GRAPH_UPDATED in trellis-replant + trellis-prune tests (Wave 1; SEAM-11)
+- [ ] 34-02-PLAN.md — Seam 12 fix: redirect HomeScreen.image-pregen-filter.test.mjs grep target to concept-feed.service.ts:refillQueue (Wave 1; SEAM-12 — folds into Commit 2)
+- [ ] 34-03-PLAN.md — Write 30-VERIFICATION.md auditing all 22 Phase 30 decisions in Phase 29 abbreviated style (Wave 2; PHASE-30-VERIFICATION)
+- [ ] 34-04-PLAN.md — Write 31-VERIFICATION.md auditing all 47 Phase 31 decisions + inline UAT retest integration (Wave 2; PHASE-31-VERIFICATION)
+- [ ] 34-05-PLAN.md — Write 32-CLOSURE.md + annotate 32-VALIDATION.md (no flip) per VALIDATION-32-ANNOTATE rule (Wave 2; PHASE-32-EXECUTION + VALIDATION-32-ANNOTATE)
+- [ ] 34-06-PLAN.md — Delete post-store.service.ts + ImmersiveInfoFlow export from InfoFlow.tsx; document D-15 VineProgress dead-prop fold as NO-OP (Wave 3; SEAM-2-tail)
+- [ ] 34-07-PLAN.md — Flip 28/29/30-VALIDATION.md from draft to validated (Wave 4; VALIDATION-DRIFT-{28,29,30})
+- [ ] 34-08-PLAN.md — Device UAT log (G2/G4/G5 retroactive PASS + 33-UAT-1/2 pending) + 32.1-VERIFICATION.md status flip + 33-REBRAND.md Functional Changes addendum + Presentation/ in .gitignore + 5-commit WIP land on gsd/phase-33-hygiene-and-polish (Wave 5; DEVICE-UAT-RETEST + WIP-COMMIT-SHAPE)
 
 ---
 
@@ -969,3 +979,4 @@ _Updated: 2026-04-19 — Phase 33 plans created (33-00..04): WIP flush + TD-04/0
 _Updated: 2026-04-19 — Phase 33 v2 plans added (33-05/06/07): Wave 4 WIP re-flush + perf memoization + cosmetic polish_
 _Updated: 2026-04-20 — Phase 33 COMPLETE (8/8 plans). VERIFICATION 8/8 must-haves passed. tsc clean. Test baseline preserved (419 pass / 27 pre-existing fail). Branch `gsd/phase-33-hygiene-and-polish` ready for review/merge._
 _Updated: 2026-04-25 — Phase 34 added: v1.4 close-out bundling all gaps from `.planning/v1.4-MILESTONE-AUDIT.md` (verification debt + test desyncs + orphan tail + VALIDATION drift + device UAT + WIP commit) into a single phase per operator preference._
+_Updated: 2026-04-25 — Phase 34 plans created (34-01..08): 8 plans across 5 waves closing all v1.4-MILESTONE-AUDIT gaps; ready for execute-phase._
