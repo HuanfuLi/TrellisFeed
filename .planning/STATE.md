@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: gap closure)
-status: Phase 33 COMPLETE — branch gsd/phase-33-hygiene-and-polish ready for review/merge
-stopped_at: Phase 34 context gathered
-last_updated: "2026-04-25T20:59:58.377Z"
+status: Executing Phase 34
+stopped_at: Completed 34-02-PLAN.md (SEAM-12 test re-target)
+last_updated: "2026-04-25T22:12:59.936Z"
 progress:
   total_phases: 21
   completed_phases: 0
@@ -480,7 +480,7 @@ Completed Phase 27 Plan 07 autonomous tasks (27-07-PLAN.md) — Task 1 landed pr
 ## Previous Session
 
 Completed Phase 27 Plan 04 (27-04-PLAN.md) — Locale switcher + mid-stream abort. SettingsScreen gains a 4-language picker at the top (D-19) that calls `i18n.changeLanguage`, persists `preferences.locale` (+ legacy `language` back-compat), and emits `LOCALE_CHANGED`. Row LABEL hardcoded as `Language / 语言 / Idioma / 言語` for cross-locale affordance. `providers/llm/index.ts` gains `CompletionOptions.signal?: AbortSignal` + a `composeSignal(callerSignal, ms)` helper that uses `AbortSignal.any` (Chromium 116+ / Safari 17.4+ / Node 20+) with manual-forwarder fallback; signal threaded through all 7 fetch call sites (openAI completion/stream, claude completion/stream, gemini completion/stream, plus localPost for Android-local streaming). `useQuestions.askStreaming` declares ONE shared AbortController at the top of the try, subscribes to LOCALE_CHANGED once, passes the same signal to BOTH Pass 1 and Pass 2 chatStream calls, and guards every buildAndSave path with 6 aborted-checks (loop entries, post-loop, pre-persistence, catch-level AbortError short-circuit) — toasts `ask.localeChangedDiscarded` and returns null on abort so partial half-English/half-Japanese output never persists (D-22). TDD cadence: RED commit landed failing test first, GREEN commit made all 4 assertions pass. 48 Wave 0 tests green; `npx vite build` green (3.0s); zero new tsc errors. Deviations: used direct `settingsService.getSync/.set` instead of `useSettings` hook (matches existing SettingsScreen convention); added `callerSignal?` param to `localPost` (LOCALE_CHANGED was silently not cancelling Android-local completions otherwise); removed dead `void options;` statements from claudeStream + geminiStream. Commits: `da5c69b5` (Task 1 — locale switcher), `c93ecf46` (Task 2 RED — failing test), `7e301831` (Task 2 GREEN — provider plumbing + useQuestions abort).
-**Stopped At:** Phase 34 context gathered
+**Stopped At:** Completed 34-02-PLAN.md (SEAM-12 test re-target)
 **Date:** 2026-04-16
 
 ## Latest Decisions (Phase 25)
