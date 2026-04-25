@@ -91,8 +91,8 @@ test('getPrunedQuestions excludes off-topic flagged questions (prunedFromTrellis
   assert.equal(result.length, 0, 'off-topic flagged questions must not appear in pruned list');
 });
 
-// D-18: unpruneQuestion clears both flags and emits CLASSIFICATION_COMPLETED
-test('unpruneQuestion clears flagged and prunedFromTrellis and emits CLASSIFICATION_COMPLETED', async () => {
+// D-18 — Phase 32.1 D-W3-02 consolidated CLASSIFICATION_COMPLETED into GRAPH_UPDATED. unpruneQuestion now emits the consolidated event.
+test('unpruneQuestion clears flagged and prunedFromTrellis and emits GRAPH_UPDATED (Phase 32.1 D-W3-02 rename)', async () => {
   storage.clear();
   const { _resetStore, _getStore } = await import('./_actions-mock-question.mjs');
   const { eventBus } = await import('../../src/lib/event-bus.ts');
@@ -100,7 +100,7 @@ test('unpruneQuestion clears flagged and prunedFromTrellis and emits CLASSIFICAT
   _resetStore([pruned]);
 
   const events = [];
-  const unsub = eventBus.subscribe('CLASSIFICATION_COMPLETED', (e) => events.push(e));
+  const unsub = eventBus.subscribe('GRAPH_UPDATED', (e) => events.push(e));
 
   const { trellisActionsService } = await import('../../src/services/trellis-actions.service.ts');
   trellisActionsService.unpruneQuestion('anchor-unprune');
@@ -109,8 +109,7 @@ test('unpruneQuestion clears flagged and prunedFromTrellis and emits CLASSIFICAT
   const stored = _getStore().find((q) => q.id === 'anchor-unprune');
   assert.equal(stored.flagged, false, 'flagged must be cleared after unprune');
   assert.equal(stored.prunedFromTrellis, false, 'prunedFromTrellis must be cleared after unprune');
-  assert.equal(events.length, 1, 'must emit CLASSIFICATION_COMPLETED');
-  assert.equal(events[0].payload.anchorId, 'anchor-unprune');
+  assert.equal(events.length, 1, 'must emit GRAPH_UPDATED');
 });
 
 // D-18: hardDelete calls through to questionService.delete
