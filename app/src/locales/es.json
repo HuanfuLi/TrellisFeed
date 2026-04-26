@@ -378,7 +378,7 @@
       "trellisDevModeHint": "Muestra los 7 estados de hojas (brote, verde, amarilla, cayendo, caída, flor, fruto) en nodos de prueba.",
       "developerBlurb": "Herramientas de depuración. Las acciones destructivas no se pueden deshacer.",
       "usageBlurb": "Límite mensual de preguntas y uso de tokens de la API del LLM.",
-      "privacyBlurb": "EchoLearn es local-first. Todas las notas, fichas y sesiones se guardan solo en este dispositivo. Ningún servidor de EchoLearn recibe tus datos.",
+      "privacyBlurb": "Trellis es local-first. Todas las notas, fichas y sesiones se guardan solo en este dispositivo. Ningún servidor de Trellis recibe tus datos.",
       "aiConsentHint": "Permitir que las preguntas se envíen a tu proveedor de IA",
       "generationCap": "Publicaciones max por concepto al dia",
       "bonusCap": "Publicaciones extra tras explorar todos los conceptos"
@@ -471,7 +471,7 @@
       "resets": "Se reinicia el {{date}}"
     },
     "about": {
-      "version": "EchoLearn v1.0.0",
+      "version": "Trellis v1.0.0",
       "licenseSoon": "Modal de licencias próximamente"
     },
     "toast": {
@@ -638,7 +638,7 @@
       "continue": "Continuar"
     },
     "welcome": {
-      "title": "Bienvenido a EchoLearn",
+      "title": "Bienvenido a Trellis",
       "body": "Tu compañero de aprendizaje personal con IA. Pregunta lo que sea, repasa con repetición espaciada y escucha tus podcasts diarios de conocimiento.",
       "featureAskTitle": "Pregunta lo que sea",
       "featureAskDesc": "Respuestas con IA guardadas como conocimiento estructurado",
@@ -654,13 +654,13 @@
     },
     "consent": {
       "title": "Datos y privacidad",
-      "intro": "EchoLearn es una app con privacidad primero. Esto es exactamente lo que ocurre con tus datos:",
+      "intro": "Trellis es una app con privacidad primero. Esto es exactamente lo que ocurre con tus datos:",
       "rowLocal": "Todas las notas, fichas y datos del plan se guardan solo en tu dispositivo.",
       "rowCloud": "Cuando haces una pregunta, se envía directamente a tu proveedor de IA configurado (p. ej., OpenAI, Anthropic) usando solo tu propia clave API.",
-      "rowNoServer": "EchoLearn nunca transmite tus datos a ningún servidor de EchoLearn. No hay backend de EchoLearn.",
+      "rowNoServer": "Trellis nunca transmite tus datos a ningún servidor de Trellis. No hay backend de Trellis.",
       "consent": "Entiendo y acepto que mis preguntas se enviarán a mi proveedor de IA configurado usando mi propia clave API.",
       "continue": "Continuar",
-      "skip": "Omitir — usaré EchoLearn sin IA"
+      "skip": "Omitir — usaré Trellis sin IA"
     },
     "llm": {
       "title": "Configurar LLM",

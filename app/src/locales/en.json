@@ -378,7 +378,7 @@
       "trellisDevModeHint": "Shows all 7 leaf states (bud, green, yellow, falling, fallen, blossom, fruit) on dummy nodes for visual debugging.",
       "developerBlurb": "Debug tools for development. Destructive actions cannot be undone.",
       "usageBlurb": "Monthly question limit and LLM API token usage.",
-      "privacyBlurb": "EchoLearn is local-first. All notes, flashcards, and sessions are stored only on this device. No EchoLearn server ever receives your data.",
+      "privacyBlurb": "Trellis is local-first. All notes, flashcards, and sessions are stored only on this device. No Trellis server ever receives your data.",
       "aiConsentHint": "Allow questions to be sent to your configured AI provider",
       "generationCap": "Max posts per concept per day",
       "bonusCap": "Extra posts after all concepts explored"
@@ -471,7 +471,7 @@
       "resets": "Resets {{date}}"
     },
     "about": {
-      "version": "EchoLearn v1.0.0",
+      "version": "Trellis v1.0.0",
       "licenseSoon": "Licenses modal coming soon"
     },
     "toast": {
@@ -638,7 +638,7 @@
       "continue": "Continue"
     },
     "welcome": {
-      "title": "Welcome to EchoLearn",
+      "title": "Welcome to Trellis",
       "body": "Your personal AI-powered learning companion. Ask anything, review with spaced repetition, and listen to daily podcasts of your knowledge.",
       "featureAskTitle": "Ask Anything",
       "featureAskDesc": "Get AI-powered answers stored as structured knowledge",
@@ -654,13 +654,13 @@
     },
     "consent": {
       "title": "Data & Privacy",
-      "intro": "EchoLearn is a privacy-first app. Here's exactly what happens with your data:",
+      "intro": "Trellis is a privacy-first app. Here's exactly what happens with your data:",
       "rowLocal": "All notes, flashcards, and planner data are stored locally on your device only.",
       "rowCloud": "When you ask a question, it is sent directly to your configured AI provider (e.g., OpenAI, Anthropic) using only your own API key.",
-      "rowNoServer": "EchoLearn never transmits your data to any EchoLearn server. There is no EchoLearn backend.",
+      "rowNoServer": "Trellis never transmits your data to any Trellis server. There is no Trellis backend.",
       "consent": "I understand and agree that my questions will be sent to my configured AI provider using my own API key.",
       "continue": "Continue",
-      "skip": "Skip — I'll use EchoLearn without AI features"
+      "skip": "Skip — I'll use Trellis without AI features"
     },
     "llm": {
       "title": "Configure LLM",

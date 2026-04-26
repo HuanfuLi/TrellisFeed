@@ -378,7 +378,7 @@
       "trellisDevModeHint": "ダミーノードで 7 種類の葉の状態（芽、緑、黄、落下中、落葉、花、果実）を表示し、視覚デバッグに使います。",
       "developerBlurb": "開発用のデバッグツール。破壊的操作は元に戻せません。",
       "usageBlurb": "月間の質問上限と LLM API トークン使用状況。",
-      "privacyBlurb": "EchoLearn はローカル優先です。ノート、フラッシュカード、セッションはこの端末のみに保存されます。EchoLearn サーバーがデータを受け取ることはありません。",
+      "privacyBlurb": "Trellis はローカル優先です。ノート、フラッシュカード、セッションはこの端末のみに保存されます。Trellis サーバーがデータを受け取ることはありません。",
       "aiConsentHint": "質問を設定済みの AI プロバイダーへ送信することを許可",
       "generationCap": "コンセプトごとの1日最大生成数",
       "bonusCap": "全コンセプト探索後の追加投稿数"
@@ -471,7 +471,7 @@
       "resets": "{{date}} にリセット"
     },
     "about": {
-      "version": "EchoLearn v1.0.0",
+      "version": "Trellis v1.0.0",
       "licenseSoon": "ライセンス表示は近日対応"
     },
     "toast": {
@@ -638,7 +638,7 @@
       "continue": "続ける"
     },
     "welcome": {
-      "title": "EchoLearn へようこそ",
+      "title": "Trellis へようこそ",
       "body": "あなた専用の AI 学習パートナーです。何でも質問し、間隔反復で復習し、毎日の学習ポッドキャストを聴きましょう。",
       "featureAskTitle": "何でも質問",
       "featureAskDesc": "構造化された知識として保存される AI 回答",
@@ -654,10 +654,10 @@
     },
     "consent": {
       "title": "データとプライバシー",
-      "intro": "EchoLearn はプライバシー優先のアプリです。あなたのデータの扱いは次のとおりです：",
+      "intro": "Trellis はプライバシー優先のアプリです。あなたのデータの扱いは次のとおりです：",
       "rowLocal": "ノート、フラッシュカード、プランのデータはすべてこの端末のみに保存されます。",
       "rowCloud": "質問すると、あなた自身の API キーを使って、設定した AI プロバイダー（OpenAI、Anthropic など）に直接送信されます。",
-      "rowNoServer": "EchoLearn はあなたのデータを EchoLearn サーバーに送信することはありません。EchoLearn にバックエンドはありません。",
+      "rowNoServer": "Trellis はあなたのデータを Trellis サーバーに送信することはありません。Trellis にバックエンドはありません。",
       "consent": "私は質問が自分の API キーを使って設定済みの AI プロバイダーへ送信されることを理解し同意します。",
       "continue": "続ける",
       "skip": "スキップ — AI 機能を使わずに利用"

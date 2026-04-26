@@ -92,7 +92,7 @@ function buildMindElixirData(nodes: Question[]): MindElixirData {
   return { nodeData: rootObj };
 }
 
-// ─── EchoLearn theme for mind-elixir ─────────────────────────────────────────
+// ─── Trellis theme for mind-elixir ─────────────────────────────────────────
 
 /** CSS overrides injected once for sub-node rects and touch-friendly expand buttons */
 let styleInjected = false;
@@ -156,7 +156,7 @@ function buildTheme() {
     window.matchMedia('(prefers-color-scheme: dark)').matches;
 
   return {
-    name: 'EchoLearn',
+    name: 'Trellis',
     type: (isDark ? 'dark' : 'light') as 'dark' | 'light',
     // Soft, distinct branch colours — 10 hues for clear visual separation
     palette: [
@@ -272,8 +272,13 @@ function MasterMap({ nodes, edges, onNodeClick, isVisible }: MasterMapProps & { 
 
     // Zoom to 50%, centre, then nudge left so the right-expanding tree
     // uses more of the portrait viewport instead of leaving the left half empty.
-    setTimeout(() => {
-      if (!containerRef.current || !instanceRef.current) return;
+    // Cleared in cleanup so a rapid re-render (e.g. GRAPH_UPDATED firing between
+    // init and the 0-ms tick) doesn't leave a stale closure calling scale() on
+    // a destroyed instance — mind-elixir's scale() dereferences its internal map
+    // DOM node, which is null after destroy(), and crashes with
+    // "Cannot read properties of undefined (reading 'getBoundingClientRect')".
+    const initTimeoutId = window.setTimeout(() => {
+      if (mei !== instanceRef.current || !containerRef.current) return;
       mei.scale(0.5);
       mei.toCenter();
       const containerWidth = containerRef.current.offsetWidth;
@@ -338,6 +343,7 @@ function MasterMap({ nodes, edges, onNodeClick, isVisible }: MasterMapProps & { 
     const container = containerRef.current;
 
     return () => {
+      window.clearTimeout(initTimeoutId);
       container.removeEventListener('click', handleClick);
       container.removeEventListener('touchstart', handleTouchStart);
       container.removeEventListener('touchend', handleTouchEnd);

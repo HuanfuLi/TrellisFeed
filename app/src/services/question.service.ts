@@ -35,26 +35,48 @@ function deleteFromSQLite(id: string) {
 let hydrated = false;
 
 /**
- * On startup, if SQLite has questions not yet in localStorage, import them.
- * This enables cross-session persistence on native when localStorage is cleared.
+ * On startup, if localStorage is EMPTY, restore the full question store from SQLite.
+ *
+ * ── Load-bearing invariant (do not regress) ─────────────────────────────────
+ * localStorage is the PRIMARY source of truth. SQLite is a cold backup that
+ * survives localStorage eviction (Safari 7-day purge, manual clear, WebView
+ * reinstall).
+ *
+ * The previous "merge any missing rows" implementation resurrected deleted
+ * nodes on cold restart: `deleteFromSQLite` is fire-and-forget, so if the
+ * app is backgrounded/killed in the ~10-100ms between `saveStore(filtered)`
+ * and the SQLite DELETE flushing, SQLite keeps the row. On the next launch,
+ * the old logic saw "row in SQLite but not localStorage" and restored it —
+ * flipping user deletes back. This was the "I did nothing and deleted nodes
+ * came back" symptom (2026-04-21 report).
+ *
+ * The restore-if-empty rule is safe in both directions:
+ *   - Fresh install / cleared storage → localStorage empty → full SQLite restore
+ *   - Active session with some deletes → localStorage has rows → trust it,
+ *     never merge from SQLite
+ *
+ * If a future feature needs finer-grained reconciliation (e.g. multi-device
+ * sync), route it through a migration path that tracks tombstones explicitly
+ * instead of inferring deletes from presence.
  */
 export async function hydrateFromSQLite(): Promise<void> {
   if (hydrated) return;
   hydrated = true;
   try {
+    const existing = loadStore({ includeFlagged: true });
+    // localStorage is primary — if it has ANY rows, trust it. Never merge from
+    // SQLite on a populated store, or deletes get silently resurrected.
+    if (existing.length > 0) return;
+
     const rows = await dbQuery<{ id: string; data: string }>('SELECT * FROM questions');
     if (rows.length === 0) return;
 
-    const existing = loadStore({ includeFlagged: true });
-    const existingIds = new Set(existing.map((q) => q.id));
     const toAdd: Question[] = [];
     for (const row of rows) {
-      if (!existingIds.has(row.id)) {
-        try { toAdd.push(JSON.parse(row.data) as Question); } catch { /* skip corrupt rows */ }
-      }
+      try { toAdd.push(JSON.parse(row.data) as Question); } catch { /* skip corrupt rows */ }
     }
     if (toAdd.length > 0) {
-      saveStore([...toAdd, ...existing]);
+      saveStore(toAdd);
     }
   } catch {
     // SQLite not available (web without capacitor) — silently skip
@@ -184,7 +206,7 @@ export const questionService = {
       try {
         queryEmbedding = await embedText(content, embCfgEarly);
       } catch (err) {
-        console.warn('[EchoLearn] pre-call embedding failed — context ranking will use keywords only:', err instanceof Error ? err.message : err);
+        console.warn('[Trellis] pre-call embedding failed — context ranking will use keywords only:', err instanceof Error ? err.message : err);
       }
     }
 
@@ -261,7 +283,7 @@ export const questionService = {
         // Fire-and-forget: classification + anchor attachment runs asynchronously.
         // The Q&A is already saved; labels will be patched on once the call completes.
         void classifyAndAnchorIncremental(flagged, loadStore({ includeFlagged: true }), llmConfig, signal).catch((err: unknown) => {
-          console.warn('[EchoLearn] classifyAndAnchorIncremental failed:', err instanceof Error ? err.message : err);
+          console.warn('[Trellis] classifyAndAnchorIncremental failed:', err instanceof Error ? err.message : err);
         });
       }
 
@@ -311,7 +333,6 @@ export const questionService = {
     if (decision.outcome === 'merge' && decision.targetNodeId) {
       const target = store.find((candidate) => candidate.id === decision.targetNodeId);
       if (target) {
-        const idx = store.findIndex((candidate) => candidate.id === target.id);
         // Use the target's existing embedding (if available) to rank initial related IDs by cosine.
         const mergedRelated = findRelated(keywords, store.filter((q) => q.id !== target.id), target.embeddingVector);
         const mergedQuestion: Question = {
@@ -323,8 +344,15 @@ export const questionService = {
           relatedQuestionIds: Array.from(new Set([...target.relatedQuestionIds, ...mergedRelated])).filter((id) => id !== target.id),
           ...buildCanonicalQuestionPatch(content, target, decision),
         };
-        store[idx] = mergedQuestion;
-        saveStore(store);
+        // Read-modify-write against fresh localStorage — never the caller's pre-LLM snapshot,
+        // which may have been mutated (deletes, prunes, patches) during the streaming window.
+        // Writing a stale snapshot would resurrect deleted rows and revert concurrent changes.
+        const fresh = loadStore({ includeFlagged: true });
+        const freshIdx = fresh.findIndex((candidate) => candidate.id === target.id);
+        if (freshIdx !== -1) {
+          fresh[freshIdx] = mergedQuestion;
+          saveStore(fresh);
+        }
         persistToSQLite(mergedQuestion);
         eventBus.emit({ type: 'QUESTION_ASKED', payload: mergedQuestion });
 
@@ -354,7 +382,7 @@ export const questionService = {
               }
             })
             .catch((err: unknown) => {
-            console.warn('[EchoLearn] embedding failed for merged question %s — semantic features will fall back to keywords:', mergedQuestion.id, err instanceof Error ? err.message : err);
+            console.warn('[Trellis] embedding failed for merged question %s — semantic features will fall back to keywords:', mergedQuestion.id, err instanceof Error ? err.message : err);
           });
         }
 
@@ -396,7 +424,10 @@ export const questionService = {
       ...(preVec ? { embeddingVector: preVec } : {}),
     };
 
-    saveStore([question, ...store]);
+    // Read-modify-write against fresh localStorage — never the caller's pre-LLM snapshot,
+    // which may have been mutated (deletes, prunes, patches) during the streaming window.
+    // Writing a stale snapshot would resurrect deleted rows and revert concurrent changes.
+    saveStore([question, ...loadStore({ includeFlagged: true })]);
     persistToSQLite(question);
     eventBus.emit({ type: 'QUESTION_ASKED', payload: question });
 
@@ -428,7 +459,7 @@ export const questionService = {
           }
         })
         .catch((err: unknown) => {
-          console.warn('[EchoLearn] embedding failed for question %s — semantic features will fall back to keywords:', question.id, err instanceof Error ? err.message : err);
+          console.warn('[Trellis] embedding failed for question %s — semantic features will fall back to keywords:', question.id, err instanceof Error ? err.message : err);
         });
     }
 

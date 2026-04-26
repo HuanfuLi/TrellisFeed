@@ -282,7 +282,7 @@ export function useQuestions(): UseQuestionsReturn {
         // Fire ONLY when Q&A enters the mindmap (not flagged).
         if (question.flagged !== true) {
           void classifyAndAnchorIncremental(question, questionService.getAll(), llmConfig, abortController.signal).catch((err: unknown) => {
-            console.warn('[EchoLearn] classifyAndAnchorIncremental failed:', err instanceof Error ? err.message : err);
+            console.warn('[Trellis] classifyAndAnchorIncremental failed:', err instanceof Error ? err.message : err);
           });
         }
 

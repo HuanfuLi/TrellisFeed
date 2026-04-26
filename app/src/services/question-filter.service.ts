@@ -93,7 +93,7 @@ async function isOffTopicByLLM(
     return trimmed.startsWith('yes');
   } catch (err) {
     // Graceful degradation: if LLM fails, assume not off-topic so valid questions are not lost
-    console.warn('[EchoLearn] filter LLM fallback failed, assuming valid question:', err);
+    console.warn('[Trellis] filter LLM fallback failed, assuming valid question:', err);
     return false;
   }
 }

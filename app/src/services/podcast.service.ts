@@ -198,7 +198,7 @@ export const podcastService = {
         if (existing?.script) {
           script = existing.script;
         } else if (!settings.llm.isConfigured || questions.length === 0) {
-          script = `Welcome to your daily EchoLearn podcast for ${date}! You reviewed ${questions.length} topic(s) today. Keep learning!`;
+          script = `Welcome to your daily Trellis podcast for ${date}! You reviewed ${questions.length} topic(s) today. Keep learning!`;
         } else {
           const questionLines = questions.map((q) => `- ${q.content}: ${q.summary}`).join('\n');
           script = await chatCompletion(

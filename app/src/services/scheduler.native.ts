@@ -78,7 +78,7 @@ export async function scheduleNativeNotifications(): Promise<void> {
       notifications.push({
         id: PODCAST_NOTIF_ID,
         title: 'Your daily podcast is ready to generate',
-        body: `Tap to open EchoLearn and start your ${settings.podcast.sleepTime} wind-down podcast.`,
+        body: `Tap to open Trellis and start your ${settings.podcast.sleepTime} wind-down podcast.`,
         schedule: {
           at: nextOccurrence(triggerHour, triggerMin),
           allowWhileIdle: true,
@@ -117,7 +117,7 @@ export async function scheduleNativeNotifications(): Promise<void> {
 }
 
 /**
- * Cancel all EchoLearn scheduled notifications.
+ * Cancel all Trellis scheduled notifications.
  */
 export async function cancelNativeNotifications(): Promise<void> {
   if (!Capacitor.isNativePlatform()) return;

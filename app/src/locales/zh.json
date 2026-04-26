@@ -378,7 +378,7 @@
       "trellisDevModeHint": "在虚拟节点上显示全部 7 种叶子状态（新芽、绿叶、黄叶、落叶中、已落、花开、结果），便于视觉调试。",
       "developerBlurb": "开发用的调试工具。破坏性操作无法撤销。",
       "usageBlurb": "每月提问限额和 LLM API Token 使用情况。",
-      "privacyBlurb": "EchoLearn 采用本地优先策略。所有笔记、闪卡和会话都仅存储在本设备上。任何 EchoLearn 服务器都不会收到你的数据。",
+      "privacyBlurb": "Trellis 采用本地优先策略。所有笔记、闪卡和会话都仅存储在本设备上。任何 Trellis 服务器都不会收到你的数据。",
       "aiConsentHint": "允许将问题发送到你配置的 AI 提供商",
       "generationCap": "每个概念每天最多生成数",
       "bonusCap": "所有概念探索完后的额外内容数"
@@ -471,7 +471,7 @@
       "resets": "将于 {{date}} 重置"
     },
     "about": {
-      "version": "EchoLearn v1.0.0",
+      "version": "Trellis v1.0.0",
       "licenseSoon": "许可证弹窗即将推出"
     },
     "toast": {
@@ -638,7 +638,7 @@
       "continue": "继续"
     },
     "welcome": {
-      "title": "欢迎使用 EchoLearn",
+      "title": "欢迎使用 Trellis",
       "body": "你的个人 AI 学习伙伴。随时提问，通过间隔重复复习，并聆听每日知识播客。",
       "featureAskTitle": "随问随答",
       "featureAskDesc": "获得结构化知识的 AI 答案",
@@ -654,10 +654,10 @@
     },
     "consent": {
       "title": "数据与隐私",
-      "intro": "EchoLearn 是一款隐私优先的应用。以下是你的数据的具体流向：",
+      "intro": "Trellis 是一款隐私优先的应用。以下是你的数据的具体流向：",
       "rowLocal": "所有笔记、闪卡和计划数据仅存储在你的设备上。",
       "rowCloud": "当你提问时，只会使用你自己的 API 密钥直接发送到你配置的 AI 提供商（例如 OpenAI、Anthropic）。",
-      "rowNoServer": "EchoLearn 从不将你的数据传送到任何 EchoLearn 服务器。EchoLearn 没有后端。",
+      "rowNoServer": "Trellis 从不将你的数据传送到任何 Trellis 服务器。Trellis 没有后端。",
       "consent": "我理解并同意，我的问题将使用我自己的 API 密钥发送到我配置的 AI 提供商。",
       "continue": "继续",
       "skip": "跳过 — 不使用 AI 功能"
