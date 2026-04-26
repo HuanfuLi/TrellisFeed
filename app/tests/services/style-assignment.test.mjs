@@ -67,11 +67,11 @@ describe('style-assignment', () => {
     const videoCount = result.filter((r) => r.style === 'video' || r.style === 'short').length;
     assert.equal(videoCount, 0, 'no video/short without YouTube key');
 
-    // text-art should have absorbed the video+short weight (0.25+0.15 = 0.40 extra)
+    // text-art should have absorbed the video+short weight (0.10+0.15 = 0.25 extra)
     const textArtCount = result.filter((r) => r.style === 'text-art').length;
     const textArtPct = (textArtCount / 200) * 100;
-    // text-art base is 25%, plus 40% = 65%, allow 50-80% range for stats
-    assert.ok(textArtPct >= 50 && textArtPct <= 80, `text-art pct ${textArtPct.toFixed(1)}% should be 50-80%`);
+    // text-art base is 40%, plus 25% = 65%, allow 55-80% range for stats
+    assert.ok(textArtPct >= 55 && textArtPct <= 80, `text-art pct ${textArtPct.toFixed(1)}% should be 55-80%`);
   });
 
   it('assignStyles with no Tavily API key returns zero news, redistributed to text-art', () => {
@@ -88,8 +88,8 @@ describe('style-assignment', () => {
     // text-art should have absorbed news weight (0.20 extra)
     const textArtCount = result.filter((r) => r.style === 'text-art').length;
     const textArtPct = (textArtCount / 200) * 100;
-    // text-art base is 25%, plus 20% = 45%, allow 35-55% range
-    assert.ok(textArtPct >= 35 && textArtPct <= 55, `text-art pct ${textArtPct.toFixed(1)}% should be 35-55%`);
+    // text-art base is 40%, plus 20% = 60%, allow 50-70% range
+    assert.ok(textArtPct >= 50 && textArtPct <= 70, `text-art pct ${textArtPct.toFixed(1)}% should be 50-70%`);
   });
 
   it('reassignFailures replaces failed video/news items with text-art', () => {

@@ -288,9 +288,23 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen, videoP
   }
 
   // Regular concept posts
+  // Rendered as <div role="button"> rather than <button> so inner interactive
+  // elements (video stop button, etc.) can safely be actual <button>s without
+  // tripping the "<button> cannot be a descendant of <button>" DOM-nesting
+  // invariant. Preserves click + keyboard (Enter/Space) affordances.
+  const interactive = !isShortPost;
+  const handleActivate = () => { if (interactive) onOpen(post.id, post); };
   return (
-    <button
-      onClick={isShortPost ? undefined : () => onOpen(post.id, post)}
+    <div
+      role={interactive ? 'button' : undefined}
+      tabIndex={interactive ? 0 : undefined}
+      onClick={interactive ? handleActivate : undefined}
+      onKeyDown={interactive ? (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleActivate();
+        }
+      } : undefined}
       style={{
         height: '100%',
         width: '100%',
@@ -603,7 +617,7 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen, videoP
             </div>
             </div>
             )}
-            </button>
+            </div>
 
   );
 }

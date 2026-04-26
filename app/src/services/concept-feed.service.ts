@@ -80,10 +80,10 @@ const VALID_SOURCE_TYPES = new Set<DailyPost['sourceType']>(['recent', 'related'
 export const STARTER_POSTS: DailyPost[] = [
   makeStarterPost(
     'starter-welcome',
-    'Welcome to EchoLearn',
+    'Welcome to Trellis',
     'Your AI learning companion',
-    'Ask any question and watch your knowledge grow. EchoLearn uses AI to create personalized learning paths.',
-    '# Welcome to EchoLearn\n\nEchoLearn is your AI-powered learning companion. Here\'s how to get started:\n\n1. **Ask a question** — Tap the Ask tab and type any question. The AI will answer it and save it to your knowledge graph.\n2. **Review what you learn** — Your answers become flashcards. Review them to build lasting memory.\n3. **Explore your feed** — This feed brings you fresh content based on what you\'re learning.\n\nStart by asking your first question!',
+    'Ask any question and watch your knowledge grow. Trellis uses AI to create personalized learning paths.',
+    '# Welcome to Trellis\n\nTrellis is your AI-powered learning companion. Here\'s how to get started:\n\n1. **Ask a question** — Tap the Ask tab and type any question. The AI will answer it and save it to your knowledge graph.\n2. **Review what you learn** — Your answers become flashcards. Review them to build lasting memory.\n3. **Explore your feed** — This feed brings you fresh content based on what you\'re learning.\n\nStart by asking your first question!',
     'Getting Started',
   ),
   makeStarterPost(
@@ -91,7 +91,7 @@ export const STARTER_POSTS: DailyPost[] = [
     'How your knowledge grows',
     'From questions to mastery',
     'Every question you ask becomes part of your knowledge graph. Review flashcards to strengthen your memory.',
-    '# How Your Knowledge Grows\n\nEchoLearn follows a proven learning loop:\n\n1. **Ask** — Ask questions about anything you\'re curious about.\n2. **Connect** — Your questions are organized into a knowledge graph by topic.\n3. **Review** — Flashcards are generated automatically. Spaced repetition helps you remember.\n4. **Grow** — As you master topics, your trellis tree blooms and bears fruit.\n\nThe more you review, the stronger your knowledge becomes.',
+    '# How Your Knowledge Grows\n\nTrellis follows a proven learning loop:\n\n1. **Ask** — Ask questions about anything you\'re curious about.\n2. **Connect** — Your questions are organized into a knowledge graph by topic.\n3. **Review** — Flashcards are generated automatically. Spaced repetition helps you remember.\n4. **Grow** — As you master topics, your trellis tree blooms and bears fruit.\n\nThe more you review, the stronger your knowledge becomes.',
     'How It Works',
   ),
   makeStarterPost(
@@ -124,7 +124,7 @@ function makeStarterPost(
     presentationStyle: 'text-art' as PresentationStyle,
     sourceQuestionIds: [],
     sourceQuestionTitles: [],
-    keywords: ['echolearn', 'getting-started'],
+    keywords: ['trellis', 'getting-started'],
     generatedAt: Date.now(),
     origin: 'ai',
     whyCare: '',
@@ -411,6 +411,65 @@ interface ParsedGeneration {
   connectionCards: ConnectionCardData[];
 }
 
+/**
+ * Walk a JSON array and return every top-level {...} object that balanced
+ * successfully. Tolerant to truncation: if the tail is cut mid-object, only
+ * that final object is dropped — everything before it survives.
+ *
+ * 2026-04-21 fix. Root cause: the 'posts' batch LLM call was asked for N
+ * text-style posts (N could be 20+) but completion was capped at maxTokens
+ * 4096, which a Gemma-4 reply routinely overruns around post ~25. The raw
+ * response arrived truncated mid-string. The old two-tier parser in
+ * parseGeneratedPosts ran `JSON.parse(arrMatch[0])` on the whole truncated
+ * array — which threw — then the catch silently returned `{posts: []}`.
+ * Result: every text-style post (including all 'image' and 'suggestion'
+ * assignments) was dropped, while video/short/news (generated out-of-band)
+ * survived. Explains the "zero image posts over 50+" symptom exactly.
+ */
+function extractPartialJsonArrayObjects(raw: string): Array<Record<string, unknown>> {
+  let s = raw.trim()
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```\s*$/, '');
+  const start = s.indexOf('[');
+  if (start === -1) return [];
+  s = s.slice(start + 1);
+
+  const results: Array<Record<string, unknown>> = [];
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+  let objStart = -1;
+
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (escape) { escape = false; continue; }
+    if (inString) {
+      if (ch === '\\') { escape = true; continue; }
+      if (ch === '"') { inString = false; continue; }
+      continue;
+    }
+    if (ch === '"') { inString = true; continue; }
+    if (ch === '{') {
+      if (depth === 0) objStart = i;
+      depth++;
+    } else if (ch === '}') {
+      depth--;
+      if (depth === 0 && objStart !== -1) {
+        const objStr = s.slice(objStart, i + 1);
+        try {
+          results.push(JSON.parse(objStr) as Record<string, unknown>);
+        } catch { /* skip malformed individual object, keep scanning */ }
+        objStart = -1;
+      } else if (depth < 0) {
+        // Outer ']' — end of array
+        break;
+      }
+    }
+  }
+
+  return results;
+}
+
 function parseGeneratedPosts(
   raw: string,
   questions: Question[],
@@ -436,13 +495,27 @@ function parseGeneratedPosts(
 
   // Fall back to plain array format
   const arrMatch = raw.match(/\[[\s\S]*\]/);
-  if (!arrMatch) return { posts: [], connectionCards: [] };
-  try {
-    const parsed = JSON.parse(arrMatch[0]) as Array<Record<string, unknown>>;
-    return { posts: extractPosts(parsed, questions, date, maxPosts), connectionCards: [] };
-  } catch {
-    return { posts: [], connectionCards: [] };
+  if (arrMatch) {
+    try {
+      const parsed = JSON.parse(arrMatch[0]) as Array<Record<string, unknown>>;
+      return { posts: extractPosts(parsed, questions, date, maxPosts), connectionCards: [] };
+    } catch {
+      // fall through to tolerant partial-parse
+    }
   }
+
+  // Final tier: tolerant partial parse — recovers all complete objects from
+  // a truncated array response. See extractPartialJsonArrayObjects for the
+  // full rationale (link: 2026-04-21 fix for dropped text-style posts).
+  const partial = extractPartialJsonArrayObjects(raw);
+  if (partial.length > 0) {
+    if (typeof import.meta !== 'undefined' && import.meta.env?.DEV) {
+      console.info(`[parseGeneratedPosts] recovered ${partial.length} posts from truncated JSON`);
+    }
+    return { posts: extractPosts(partial, questions, date, maxPosts), connectionCards: [] };
+  }
+
+  return { posts: [], connectionCards: [] };
 }
 
 function extractPosts(parsed: Array<Record<string, unknown>>, questions: Question[], date: string, maxPosts = MAX_POSTS): DailyPost[] {
@@ -521,11 +594,33 @@ function _persistStylesToCache(styledPosts: DailyPost[]): void {
 }
 
 /**
- * Spread posts so no two adjacent items share the same presentationStyle.
- * Groups by style, then round-robin interleaves. Mutates in place.
+ * Spread posts so same-style items are maximally spaced apart.
+ *
+ * 2026-04-21 rewrite: the previous greedy "skip same-style if any non-same
+ * bucket has content" heuristic clustered the tail whenever one style had
+ * more than ~50% of the batch — once the minority buckets drained, the
+ * majority bucket placed all remaining items back-to-back. Example with
+ * [T×5, V×2, S×1] produced TVTVTSTT (3-run of T at the tail).
+ *
+ * New algorithm — proportional max-spacing (Bresenham-style):
+ *   Each style claims slots at a stride = posts.length / bucketSize, offset
+ *   by bucket position. Collisions resolve by bumping the loser to the next
+ *   free slot. This guarantees the tail can't cluster because every style's
+ *   placements are spread across the entire range, not just filling the
+ *   remaining capacity at the end.
+ *
+ * Invariants:
+ *   - same style items are separated by at least floor(N / count)-1 others
+ *     whenever bucket sizes allow (not guaranteed when one style is strictly
+ *     majority — clustering is structurally unavoidable then, but minimized)
+ *   - stable relative order within each style group
+ *   - idempotent: running twice yields the same result
  */
 function spreadByStyle(posts: DailyPost[]): void {
   if (posts.length <= 2) return;
+  const n = posts.length;
+
+  // Group by style, preserving original intra-style order
   const byStyle = new Map<string, DailyPost[]>();
   for (const p of posts) {
     const key = p.presentationStyle ?? 'unknown';
@@ -533,27 +628,45 @@ function spreadByStyle(posts: DailyPost[]): void {
     arr.push(p);
     byStyle.set(key, arr);
   }
-  const buckets = Array.from(byStyle.values()).sort((a, b) => b.length - a.length);
-  const result: DailyPost[] = [];
-  let lastStyle = '';
-  while (result.length < posts.length) {
-    let placed = false;
-    for (const bucket of buckets) {
-      if (bucket.length === 0) continue;
-      const style = bucket[0].presentationStyle ?? '';
-      if (style === lastStyle && buckets.some(b => b.length > 0 && (b[0].presentationStyle ?? '') !== lastStyle)) continue;
-      result.push(bucket.shift()!);
-      lastStyle = style;
-      placed = true;
-      break;
-    }
-    if (!placed) {
-      const remaining = buckets.find(b => b.length > 0);
-      if (remaining) { result.push(remaining.shift()!); lastStyle = result[result.length - 1].presentationStyle ?? ''; }
-      else break;
+
+  // Sort buckets largest-first so the dominant style gets its slots first
+  // (the bumps favor smaller buckets, which tolerate offset better)
+  const buckets = Array.from(byStyle.entries())
+    .sort((a, b) => b[1].length - a[1].length);
+
+  const result: (DailyPost | null)[] = new Array(n).fill(null);
+
+  for (const [, items] of buckets) {
+    const count = items.length;
+    if (count === 0) continue;
+    // Ideal stride: place `count` items uniformly across `n` slots
+    const stride = n / count;
+    for (let i = 0; i < count; i++) {
+      // Center the placement in each stride slice so stride=1 (full bucket)
+      // doesn't stack everything at index 0
+      let slot = Math.floor(i * stride + stride / 2);
+      if (slot >= n) slot = n - 1;
+      // Bump forward on collision, wrap around if necessary
+      let probe = slot;
+      let tries = 0;
+      while (result[probe] !== null && tries < n) {
+        probe = (probe + 1) % n;
+        tries++;
+      }
+      result[probe] = items[i];
     }
   }
-  for (let i = 0; i < result.length; i++) posts[i] = result[i];
+
+  // Safety: any remaining null slots get filled with whatever's left
+  // (should not happen with correct stride math but defends against off-by-one)
+  const leftover = posts.filter((p) => !result.includes(p));
+  let cursor = 0;
+  for (const p of leftover) {
+    while (cursor < n && result[cursor] !== null) cursor++;
+    if (cursor < n) result[cursor++] = p;
+  }
+
+  for (let i = 0; i < n; i++) posts[i] = result[i]!;
 }
 
 // assignPresentationStyles removed in Phase 31 — replaced by pre-style assignment via style-assignment.ts (D-18)
@@ -777,9 +890,43 @@ async function generatePostBatch(
 
   const posts: DailyPost[] = [];
 
-  // Generate text-style posts via LLM (text-art, image, suggestion)
-  if (textStyleAssignments.length > 0 && settings.preferences.aiConsentGiven && settings.llm.isConfigured) {
-    const textQuestions = textStyleAssignments
+  // Generate text-style posts via LLM (text-art, image, suggestion).
+  //
+  // Batch-size cap (2026-04-21): the LLM emits ~200 tokens per post; default
+  // maxTokens is 4096. Requesting large batches routinely overran that ceiling
+  // and the response arrived truncated mid-JSON. Cap + bump + tolerant parser
+  // work together — 20 posts × 200 tokens ≈ 4000, well under the 8192 ceiling,
+  // and the partial-array parser at `extractPartialJsonArrayObjects` recovers
+  // any residual truncation gracefully. Extra text-style assignments beyond
+  // the cap roll into subsequent refill cycles.
+  //
+  // Priority ordering (2026-04-21 fix #2): image and suggestion are the RARE
+  // minority styles (10% and 5% weight). If the LLM under-generates or the
+  // slice cap trims the tail, whatever's at the end gets silently dropped by
+  // the index-based style mapping at line ~960. With random assignment order,
+  // a rare-style assignment at position 18 or 19 of the batch evaporates
+  // whenever the LLM returns fewer posts than requested — this is exactly
+  // the "9 image assignments but 0 image posts served" regression reported
+  // in the 2026-04-21 DevTools log. Moving image + suggestion to the front
+  // makes text-art the tail-sacrifice, which is harmless (there's always an
+  // abundance of text-art).
+  const TEXT_BATCH_CAP = 20;
+  const rarityRank: Record<string, number> = { image: 0, suggestion: 1, 'text-art': 2 };
+  const sortedTextStyle = [...textStyleAssignments].sort(
+    (a, b) => (rarityRank[a.style] ?? 3) - (rarityRank[b.style] ?? 3),
+  );
+  const textBatch = sortedTextStyle.slice(0, TEXT_BATCH_CAP);
+  if (import.meta.env?.DEV) {
+    console.info(
+      `[generatePostBatch] text branch entry: textBatch=${textBatch.length} ` +
+      `(image=${textBatch.filter(a => a.style === 'image').length} ` +
+      `suggestion=${textBatch.filter(a => a.style === 'suggestion').length} ` +
+      `text-art=${textBatch.filter(a => a.style === 'text-art').length}) ` +
+      `aiConsent=${settings.preferences.aiConsentGiven} llmConfigured=${settings.llm.isConfigured}`,
+    );
+  }
+  if (textBatch.length > 0 && settings.preferences.aiConsentGiven && settings.llm.isConfigured) {
+    const textQuestions = textBatch
       .map(a => byId.get(a.conceptId))
       .filter((q): q is Question => Boolean(q));
 
@@ -798,16 +945,37 @@ async function generatePostBatch(
                   'Return only valid JSON.',
                 ].join('\n'),
               },
-              { role: 'user', content: buildGenerationPrompt(date, context, [], textStyleAssignments.length) },
+              { role: 'user', content: buildGenerationPrompt(date, context, [], textBatch.length) },
             ],
             settings.llm,
-            { serviceName: 'posts' },
+            { serviceName: 'posts', maxTokens: 8192 },
           );
-          const parsed = parseGeneratedPosts(raw, questions, date, [], textStyleAssignments.length);
+          const parsed = parseGeneratedPosts(raw, questions, date, [], textBatch.length);
+          // Dev-mode: flag when LLM returns fewer posts than text-style assignments
+          // requested — any 'image' / 'suggestion' assignment past parsed.posts.length
+          // is silently dropped by the loop below. Surfaces the "10% image weight but
+          // 0 image posts in 50+" regression class. (Console.info so it appears at
+          // default log level — console.debug is hidden unless "Verbose" is toggled.)
+          if (typeof import.meta !== 'undefined' && import.meta.env?.DEV) {
+            const styleCounts: Record<string, number> = {};
+            for (const a of textBatch) styleCounts[a.style] = (styleCounts[a.style] ?? 0) + 1;
+            console.info(
+              `[generatePostBatch] text branch: requested=${textBatch.length} parsed=${parsed.posts.length} assignments=`,
+              styleCounts,
+            );
+            if (parsed.posts.length < textBatch.length) {
+              const dropped: Record<string, number> = {};
+              for (let i = parsed.posts.length; i < textBatch.length; i++) {
+                const s = textBatch[i].style;
+                dropped[s] = (dropped[s] ?? 0) + 1;
+              }
+              console.warn('[generatePostBatch] LLM under-generated; dropped assignments:', dropped);
+            }
+          }
           // Apply pre-assigned styles to generated posts
-          for (let i = 0; i < parsed.posts.length && i < textStyleAssignments.length; i++) {
+          for (let i = 0; i < parsed.posts.length && i < textBatch.length; i++) {
             if (!parsed.posts[i]) continue;
-            const assignment = textStyleAssignments[i];
+            const assignment = textBatch[i];
             parsed.posts[i].presentationStyle = assignment.style;
 
             // L1 — Provenance from assignment, not LLM. Mirrors the video/short/news pattern
@@ -881,10 +1049,24 @@ Return ONLY a JSON array of 4 strings, nothing else. Example: ["What is X?", "Ho
             }
           }
           posts.push(...parsed.posts);
-        } catch {
-          // LLM generation failed — skip text posts for this batch
+        } catch (err) {
+          // LLM generation failed — skip text posts for this batch. Was silently
+          // swallowed prior to 2026-04-21; now log so "0 text-style posts in
+          // feed" regressions surface the actual error (timeout, disconnect,
+          // rate-limit, OOM, etc.) instead of a trace-free empty cycle.
+          console.warn(
+            '[generatePostBatch] text-style LLM call failed:',
+            err instanceof Error ? err.message : String(err),
+          );
         }
+      } else if (import.meta.env?.DEV) {
+        console.warn(
+          '[generatePostBatch] text branch skipped: context empty ' +
+          `(recent=${context.recent.length} resurfaced=${context.resurfaced.length})`,
+        );
       }
+    } else if (import.meta.env?.DEV) {
+      console.warn('[generatePostBatch] text branch skipped: 0 textQuestions after byId lookup');
     }
   }
 
@@ -1069,7 +1251,7 @@ export async function refillQueue(questions: Question[]): Promise<void> {
     // the bonus-post regime takes over (see `allExplored` gate in generateMorePosts
     // below) and the cap becomes a meaningful safety rail again.
     //
-    // EchoLearn is local-first OSS where users provide their own LLM/YouTube/Tavily
+    // Trellis is local-first OSS where users provide their own LLM/YouTube/Tavily
     // keys, so unbounded generation during the pre-finished window is NOT a cost
     // concern for the project. If a commercial / key-brokered mode ships later,
     // revisit this gate and reintroduce a pre-finished cap (e.g., scale with
@@ -1101,10 +1283,17 @@ export async function refillQueue(questions: Question[]): Promise<void> {
     // because this check was nanoBanana-only. Result: no image posts despite a working key.
     const nanoBananaKeyPresent = typeof settings.imageGeneration?.nanoBananaApiKey === 'string' && settings.imageGeneration.nanoBananaApiKey.trim().length > 0;
     const geminiImageKeyPresent = typeof settings.imageGeneration?.geminiApiKey === 'string' && settings.imageGeneration.geminiApiKey.trim().length > 0;
+    // 2026-04-21: honor the `enabled` toggle in hasImageGenKey so assignStyles
+    // and InfoFlow's per-card gate agree. Prior mismatch: assignStyles checked
+    // only key presence (so it kept assigning 'image' even when the toggle was
+    // off), while InfoFlow.tsx:113 short-circuited on !enabled before calling
+    // generateImage — resulting in silent text-art fallback at line 159 with
+    // zero observable "I assigned image but nothing rendered" signal.
+    const imageGenEnabled = settings.imageGeneration?.enabled !== false;
     const availability: ApiAvailability = {
       hasYoutubeKey: youtubeKeyPresent && isYoutubeRuntimeAvailable(),
       hasTavilyKey: tavilyKeyPresent && isTavilyRuntimeAvailable(),
-      hasImageGenKey: nanoBananaKeyPresent || geminiImageKeyPresent,
+      hasImageGenKey: imageGenEnabled && (nanoBananaKeyPresent || geminiImageKeyPresent),
     };
 
     // Step 3: Assign styles before generation (D-18)
@@ -1189,12 +1378,63 @@ export async function refillQueue(questions: Question[]): Promise<void> {
     // instead of issuing a second call per assignment.
     const posts = await generatePostBatch(questions, assignments, preFetched);
 
-    // Step 6b: Spread styles to prevent clustering (D-17 weighted round-robin)
-    spreadByStyle(posts);
+    // Step 6b: Pre-generate images for image-styled posts so the queue buffer
+    // is ACTUALLY pre-warmed (2026-04-21 architectural fix). Any post whose
+    // image generation FAILS gets its presentationStyle downgraded to 'text-art'
+    // BEFORE enqueue — so the queue only contains "ready" posts. InfoFlow
+    // never has to retry at mount time, no late-arriving images popping in,
+    // no duplicate-log racing. The queue promise is: "if it's in the queue,
+    // it's renderable right now."
+    const imagePosts = posts.filter((p) => p.presentationStyle === 'image');
+    if (imagePosts.length > 0) {
+      const { imageGenerationService } = await import('./imageGeneration.service');
+      const { inferImageStyle, buildImagePrompt } = await import('./postFormatting.service');
+      if (import.meta.env?.DEV) {
+        console.info(`[refillQueue] pre-generating ${imagePosts.length} image(s) before enqueue`);
+      }
+      const results = await Promise.allSettled(
+        imagePosts.map((p) => {
+          const style = inferImageStyle(p);
+          const prompt = buildImagePrompt(p);
+          return imageGenerationService.generateImage(p.id, prompt, style);
+        }),
+      );
+      // Downgrade any post whose image-gen failed so the queue never serves
+      // a post that would immediately fall back to text-art at render time.
+      // Mutation is safe here — these DailyPost objects haven't been enqueued
+      // or cached yet, so we're the only owner.
+      let downgraded = 0;
+      for (let i = 0; i < imagePosts.length; i++) {
+        const r = results[i];
+        const ok = r.status === 'fulfilled' && r.value.success;
+        if (!ok) {
+          imagePosts[i].presentationStyle = 'text-art';
+          downgraded++;
+        }
+      }
+      if (import.meta.env?.DEV && downgraded > 0) {
+        console.info(`[refillQueue] downgraded ${downgraded}/${imagePosts.length} image post(s) to text-art after pre-gen failure`);
+      }
+    }
 
-    // Step 7: Persist to history (D-33) and enqueue
+    // Step 6c + 7: Interleave styles ACROSS the unserved queue tail + this
+    // fresh batch (2026-04-21). Previously spreadByStyle ran on `posts` only,
+    // then enqueue concatenated — so cross-batch clustering was possible: a
+    // user popping 4 posts could slice entirely across one batch's tail or
+    // another batch's head, landing in a single-style run. enqueueInterleaved
+    // does dedup + combines queue-tail-with-new-batch + runs the mixer over
+    // the full combined list before writing back, so every refill re-mixes
+    // the pending queue with the new arrivals.
     for (const p of posts) { try { postHistoryService.addPost(p); } catch { /* non-critical */ } }
-    postQueueService.enqueue(posts);
+    if (typeof import.meta !== 'undefined' && import.meta.env?.DEV) {
+      const batchStyles: Record<string, number> = {};
+      for (const p of posts) {
+        const k = p.presentationStyle ?? 'unknown';
+        batchStyles[k] = (batchStyles[k] ?? 0) + 1;
+      }
+      console.info('[refillQueue] batch styles:', batchStyles, 'batch size:', posts.length);
+    }
+    postQueueService.enqueueInterleaved(posts, spreadByStyle);
     postQueueService.incrementCycle();
   } finally {
     _queueRefillRunning = false;
@@ -1565,7 +1805,8 @@ export const conceptFeedService = {
         hasYoutubeKey: !!(settings2.youtube?.apiKey),
         hasTavilyKey: !!(settings2.webSearch?.tavilyApiKey),
         // Phase 33 UAT-4 fix: either image-gen key counts (nanoBanana OR gemini).
-        hasImageGenKey: !!(settings2.imageGeneration?.nanoBananaApiKey) || !!(settings2.imageGeneration?.geminiApiKey),
+        hasImageGenKey: settings2.imageGeneration?.enabled !== false
+          && (!!(settings2.imageGeneration?.nanoBananaApiKey) || !!(settings2.imageGeneration?.geminiApiKey)),
       };
       const sessionAssignments = assignStyles(
         newPosts.map(p => p.sourceQuestionIds[0] ?? p.id),

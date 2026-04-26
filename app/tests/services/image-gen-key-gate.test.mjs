@@ -30,9 +30,11 @@ describe('concept-feed.service hasImageGenKey gate', () => {
       /geminiImageKeyPresent|geminiApiKey/.test(window),
       'refillQueue availability block must reference the gemini image key so assignStyles sees hasImageGenKey: true when only gemini is configured',
     );
+    // After the 2026-04-21 enabled-toggle alignment, the RHS now has
+    // `imageGenEnabled && (…||…)`. Accept either form (bare OR / enabled-gated).
     assert.ok(
-      /hasImageGenKey:\s*(?:nanoBananaKeyPresent\s*\|\|\s*geminiImageKeyPresent|[^,\n]*nanoBananaApiKey[^,\n]*\|\|[^,\n]*geminiApiKey)/.test(window),
-      'refillQueue availability must set hasImageGenKey = nanoBanana OR gemini',
+      /hasImageGenKey:\s*(?:[^,\n]*imageGenEnabled[^,\n]*&&[^,\n]*)?(?:nanoBananaKeyPresent\s*\|\|\s*geminiImageKeyPresent|[^,\n]*nanoBananaApiKey[^,\n]*\|\|[^,\n]*geminiApiKey)/.test(window),
+      'refillQueue availability must set hasImageGenKey = (enabled &&) nanoBanana OR gemini',
     );
   });
 
@@ -42,10 +44,13 @@ describe('concept-feed.service hasImageGenKey gate', () => {
     const sessionIdx = source.indexOf('sessionAssignments');
     assert.ok(sessionIdx !== -1, 'concept-feed.service.ts should contain sessionAssignments');
 
-    // Walk backwards to find the nearest hasImageGenKey line.
-    const preSession = source.slice(Math.max(0, sessionIdx - 800), sessionIdx);
+    // Walk backwards to find the nearest hasImageGenKey line. The 2026-04-21
+    // edit wrapped the key check with an `enabled !== false` gate, so the
+    // geminiApiKey reference may now be on a continuation line — widen the
+    // window slightly so the regex sees the full assignment.
+    const preSession = source.slice(Math.max(0, sessionIdx - 1200), sessionIdx);
     assert.ok(
-      /hasImageGenKey:[^,\n]*geminiApiKey/.test(preSession),
+      /hasImageGenKey[\s\S]*?geminiApiKey/.test(preSession),
       'session-post availability must include geminiApiKey in the hasImageGenKey check',
     );
   });

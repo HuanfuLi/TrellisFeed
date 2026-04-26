@@ -187,7 +187,7 @@ export function SettingsDataScreen() {
         </SettingRow>
         <SettingRow label={t('settings.fields.sendFeedback')}>
           <a
-            href="mailto:huanfuli4408@gmail.com?subject=EchoLearn%20Feed%20Feedback"
+            href="mailto:huanfuli4408@gmail.com?subject=Trellis%20Feedback"
             style={{ color: 'var(--primary-40)', fontSize: '14px', textDecoration: 'underline' }}
           >
             {t('settings.fields.sendFeedback')}

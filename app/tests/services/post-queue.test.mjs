@@ -65,9 +65,9 @@ describe('postQueueService', () => {
     assert.equal(postQueueService.size(), 6);
   });
 
-  it('needsRefill returns true when size < 8, false when >= 8', () => {
+  it('needsRefill returns true when size < 12, false when >= 12', () => {
     assert.equal(postQueueService.needsRefill(), true);
-    const posts = Array.from({ length: 8 }, (_, i) => makePost(`r${i}`));
+    const posts = Array.from({ length: 12 }, (_, i) => makePost(`r${i}`));
     postQueueService.enqueue(posts);
     assert.equal(postQueueService.needsRefill(), false);
   });

@@ -162,18 +162,21 @@ export function HomeScreen() {
         // blocking the swipe on "Loading more posts" for 10-30s while 3 of 4
         // generations were thrown away (video/short/news/text-art ignore the
         // result). Now we only wait for the subset that will use the image.
-        const imagePosts = newPosts.filter((p) => p.presentationStyle === 'image');
-        if (imagePosts.length > 0) {
-          const { inferImageStyle, buildImagePrompt } = await import('../services/postFormatting.service');
-          const { imageGenerationService } = await import('../services/imageGeneration.service');
-          await Promise.allSettled(
-            imagePosts.map((post) => {
-              const style = inferImageStyle(post);
-              const prompt = buildImagePrompt(post);
-              return imageGenerationService.generateImage(post.id, prompt, style);
-            }),
-          );
+        // Dev-mode instrumentation (2026-04-21): track what styles the queue
+        // is actually serving so "no image posts" regressions surface per-pop.
+        if (import.meta.env.DEV) {
+          const styles: Record<string, number> = {};
+          for (const p of newPosts) {
+            const k = p.presentationStyle ?? 'unknown';
+            styles[k] = (styles[k] ?? 0) + 1;
+          }
+          console.info(`[HomeScreen loadNextBatch] popped ${newPosts.length} posts, styles:`, styles);
         }
+        // Image pre-generation now happens in refillQueue BEFORE enqueue
+        // (2026-04-21 architectural fix). By the time a post pops here, its
+        // image is already in the IndexedDB cache — InfoFlow's useState
+        // initializer hits the cache and renders instantly. No pop-time
+        // image generation means no loading-state lag on swipe.
         conceptFeedService.appendToCache(newPosts);
         setDailyPosts((prev) => [...prev, ...newPosts]);
       } else {
@@ -695,7 +698,7 @@ export function HomeScreen() {
               {t('home.feed.loadingTitle')}
             </span>
             <a
-              href="mailto:huanfuli4408@gmail.com?subject=EchoLearn%20Feed%20Feedback"
+              href="mailto:huanfuli4408@gmail.com?subject=Trellis%20Feedback"
               style={{
                 fontSize: '12px', fontWeight: 400,
                 color: 'var(--primary-40)', textDecoration: 'underline',
@@ -733,7 +736,7 @@ export function HomeScreen() {
               {t('home.feed.generationErrorRetry')}
             </button>
             <a
-              href="mailto:huanfuli4408@gmail.com?subject=EchoLearn%20Feed%20Feedback"
+              href="mailto:huanfuli4408@gmail.com?subject=Trellis%20Feedback"
               style={{
                 fontSize: '12px', color: 'var(--primary-40)',
                 textDecoration: 'underline', marginTop: '16px',

@@ -257,16 +257,21 @@ export function ReviewScreen() {
   const moveState = parseMoveNavigationState(location.state);
   const linkedResource = moveState?.linkedResource;
 
-  // Dedupe flashcards by normalized content signature. Legacy asks sometimes
-  // produced identical cards under the same nodeId (e.g. 17 dupes of a
-  // "Spaced Repetition" card). First occurrence wins.
+  // Dedupe flashcards in two passes: one card per Q&A node (nodeId), then one
+  // per normalized front+back signature. Legacy asks + repeated processSession
+  // calls can leave many LLM-extracted cards pointing at the same underlying
+  // Q&A — in an anchor/cluster session the user has no reason to re-review each
+  // copy. First occurrence wins in both passes.
   const dedupeCards = (cards: FlashCard[]): FlashCard[] => {
-    const seen = new Set<string>();
+    const seenSig = new Set<string>();
+    const seenNode = new Set<string>();
     const out: FlashCard[] = [];
     for (const c of cards) {
+      if (c.nodeId && seenNode.has(c.nodeId)) continue;
       const sig = `${c.front.trim().toLowerCase()}|${c.back.trim().toLowerCase()}`;
-      if (seen.has(sig)) continue;
-      seen.add(sig);
+      if (seenSig.has(sig)) continue;
+      seenSig.add(sig);
+      if (c.nodeId) seenNode.add(c.nodeId);
       out.push(c);
     }
     return out;
@@ -291,9 +296,7 @@ export function ReviewScreen() {
 
   // Priority: anchor review > cluster review > move review > all items
   const filteredItems = anchorFilteredItems ?? clusterFilteredItems ?? moveFilteredItems;
-
-  // Use filtered items for review session if navigated from move and there are matches
-  const reviewItems = filteredItems && filteredItems.length > 0 ? filteredItems : items;
+  const isFiltered = Boolean(filteredItems && filteredItems.length > 0);
 
   const [reviewed, setReviewed] = useState(0);
   const [totalRatings, setTotalRatings] = useState(0);
@@ -302,6 +305,23 @@ export function ReviewScreen() {
   const [showConfetti, setShowConfetti] = useState(false);
   const [revealedNodeIds, setRevealedNodeIds] = useState<string[]>([]);
   const [sessionCards, setSessionCards] = useState<FlashCard[]>([]);
+  // In-session reviewed IDs. Filtered paths (anchor/cluster/move) derive their
+  // queue from allCards, which doesn't shrink on submit (submitReview only
+  // updates SM-2 schedule — doesn't remove the card from flashcardService).
+  // Without this set, reviewItems.length stays constant forever, making
+  // total = reviewItems.length + reviewed grow monotonically and leaving the
+  // user stuck on the same first card. The items path doesn't need this because
+  // useReview.submitReview already filters items by id.
+  const [reviewedIds, setReviewedIds] = useState<Set<string>>(new Set());
+
+  // For filtered paths, use a frozen session snapshot minus already-reviewed
+  // ids — so the queue decrements by one per review. For the live items path,
+  // pass through unchanged (useReview owns item lifecycle there).
+  const reviewItems = isFiltered
+    ? (sessionCards.length > 0
+        ? sessionCards.filter((c) => !reviewedIds.has(c.id))
+        : filteredItems!)
+    : items;
 
   // Trigger confetti + toast when the user completes their review session
   useEffect(() => {
@@ -323,7 +343,12 @@ export function ReviewScreen() {
     }
   }, [reviewItems, reviewed, sessionCards.length]);
 
-  const total = reviewItems.length + reviewed;
+  // For filtered paths, total is fixed to the session-original size (sessionCards
+  // once populated, else the live snapshot). For the live items path, the classic
+  // formula still holds because items decrements by one per submitReview.
+  const total = isFiltered
+    ? (sessionCards.length > 0 ? sessionCards.length : (filteredItems?.length ?? 0))
+    : items.length + reviewed;
   const progress = total > 0 ? (reviewed / total) * 100 : 0;
   const currentItem = reviewItems[0];
   const reviewMap = buildDailyReviewMap(
@@ -337,6 +362,13 @@ export function ReviewScreen() {
   const handleRate = async (rating: number) => {
     if (!currentItem) return;
     await submitReview(currentItem.id, rating as 1 | 2 | 3 | 4 | 5);
+    const reviewedId = currentItem.id;
+    setReviewedIds((prev) => {
+      if (prev.has(reviewedId)) return prev;
+      const next = new Set(prev);
+      next.add(reviewedId);
+      return next;
+    });
     if (currentItem.nodeId) {
       setRevealedNodeIds((prev) => (prev.includes(currentItem.nodeId!) ? prev : [...prev, currentItem.nodeId!]));
       // Reinforce graph edges between this node and its related questions
@@ -358,6 +390,13 @@ export function ReviewScreen() {
   const handleSkip = async () => {
     if (!currentItem) return;
     await skipReview(currentItem.id);
+    const skippedId = currentItem.id;
+    setReviewedIds((prev) => {
+      if (prev.has(skippedId)) return prev;
+      const next = new Set(prev);
+      next.add(skippedId);
+      return next;
+    });
     if (currentItem.nodeId) {
       setRevealedNodeIds((prev) => (prev.includes(currentItem.nodeId!) ? prev : [...prev, currentItem.nodeId!]));
     }

@@ -104,6 +104,14 @@ class ImageGenerationService {
     maxRetries: 2,
   };
 
+  // 2026-04-21: in-flight dedupe. Prior state: React strict mode mounts each
+  // card twice in dev, and refillQueue's pre-gen could race with InfoFlow's
+  // mount-time generateImage. Without dedupe, every image post triggered
+  // 2-3 parallel provider calls — user-visible as "more ImageGenerationService
+  // logs than actual image posts shown." Keyed by `postId:style`; the promise
+  // cleared in a finally block so a failed call doesn't block retry.
+  private inFlight = new Map<string, Promise<ServiceResult<GeneratedImage>>>();
+
   /**
    * Register image providers in priority order.
    * The first provider is tried first; subsequent ones are fallbacks.
@@ -129,15 +137,55 @@ class ImageGenerationService {
     prompt: string,
     style: ImageStyle,
   ): Promise<ServiceResult<GeneratedImage>> {
-    // 1. Cache hit?
+    const inFlightKey = this._cacheKey(postId, style);
+
+    // 1. Cache hit? Synchronous-ish — IndexedDB read is fast and must happen
+    // before we check in-flight to avoid a needless parallel call when the
+    // cache was populated between two sequential callers.
     const cached = await this.retrieveCachedImage(postId, style);
     if (cached) {
       return { success: true, data: cached };
     }
 
-    // 2. Try each provider in order.
-    let lastError = 'No providers configured';
+    // 2. In-flight dedupe: if another caller already asked for this exact
+    // postId + style combo and the request hasn't settled, return that same
+    // promise instead of issuing a second provider call. Covers:
+    //   - React strict mode's double-mount of InfoFlow's useEffect
+    //   - refillQueue pre-gen + InfoFlow mount-time retry racing
+    //   - Any future call site that duplicates work
+    const existing = this.inFlight.get(inFlightKey);
+    if (existing) {
+      if (import.meta.env?.DEV) {
+        console.info(`[ImageGenerationService] dedup: joining in-flight request for ${inFlightKey}`);
+      }
+      return existing;
+    }
+
+    const promise = this._doGenerate(postId, prompt, style);
+    this.inFlight.set(inFlightKey, promise);
+    try {
+      return await promise;
+    } finally {
+      this.inFlight.delete(inFlightKey);
+    }
+  }
+
+  private async _doGenerate(
+    postId: string,
+    prompt: string,
+    style: ImageStyle,
+  ): Promise<ServiceResult<GeneratedImage>> {
+    // Try each provider in order.
+    let lastError = this.providers.length === 0 ? 'No providers registered' : 'No providers configured';
     const t0 = Date.now();
+
+    if (this.providers.length === 0) {
+      console.warn('[ImageGenerationService] No providers registered — did bootstrapImageGeneration() run?');
+      return {
+        success: false,
+        error: { code: 'NOT_CONFIGURED', message: lastError, retryable: false },
+      };
+    }
 
     for (const provider of this.providers) {
       try {
@@ -155,18 +203,30 @@ class ImageGenerationService {
           };
           // Cache the successful result.
           await this.cacheImage(postId, [image]);
-          console.debug(
+          // 2026-04-21: console.info (not debug) so the success path is visible
+          // at Chrome's default log level — prior console.debug made "is image
+          // gen even running?" diagnostics needlessly hard.
+          console.info(
             `[ImageGenerationService] ${provider.name} generated image in ${elapsed}ms (total: ${Date.now() - t0}ms)`,
           );
           return { success: true, data: image };
         }
+        // Provider returned a structured failure (not thrown). Previously this
+        // fell through silently and the next provider was tried without any
+        // log — or, when there was only one provider, generateImage returned
+        // success:false with zero observable trace. Log so quota/auth/rate-limit
+        // rejections surface at the same level as network-thrown failures.
         lastError = result.error?.message ?? 'Provider returned no data';
+        console.warn(
+          `[ImageGenerationService] ${provider.name} returned failure: ${lastError} (code=${result.error?.code ?? 'n/a'})`,
+        );
       } catch (err) {
         lastError = err instanceof Error ? err.message : String(err);
-        console.warn(`[ImageGenerationService] Provider ${provider.name} failed:`, lastError);
+        console.warn(`[ImageGenerationService] Provider ${provider.name} threw:`, lastError);
       }
     }
 
+    console.warn(`[ImageGenerationService] All providers exhausted — last error: ${lastError}`);
     return {
       success: false,
       error: {

@@ -61,7 +61,7 @@ The home feed is driven by THREE LISTS in a strict pipeline. **Do not invent a f
 
 ### Numeric defaults
 
-- Queue length: **8**
+- Queue refill threshold: **12** (bumped from 8 on 2026-04-21 when image pre-generation moved into `refillQueue`; earlier refill gives runway so the queue doesn't empty mid-swipe while image-gen is still in flight)
 - Posts served per swipe-for-more: **4** (NOT 1 — operator confirmed the desired UX)
 - Style weights: see `app/src/services/style-assignment.ts:9-16` (`STYLE_WEIGHTS`)
 - Daily generation cap: `dailyGenerationCapMultiplier × max(anchors.length, 3)` — **gated by `allExplored`** (Phase 33 gap fix 2026-04-19). The cap only fires AFTER the vine is finished; before that, generation is bounded solely by `buildConceptBatch` returning `[]` when all anchors are explored. Rationale: EchoLearn is local-first OSS (users provide their own keys), so unbounded pre-finished generation is not a cost concern. If/when a key-brokered commercial mode ships, revisit this gate and scale the pre-finished cap with `unexploredAnchors.length` instead of removing it. See `concept-feed.service.ts` `refillQueue` inline comment for full rationale.

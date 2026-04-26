@@ -669,7 +669,7 @@ async function backfillAnchorEmbedding(
     questionService.patchQuestion(anchor.id, { embeddingVector: vec });
     return vec;
   } catch (err) {
-    console.warn('[EchoLearn] anchor embedding backfill failed:', err instanceof Error ? err.message : err);
+    console.warn('[Trellis] anchor embedding backfill failed:', err instanceof Error ? err.message : err);
     return undefined;
   }
 }
@@ -708,7 +708,7 @@ export async function preCheckAnchorMatch(
     try {
       queryVec = await embedText(question.content.trim(), embCfg);
     } catch (err) {
-      console.warn('[EchoLearn] pre-check query embedding failed:', err instanceof Error ? err.message : err);
+      console.warn('[Trellis] pre-check query embedding failed:', err instanceof Error ? err.message : err);
       return null;
     }
   }
@@ -1182,11 +1182,11 @@ export async function classifyAndAnchorIncremental(
 
     await commitClassificationResult(question, result, allQuestions);
   } catch (err) {
-    console.warn('[EchoLearn] Incremental pipeline failed — falling back to single-call classification:', err instanceof Error ? err.message : err);
+    console.warn('[Trellis] Incremental pipeline failed — falling back to single-call classification:', err instanceof Error ? err.message : err);
     try {
       await classifyAndAnchor(question, allQuestions, llmConfig);
     } catch (fallbackErr) {
-      console.warn('[EchoLearn] Fallback classification also failed:', fallbackErr instanceof Error ? fallbackErr.message : fallbackErr);
+      console.warn('[Trellis] Fallback classification also failed:', fallbackErr instanceof Error ? fallbackErr.message : fallbackErr);
     }
   }
 }
@@ -1259,7 +1259,7 @@ export async function classifyAndAnchor(
   } catch (err) {
     // Second call failed — Q&A keeps whatever labels it had (empty/undefined from first call).
     // Fallback: labels will be derived from keywords at display time via buildFallbackPlacement.
-    console.warn('[EchoLearn] Second classification call failed — labels will use keyword fallback:', err instanceof Error ? err.message : err);
+    console.warn('[Trellis] Second classification call failed — labels will use keyword fallback:', err instanceof Error ? err.message : err);
   }
 }
 
@@ -1659,7 +1659,7 @@ async function _doReorganize(
 
     // Auto-retry ONCE with error feedback on parse failure
     if (!result) {
-      console.warn('[EchoLearn] Reorg: initial parse failed, retrying with feedback:', raw.slice(0, 300));
+      console.warn('[Trellis] Reorg: initial parse failed, retrying with feedback:', raw.slice(0, 300));
       const retryMessages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
         ...messagesForReorg,
         { role: 'assistant', content: raw.slice(0, 2000) },
@@ -1670,7 +1670,7 @@ async function _doReorganize(
     }
 
     if (!result) {
-      console.warn('[EchoLearn] Reorg: all parse tiers + retry failed:', raw.slice(0, 500));
+      console.warn('[Trellis] Reorg: all parse tiers + retry failed:', raw.slice(0, 500));
       const msg = 'Could not parse LLM response as JSON after retry.';
       eventBus.emit({ type: 'REORG_FAILED', payload: { error: msg } });
       return { success: false, error: { code: 'PARSE_ERROR', message: msg, retryable: true } };
@@ -1696,7 +1696,7 @@ async function _doReorganize(
     const coverage = qaNodes.length === 0 ? 1 : mentionedIds.size / qaNodes.length;
     if (coverage < 0.9) {
       const msg = `LLM omitted too many QA items (${mentionedIds.size}/${qaNodes.length} covered).`;
-      console.warn('[EchoLearn] Reorg:', msg);
+      console.warn('[Trellis] Reorg:', msg);
       eventBus.emit({ type: 'REORG_FAILED', payload: { error: msg } });
       return { success: false, error: { code: 'COVERAGE_ERROR', message: msg, retryable: true } };
     }
@@ -1760,7 +1760,7 @@ async function _doReorganize(
     try {
       localStorage.setItem(REORG_SNAPSHOT_KEY, JSON.stringify(snapshot));
     } catch {
-      console.warn('[EchoLearn] Reorg: could not save revert snapshot (storage quota). Revert will not be available.');
+      console.warn('[Trellis] Reorg: could not save revert snapshot (storage quota). Revert will not be available.');
     }
 
     // Build the new store
@@ -1874,8 +1874,47 @@ async function _doReorganize(
       }
     }
 
-    // Atomic write
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(newStore));
+    // Reconcile with concurrent mutations (Phase 33 UAT-4 fix, 2026-04-21).
+    // _doReorganize captured `allQuestions` at the start, then spent 10-30s in
+    // LLM calls. The user may have deleted nodes OR asked a new question during
+    // that window. Writing `newStore` verbatim would:
+    //   - resurrect deleted QAs / flagged Qs (they're still in the stale snapshot
+    //     that newStore was derived from) — the "deleted nodes get flushed back"
+    //     regression
+    //   - wipe out new QAs that landed after the snapshot was taken
+    //
+    // Read fresh localStorage, then:
+    //   - drop any QA/flagged from newStore whose ID no longer exists in current
+    //     storage (user deleted it mid-reorg)
+    //   - append any QA/flagged present in current storage but NOT in the
+    //     original snapshot (user asked a new question mid-reorg)
+    //   - always keep newly-created cluster/anchor nodes (they're synthesized
+    //     here, with new IDs not in any prior snapshot)
+    const currentStoreRaw = localStorage.getItem(STORAGE_KEY);
+    const currentStore: Question[] = currentStoreRaw
+      ? (JSON.parse(currentStoreRaw) as Question[])
+      : [];
+    const currentIds = new Set(currentStore.map((q) => q.id));
+    const originalIds = new Set(allQuestions.map((q) => q.id));
+
+    const reconciled: Question[] = newStore.filter((q) => {
+      // New structural nodes (cluster/anchor) always pass — synthesized fresh.
+      if (q.isAnchorNode === true || q.isClusterNode === true) return true;
+      // QAs/flagged: drop if the user deleted them during the LLM window.
+      return currentIds.has(q.id);
+    });
+    const reconciledIds = new Set(reconciled.map((q) => q.id));
+    // Append QAs/flagged that appeared in localStorage after the snapshot
+    // (new questions asked during reorg). Exclude anchor/cluster nodes so we
+    // don't carry forward any pre-reorg structural remnants.
+    for (const q of currentStore) {
+      if (q.isAnchorNode === true || q.isClusterNode === true) continue;
+      if (reconciledIds.has(q.id)) continue;
+      if (originalIds.has(q.id)) continue; // was in snapshot but got filtered out above → deleted
+      reconciled.push(q);
+    }
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(reconciled));
 
     eventBus.emit({ type: 'REORG_COMPLETED', payload: { anchorCount, clusterCount } });
     return { success: true, data: { anchorCount, clusterCount } };

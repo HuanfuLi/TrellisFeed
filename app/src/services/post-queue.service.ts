@@ -4,7 +4,12 @@
 import type { DailyPost } from '../types/index.ts';
 
 const STORAGE_KEY = 'echolearn_post_queue';
-const REFILL_THRESHOLD = 8;
+// 2026-04-21 bump: refill threshold 8 → 12. refillQueue now pre-generates
+// images before enqueue (moved from pop-time to enqueue-time), so each
+// refill cycle takes longer. Triggering refill earlier (at 12 remaining
+// instead of 8) gives more runway so the user doesn't hit an empty queue
+// mid-swipe while image generation is still in flight.
+const REFILL_THRESHOLD = 12;
 const MAX_QUEUE_SIZE = 32;
 
 interface QueueState {
@@ -90,6 +95,48 @@ export const postQueueService = {
     const added = fresh.slice(0, Math.max(0, capacity));
     _state.posts.push(...added);
     _state.totalGenerated += added.length;
+    save(_state);
+  },
+
+  /**
+   * Enqueue + interleave in one step: combines the unserved queue tail with
+   * the new batch, runs a caller-supplied mixer over the combined list, then
+   * replaces the queue's posts with the mixed result.
+   *
+   * Why it exists (2026-04-21): plain `enqueue` concatenates — so the user's
+   * next pop of `count` posts slices a window out of `[batch1, batch2, ...]`
+   * that may land entirely inside one batch's single-style tail, producing
+   * the observed "many text-art in a row, then many video in a row" feed.
+   * Interleaving at enqueue time mixes the freshly-generated batch WITH
+   * whatever's still pending from prior cycles, so cross-batch clustering
+   * can't happen.
+   *
+   * The mixer is passed in (rather than importing spreadByStyle here) to
+   * avoid a post-queue ↔ concept-feed circular import. The mixer mutates
+   * its input array in place; this method treats it as producing the final
+   * post order.
+   *
+   * Dedup against existing queue is preserved (same rules as `enqueue`).
+   * `totalGenerated` counts only the fresh additions, not the re-mixed tail.
+   */
+  enqueueInterleaved(posts: DailyPost[], mixer: (combined: DailyPost[]) => void): void {
+    const seen = new Set(_state.posts.map(p => p.id));
+    const fresh: DailyPost[] = [];
+    const duplicates: string[] = [];
+    for (const p of posts) {
+      if (seen.has(p.id)) { duplicates.push(p.id); continue; }
+      seen.add(p.id);
+      fresh.push(p);
+    }
+    if (duplicates.length > 0 && typeof import.meta !== 'undefined' && import.meta.env?.DEV) {
+      console.warn('[postQueueService] Rejected duplicate post IDs at enqueueInterleaved:', duplicates);
+    }
+    const combined = [..._state.posts, ...fresh];
+    const capped = combined.slice(0, MAX_QUEUE_SIZE);
+    mixer(capped);
+    const addedCount = Math.min(fresh.length, MAX_QUEUE_SIZE - _state.posts.length);
+    _state.posts = capped;
+    _state.totalGenerated += Math.max(0, addedCount);
     save(_state);
   },
 
