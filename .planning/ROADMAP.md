@@ -958,7 +958,7 @@ Scope:
 7. `git status` shows clean working tree on `gsd/phase-33-hygiene-and-polish`; HEAD includes the WIP commit set.
 8. Re-run `/gsd:audit-milestone v1.4` produces `status: passed` (or `tech_debt` with only deferred items).
 
-**Plans:** 5/8 plans executed
+**Plans:** 6/8 plans executed
 
 Plans:
 - [x] 34-01-PLAN.md — Seam 11 fix: rename CLASSIFICATION_COMPLETED → GRAPH_UPDATED in trellis-replant + trellis-prune tests (Wave 1; SEAM-11)
@@ -966,7 +966,7 @@ Plans:
 - [x] 34-03-PLAN.md — Write 30-VERIFICATION.md auditing all 22 Phase 30 decisions in Phase 29 abbreviated style (Wave 2; PHASE-30-VERIFICATION)
 - [x] 34-04-PLAN.md — Write 31-VERIFICATION.md auditing all 47 Phase 31 decisions + inline UAT retest integration (Wave 2; PHASE-31-VERIFICATION)
 - [x] 34-05-PLAN.md — Write 32-CLOSURE.md + annotate 32-VALIDATION.md (no flip) per VALIDATION-32-ANNOTATE rule (Wave 2; PHASE-32-EXECUTION + VALIDATION-32-ANNOTATE)
-- [ ] 34-06-PLAN.md — Delete post-store.service.ts + ImmersiveInfoFlow export from InfoFlow.tsx; document D-15 VineProgress dead-prop fold as NO-OP (Wave 3; SEAM-2-tail)
+- [x] 34-06-PLAN.md — Delete post-store.service.ts + ImmersiveInfoFlow export from InfoFlow.tsx; document D-15 VineProgress dead-prop fold as NO-OP (Wave 3; SEAM-2-tail)
 - [ ] 34-07-PLAN.md — Flip 28/29/30-VALIDATION.md from draft to validated (Wave 4; VALIDATION-DRIFT-{28,29,30})
 - [ ] 34-08-PLAN.md — Device UAT log (G2/G4/G5 retroactive PASS + 33-UAT-1/2 pending) + 32.1-VERIFICATION.md status flip + 33-REBRAND.md Functional Changes addendum + Presentation/ in .gitignore + 5-commit WIP land on gsd/phase-33-hygiene-and-polish (Wave 5; DEVICE-UAT-RETEST + WIP-COMMIT-SHAPE)
 
