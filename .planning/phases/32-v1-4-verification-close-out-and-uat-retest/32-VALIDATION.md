@@ -5,7 +5,12 @@ status: draft
 nyquist_compliant: false
 wave_0_complete: false
 created: 2026-04-18
+absorbed: true
+absorbed_by: Phase 34
+note: "Phase 32 never executed. UAT retest intent absorbed by Phase 32.1 (5/5 truths verified). VERIFICATION write-up intent absorbed by Phase 34 (plans 34-03 / 34-04 / 34-05). See 32-CLOSURE.md for Intent Map and Decision Disposition."
 ---
+
+> **Status note (2026-04-25 / Phase 34 close-out):** This phase was planned but never executed. See `32-CLOSURE.md` in this directory for absorption details. The validation strategy below is preserved as a planning artifact but does not represent executed work.
 
 # Phase 32 — Validation Strategy
 
