@@ -8,3 +8,6 @@ dist/
 .vscode/
 Secrets
 GEMINI.md
+
+# Phase 34 D-12 — operator local workspace, not product code
+Presentation/
