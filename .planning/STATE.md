@@ -3,14 +3,25 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: gap closure)
 status: Executing Phase 35
-stopped_at: Completed 35-04-PLAN.md (project-wide chatStream audit verification doc)
-last_updated: "2026-04-29T12:52:07.975Z"
+stopped_at: Completed 35-03-PLAN.md (CLAUDE.md load-bearing rule for Ask-chat system-prompt byte-stability)
+last_updated: "2026-04-29T12:57:06.452Z"
 progress:
   total_phases: 21
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
 ---
+
+# Project State: Phase 35 COMPLETE — KV-cache byte-stability close-out for LabPresentation Section 4.7
+
+## Latest Decisions (Phase 35-03, 2026-04-29 evening)
+
+- [Phase 35-03] D-06 honored: new H2 section `## Ask-chat system prompt — byte-stable across turns (Phase 35 — load-bearing)` inserted at `CLAUDE.md` line 257, positioned between `## Classification dedup — embedding pre-check (Phase 33 UAT-4 — load-bearing)` (line 236) and `## Best practices learned in Phase 32.1 (avoid the same mistakes)` (line 291). Section structure mirrors adjacent load-bearing sections: opening rule paragraph + TypeScript code block showing `[system, ...history, assistant(context), user]` shape + `### Why this exists` rationale + `### Rules` 6-item numbered list.
+- [Phase 35-03] CONTEXT.md path correction silently honored: there is no `app/CLAUDE.md` (despite CONTEXT D-06 referencing that path); canonical CLAUDE.md is at project root (`/Users/Code/EchoLearn/CLAUDE.md`). Plan 03 frontmatter caught this; executor edited the project-root file. No deviation logged — planner's correction was authoritative.
+- [Phase 35-03] Phase 32.1 lesson #8 ("documentation in three places") triple guard now complete for Phase 35: code-site inline comment (Plan 01 commit `5f27f26a`, useQuestions.ts:140-145 + 154-161) + source-reading test (Plan 02 — `tests/state/useQuestions-system-prompt-stability.test.mjs`) + CLAUDE.md load-bearing section (this plan, commit `9321b1dd`).
+- [Phase 35-03] Six Rules items in the new section (vs. CONTEXT's "2-3" recommendation): kept all six because they cover distinct invariants — no re-introduction of dynamic content, no dropping of the assistant-tail message, single-closure-variable discipline, `applyLocaleDirective` first-system-message expectation, 5-minute provider TTL framed honestly as inherent (not a bug), and explicit non-goal of consistency-fixing one-shot LLM call sites (`concept-feed`/`planner`/`podcast`/`post-essay`/`post-context-qa`/`flashcard`/`canonical-knowledge` non-descent paths/`AskScreen.tsx:86`).
+- [Phase 35-03] Verification: `grep -c "## Ask-chat system prompt — byte-stable across turns (Phase 35 — load-bearing)" CLAUDE.md` = 1; H2 ordering verified; 2 `### ` subheadings present; 6 numbered Rules items; cross-references to `useQuestions-system-prompt-stability.test.mjs` and `LabPresentation/SCRIPTS.md` slide 4.7 both verified; Markdown structurally valid (6 balanced code fences, 391 lines, 34200 bytes, parseable via `fs.readFileSync`).
+- [Phase 35-03] Atomic commit `9321b1dd` (docs). Single file modified: `CLAUDE.md` (+34 lines, 0 deletions). Phase 35 now 4/4 plans complete (35-01 refactor `5f27f26a` + 35-02 test + 35-04 audit + 35-03 docs); ROADMAP.md updated by `gsd-tools roadmap update-plan-progress 35` to status `Complete`. Phase 35 ready for `/gsd:verify 35` and merge.
 
 # Project State: Phase 33 COMPLETE — branch gsd/phase-33-hygiene-and-polish ready for review/merge
 
@@ -484,7 +495,7 @@ Completed Phase 27 Plan 07 autonomous tasks (27-07-PLAN.md) — Task 1 landed pr
 ## Previous Session
 
 Completed Phase 27 Plan 04 (27-04-PLAN.md) — Locale switcher + mid-stream abort. SettingsScreen gains a 4-language picker at the top (D-19) that calls `i18n.changeLanguage`, persists `preferences.locale` (+ legacy `language` back-compat), and emits `LOCALE_CHANGED`. Row LABEL hardcoded as `Language / 语言 / Idioma / 言語` for cross-locale affordance. `providers/llm/index.ts` gains `CompletionOptions.signal?: AbortSignal` + a `composeSignal(callerSignal, ms)` helper that uses `AbortSignal.any` (Chromium 116+ / Safari 17.4+ / Node 20+) with manual-forwarder fallback; signal threaded through all 7 fetch call sites (openAI completion/stream, claude completion/stream, gemini completion/stream, plus localPost for Android-local streaming). `useQuestions.askStreaming` declares ONE shared AbortController at the top of the try, subscribes to LOCALE_CHANGED once, passes the same signal to BOTH Pass 1 and Pass 2 chatStream calls, and guards every buildAndSave path with 6 aborted-checks (loop entries, post-loop, pre-persistence, catch-level AbortError short-circuit) — toasts `ask.localeChangedDiscarded` and returns null on abort so partial half-English/half-Japanese output never persists (D-22). TDD cadence: RED commit landed failing test first, GREEN commit made all 4 assertions pass. 48 Wave 0 tests green; `npx vite build` green (3.0s); zero new tsc errors. Deviations: used direct `settingsService.getSync/.set` instead of `useSettings` hook (matches existing SettingsScreen convention); added `callerSignal?` param to `localPost` (LOCALE_CHANGED was silently not cancelling Android-local completions otherwise); removed dead `void options;` statements from claudeStream + geminiStream. Commits: `da5c69b5` (Task 1 — locale switcher), `c93ecf46` (Task 2 RED — failing test), `7e301831` (Task 2 GREEN — provider plumbing + useQuestions abort).
-**Stopped At:** Completed 35-04-PLAN.md (project-wide chatStream audit verification doc)
+**Stopped At:** Completed 35-03-PLAN.md (CLAUDE.md load-bearing rule for Ask-chat system-prompt byte-stability)
 **Date:** 2026-04-16
 
 ## Latest Decisions (Phase 25)
