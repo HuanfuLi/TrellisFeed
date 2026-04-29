@@ -254,6 +254,40 @@ The fix is an **O(N_anchors) cosine pre-check BEFORE the tree descent** in `clas
 
 ---
 
+## Ask-chat system prompt — byte-stable across turns (Phase 35 — load-bearing)
+
+`app/src/state/useQuestions.ts:askStreaming` constructs its system prompt as a **byte-stable** string (identity directive + safety directive + `WEB_SEARCH_TOOL_PROMPT` only — no per-turn dynamic content). The per-turn `formatCandidateContextPack(candidatePack)` output lives in a **tail-position assistant message** placed AFTER `...historyMessages` and BEFORE the new user turn:
+
+```typescript
+[
+  { role: 'system', content: systemPrompt },                       // byte-stable across turns
+  ...historyMessages,                                              // append-only history
+  { role: 'assistant', content: assistantContextMessage },         // dynamic per-turn graph context
+  { role: 'user', content },                                       // current turn
+]
+```
+
+Pass 2 (web-search) reuses the SAME `assistantContextMessage` closure variable in the same position, so Pass 1's prefix is still warm in the provider cache when Pass 2 fires moments later.
+
+### Why this exists
+
+Provider KV-cache (Anthropic, OpenAI, Gemini all support automatic prefix caching with a 5-minute TTL) is keyed on the byte prefix of the request. The previous shape interpolated `formatCandidateContextPack(candidatePack)` directly into the system prompt — the candidate pack changes every turn (new question → new neighbor set), which moved the cache-break boundary to the FIRST byte after the static `WEB_SEARCH_TOOL_PROMPT`. Every Ask turn paid full re-attention on the entire prior conversation history.
+
+Moving the dynamic candidate context out of the system role and into a tail-position assistant message keeps the system + history prefix byte-stable across turns. The cache now covers everything up to the per-turn context message, which is exactly what we want.
+
+Public framing for this fix landed in `LabPresentation/SCRIPTS.md` slide 4.7. Phase 35 was the close-out of that disclosure.
+
+### Rules
+
+1. **Never re-introduce dynamic content into the system prompt of `useQuestions.ts:askStreaming`.** `tests/state/useQuestions-system-prompt-stability.test.mjs` enforces this with a source-reading negative assertion — any PR that puts `formatCandidateContextPack` (or any other per-turn value) inside a string assigned to a `role: 'system'` element fails CI.
+2. **Don't drop the assistant-tail context message either.** The same test asserts `formatCandidateContextPack` IS referenced inside a `role: 'assistant'` content in BOTH chatStream calls (Pass 1 + Pass 2). The graph-grounded context is load-bearing for relevant cross-Q&A continuity — moving it didn't make it dead code.
+3. **Pass 1 and Pass 2 must reuse the SAME `assistantContextMessage` closure variable.** Constructing it twice (or recomputing it for Pass 2) breaks the Pass 1 → Pass 2 prefix-cache continuity. Single declaration, two references.
+4. **Don't bypass `applyLocaleDirective`'s expectations.** `app/src/providers/llm/locale-directive.ts` merges `Respond in {locale}.` into the FIRST `role: 'system'` message. The new static `systemPrompt` must remain that first message — don't swap it for a different element type or invent a pre-system message.
+5. **The 5-minute provider TTL is an inherent limit, not a Phase 35 bug.** Long-idle conversations still pay full re-attention on the next turn. Phase 35 fixes per-turn cache breaks WITHIN a 5-minute window; longer-session caching is not in scope and may need explicit `cache_control` markers (Anthropic-only) in a future phase.
+6. **The other one-shot LLM call sites (`concept-feed`, `planner`, `podcast`, `post-essay`, `post-context-qa`, `flashcard`, `canonical-knowledge` non-descent paths, `AskScreen.tsx:86` session-title) intentionally still interpolate dynamic content into their system prompts.** They have no multi-turn history → no prefix to preserve → no benefit from Phase 35 discipline. See `35-VERIFICATION.md` for the audit. Don't "consistency-fix" them; the cost-benefit doesn't justify the test-and-refactor.
+
+---
+
 ## Best practices learned in Phase 32.1 (avoid the same mistakes)
 
 These are meta-rules distilled from session pain. Read before refactoring or chasing a regression:
