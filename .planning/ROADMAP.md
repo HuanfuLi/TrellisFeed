@@ -975,13 +975,13 @@ Plans:
 **Goal:** Move the per-turn `formatCandidateContextPack(candidatePack)` interpolation out of the `useQuestions.ts:askStreaming` system prompt into a tail-position assistant message so the provider's KV-cache prefix covers the full conversation history (system + append-only history) instead of breaking at the dynamic-content byte. Adds source-reading invariant test, CLAUDE.md load-bearing-rule section, and project-wide `chatStream`/`chatCompletion` audit confirming all other call sites are intentionally one-shot.
 **Requirements**: none (no roadmap REQ-IDs; this is a structural-quality phase driven by LabPresentation Section 4.7 self-disclosure)
 **Depends on:** Phase 34
-**Plans:** 1/4 plans executed
+**Plans:** 3/4 plans executed
 
 Plans:
-- [ ] 35-01-PLAN.md — Refactor useQuestions.ts: byte-stable system prompt + tail assistant context message in both Pass 1 and Pass 2 (Wave 1)
+- [x] 35-01-PLAN.md — Refactor useQuestions.ts: byte-stable system prompt + tail assistant context message in both Pass 1 and Pass 2 (Wave 1)
 - [x] 35-02-PLAN.md — Add source-reading invariant test useQuestions-system-prompt-stability.test.mjs (Wave 1)
 - [ ] 35-03-PLAN.md — Add CLAUDE.md Phase 35 load-bearing-rule section adjacent to Classification dedup (Wave 2; depends on 35-01)
-- [ ] 35-04-PLAN.md — Project-wide chatStream/chatCompletion audit + 35-VERIFICATION.md must-haves rollup (Wave 1)
+- [x] 35-04-PLAN.md — Project-wide chatStream/chatCompletion audit + 35-VERIFICATION.md must-haves rollup (Wave 1)
 
 ---
 
