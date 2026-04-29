@@ -972,6 +972,7 @@ Plans:
 
 ### Phase 35: fix the dynamic-system-prompt issue
 
+**Status:** COMPLETE (2026-04-29) — 35-01..04 plans all green; 7/7 must-haves verified in 35-VERIFICATION-PHASE-CLOSE.md
 **Goal:** Move the per-turn `formatCandidateContextPack(candidatePack)` interpolation out of the `useQuestions.ts:askStreaming` system prompt into a tail-position assistant message so the provider's KV-cache prefix covers the full conversation history (system + append-only history) instead of breaking at the dynamic-content byte. Adds source-reading invariant test, CLAUDE.md load-bearing-rule section, and project-wide `chatStream`/`chatCompletion` audit confirming all other call sites are intentionally one-shot.
 **Requirements**: none (no roadmap REQ-IDs; this is a structural-quality phase driven by LabPresentation Section 4.7 self-disclosure)
 **Depends on:** Phase 34
@@ -995,3 +996,4 @@ _Updated: 2026-04-25 — Phase 34 added: v1.4 close-out bundling all gaps from `
 _Updated: 2026-04-25 — Phase 34 plans created (34-01..08): 8 plans across 5 waves closing all v1.4-MILESTONE-AUDIT gaps; ready for execute-phase._
 _Updated: 2026-04-29 — Phase 35 added: fix the dynamic-system-prompt issue (move per-turn candidate context out of system role to restore KV-cache prefix coverage in Ask chat). Tool miscount corrected manually from suggested "Phase 28" to actual next-integer "Phase 35"._
 _Updated: 2026-04-29 — Phase 35 plans created (35-01..04): 4 plans across 2 waves — surgical refactor of useQuestions.ts + source-reading invariant test + CLAUDE.md load-bearing section + project-wide audit/VERIFICATION._
+_Updated: 2026-04-29 — Phase 35 COMPLETE (4/4 plans). 7/7 must-haves verified (35-VERIFICATION-PHASE-CLOSE.md). System prompt now byte-stable across Ask-chat turns; KV-cache prefix covers [system, ...history]. New invariant test `useQuestions-system-prompt-stability.test.mjs` passes 5/5; CLAUDE.md Phase 35 load-bearing rule landed; chatStream audit confirms 24/26 call sites are one-shot, 2/26 (useQuestions Pass 1+2) now properly append-only with tail assistant context. Test regex hotfix `22a5162e` (shorthand-property compatibility). No regressions in prior-phase invariant tests._
