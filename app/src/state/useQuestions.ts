@@ -143,6 +143,8 @@ export function useQuestions(): UseQuestionsReturn {
         // lets the provider's KV-cache prefix cover [system, ...history] across turns.
         // See app/CLAUDE.md "Ask-chat system prompt — byte-stable across turns" and
         // tests/state/useQuestions-system-prompt-stability.test.mjs.
+        // Strict-alternation note: the tail position is `user(ack) → assistant(ctx) → user(query)`
+        // so chat templates requiring user→assistant alternation (Qwen via LM Studio) accept turn 1.
         const systemPrompt = [
           'You are a knowledgeable learning assistant. Answer questions clearly and thoroughly.',
           'Do not generate harmful, illegal, sexually explicit, or deceptive content.',
@@ -150,6 +152,17 @@ export function useQuestions(): UseQuestionsReturn {
         ]
           .filter(Boolean)
           .join('\n');
+
+        // ═══ Phase 35 gap closure (UAT-1) — Strict-alternation user-ack ═══
+        // Constant byte-stable user message inserted BETWEEN ...historyMessages and the
+        // tail assistant context message so chat templates that strictly require user→
+        // assistant alternation (Qwen via LM Studio's OpenAI-compatible proxy was the
+        // prompting incident; smaller Llama variants likely also affected) accept the
+        // turn-1 shape. KV-cache benefit preserved because (a) the ack is a constant,
+        // (b) it lives AFTER history (still byte-stable across turns), (c) Pass 1 and
+        // Pass 2 reference the same closure constant. See app/CLAUDE.md "Ask-chat
+        // system prompt — byte-stable across turns" and the source-reading test.
+        const USER_ACK_BEFORE_GRAPH_CONTEXT = 'Here is the knowledge graph context for this turn:';
 
         // Tail-position assistant message carries the per-turn candidate context pack.
         // Keep this OUT of the system prompt — system must be byte-stable across turns
@@ -176,6 +189,7 @@ export function useQuestions(): UseQuestionsReturn {
           [
             { role: 'system', content: systemPrompt },
             ...historyMessages,
+            { role: 'user', content: USER_ACK_BEFORE_GRAPH_CONTEXT },
             { role: 'assistant', content: assistantContextMessage },
             { role: 'user', content },
           ],
@@ -236,6 +250,7 @@ export function useQuestions(): UseQuestionsReturn {
               [
                 { role: 'system', content: systemPrompt },
                 ...historyMessages,
+                { role: 'user', content: USER_ACK_BEFORE_GRAPH_CONTEXT },
                 { role: 'assistant', content: assistantContextMessage },
                 { role: 'user', content },
                 {
