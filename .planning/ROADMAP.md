@@ -277,7 +277,7 @@ Plans:
 
 **Depends on:** Phase 16
 
-**Plans:** 4/4 plans complete
+**Plans:** 4/4 original plans complete + 1 gap-closure plan pending (35-05)
 
 Plans:
 - [x] 17-00-PLAN.md — Wave 0 test scaffold for youtube.service.ts
@@ -972,17 +972,18 @@ Plans:
 
 ### Phase 35: fix the dynamic-system-prompt issue
 
-**Status:** COMPLETE (2026-04-29) — 35-01..04 plans all green; 7/7 must-haves verified in 35-VERIFICATION-PHASE-CLOSE.md
+**Status:** GAP CLOSURE IN PLANNING (2026-04-29) — 35-01..04 plans all green BUT UAT Test 1 surfaced a blocker (Qwen via LM Studio jinja-template error "No user query found in messages"); 35-05 gap closure plan created
 **Goal:** Move the per-turn `formatCandidateContextPack(candidatePack)` interpolation out of the `useQuestions.ts:askStreaming` system prompt into a tail-position assistant message so the provider's KV-cache prefix covers the full conversation history (system + append-only history) instead of breaking at the dynamic-content byte. Adds source-reading invariant test, CLAUDE.md load-bearing-rule section, and project-wide `chatStream`/`chatCompletion` audit confirming all other call sites are intentionally one-shot.
 **Requirements**: none (no roadmap REQ-IDs; this is a structural-quality phase driven by LabPresentation Section 4.7 self-disclosure)
 **Depends on:** Phase 34
-**Plans:** 4/4 plans complete
+**Plans:** 4/4 original plans complete + 1 gap-closure plan pending (35-05)
 
 Plans:
 - [x] 35-01-PLAN.md — Refactor useQuestions.ts: byte-stable system prompt + tail assistant context message in both Pass 1 and Pass 2 (Wave 1)
 - [x] 35-02-PLAN.md — Add source-reading invariant test useQuestions-system-prompt-stability.test.mjs (Wave 1)
 - [x] 35-03-PLAN.md — Add CLAUDE.md Phase 35 load-bearing-rule section adjacent to Classification dedup (Wave 2; depends on 35-01) (completed 2026-04-29)
 - [x] 35-04-PLAN.md — Project-wide chatStream/chatCompletion audit + 35-VERIFICATION.md must-haves rollup (Wave 1)
+- [ ] 35-05-PLAN.md — Gap closure: insert USER_ACK_BEFORE_GRAPH_CONTEXT user-ack between history and assistant context in Pass 1 + Pass 2 to satisfy strict-alternation chat templates (Qwen via LM Studio); extend invariant test + append strict-alternation paragraph to CLAUDE.md (Wave 1; gap_closure)
 
 ---
 
@@ -997,3 +998,4 @@ _Updated: 2026-04-25 — Phase 34 plans created (34-01..08): 8 plans across 5 wa
 _Updated: 2026-04-29 — Phase 35 added: fix the dynamic-system-prompt issue (move per-turn candidate context out of system role to restore KV-cache prefix coverage in Ask chat). Tool miscount corrected manually from suggested "Phase 28" to actual next-integer "Phase 35"._
 _Updated: 2026-04-29 — Phase 35 plans created (35-01..04): 4 plans across 2 waves — surgical refactor of useQuestions.ts + source-reading invariant test + CLAUDE.md load-bearing section + project-wide audit/VERIFICATION._
 _Updated: 2026-04-29 — Phase 35 COMPLETE (4/4 plans). 7/7 must-haves verified (35-VERIFICATION-PHASE-CLOSE.md). System prompt now byte-stable across Ask-chat turns; KV-cache prefix covers [system, ...history]. New invariant test `useQuestions-system-prompt-stability.test.mjs` passes 5/5; CLAUDE.md Phase 35 load-bearing rule landed; chatStream audit confirms 24/26 call sites are one-shot, 2/26 (useQuestions Pass 1+2) now properly append-only with tail assistant context. Test regex hotfix `22a5162e` (shorthand-property compatibility). No regressions in prior-phase invariant tests._
+_Updated: 2026-04-29 — Phase 35 gap closure plan 35-05 created from UAT.md Test 1 blocker (Qwen via LM Studio jinja "No user query found in messages" error). Inserts constant byte-stable user-ack message between ...historyMessages and assistantContextMessage in BOTH Pass 1 and Pass 2 of useQuestions.askStreaming, extends source-reading invariant test with sixth assertion, appends strict-alternation paragraph to CLAUDE.md Phase 35 section. CONTEXT.md D-08 risk realized; 35-01-SUMMARY pre-recorded fallback executed verbatim._
