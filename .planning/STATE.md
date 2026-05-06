@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: gap closure)
 status: Executing Phase 36
-stopped_at: Completed 36-03-PLAN.md (Wave 2 GAP-1 + GAP-2 persistent derived list + cyclic walker; QueueState extended with derivedList + cyclePosition; refillQueue uses appendToDerivedList + walkDerivedList; 4/6 plans complete)
-last_updated: "2026-05-06T07:39:04Z"
+stopped_at: Completed 36-05-PLAN.md (Wave 3 doc-sync; CLAUDE.md Concept Feed Pipeline section updated to reflect Phase 36 closures — MAX_QUEUE_SIZE documented, GAP-1/3/4 struck through with closure annotations, lazy-skip removal trigger described; 5/6 plans complete)
+last_updated: "2026-05-06T07:46:25Z"
 progress:
   total_phases: 21
   completed_phases: 0
@@ -12,7 +12,18 @@ progress:
   completed_plans: 0
 ---
 
-# Project State: Phase 36 WAVE 2 COMPLETE — Plans 36-01 (GAP-3) + 36-02 (GAP-4) + 36-03 (GAP-1 + GAP-2) GREEN; Wave 3 (Plan 36-04 integration smoke + 36-05 doc-sync) ready
+# Project State: Phase 36 WAVE 3 (36-05) COMPLETE — Plans 36-01 (GAP-3) + 36-02 (GAP-4) + 36-03 (GAP-1 + GAP-2) + 36-05 (GAP-6 doc-sync) GREEN; Plan 36-04 (integration smoke) running in parallel
+
+## Latest Decisions (Phase 36-05, 2026-05-06 — Wave 3 GAP-6 + doc-sync for closed gaps)
+
+- [Phase 36-05] Updated CLAUDE.md "Concept Feed Generation Pipeline" section to reflect post-Phase-36 reality. Four surgical edits in one atomic commit `e97e5df5` (`docs(36-05): update CLAUDE.md Concept Feed Pipeline section — close GAP-1/2/3/4 + document MAX_QUEUE_SIZE (closes GAP-6)`), 1 file changed (+14 / -7).
+- [Phase 36-05] Edit 1 — Numeric defaults: added `Queue maximum size: \`MAX_QUEUE_SIZE\` = **32** (in post-queue.service.ts:13)` bullet. Closes GAP-6 doc drift — the constant has existed since post-queue introduction but was never documented in CLAUDE.md.
+- [Phase 36-05] Edit 2 — Diagram DERIVED LIST box: cross-references `postQueueService.appendToDerivedList(ids[]) — dedups by conceptId` so future agents who read "append-only" can find the implementation by name.
+- [Phase 36-05] Edit 3 — Diagram DERIVED LIST box: replaced never-implemented physical-removal wording with the lazy-skip mechanism that 36-03 actually shipped: `walkDerivedList LAZILY skips explored ids at walk time rather than physically splicing the array (which would corrupt cyclePosition — see RESEARCH § Pitfall 1)`.
+- [Phase 36-05] Edit 4 — Known divergences: struck through GAP-1, GAP-3, GAP-4 with closure annotations naming the Phase 36 plan that closed each. The "Each concept gets at most 2 entries" line was rewritten as a non-strikethrough statement of intent (`BASE_ENTRIES_PER_CONCEPT (4) entries by default, doubled to 8 if important`) — Phase 36 didn't change per-concept multiplicity, only style proportionality. The "Removal on read" line (already struck via Phase 33) was extended: "Phase 36 layered the lazy-skip walker on top". GAP-5 (queue serves variable count vs. strictly 4 per swipe) preserved as `(Out of scope for Phase 36.)`.
+- [Phase 36-05] All 6 required-content sentinel greps pass: `MAX_QUEUE_SIZE.*32 = 1`, `postQueueService.appendToDerivedList = 1`, `walkDerivedList = 2`, `Phase 36 GAP-1 = 1`, `Phase 36 GAP-3 = 1`, `Phase 36 GAP-4 = 1`. All 6 byte-stability greps for OTHER load-bearing rule sections pass: `html, body { overflow: hidden } = 3`, `minWidth: 0 = 2`, `Never re-introduce dynamic content into the system prompt = 1`, `USER_ACK_BEFORE_GRAPH_CONTEXT = 2`, `normalizeAnchorName = 3`, `ANCHOR_PRE_CHECK_SIMILARITY_THRESHOLD = 1`. No other CLAUDE.md section changed.
+- [Phase 36-05] One minor wording adjustment vs. plan §<action> EDIT 1 example: rephrased from `Queue maximum size: **32** (\`MAX_QUEUE_SIZE\` ...)` to `Queue maximum size: \`MAX_QUEUE_SIZE\` = **32** (...)` so the regex `MAX_QUEUE_SIZE.*32` matches positively. Regex-compliance tweak, not a semantic change. No other deviations from plan.
+- [Phase 36-05] Phase 36 progress: 5/6 plans complete (36-00 RED tests, 36-01 GAP-3, 36-02 GAP-4, 36-03 GAP-1+GAP-2, 36-05 GAP-6 doc-sync). Plan 36-04 integration smoke running in parallel — different file (`tests/services/refill-queue-integration.test.mjs`) so no conflict.
 
 ## Latest Decisions (Phase 36-03, 2026-05-06 — Wave 2 GAP-1 + GAP-2 persistent derived list + cyclic walker)
 

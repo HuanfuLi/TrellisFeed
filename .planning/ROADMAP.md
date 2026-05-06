@@ -990,7 +990,7 @@ Plans:
 **Goal:** Close four divergences between CLAUDE.md "Concept Feed Generation Pipeline" design and live code: (GAP-1) derived list rebuilt from scratch each refill instead of append-only with cycle position; (GAP-2) no cyclic walker — same concepts re-suggested same order each cycle; (GAP-3) i.i.d. style sampling produces small-N variance (8-entry batches routinely have zero image / zero suggestion); (GAP-4) style-axis interleave alone — same-anchor entries cluster regardless of style spread. Plus GAP-6 doc fix (MAX_QUEUE_SIZE = 32 not documented).
 **Requirements**: GAP-1, GAP-2, GAP-3, GAP-4, GAP-6 (gap-closure phase — no new functional REQ-IDs; tracking via GAP-IDs from 36-RESEARCH.md)
 **Depends on:** Phase 35
-**Plans:** 4/6 plans executed
+**Plans:** 5/6 plans executed
 
 Plans:
 - [x] 36-00-test-stubs-red-PLAN.md — Write 3 RED test stubs (derived-list, style-assignment-stratified, spread-by-concept) covering all four GAPs (Wave 0)
@@ -998,7 +998,7 @@ Plans:
 - [x] 36-02-spread-by-concept-PLAN.md — Add spreadByConcept to concept-feed.service.ts and wire into enqueueInterleaved before spreadByStyle (Wave 1; closes GAP-4)
 - [x] 36-03-persistent-derived-list-PLAN.md — Extend QueueState with derivedList + cyclePosition + 4 new methods; refactor refillQueue Step 1 to append + walk (Wave 2; closes GAP-1 + GAP-2)
 - [ ] 36-04-integration-smoke-PLAN.md — End-to-end composition smoke test verifying all four invariants together; full npm test no-NEW-failure check (Wave 3)
-- [ ] 36-05-claude-md-doc-sync-PLAN.md — Update CLAUDE.md Concept Feed Pipeline section: document MAX_QUEUE_SIZE=32 (closes GAP-6); cross-reference appendToDerivedList; describe lazy-skip; strike GAP-1/3/4 (Wave 3)
+- [x] 36-05-claude-md-doc-sync-PLAN.md — Update CLAUDE.md Concept Feed Pipeline section: document MAX_QUEUE_SIZE=32 (closes GAP-6); cross-reference appendToDerivedList; describe lazy-skip; strike GAP-1/3/4 (Wave 3)
 
 ---
 
@@ -1017,3 +1017,4 @@ _Updated: 2026-04-29 — Phase 35 gap closure plan 35-05 created from UAT.md Tes
 _Updated: 2026-04-29 — Phase 35-05 EXECUTED (3 atomic commits on `gsd/phase-33-hygiene-and-polish`: refactor `0372b456` + test `98a75aae` + docs `ae4398a1`). useQuestions.ts now declares `USER_ACK_BEFORE_GRAPH_CONTEXT='Here is the knowledge graph context for this turn:'` and emits it as `role:'user'` between history and assistantContextMessage in BOTH passes. Source-reading invariant suite passes 6/6 (5 pre-existing + 1 new). CLAUDE.md Phase 35 section now documents strict-alternation rationale + Rules item 3 references the new constant. tsc clean; npm test baseline preserved at 389 pass / 26 fail (pre-existing JSON-import-attribute issues only). Triple-guard intact: code + 6th invariant test + CLAUDE.md rule. ROADMAP plan-count now 5/5 complete. Operator UAT re-run on real device pending for empirical close-out._
 _Updated: 2026-04-29 — Phase 35 EMPIRICALLY CLOSED. UAT round 2 on Qwen 3.5 via LM Studio: all 3 tests PASS (single-turn streams cleanly, multi-turn coherent, web-search Pass 2 cited). Strict-alternation fix from 35-05 confirmed working on the project's primary local-LLM dev path. Phase status flipped to COMPLETE. Public LabPresentation/SCRIPTS.md slide 4.7 self-disclosure ("I haven't shipped the fix yet") can now be flipped to past tense before the talk._
 _Updated: 2026-05-06 — Phase 36 added: gap closure on curiosity feed randomness and weights (close known divergences from CLAUDE.md "Concept Feed Generation Pipeline" — non-persistent derived list, no cycle walker, i.i.d. style sampling clustering, no concept-axis variety constraint). Tool miscount corrected manually from suggested "Phase 28" to actual next-integer "Phase 36"._
+_Updated: 2026-05-06 — Phase 36-05 EXECUTED: doc-sync to CLAUDE.md "Concept Feed Generation Pipeline" section. Atomic commit `e97e5df5` (1 file, +14/-7) lands four edits: MAX_QUEUE_SIZE=32 documented in Numeric defaults (closes GAP-6), `postQueueService.appendToDerivedList(ids[])` cross-referenced in APPEND-ONLY line, lazy-skip removal trigger (`walkDerivedList` reading `dailyReadService.getExploredAnchors()`) replaces never-implemented physical-removal wording, and Known divergences list strikes through GAP-1/GAP-3/GAP-4 with Phase 36 closure annotations. GAP-5 (queue serves variable count) preserved as out-of-scope. All 6 required-content greps pass, all 6 byte-stability greps for OTHER load-bearing rule sections pass. Phase 36 now 5/6 plans complete; 36-04 integration smoke running in parallel._
