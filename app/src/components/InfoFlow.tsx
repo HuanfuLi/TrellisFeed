@@ -335,7 +335,10 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen, videoP
             {videoPlaying === post.id ? (
               <>
                 <iframe
-                  src={`https://www.youtube.com/embed/${post.videoMeta.videoId}?autoplay=1&playsinline=1&rel=0`}
+                  // Phase 36 GAP-C: enablejsapi=1 added for symmetry with YouTubeEmbed.
+                  // Inline-feed video posts route to PostDetailScreen via onOpen for the
+                  // Detector D postMessage path; this iframe is the inline preview.
+                  src={`https://www.youtube.com/embed/${post.videoMeta.videoId}?autoplay=1&playsinline=1&rel=0&enablejsapi=1`}
                   style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none', pointerEvents: 'auto' }}
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
@@ -436,7 +439,11 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen, videoP
                 overflow: 'hidden',
               }}>
                 <iframe
-                  src={`https://www.youtube.com/embed/${post.videoMeta.videoId}?playsinline=1&autoplay=1&rel=0`}
+                  // Phase 36 GAP-C: enablejsapi=1 added for symmetry. Shorts emit
+                  // CONCEPT_EXPLORED on tap-to-play (see setVideoPlaying handler) — the
+                  // postMessage path is not used here, but keep the param for any future
+                  // postMessage-based detection on shorts.
+                  src={`https://www.youtube.com/embed/${post.videoMeta.videoId}?playsinline=1&autoplay=1&rel=0&enablejsapi=1`}
                   style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none', pointerEvents: 'auto' }}
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen

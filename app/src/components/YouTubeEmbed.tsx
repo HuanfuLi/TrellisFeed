@@ -18,7 +18,10 @@ export function YouTubeEmbed({ videoId }: YouTubeEmbedProps) {
       }}
     >
       <iframe
-        src={`https://www.youtube.com/embed/${videoId}?playsinline=1&rel=0`}
+        // Phase 36 GAP-C: enablejsapi=1 activates the YouTube IFrame Player API
+        // postMessage channel — required for Detector D in PostDetailScreen to
+        // observe ENDED + currentTime events. See .planning/debug/video-completion-signal-missing.md.
+        src={`https://www.youtube.com/embed/${videoId}?playsinline=1&rel=0&enablejsapi=1`}
         style={{
           position: 'absolute',
           top: 0,
