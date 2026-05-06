@@ -1201,8 +1201,21 @@ export async function refillQueue(questions: Question[]): Promise<void> {
     const maxPosts = (settings.feed?.dailyGenerationCapMultiplier ?? FEED_DEFAULTS.dailyGenerationCapMultiplier) * Math.max(anchors.length, 3);
     if (allExplored && postQueueService.getTotalGenerated() >= maxPosts) return;
 
-    // Step 1: Build concept batch for this cycle
-    const conceptIds = buildConceptBatch(questions);
+    // Step 1: Build concept batch + append-only persist + cyclic walk
+    // (Phase 36 GAP-1 + GAP-2). buildConceptBatch still filters explored anchors
+    // (Phase 33 gap fix line ~798 — DO NOT remove that filter; it gates fresh
+    // appends). The derived list is now PERSISTED in QueueState and grows
+    // append-only across refill cycles within the same day; the walker resumes
+    // from saved cyclePosition rather than restarting from index 0 each time.
+    //
+    // Removal-on-read is LAZY: walkDerivedList skips conceptIds in `exploredIds`
+    // (already computed at line ~1199). Physical splice would corrupt the walker's
+    // index — see RESEARCH § Pitfall 1.
+    const dueConceptIds = buildConceptBatch(questions);
+    postQueueService.appendToDerivedList(dueConceptIds);
+    // Walk batchSize entries — large enough to refill the queue past REFILL_THRESHOLD
+    // (12) up toward MAX_QUEUE_SIZE (32). 16 leaves room for downgrades + spread.
+    const conceptIds = postQueueService.walkDerivedList(16, exploredIds);
     if (conceptIds.length === 0) return;
 
     // Step 2: Pre-check API keys — validate non-empty strings (D-20, D-21 step 1).
