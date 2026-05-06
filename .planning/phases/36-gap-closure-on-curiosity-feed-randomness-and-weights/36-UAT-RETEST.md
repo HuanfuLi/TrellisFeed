@@ -35,3 +35,62 @@ this in dev tools, manually edit the date field to one day in the past).
   fires.
 
 **Pass criteria**: Steps 1-4 produce only the expected behavior; no flicker; no error UI.
+
+### Test 3 (GAP-C retest — video completion signal)
+
+**Setup**: Have ≥1 video post in the home feed (sourceType==='video', not 'short'). Open one
+of the questions whose anchor is the video's source — verify it's NOT yet in
+`localStorage.echolearn_daily_read.exploredAnchors`.
+
+**Reproduction steps for Detector D (full-length video)**:
+1. Tap a video post card from the home feed → PostDetailScreen opens.
+2. Press play on the YouTube iframe.
+3. Watch ≥80% of the video OR let it finish to ENDED.
+4. Open browser devtools console (or Capacitor LiveReload remote console on device).
+5. Observe.
+
+**Expected after GAP-C fix**:
+- DevTools Application → Local Storage → `echolearn_daily_read` → `exploredAnchors` array now
+  contains the video's resolved anchor ID.
+- Returning to home feed: VineProgress chip increments by 1.
+- Subsequent refill cycles do NOT generate new posts for this anchor (lazy-skip in walkDerivedList).
+- No console errors about cross-origin postMessage.
+
+**Reproduction steps for short tap-to-play emit**:
+1. Find a short post in the home feed (presentationStyle==='short' / sourceType==='short').
+2. Tap the play button (thumbnail tap).
+3. Open browser devtools console.
+
+**Expected after GAP-C fix**:
+- Tap-to-play swaps thumbnail for the YouTube iframe AND fires `CONCEPT_EXPLORED` immediately.
+- DevTools Application → Local Storage → `echolearn_daily_read` → `exploredAnchors` contains the
+  short's resolved anchor ID after the tap.
+- VineProgress chip increments by 1 on next home-feed render.
+- Subsequent refill cycles do NOT generate new posts for this anchor.
+
+**Failure mode (GAP-C active, pre-fix)**:
+- Watching the video to completion → `exploredAnchors` is unchanged. VineProgress does not
+  increment. Walker continues to re-suggest the same anchor on swipe-for-more.
+- Tapping a short to play → no signal at all. Same blind-spot symptoms.
+
+### Test 2 (GAP-B retest — text-art ≥ floor(N×0.55) at N=16, OPTIONAL — primary verification is automated)
+
+**Setup**: Single non-important anchor in localStorage (one Q&A → one anchor → derivedList.length=4
+after first refill).
+
+**Reproduction steps**:
+1. Open home feed; trigger refillQueue (swipe-for-more once → triggers refill).
+2. Continue swiping until 16+ posts have been served from the queue across one or two refill
+   cycles.
+3. Count the number of posts where presentationStyle === 'text-art' (visible as text-only cards
+   with a colored background and Georgia / Courier / Palatino / etc. font).
+
+**Expected after GAP-B fix**:
+- text-art count >= 8 out of any 16 served (floor(16 × 0.55)). Pre-fix observed: ~4.
+- News + video + short combined are ≤ ~6 (≈ 3 × 0.10 × 16 = ~5; ±1 stratification slack).
+
+**Primary verification**: `cd app && node --test tests/services/refill-queue-integration.test.mjs`
+asserts this in code (Test 7); manual check is for operator confidence, not gating.
+
+**Failure mode (GAP-B active, pre-fix)**: text-art count = 4 across 16 posts (50%). News/video/
+short combined dominate at ~67% of posts (~10 out of 16).
