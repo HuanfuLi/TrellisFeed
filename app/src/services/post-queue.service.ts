@@ -290,15 +290,28 @@ export const postQueueService = {
    * cyclePosition advances PAST them too — so explored entries don't hang the
    * walker.
    *
-   * Termination: walks at most `2 * derivedList.length` steps to avoid an
-   * infinite loop when every entry is explored. Returns whatever it found
-   * (possibly empty — caller has an early-return guard).
+   * Termination: walks at most `Math.max(count * 2, derivedList.length)` steps
+   * to avoid an infinite loop when every entry is explored. The `count * 2`
+   * factor preserves the lazy-skip headroom (walker can scan up to twice the
+   * request size to skip explored entries); the `len` floor preserves the
+   * "at least one full pass" property when count < len. Returns whatever it
+   * found (possibly empty — caller has an early-return guard). See Phase 36
+   * GAP-B closure (post-queue.service.ts comment + .planning/debug/style-mix-imbalance.md).
    */
   walkDerivedList(count: number, exploredIds: Set<string>): string[] {
     const len = _state.derivedList.length;
     if (len === 0) return [];
     const result: string[] = [];
-    const maxSteps = len * 2;
+    // Phase 36 GAP-B fix: termination must scale with `count`, not just with len.
+    // Original `len * 2` silently capped walkDerivedList(16, ...) at 8 entries
+    // when len=4 (single non-important anchor case), causing assignStylesStratified
+    // to receive N=8 instead of N=16 — at N=8 the largest-remainder math pins
+    // text-art at its floor (4/8 = 50%) because text-art's remainder 0.40 loses
+    // to minority 0.80. At N=16, text-art's 0.80 beats minority 0.60 → 9/16 = 56%.
+    // Math.max preserves the original `len * 2` lazy-skip headroom while ALSO
+    // guaranteeing the walker can fulfill the count request (modulo all-explored).
+    // See .planning/debug/style-mix-imbalance.md for the full math walkthrough.
+    const maxSteps = Math.max(count * 2, len);
     let steps = 0;
     while (result.length < count && steps < maxSteps) {
       const id = _state.derivedList[_state.cyclePosition];
