@@ -117,4 +117,37 @@ describe('derived list (GAP-1 + GAP-2)', () => {
     assert.equal(list.filter(x => x === 'a').length, 8);
     assert.equal(list.filter(x => x === 'b').length, 4);
   });
+
+  // Test 11 — Phase 36 GAP-B regression: walker honors `count` when count > len * 2
+  // Pre-fix: walkDerivedList(16, emptySet) on a 4-entry list returned only 8 entries
+  // because maxSteps was hard-capped at len * 2 = 8. assignStylesStratified then
+  // operated on N=8 (text-art floor-pinned at 50%) instead of N=16 (text-art = 56%).
+  // See .planning/debug/style-mix-imbalance.md for the math walkthrough.
+  it('walkDerivedList(16, emptySet) on 4-entry list returns 16 entries (4 wraps)', () => {
+    postQueueService.appendToDerivedList(['a', 'b', 'c', 'd']);
+    const out = postQueueService.walkDerivedList(16, new Set());
+    assert.equal(out.length, 16, 'walker must return the requested count, not be capped at len * 2');
+    // Contents are the input list cycled 4 times — exact ordering reflects 4 full passes
+    assert.deepEqual(out, ['a','b','c','d','a','b','c','d','a','b','c','d','a','b','c','d']);
+    // cyclePosition wraps back to 0 after 16 steps (16 mod 4 = 0)
+    assert.equal(postQueueService.getCyclePosition(), 0, 'cyclePosition wraps to 0 after 16 steps on a 4-entry list');
+  });
+
+  // Test 12 — Phase 36 GAP-B regression: explored skips do not break count fulfillment
+  // when count requires multiple wraps. Pre-fix: with len=4 and one explored id,
+  // maxSteps=8 = exactly len*2, so the walker would terminate at 6 returns (8 steps
+  // - 2 skips of 'a'). Post-fix: maxSteps = max(16, 4) = 16, so the walker can do
+  // up to 16 steps, but it terminates EARLY when result.length === count = 8.
+  // Wait — re-checking: with count=8 and 'a' explored on a 4-entry list, after
+  // 12 steps (3 full loops, skipping 'a' 3 times), result has 9 entries — already
+  // exceeded count=8 at step 11 (3 'b'+3 'c'+3 'd' = 9, but result.length<count
+  // breaks out at 8). Final result = 8 entries, all non-'a'.
+  it('walkDerivedList(8, exploredSet) advances past skipped ids while honoring count', () => {
+    postQueueService.appendToDerivedList(['a', 'b', 'c', 'd']);
+    const out = postQueueService.walkDerivedList(8, new Set(['a']));
+    assert.equal(out.length, 8, 'walker must return count=8 entries, skipping `a` lazily');
+    assert.ok(out.every(id => id !== 'a'), 'no explored id should appear in the output');
+    // Sanity: contents are b/c/d cycled — first wrap [b,c,d], second wrap [b,c,d], third partial [b,c]
+    assert.deepEqual(out, ['b','c','d','b','c','d','b','c']);
+  });
 });

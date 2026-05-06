@@ -154,4 +154,29 @@ describe('refill-queue integration (Phase 36 GAP-1..4 composition)', () => {
     const walked = postQueueService.walkDerivedList(8, new Set(['A', 'B', 'C']));
     assert.deepEqual(walked, [], 'all-explored produces []');
   });
+
+  // Test 7 — Phase 36 GAP-B regression: text-art ≥ floor(N×0.55) at N=16
+  // The single-anchor case (len=4) was the GAP-B blind spot. Pre-fix: walkDerivedList(16, ...)
+  // returned 8 entries due to the maxSteps=len*2 cap, assignStylesStratified pinned text-art
+  // at 4/8 = 50%. Post-fix: walker returns 16, text-art's remainder 0.80 beats minority 0.60,
+  // text-art = 9/16 = 56%, satisfying floor(16 * 0.55) = 8.
+  // See .planning/debug/style-mix-imbalance.md for the math walkthrough.
+  it('GAP-B regression — text-art count ≥ floor(N × 0.55) at N=16 with single-anchor derivedList', () => {
+    postQueueService.appendToDerivedList(['anchor1', 'anchor1', 'anchor1', 'anchor1']);
+    const conceptIds = postQueueService.walkDerivedList(16, new Set());
+    assert.equal(conceptIds.length, 16, 'walker must return 16 entries — pre-fix bug returned 8');
+
+    const assignments = assignStylesStratified(conceptIds, allAvailable);
+    assert.equal(assignments.length, 16, 'one assignment per conceptId');
+
+    const counts = {};
+    for (const a of assignments) counts[a.style] = (counts[a.style] ?? 0) + 1;
+    const textArtFloor = Math.floor(16 * STYLE_WEIGHTS['text-art']);
+    assert.ok(
+      (counts['text-art'] ?? 0) >= textArtFloor,
+      `text-art count must be >= floor(16 * 0.55) = ${textArtFloor}; got ${counts['text-art'] ?? 0}. ` +
+      `Pre-Phase-36-07 bug: walker truncated to N=8, text-art floor-pinned at 4/8 = 50%. ` +
+      `Post-fix: text-art should land at 9/16 = 56% (largest-remainder bonus).`,
+    );
+  });
 });
