@@ -9,6 +9,9 @@ import { imageGenerationService } from '../services/imageGeneration.service';
 import { inferImageStyle, buildImagePrompt } from '../services/postFormatting.service';
 import { normalizePlainText } from '../lib/text-normalization';
 import { settingsService } from '../services/settings.service';
+import { dailyReadService, getAnchorIdForPost } from '../services/daily-read.service';
+import { questionService } from '../services/question.service';
+import { eventBus } from '../lib/event-bus';
 import { SuggestionCard } from './SuggestionCard';
 
 // ── Text-art theme pool (random selection per render) ──────────────────────────
@@ -424,6 +427,24 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen, videoP
               if (videoPlaying !== post.id) {
                 e.stopPropagation();
                 setVideoPlaying(post.id);
+                // Phase 36 GAP-C: tap-to-play on a short post is a strong implicit
+                // completion signal (5-15s clips). Shorts have interactive=false at
+                // ConceptCard line 295 — they never navigate to PostDetailScreen, so
+                // Detectors A/B/C/D never run. Emit CONCEPT_EXPLORED here instead.
+                // Idempotent via the markExplored call below (no-op if already set).
+                // See .planning/debug/video-completion-signal-missing.md.
+                try {
+                  const allQ = questionService.getAll({ includeFlagged: true });
+                  const byId = new Map(allQ.map(q => [q.id, q]));
+                  const anchorId = getAnchorIdForPost(post, byId);
+                  if (anchorId && !dailyReadService.isExplored(anchorId)) {
+                    dailyReadService.markExplored(anchorId);
+                    eventBus.emit({ type: 'CONCEPT_EXPLORED', payload: { anchorId } });
+                  }
+                } catch (err) {
+                  // Defensive: never let signal-emit errors break tap-to-play.
+                  console.warn('[InfoFlow] short tap-to-play emit failed:', err);
+                }
               }
             }}
             style={{
