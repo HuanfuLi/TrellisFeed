@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: gap closure)
-status: Phase 36 complete — verifier passed 13/13 must-haves
-stopped_at: Phase 36 COMPLETE (2026-05-06). All 6 plans executed; verifier 13/13 must-haves; 33 new passing tests; npm test baseline preserved at 422/26
-last_updated: "2026-05-06T08:00:00Z"
+status: Phase 36 + GAP-B fix shipped — 36-07 closes walker truncation regression; 36-06/36-08 still in-flight
+stopped_at: Completed 36-07-PLAN.md (GAP-B walker termination guard fix)
+last_updated: "2026-05-06T17:23:29.118Z"
 progress:
   total_phases: 21
   completed_phases: 0
@@ -12,7 +12,16 @@ progress:
   completed_plans: 0
 ---
 
-# Project State: Phase 36 COMPLETE — Verifier 13/13 must-haves passed. All four design-drift gaps closed (GAP-1 persistent derivedList, GAP-2 cyclic walker with lazy-skip, GAP-3 stratified style allocation, GAP-4 spreadByConcept mixer) + GAP-6 CLAUDE.md doc-sync. Branch `gsd/phase-33-hygiene-and-polish` ready for review/merge.
+# Project State: Phase 36 COMPLETE — Verifier 13/13 must-haves passed. All four design-drift gaps closed (GAP-1 persistent derivedList, GAP-2 cyclic walker with lazy-skip, GAP-3 stratified style allocation, GAP-4 spreadByConcept mixer) + GAP-6 CLAUDE.md doc-sync. Branch `gsd/phase-33-hygiene-and-polish` ready for review/merge. **GAP-B (Plan 36-07) fix shipped** on top of the verified Phase 36 — restores text-art's 56% target for single-anchor users.
+
+## Latest Decisions (Phase 36-07, 2026-05-06 — GAP-B walker termination guard fix)
+
+- [Phase 36-07] Closed GAP-B (MAJOR — Phase 36 regression discovered post-merge via gsd-debugger root-cause analysis at `.planning/debug/style-mix-imbalance.md`). Walker `maxSteps = len * 2` at post-queue.service.ts:301 silently capped `walkDerivedList(16, ...)` to 8 entries when `len = 4` (single non-important anchor case, BASE_ENTRIES_PER_CONCEPT=4). assignStylesStratified then operated on N=8 instead of the design-target N=16 — at N=8, text-art's 0.40 remainder loses to all four minority-style 0.80 remainders, so text-art was floor-pinned at 4/8 = 50% instead of the design target 9/16 = 56%.
+- [Phase 36-07] Fix is one-line drop-in at post-queue.service.ts:301 — `const maxSteps = Math.max(count * 2, len);`. The `count * 2` factor preserves the original lazy-skip headroom (walker can scan up to twice the request size to skip explored entries); the `len` floor preserves the "at least one full pass possible" property when `count < len` (Test 9 stable). Chosen over the RESEARCH `fullLoops < 2` alternative because it's a one-line drop-in, preserves existing while-loop structure, and produces the same effect with less code.
+- [Phase 36-07] Added 3 regression tests: derived-list.test.mjs +Test 11 (walkDerivedList(16, emptySet) on 4-entry list returns 16 via 4 wraps, asserts exact contents `['a','b','c','d']×4`) + Test 12 (walkDerivedList(8, exploredSet={'a'}) honors count while skipping 'a' across 3 wraps; asserts exact contents `['b','c','d','b','c','d','b','c']`). refill-queue-integration.test.mjs +Test 7 (full append→walk→stratify pipeline at len=4; asserts text-art ≥ floor(16 × 0.55) = 8). Phase 36 quick-suite: 53/53 → 56/56 GREEN. tsc clean for post-queue.service.ts.
+- [Phase 36-07] CLAUDE.md updated: +1 bullet under "Numeric defaults" documenting `maxSteps = Math.max(count * 2, len)` contract + the GAP-B regression risk; +1 closed-divergence strikethrough entry naming Phase 36 GAP-B / Plan 36-07. All other load-bearing sections byte-stable (verified: html/body overflow=3, ChatInput minWidth=2, USER_ACK_BEFORE_GRAPH_CONTEXT=2, ANCHOR_PRE_CHECK_SIMILARITY_THRESHOLD=1, MAX_QUEUE_SIZE=1).
+- [Phase 36-07] Phase 33 invariants preserved (verified post-edit): `dueAnchors` filter at concept-feed.service.ts:798 still present (count=2); `allExplored && postQueueService.getTotalGenerated()` cap-gate at concept-feed.service.ts:1265-1267 still present (count=1). Plan 36-07 explicitly did NOT touch concept-feed.service.ts — the walker fix is upstream of those Phase 33 invariants and orthogonal to them.
+- [Phase 36-07] Three atomic commits on branch `gsd/phase-33-hygiene-and-polish`, all `--no-verify` per parallel-execution coordination with Plan 36-06 (HomeScreen warm-start guard, disjoint files): `3664383e` (Task 1 fix, post-queue.service.ts +17/-4) + `62a7697f` (Task 2 tests, derived-list + refill-queue-integration +58/-0) + `27c941b9` (Task 3 docs, CLAUDE.md +2/-0). Out-of-scope: HomeScreen.tsx TS6133 unused-var warning is in 36-06's territory; logged not fixed.
 
 ## Latest Decisions (Phase 36-04, 2026-05-06 — Wave 3 integration smoke for GAP-1..4 composition)
 
@@ -563,7 +572,7 @@ Completed Phase 27 Plan 07 autonomous tasks (27-07-PLAN.md) — Task 1 landed pr
 ## Previous Session
 
 Completed Phase 27 Plan 04 (27-04-PLAN.md) — Locale switcher + mid-stream abort. SettingsScreen gains a 4-language picker at the top (D-19) that calls `i18n.changeLanguage`, persists `preferences.locale` (+ legacy `language` back-compat), and emits `LOCALE_CHANGED`. Row LABEL hardcoded as `Language / 语言 / Idioma / 言語` for cross-locale affordance. `providers/llm/index.ts` gains `CompletionOptions.signal?: AbortSignal` + a `composeSignal(callerSignal, ms)` helper that uses `AbortSignal.any` (Chromium 116+ / Safari 17.4+ / Node 20+) with manual-forwarder fallback; signal threaded through all 7 fetch call sites (openAI completion/stream, claude completion/stream, gemini completion/stream, plus localPost for Android-local streaming). `useQuestions.askStreaming` declares ONE shared AbortController at the top of the try, subscribes to LOCALE_CHANGED once, passes the same signal to BOTH Pass 1 and Pass 2 chatStream calls, and guards every buildAndSave path with 6 aborted-checks (loop entries, post-loop, pre-persistence, catch-level AbortError short-circuit) — toasts `ask.localeChangedDiscarded` and returns null on abort so partial half-English/half-Japanese output never persists (D-22). TDD cadence: RED commit landed failing test first, GREEN commit made all 4 assertions pass. 48 Wave 0 tests green; `npx vite build` green (3.0s); zero new tsc errors. Deviations: used direct `settingsService.getSync/.set` instead of `useSettings` hook (matches existing SettingsScreen convention); added `callerSignal?` param to `localPost` (LOCALE_CHANGED was silently not cancelling Android-local completions otherwise); removed dead `void options;` statements from claudeStream + geminiStream. Commits: `da5c69b5` (Task 1 — locale switcher), `c93ecf46` (Task 2 RED — failing test), `7e301831` (Task 2 GREEN — provider plumbing + useQuestions abort).
-**Stopped At:** Completed 36-01-PLAN.md (Wave 1 GAP-3 stratified style allocation; assignStylesStratified alias exported)
+**Stopped At:** Completed 36-07-PLAN.md (GAP-B walker termination guard fix)
 **Date:** 2026-04-16
 
 ## Latest Decisions (Phase 25)
