@@ -45,6 +45,22 @@ export function HomeScreen() {
     // D-32 fallback: show last 4 from history
     return postHistoryService.getPosts().slice(0, 4);
   });
+  // Phase 36 GAP-A: Capture warm-start presence at mount BEFORE the async
+  // getDailyPosts call. Used as the disambiguator inside the .then handler
+  // to decide whether an empty getDailyPosts return is a normal cold-start
+  // (warm-start was seeded → queue not ready yet, no error UI) or a genuine
+  // error (no warm-start AND empty fetch → "Check your API keys" UI).
+  //
+  // Ref-snapshot pattern (NOT functional updater) chosen for two reasons:
+  // 1. Strict Mode compatibility: React.StrictMode (main.tsx:14) double-invokes
+  //    state updater functions in dev. Calling setGenerationError(true) inside
+  //    a setDailyPosts(prev => ...) updater violates the React purity contract
+  //    (updater functions must be side-effect-free).
+  // 2. The warm-start presence is a fact-at-mount, not a continuously-derived
+  //    value — useRef is the canonical place for "snapshot at construction
+  //    time, read in async callbacks" data.
+  // See .planning/debug/cold-start-empty-feed.md.
+  const warmStartHadPostsRef = useRef(dailyPosts.length > 0);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationError, setGenerationError] = useState(false);
@@ -97,9 +113,25 @@ export function HomeScreen() {
     setGenerationError(false);
     void conceptFeedService.getDailyPosts(questions).then((posts) => {
       if (!cancelled) {
-        setDailyPosts(posts);
+        // Warm-start guard (Phase 36 GAP-A): getDailyPosts returns [] on a new-day
+        // cold start by design (today's queue empty; refillQueue runs in background).
+        // The useState initializer at lines 38-47 may have already seeded dailyPosts
+        // with yesterday's leftover queue via postQueueService.getYesterdayQueue().
+        // Only overwrite when getDailyPosts returns actual posts — top-level setter,
+        // pure (Strict Mode safe).
+        if (posts.length > 0) {
+          setDailyPosts(posts);
+        }
         setIsGenerating(false);
-        if (posts.length === 0 && questions.length > 0) {
+        // Error-gate suppression (Phase 36 GAP-A): only flag generationError when
+        // BOTH today's getDailyPosts returned [] AND no warm-start fallback was
+        // seeded at mount (warmStartHadPostsRef captured pre-fetch). If warm-start
+        // was present, the user can see content and the empty `posts` is a normal
+        // cold-start condition, not an error. Original 6cda914e error-gate intent
+        // (genuinely broken API keys) is preserved by the !warmStartHadPostsRef.current
+        // condition — no warm-start AND no fetch result = real error.
+        // Top-level conditional setter (no nested setState — Strict Mode safe).
+        if (posts.length === 0 && questions.length > 0 && !warmStartHadPostsRef.current) {
           setGenerationError(true);
         }
       }
