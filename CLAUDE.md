@@ -96,7 +96,36 @@ The "vine unfinished but No more posts" symptom (reported 2026-04-19) was caused
 
 The derived list is **append-only** (grows on new question, shrinks on read). The queue is **cyclic** over that list. The queue serves **4 per swipe**. Don't re-architect this — implement what the design says.
 
----
+___
+
+## Video & short post completion signals (Phase 36 GAP-C — load-bearing)
+
+Video and short posts have explicit completion-signal detectors so the lazy-skip walker (Phase 36 GAP-2) sees `CONCEPT_EXPLORED` events for video-only engagement. Without these detectors, watching a video for a concept never increments vine progress and the walker keeps re-suggesting the same concept on subsequent refills.
+
+### Detector inventory (PostDetailScreen.tsx + InfoFlow.tsx)
+
+| Detector | Where | Trigger | Post types covered |
+|----------|-------|---------|---------------------|
+| A — scroll 70% sentinel | `PostDetailScreen.tsx:124-137` | IntersectionObserver fires on essay sentinel | text/image/news (sentinel below essay body) |
+| B — 30s dwell timer | `PostDetailScreen.tsx:139-149` | setTimeout(30_000) on resolvedAnchorId | all post types reaching detail screen |
+| C — Q&A follow-up | `PostDetailScreen.tsx:406-411` | handleAsk on user submit | all post types reaching detail screen |
+| **D — YouTube IFrame API postMessage** | `PostDetailScreen.tsx` (after Detector B) | window 'message' event: `onStateChange info=0` (ENDED) OR `infoDelivery currentTime/duration >= 0.8` | video (sourceType='video') |
+| **Short tap-to-play emit** | `InfoFlow.tsx` (short card onClick) | setVideoPlaying invoked on short post | short (sourceType='short') — never reaches detail screen |
+
+### Why both Detector D AND the short tap emit exist
+
+- Video posts (`sourceType === 'video'`) navigate to PostDetailScreen via `onOpen`. Detector D listens on the parent window for postMessage events from the YouTube iframe (which now includes `enablejsapi=1` — required to activate the API channel).
+- Short posts (`sourceType === 'short'`) have `interactive=false` at `InfoFlow.tsx:295` and play inline in the feed without navigating. Detectors A/B/C/D never run. Tap-to-play (5-15s clips) is the strongest implicit signal available — `setVideoPlaying(post.id)` fires `dailyReadService.markExplored` + `eventBus.emit({type: 'CONCEPT_EXPLORED', ...})` directly.
+
+### Rules
+
+1. **Don't remove `enablejsapi=1` from YouTubeEmbed.tsx or InfoFlow.tsx iframe srcs.** Without it, YouTube's IFrame Player API postMessage channel is closed and Detector D receives nothing. Tests at `app/tests/screens/PostDetailScreen.video-detector.test.mjs` enforce Detector D's structure but cannot detect a missing query param at compile time — the iframe-src tests at `app/tests/components/InfoFlow.short-tap-emit.test.mjs` do not directly assert this either, but `grep -c "enablejsapi=1" app/src/components/YouTubeEmbed.tsx app/src/components/InfoFlow.tsx` is the source-of-truth check (must return ≥3).
+2. **Don't remove the origin allowlist from Detector D** (`event.origin !== 'https://www.youtube.com' && event.origin !== 'https://www.youtube-nocookie.com'`). Without it, any iframe on the page can spoof concept-explored signals.
+3. **Don't add a duplicate emit in the InfoFlow video card onClick** (line ~368-371). Video posts route through PostDetailScreen → Detector D; adding an emit at the feed-tap point would double-fire (idempotent via `hasEmittedRef`/markExplored, but still unnecessary work + confusing semantics). Test `InfoFlow.short-tap-emit.test.mjs` enforces `markExplored` is called exactly once in InfoFlow.tsx.
+4. **Don't introduce new event types** for video/short completion. Reuse `CONCEPT_EXPLORED` (CLAUDE.md best practice rule 6 — one signal per semantic event). The walker subscribes to a single event; multiple events would fragment the lazy-skip flow.
+5. **Don't refactor PostDetailScreen.tsx's video render branch** (lines 589-601) to a native `<video>` element. The current `YouTubeEmbed` is correct; the postMessage path is preferred over swapping renderers.
+
+___
 
 ## Header positioning (Phase 32.1 — load-bearing, do not regress)
 
