@@ -50,6 +50,7 @@ Output: One new test file `app/tests/services/refill-queue-integration.test.mjs`
 @CLAUDE.md
 @app/src/services/concept-feed.service.ts
 @app/src/services/post-queue.service.ts
+@app/src/services/style-assignment.ts
 @app/tests/services/concept-batch-filter.test.mjs
 @app/tests/services/concept-feed-cross-cycle-dedup.test.mjs
 @app/tests/services/post-queue.test.mjs
@@ -61,6 +62,8 @@ The full refillQueue chain consumed by this test:
 - Pattern reference: see how `concept-feed-cross-cycle-dedup.test.mjs` mocks these — REUSE that mock setup approach if it exists; otherwise build a minimal one.
 
 Use `import.meta.env` is NOT defined under node --test by default — refillQueue's dev-mode console.info blocks all guard with `typeof import.meta !== 'undefined' && import.meta.env?.DEV` so they will safely no-op under the test.
+
+STYLE_WEIGHTS is imported from `app/src/services/style-assignment.ts` to avoid drift if weights are tuned. Sum of current weights is 1.00 (0.10 + 0.55 + 0.05 + 0.10 + 0.10 + 0.10 = 1.00).
 </interfaces>
 </context>
 
@@ -73,15 +76,17 @@ Use `import.meta.env` is NOT defined under node --test by default — refillQueu
     - app/tests/services/concept-feed-cross-cycle-dedup.test.mjs (existing pattern for mocking the refill pipeline — copy its mock-loader setup if present)
     - app/tests/services/post-queue.test.mjs (the localStorage polyfill pattern)
     - app/src/services/concept-feed.service.ts (refillQueue function — read enough to know what mocks are needed; specifically lines 1234-1442)
-    - .planning/phases/36-gap-closure-on-curiosity-feed-randomness-and-weights/36-RESEARCH.md (Validation Architecture — list of GAP-mapped tests)
+    - app/src/services/style-assignment.ts (STYLE_WEIGHTS export — import this rather than re-declaring the literal in the test)
+    - .planning/phases/36-gap-closure-on-curiosity-feed-randomness-and-weights/36-RESEARCH.md (Validation Architecture — list of GAP-mapped tests + Pitfall 4 multiplicity contract)
     - CLAUDE.md "Concept Feed Generation Pipeline" + "Numeric defaults" (REFILL_THRESHOLD = 12, MAX_QUEUE_SIZE = 32, BASE_ENTRIES_PER_CONCEPT = 4)
   </read_first>
   <behavior>
-    - Test 1 (GAP-1 derivedList monotonic): 2 anchors due → refillQueue() → derivedList.length === N1 (= 4 + 4 = 8 base entries). Call refillQueue() again → derivedList.length still === N1 (dedup; no rebuild explosion). Add a third anchor to the questions list → refillQueue() again → derivedList.length === N1 + 4 = N2.
+    - Test 1 (GAP-1 derivedList monotonic ACROSS calls): two appendToDerivedList calls — first with ['A','B'], second with ['A','C']. Assert getDerivedList().length === 3 ('A' deduplicated across calls; 'C' added). This validates ACROSS-CALL dedup, NOT within-call dedup. Within-call multiplicity preservation is covered by Plan 36-00 Test 10.
     - Test 2 (GAP-2 cyclePosition advances): After first refill, cyclePosition > 0 (walkDerivedList collected entries). After second refill, cyclePosition has advanced further. After enough refills to exceed derivedList.length, cyclePosition wraps (< previous max).
-    - Test 3 (GAP-3 stratification): After one refill that produced N >= 8 posts, style counts in the resulting queue are within ±1 of round(N × weight) for every style with weight > 0.
+    - Test 3 (GAP-3 stratification): After one refill that produced N >= 8 posts, style counts in the resulting queue are within ±1 of round(N × weight) for every style with weight > 0. STYLE_WEIGHTS sum = 1.00.
     - Test 4 (GAP-4 concept spread): Resulting queue has no two adjacent posts sharing the same anchor key (when ≥ 2 anchors are due).
-    - Test 5 (allExplored gate): Mark all anchors as explored via dailyReadService → refillQueue() → either no-op (early return) or the cap-gate fires (totalGenerated does not grow). Either way, the queue post count does not exceed the cap.
+    - Test 5 (Composition smoke): 3 unique IDs ['A','B','C'] appended; walkDerivedList(3, emptySet) returns 3 entries. Each fed through assignStylesStratified + spread to build a 3-post queue.
+    - Test 6 (allExplored gate): Mark all anchors as explored via exploredIds set → walkDerivedList returns []. (Caller's early-return guard is what stops generation; no posts enter queue.)
 
     Notes on mocking strategy: refillQueue is heavy. If the existing test mock infrastructure (concept-feed-cross-cycle-dedup.test.mjs) does not already isolate refillQueue from its async dependencies, this test may need to use a SIMPLIFIED variant — e.g., instead of calling refillQueue() directly, construct the same conceptId batch + assignment + spread pipeline in-test using the exported helpers (assignStylesStratified, spreadByConcept, spreadByStyle, postQueueService.appendToDerivedList, postQueueService.walkDerivedList).
 
@@ -120,7 +125,7 @@ globalThis.localStorage = {
 // each helper in isolation; this file validates that they COMPOSE.
 
 const { postQueueService } = await import('../../src/services/post-queue.service.ts');
-const { assignStylesStratified } = await import('../../src/services/style-assignment.ts');
+const { assignStylesStratified, STYLE_WEIGHTS } = await import('../../src/services/style-assignment.ts');
 const { spreadByConcept, spreadByStyle } = await import('../../src/services/concept-feed.service.ts');
 
 const allAvailable = { hasYoutubeKey: true, hasTavilyKey: true, hasImageGenKey: true };
@@ -146,22 +151,23 @@ describe('refill-queue integration (Phase 36 GAP-1..4 composition)', () => {
     postQueueService.loadQueue();
   });
 
-  it('GAP-1 — derivedList is monotonic non-decreasing across refills', () => {
-    // Cycle 1: 2 anchors, 4 entries each = 8 entries
-    postQueueService.appendToDerivedList(['A', 'A', 'A', 'A', 'B', 'B', 'B', 'B']);
-    const len1 = postQueueService.getDerivedList().length;
-    assert.equal(len1, 2, '2 unique IDs after first append (dedup within batch)');
-
-    // Cycle 2: same anchors due → no growth (dedup)
+  it('GAP-1 — derivedList grows monotonically across calls; cross-call dedup eliminates repeats', () => {
+    // Cycle 1: 2 unique IDs appended
     postQueueService.appendToDerivedList(['A', 'B']);
-    const len2 = postQueueService.getDerivedList().length;
-    assert.equal(len2, 2);
+    const len1 = postQueueService.getDerivedList().length;
+    assert.equal(len1, 2, 'first call appends both unique IDs');
 
-    // Cycle 3: new anchor C arrives
-    postQueueService.appendToDerivedList(['C']);
+    // Cycle 2: 'A' is already present (cross-call dedup), 'C' is new
+    postQueueService.appendToDerivedList(['A', 'C']);
+    const len2 = postQueueService.getDerivedList().length;
+    assert.equal(len2, 3, "'A' deduplicated across calls; 'C' added");
+    assert.ok(len2 >= len1, 'derivedList is monotonic non-decreasing');
+
+    // Cycle 3: another already-present concept and a new one
+    postQueueService.appendToDerivedList(['B', 'D']);
     const len3 = postQueueService.getDerivedList().length;
-    assert.equal(len3, 3, 'new anchor grows derivedList');
-    assert.ok(len3 >= len2, 'derivedList is monotonic');
+    assert.equal(len3, 4, "'B' deduplicated; 'D' added");
+    assert.ok(len3 >= len2, 'still monotonic');
   });
 
   it('GAP-2 — cyclePosition advances and wraps across multiple walks', () => {
@@ -188,8 +194,8 @@ describe('refill-queue integration (Phase 36 GAP-1..4 composition)', () => {
     const counts = {};
     for (const a of assignments) counts[a.style] = (counts[a.style] ?? 0) + 1;
 
-    // STYLE_WEIGHTS sum = 1.05 (sum of 0.10 + 0.55 + 0.05 + 0.10 + 0.10 + 0.10)
-    const STYLE_WEIGHTS = { image: 0.10, 'text-art': 0.55, suggestion: 0.05, news: 0.10, video: 0.10, short: 0.10 };
+    // STYLE_WEIGHTS sum = 1.00 (0.10 + 0.55 + 0.05 + 0.10 + 0.10 + 0.10).
+    // Imported from style-assignment.ts to avoid drift if weights are tuned.
     const sum = Object.values(STYLE_WEIGHTS).reduce((a, b) => a + b, 0);
     for (const [style, weight] of Object.entries(STYLE_WEIGHTS)) {
       const expected = Math.round(12 * weight / sum);
@@ -218,10 +224,10 @@ describe('refill-queue integration (Phase 36 GAP-1..4 composition)', () => {
   });
 
   it('Composition smoke — append/walk/stratify/spread chain produces a usable queue', () => {
-    // Simulate one refill cycle:
-    postQueueService.appendToDerivedList(['A', 'B', 'C', 'A', 'B', 'C', 'A', 'B']);
-    const conceptIds = postQueueService.walkDerivedList(8, new Set());
-    assert.equal(conceptIds.length, 3, 'dedup gives 3 unique IDs; walk visits each');
+    // Simulate one refill cycle with 3 unique anchors due:
+    postQueueService.appendToDerivedList(['A', 'B', 'C']);
+    const conceptIds = postQueueService.walkDerivedList(3, new Set());
+    assert.equal(conceptIds.length, 3, 'walk returns all 3 unique IDs');
 
     const assignments = assignStylesStratified(conceptIds, allAvailable);
     assert.equal(assignments.length, 3);
@@ -260,14 +266,16 @@ describe('refill-queue integration (Phase 36 GAP-1..4 composition)', () => {
   <acceptance_criteria>
     - File app/tests/services/refill-queue-integration.test.mjs exists
     - File contains 6 `it(...)` blocks (verify: `grep -cE "^  it\\(" app/tests/services/refill-queue-integration.test.mjs` returns 6)
-    - File imports postQueueService, assignStylesStratified, spreadByConcept, spreadByStyle (verify: `grep -E "postQueueService|assignStylesStratified|spreadByConcept|spreadByStyle" app/tests/services/refill-queue-integration.test.mjs | wc -l` >= 4)
+    - File imports postQueueService, assignStylesStratified, STYLE_WEIGHTS, spreadByConcept, spreadByStyle (verify: `grep -E "postQueueService|assignStylesStratified|STYLE_WEIGHTS|spreadByConcept|spreadByStyle" app/tests/services/refill-queue-integration.test.mjs | wc -l` >= 5)
+    - STYLE_WEIGHTS is imported from style-assignment.ts, NOT redeclared as a literal (verify: `grep -c "import.*STYLE_WEIGHTS.*style-assignment" app/tests/services/refill-queue-integration.test.mjs` >= 1; `grep -c "const STYLE_WEIGHTS = {" app/tests/services/refill-queue-integration.test.mjs` returns 0)
+    - Test 3 comment correctly states `STYLE_WEIGHTS sum = 1.00` (verify: `grep -c "sum = 1.00" app/tests/services/refill-queue-integration.test.mjs` >= 1; `grep -c "sum = 1.05" app/tests/services/refill-queue-integration.test.mjs` returns 0)
     - Running `cd app && node --test tests/services/refill-queue-integration.test.mjs` exits 0
     - `cd app && npm test` reports total pass count >= 389 + 27 = 416 (Wave 0 added 27, this plan adds 6 → 33 new, baseline was 389; baseline included the existing tests that survive)
     - `cd app && npm test` reports fail count <= 26 (no NEW failures vs. baseline; pre-existing JSON-import-attribute failures may persist)
     - `cd app && npx tsc -b --noEmit` exits 0
     - The simplified-path comment is present at the top of the file (verify: `grep -c "SIMPLIFIED INTEGRATION PATH" app/tests/services/refill-queue-integration.test.mjs` >= 1)
   </acceptance_criteria>
-  <done>Integration smoke file lands; 6/6 GREEN; full npm test reports no NEW failures vs. the 389/26 baseline; tsc clean.</done>
+  <done>Integration smoke file lands; 6/6 GREEN; full npm test reports no NEW failures vs. the 389/26 baseline; tsc clean; STYLE_WEIGHTS imported (no drift); Test 3 comment correct.</done>
 </task>
 
 </tasks>
@@ -282,6 +290,10 @@ describe('refill-queue integration (Phase 36 GAP-1..4 composition)', () => {
 Plan complete when:
 - [ ] refill-queue-integration.test.mjs exists with 6 tests
 - [ ] All 6 tests GREEN
+- [ ] STYLE_WEIGHTS imported from style-assignment.ts (no inline duplicate)
+- [ ] Test 3 comment accurately states `sum = 1.00`
+- [ ] Test 1 validates ACROSS-call dedup (length=3 after two appends), not within-call dedup
+- [ ] Test 5 walks 3 unique IDs (matches input cardinality)
 - [ ] Full npm test no-NEW-failure check passes (fail count unchanged from baseline)
 - [ ] tsc clean
 - [ ] Single atomic commit
@@ -294,4 +306,5 @@ After completion, create `.planning/phases/36-gap-closure-on-curiosity-feed-rand
 - Comparison vs. baseline (389 pass / 26 fail per STATE.md): explicit assertion that fail count is UNCHANGED
 - If any new test files in Waves 0-2 produced unexpected suite-level effects, document them
 - Git commit hash
+</output>
 </output>

@@ -3,7 +3,7 @@ phase: 36-gap-closure-on-curiosity-feed-randomness-and-weights
 plan: 03
 type: execute
 wave: 2
-depends_on: [00, 02]
+depends_on: [00, 01, 02]
 files_modified:
   - app/src/services/post-queue.service.ts
   - app/src/services/concept-feed.service.ts
@@ -14,7 +14,7 @@ must_haves:
   truths:
     - "QueueState extended with `derivedList: string[]` and `cyclePosition: number`; persisted to localStorage under existing key `echolearn_post_queue`"
     - "Existing localStorage payloads (without the new fields) load defensively to [] and 0 — no crash, no migration script"
-    - "appendToDerivedList is append-only and dedups by conceptId equality across calls within the same day"
+    - "appendToDerivedList preserves WITHIN-CALL multiplicity (first append of ['a','a','a','a','b','b','b','b'] stores 8 entries) and dedups ACROSS calls (subsequent calls do NOT re-append IDs already in derivedList)"
     - "walkDerivedList(count, exploredIds) advances cyclePosition, wraps to 0 on overflow, lazily skips IDs in exploredIds, returns [] if every entry is explored without infinite-looping"
     - "resetForNewDay clears derivedList to [] and cyclePosition to 0"
     - "buildConceptBatch + refillQueue refactored to (a) call appendToDerivedList instead of producing a fresh per-call list, (b) use walkDerivedList to collect the next batch, (c) STILL filter explored anchors at buildConceptBatch (Phase 33 gap fix line 798 not regressed) AND lazy-skip at walk time"
@@ -82,7 +82,7 @@ New service methods on `postQueueService`:
 ```typescript
 getDerivedList(): string[];                                    // shallow copy
 getCyclePosition(): number;
-appendToDerivedList(conceptIds: string[]): void;               // dedup by id, no rebuild
+appendToDerivedList(conceptIds: string[]): void;               // dedup ACROSS calls (multiplicity preserved within call), no rebuild
 walkDerivedList(count: number, exploredIds: Set<string>): string[];  // advances cyclePosition; wraps; lazy-skips explored
 ```
 
@@ -112,12 +112,12 @@ Where `exploredIds` is the SAME `Set<string>` already computed at line 1264 from
     - app/src/services/post-queue.service.ts (entire file — 205 lines, all of it; you are extending it surgically)
     - app/tests/services/derived-list.test.mjs (Wave 0 — 10 tests; your implementation must make all 10 GREEN)
     - app/tests/services/post-queue.test.mjs (existing tests — your edits must NOT regress these)
-    - .planning/phases/36-gap-closure-on-curiosity-feed-randomness-and-weights/36-RESEARCH.md (Pattern 1 → "What/Fix/Cycle position overflow behavior" + "Code Examples → Derived List Walk" + "Risk Register row 1 — localStorage migration")
+    - .planning/phases/36-gap-closure-on-curiosity-feed-randomness-and-weights/36-RESEARCH.md (Pattern 1 → "What/Fix/Cycle position overflow behavior" + "Code Examples → Derived List Walk" + "Risk Register row 1 — localStorage migration" + "Pitfall 4 — derived list multiplicity preservation")
     - CLAUDE.md "Concept Feed Generation Pipeline" section (this is the design spec; you are implementing list 2/3 of the pipeline)
   </read_first>
   <behavior>
     - Wave 0 Test 1 (append-only across two calls): pass
-    - Wave 0 Test 2 (dedup by id): pass
+    - Wave 0 Test 2 (dedup by id ACROSS calls): pass
     - Wave 0 Test 3 (persistence across loadQueue): pass
     - Wave 0 Test 4 (resetForNewDay clears new fields): pass
     - Wave 0 Test 5 (defensive load on legacy localStorage payload): pass
@@ -125,7 +125,7 @@ Where `exploredIds` is the SAME `Set<string>` already computed at line 1264 from
     - Wave 0 Test 7 (wrap to 0 after reaching length): pass
     - Wave 0 Test 8 (lazy skip explored): pass
     - Wave 0 Test 9 (returns [] when all explored, no infinite loop): pass
-    - Wave 0 Test 10 (importance preservation on first append, dedup on subsequent): pass
+    - Wave 0 Test 10 (within-call multiplicity preserved on FIRST append; subsequent calls dedup ACROSS calls): pass — first append of `['a','a','a','a','a','a','a','a','b','b','b','b']` stores 8 'a' entries and 4 'b' entries; second append of `['a','b']` is a no-op (both already in derivedList). The 8/4 weighting survives unchanged.
     - Existing post-queue.test.mjs all still pass (FIFO, dequeue, needsRefill, cycleNumber, getYesterdayQueue, etc.)
   </behavior>
   <action>
@@ -213,22 +213,38 @@ function load(): QueueState {
   },
 
   /**
-   * Append-only — dedup by conceptId equality. Concepts already present
-   * are NOT re-appended (their first-time multiplicity from buildConceptBatch
-   * is preserved; importance changes mid-day are accepted as a next-day
-   * approximation per RESEARCH § Pitfall 4).
+   * Append-only — dedup ACROSS calls by conceptId equality. Within a single
+   * call, multiplicity is PRESERVED (a first-time append of ['a','a','a','a',
+   * 'b','b','b','b'] stores 8 entries because none of the IDs are present in
+   * derivedList yet). Subsequent calls with overlapping IDs are no-ops for
+   * those IDs (so a second append of ['a','b'] adds zero entries — the 8/4
+   * importance weighting from the first call survives unchanged).
    *
-   * The derived list is the source of truth for "what the user could see
-   * next today". buildConceptBatch upstream filters out explored anchors,
-   * so this method only ever receives unexplored due anchors.
+   * Rationale (RESEARCH § Pitfall 4): Importance weighting is encoded as
+   * multiplicity (an important anchor gets 8 entries, normal anchor 4 entries
+   * — see buildConceptBatch BASE_ENTRIES_PER_CONCEPT). buildConceptBatch
+   * upstream filters out explored anchors and assigns multiplicities, then
+   * passes the weighted list here. We must preserve those multiplicities on
+   * first append, AND we must dedup across calls so subsequent refills do not
+   * re-append the same anchor's entries (which would either double-weight or
+   * inflate the derived list unboundedly).
+   *
+   * Implementation: seed `existing` ONCE from the current derivedList before
+   * the loop, then ONLY check membership inside the loop — do NOT mutate
+   * `existing` per iteration. Within-call duplicates pass the check (none are
+   * in the seeded `existing` set) so multiplicity is preserved; cross-call
+   * duplicates are caught because the seed reflects what's already persisted.
    */
   appendToDerivedList(conceptIds: string[]): void {
     if (conceptIds.length === 0) return;
-    const seen = new Set(_state.derivedList);
+    // Seed ONCE before loop — captures what's already persisted across calls.
+    // Do NOT mutate this set inside the loop; that would deduplicate
+    // within-call, destroying importance multiplicity (Plan 36-00 Test 10,
+    // RESEARCH § Pitfall 4).
+    const existing = new Set(_state.derivedList);
     let added = 0;
     for (const id of conceptIds) {
-      if (seen.has(id)) continue;
-      seen.add(id);
+      if (existing.has(id)) continue;
       _state.derivedList.push(id);
       added++;
     }
@@ -277,6 +293,7 @@ function load(): QueueState {
 - Do NOT add a separate localStorage key. Everything piggybacks on `echolearn_post_queue` to keep daily cycle state collocated.
 - Do NOT introduce a CONCEPT_EXPLORED subscription here. Lazy skip at walk time (using `exploredIds` argument) is the chosen mechanism per RESEARCH.
 - The `STORAGE_KEY` constant (line 6) is unchanged.
+- **DO NOT mutate `existing` inside the appendToDerivedList loop.** That is the exact bug the checker flagged. Seed before the loop, read-only inside.
 
 **Commit message:** `feat(36-03 Task 1): extend QueueState with derivedList + cyclic walker (closes GAP-1 + GAP-2)`
   </action>
@@ -289,13 +306,14 @@ function load(): QueueState {
     - app/src/services/post-queue.service.ts contains all four new methods (verify: ALL of these greps return >= 1: `grep -c "appendToDerivedList(conceptIds" app/src/services/post-queue.service.ts`, `grep -c "walkDerivedList(count" app/src/services/post-queue.service.ts`, `grep -c "getDerivedList()" app/src/services/post-queue.service.ts`, `grep -c "getCyclePosition()" app/src/services/post-queue.service.ts`)
     - The freshState() function initializes both new fields (verify: `grep -A 10 "function freshState" app/src/services/post-queue.service.ts` shows `derivedList: []` and `cyclePosition: 0`)
     - The load() function defensively reads both new fields (verify: `grep -B 2 -A 2 "Array.isArray(parsed.derivedList)" app/src/services/post-queue.service.ts` finds the line; same for `typeof parsed.cyclePosition`)
-    - `cd app && node --test tests/services/derived-list.test.mjs` exits 0 (Wave 0 — all 10 tests now GREEN)
+    - `appendToDerivedList` does NOT mutate its dedup set inside the loop (verify: `grep -A 12 "appendToDerivedList(conceptIds" app/src/services/post-queue.service.ts | grep -c "existing.add"` returns 0; only `existing.has` should appear inside the loop)
+    - `cd app && node --test tests/services/derived-list.test.mjs` exits 0 (Wave 0 — all 10 tests now GREEN, including Test 10 multiplicity preservation)
     - `cd app && node --test tests/services/post-queue.test.mjs tests/services/post-queue-dedup.test.mjs` exits 0 (existing tests, no regression)
     - `cd app && npx tsc -b --noEmit` exits 0
     - STORAGE_KEY remains 'echolearn_post_queue' — no new localStorage keys (verify: `grep -c "STORAGE_KEY = 'echolearn_post_queue'" app/src/services/post-queue.service.ts` returns 1; `grep -c "localStorage.setItem('echolearn_derived" app/src/services/post-queue.service.ts` returns 0)
     - walkDerivedList has the 2× length termination guard (verify: `grep -A 8 "walkDerivedList" app/src/services/post-queue.service.ts | grep -c "len \\* 2"` >= 1)
   </acceptance_criteria>
-  <done>QueueState extended; four new methods land; freshState + load defensive; Wave 0 derived-list test 10/10 pass; existing post-queue tests no-regression; tsc clean.</done>
+  <done>QueueState extended; four new methods land; freshState + load defensive; appendToDerivedList preserves within-call multiplicity (existing seeded once before loop, never mutated inside); Wave 0 derived-list test 10/10 pass; existing post-queue tests no-regression; tsc clean.</done>
 </task>
 
 <task type="auto" tdd="true">
@@ -310,8 +328,8 @@ function load(): QueueState {
     - CLAUDE.md "Best practices learned in Phase 32.1" rule 1 (search for dead code before assuming) and rule 2 (tests guard live paths) — your refactor must keep the explored-filter at buildConceptBatch:798 alive (Phase 33 gap fix).
   </read_first>
   <behavior>
-    - First refillQueue call of the day: buildConceptBatch returns weighted IDs → appendToDerivedList accepts them → walkDerivedList returns batchSize entries → flow proceeds as before
-    - Second refillQueue call (same day): buildConceptBatch may return SAME or fewer IDs (some explored) → appendToDerivedList dedups → walkDerivedList resumes from saved cyclePosition → user sees DIFFERENT slice of the derived list (no more "fresh array every cycle" defect)
+    - First refillQueue call of the day: buildConceptBatch returns weighted IDs (e.g., 8 entries for an important anchor, 4 for normal) → appendToDerivedList accepts them → walkDerivedList returns batchSize entries → flow proceeds as before
+    - Second refillQueue call (same day): buildConceptBatch may return SAME or fewer IDs (some explored) → appendToDerivedList dedups across calls → walkDerivedList resumes from saved cyclePosition → user sees DIFFERENT slice of the derived list (no more "fresh array every cycle" defect)
     - All anchors explored (allExplored=true): buildConceptBatch returns []; appendToDerivedList no-op; walkDerivedList returns [] (lazy-skip on every entry); refillQueue early-returns at the existing guard
     - Refill across page reloads (loadQueue inside the same day): cyclePosition restored from localStorage; walkDerivedList resumes correctly
     - The Phase 33 gap fix at buildConceptBatch:798 (`!exploredIds.has(a.id)` filter) is PRESERVED — no edits to buildConceptBatch
@@ -400,8 +418,9 @@ Open `app/src/services/concept-feed.service.ts`. ONE surgical edit at the refill
 Plan complete when:
 - [ ] QueueState extended with derivedList + cyclePosition; freshState + load + resetForNewDay all aware
 - [ ] Four new postQueueService methods land (getDerivedList, getCyclePosition, appendToDerivedList, walkDerivedList)
+- [ ] appendToDerivedList preserves within-call multiplicity (seeded `existing` set ONCE before loop, never mutated inside)
 - [ ] refillQueue Step 1 uses append + walk instead of consuming buildConceptBatch directly
-- [ ] Wave 0 derived-list test 10/10 GREEN
+- [ ] Wave 0 derived-list test 10/10 GREEN (including Test 10 multiplicity preservation)
 - [ ] No regression in any existing post-queue / concept-batch / concept-feed test
 - [ ] tsc clean
 - [ ] buildConceptBatch body byte-unchanged
@@ -417,4 +436,5 @@ After completion, create `.planning/phases/36-gap-closure-on-curiosity-feed-rand
 - Confirmation of buildConceptBatch byte-unchanged
 - Confirmation of Phase 33 explored-filter + cap-gate preserved
 - Git commit hash(es)
+</output>
 </output>
