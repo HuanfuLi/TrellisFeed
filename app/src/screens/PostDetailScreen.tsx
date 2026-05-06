@@ -148,6 +148,57 @@ export function PostDetailScreen() {
     };
   }, [resolvedAnchorId, emitExplored]);
 
+  // Detector D: YouTube IFrame API postMessage listener for video posts (Phase 36 GAP-C).
+  // The iframe in YouTubeEmbed.tsx now includes `enablejsapi=1`, which activates YouTube's
+  // postMessage protocol. We listen for two event shapes:
+  //   - { event: 'onStateChange', info: 0 } — playback ENDED (info=0; -1=UNSTARTED, 0=ENDED, 1=PLAYING, 2=PAUSED, 3=BUFFERING, 5=CUED)
+  //   - { event: 'infoDelivery', info: { currentTime, duration, ... } } — heartbeat (~250ms)
+  // Fire emitExplored on ENDED OR when currentTime/duration ≥ 0.8 (video substantially watched).
+  // Origin is restricted to https://www.youtube.com (and the privacy mirror youtube-nocookie.com)
+  // to prevent untrusted page from spoofing concept-explored signals.
+  // See .planning/debug/video-completion-signal-missing.md for the full diagnosis;
+  // CLAUDE.md "Concept Feed Generation Pipeline" section documents this contract.
+  useEffect(() => {
+    if (!post) return;
+    if (post.sourceType !== 'video') return;
+    if (!resolvedAnchorId) return;
+    if (dailyReadService.isExplored(resolvedAnchorId)) return;
+
+    const handleMessage = (event: MessageEvent) => {
+      // Origin allowlist — only trust messages from YouTube domains.
+      if (event.origin !== 'https://www.youtube.com' && event.origin !== 'https://www.youtube-nocookie.com') {
+        return;
+      }
+      // YouTube IFrame API sends a JSON-encoded string. Parse defensively — some
+      // unrelated postMessage payloads (e.g., from extensions) may arrive as objects.
+      let data: { event?: string; info?: unknown };
+      try {
+        data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+      } catch {
+        return;
+      }
+      if (!data || typeof data !== 'object') return;
+
+      // ENDED state — emit immediately.
+      if (data.event === 'onStateChange' && data.info === 0) {
+        emitExplored(resolvedAnchorId);
+        return;
+      }
+      // Heartbeat — emit when watched ≥ 80% of duration.
+      if (data.event === 'infoDelivery' && data.info && typeof data.info === 'object') {
+        const info = data.info as { currentTime?: number; duration?: number };
+        if (typeof info.currentTime === 'number' && typeof info.duration === 'number' && info.duration > 0) {
+          if (info.currentTime / info.duration >= 0.8) {
+            emitExplored(resolvedAnchorId);
+          }
+        }
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [post?.id, post?.sourceType, resolvedAnchorId, emitExplored]);
+
   // Record viewed post in history (idempotent — deduplicates by id)
   useEffect(() => {
     if (post) {
