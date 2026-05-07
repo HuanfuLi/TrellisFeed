@@ -54,15 +54,39 @@ describe('SettingsDataScreen force-new-day dev affordance (Phase 36 GAP-D Fix B)
     );
   });
 
-  it('handler also rolls back the daily-posts cache date so getDailyPosts cache-misses', () => {
-    // Without this, conceptFeedService.getDailyPosts() sees `cached.date === today()`
-    // → cache hit → returns the same posts → no refill triggered. The dev button then
-    // exercises the post-queue snapshot half (Plan 36-09) but not the user-visible
-    // new-day flow. Both caches must roll over together to faithfully simulate midnight.
+  it('handler resets daily-read state so vine progress chip clears on Force New Day', () => {
+    // On a real midnight, dailyReadService.loadState() self-resets via the
+    // parsed.date !== today() check. The dev button cannot advance today(),
+    // so it must explicitly call dailyReadService.reset() to mimic the
+    // natural midnight reset — otherwise the vine progress chip on /home
+    // shows yesterday's exploration count after the rollover. See round-3
+    // sub-issue (a).
     assert.match(
       source,
-      /handleForceNewDay[\s\S]*?echolearn_daily_posts[\s\S]*?\}/,
-      'handleForceNewDay must also mutate `echolearn_daily_posts.date` to yesterday so concept-feed.service.ts:1407 cache-check fails and the queue-drain / refill chain runs. See follow-up correction note in 36-10-SUMMARY.md.',
+      /handleForceNewDay[\s\S]*?dailyReadService\.reset\(\)[\s\S]*?\}/,
+      'handleForceNewDay must call `dailyReadService.reset()` after mutating localStorage so the vine progress chip clears. Without this the chip shows yesterday\'s exploration count after the rollover.',
+    );
+  });
+
+  it('handler does NOT mutate echolearn_daily_posts (Plan 36-11 makes that mutation redundant)', () => {
+    // Commit 6a90224a added a defensive mutation of echolearn_daily_posts.date
+    // to yesterday, intended to prevent the served-posts cache from rendering
+    // across the rollover. Plan 36-11 Task 1's loadCache date-rejection makes
+    // that mutation redundant: stale caches return null without needing
+    // explicit invalidation. Plan 36-13 reverts the dual-cache hack.
+    // This negative assertion ensures we don't accidentally re-introduce it.
+    //
+    // Extract by anchor pair (start of handler → start of next handler) — more
+    // robust than matching on closing-brace indent which silently regresses on
+    // formatter changes.
+    const start = source.indexOf('const handleForceNewDay');
+    const next = source.indexOf('const refreshTokenUsage');
+    assert.ok(start !== -1 && next !== -1 && next > start, 'Could not locate handleForceNewDay anchor pair');
+    const handlerBody = source.slice(start, next);
+    assert.doesNotMatch(
+      handlerBody,
+      /echolearn_daily_posts/,
+      'handleForceNewDay must NOT mutate echolearn_daily_posts directly. loadCache date-rejection (Plan 36-11) handles staleness symmetrically. See commit 6a90224a → reverted in Plan 36-13.',
     );
   });
 });

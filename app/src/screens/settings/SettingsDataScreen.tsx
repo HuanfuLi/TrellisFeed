@@ -86,8 +86,10 @@ export function SettingsDataScreen() {
       // and (a) snapshots the current payload to STORAGE_KEY_YESTERDAY
       // (Plan 36-09); (b) rehydrates _state.posts from parsed.posts
       // (Plan 36-11) so yesterday's UNSERVED queue auto-populates today's
-      // feed. The daily-posts cache (echolearn_daily_posts) is NOT touched —
+      // feed. The rendered daily-posts cache key is NOT touched here —
       // Plan 36-11's loadCache date-rejection handles staleness symmetrically.
+      // (The negative regression test in this plan asserts that exact
+      // localStorage key string is absent from this handler body.)
       const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
       parsed.date = yesterday;
       localStorage.setItem('echolearn_post_queue', JSON.stringify(parsed));
