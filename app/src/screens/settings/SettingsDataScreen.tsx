@@ -83,24 +83,23 @@ export function SettingsDataScreen() {
       }
       const parsed = JSON.parse(raw);
       // Set date to yesterday so the next loadQueue() detects the mismatch
-      // and snapshots the current payload to STORAGE_KEY_YESTERDAY (Plan 36-09).
+      // and (a) snapshots the current payload to STORAGE_KEY_YESTERDAY
+      // (Plan 36-09); (b) rehydrates _state.posts from parsed.posts
+      // (Plan 36-11) so yesterday's UNSERVED queue auto-populates today's
+      // feed. The daily-posts cache (echolearn_daily_posts) is NOT touched —
+      // Plan 36-11's loadCache date-rejection handles staleness symmetrically.
       const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
       parsed.date = yesterday;
       localStorage.setItem('echolearn_post_queue', JSON.stringify(parsed));
-      // Also roll back the rendered daily-posts cache so HomeScreen's getDailyPosts
-      // sees a date mismatch and falls through to the queue-drain / refill chain
-      // instead of cache-hitting on today's posts. Without this the warm-start path
-      // in HomeScreen.tsx is reached but no NEW content is generated at the 8s
-      // refresh, defeating the dev affordance's purpose. (Both caches roll over
-      // together on a real midnight rollover.)
-      const dailyRaw = localStorage.getItem('echolearn_daily_posts');
-      if (dailyRaw) {
-        const dailyParsed = JSON.parse(dailyRaw);
-        dailyParsed.date = yesterday;
-        localStorage.setItem('echolearn_daily_posts', JSON.stringify(dailyParsed));
-      }
       postQueueService.loadQueue();
-      toast('Queue + daily cache dates set to yesterday. Navigating to /home.', 'success');
+      // Reset vine progress (echolearn_daily_read). On a real midnight,
+      // dailyReadService.loadState() self-resets via the parsed.date !==
+      // today() check, but the dev button cannot advance today() — so the
+      // service still sees parsed.date === today() (real today) and never
+      // resets. Manually mimic the midnight reset here. See round-3
+      // sub-issue (a) and daily-read.service.ts:36.
+      dailyReadService.reset();
+      toast('Queue date rolled back; vine progress reset. Navigating to /home.', 'success');
       navigate('/home');
     } catch (err) {
       console.warn('[SettingsDataScreen] force-new-day failed:', err);
