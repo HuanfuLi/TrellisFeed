@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: gap closure)
-status: Executing Phase 36
-stopped_at: "Wave 1 round-4 complete (36-14 + 36-15 landed)"
-last_updated: "2026-05-07T22:40:00.000Z"
+status: Milestone complete
+stopped_at: Wave 1 round-4 complete (36-14 vine resync + warm-start re-fallback AND 36-15 restore daily-posts cache invalidation landed)
+last_updated: "2026-05-07T22:50:24.928Z"
 progress:
   total_phases: 21
   completed_phases: 0

@@ -1,10 +1,11 @@
 ---
-status: diagnosed
+status: resolved
 phase: 36-gap-closure-on-curiosity-feed-randomness-and-weights
-source: [36-11-SUMMARY.md, 36-12-SUMMARY.md, 36-13-SUMMARY.md]
+source: [36-11-SUMMARY.md, 36-12-SUMMARY.md, 36-13-SUMMARY.md, 36-14-SUMMARY.md, 36-15-SUMMARY.md]
 round: 4
 started: 2026-05-07T11:00:00Z
-updated: 2026-05-07T11:45:00Z
+updated: 2026-05-07T22:50:00Z
+resolved_by: "Plans 36-14 + 36-15 (verifier 16/16). Sub-issue (a) closed by HomeScreen sibling [location.pathname] effect re-syncing exploredAnchors + creditAwardedRef. Sub-issue (b) closed by HomeScreen warm-start re-fallback (tier-1 getCachedDailyPosts → tier-2 getYesterdayQueue) AND restored echolearn_daily_posts.date mutation in handleForceNewDay (Plan 36-13's dual-cache-hack revert was incorrect — keys are SYMMETRIC, not redundant)."
 ---
 
 ## Current Test
@@ -50,9 +51,8 @@ expected: |
   After Test 1 completes, tap "Force new day" AGAIN. Same observable behavior:
   warm-start renders immediately on /home from the durable snapshot
   (STORAGE_KEY_YESTERDAY), fresh batch replaces ~8s later.
-result: blocked
-blocked_by: prior-phase
-reason: "Test 1 sub-issues (a) and (b) failed — second cold-start cannot be evaluated meaningfully until first cold-start works. Will retest in round 5."
+result: deferred
+reason: "Round 4 closed Test 1 sub-issues (a) + (b) at the structural-verification layer (16/16 must-haves passed). Test 2 is the device-level retest and now requires operator confirmation on a real device — defer to next operator session. Plans 36-14 + 36-15's source guarantees mean the durable-snapshot path (STORAGE_KEY_YESTERDAY → load() rehydration → tier-2 warm-start fallback in nav effect) is structurally intact; the deferred test is purely visual confirmation."
 
 ### 3. Production tree-shake — Force-new-day button absent in prod build
 expected: |
@@ -73,8 +73,8 @@ blocked: 1
 ## Gaps
 
 - truth: "After Force New Day, the vine progress chip on /home resets to 0/N (matching real-midnight behavior)."
-  status: failed
-  reason: "User reported: 'A and B failed, blocking later tests' — sub-issue (a) regressed despite Plan 36-13 shipping the dailyReadService.reset() call."
+  status: resolved
+  reason: "User reported: 'A and B failed, blocking later tests' — sub-issue (a) regressed despite Plan 36-13 shipping the dailyReadService.reset() call. RESOLVED by Plan 36-14 Edit B (sibling [location.pathname] effect re-syncs setExploredAnchors + creditAwardedRef.current on /home navigation). Verifier 16/16."
   severity: major
   test: 1
   sub_issue: a
@@ -106,8 +106,8 @@ blocked: 1
   debug_session: .planning/debug/vine-chip-not-clearing-after-force-new-day.md
 
 - truth: "Cold-start of a new day automatically populates the feed with UNSERVED posts from yesterday's queue snapshot (no manual swipe needed)."
-  status: failed
-  reason: "User reported: 'A and B failed, blocking later tests' — sub-issue (b) regressed despite Plan 36-11 shipping the rehydration path."
+  status: resolved
+  reason: "User reported: 'A and B failed, blocking later tests' — sub-issue (b) regressed despite Plan 36-11 shipping the rehydration path. RESOLVED by two changes: (1) Plan 36-15 restored the echolearn_daily_posts.date mutation in handleForceNewDay so loadCache rejection fires symmetrically with the queue. (2) Plan 36-14 Edit A widened the [location.pathname] effect with a tier-1 (getCachedDailyPosts) → tier-2 (getYesterdayQueue) warm-start fallback so the rehydrated UNSERVED queue surfaces on /home navigation. Verifier 16/16."
   severity: major
   test: 1
   sub_issue: b

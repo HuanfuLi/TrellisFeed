@@ -990,7 +990,7 @@ Plans:
 **Goal:** Close four divergences between CLAUDE.md "Concept Feed Generation Pipeline" design and live code: (GAP-1) derived list rebuilt from scratch each refill instead of append-only with cycle position; (GAP-2) no cyclic walker — same concepts re-suggested same order each cycle; (GAP-3) i.i.d. style sampling produces small-N variance (8-entry batches routinely have zero image / zero suggestion); (GAP-4) style-axis interleave alone — same-anchor entries cluster regardless of style spread. Plus GAP-6 doc fix (MAX_QUEUE_SIZE = 32 not documented).
 **Requirements**: GAP-1, GAP-2, GAP-3, GAP-4, GAP-6 (gap-closure phase — no new functional REQ-IDs; tracking via GAP-IDs from 36-RESEARCH.md)
 **Depends on:** Phase 35
-**Plans:** 15/16 plans executed
+**Plans:** 16/16 plans complete
 
 Plans:
 - [x] 36-00-test-stubs-red-PLAN.md — Write 3 RED test stubs (derived-list, style-assignment-stratified, spread-by-concept) covering all four GAPs (Wave 0)
