@@ -748,3 +748,7 @@ Completed Phase 27 Plan 04 (27-04-PLAN.md) — Locale switcher + mid-stream abor
 - Phase 30 added: Redesign curiosity feed as scroll progress bar with daily reading quota credits
 - Phase 32.1 inserted after Phase 32: v1.4 UAT retest gap closure — queue cycling (G1), video touch overlay (G2), starter posts retest (G3), starter post persistence (G4) (URGENT)
 - Phase 36 added: gap closure on curiosity feed randomness and weights
+
+### Pending Todos
+
+- [Double column feed to further mimic Rednote/Bilibili info flow](todos/pending/2026-05-07-double-column-feed-to-further-mimic-rednote-bilibili-info-flow.md) — area: ui
