@@ -72,10 +72,14 @@ describe('postQueueService', () => {
     assert.equal(postQueueService.needsRefill(), false);
   });
 
-  it('loadQueue with date mismatch resets to empty queue, cycle 0', () => {
-    postQueueService.enqueue([makePost('x')]);
+  it('loadQueue with date mismatch rehydrates posts + cycleNumber, resets totals, snapshots to STORAGE_KEY_YESTERDAY', () => {
+    // Phase 36-11: load() now rehydrates _state.posts (and derivedList +
+    // cyclePosition) from yesterday's parsed.posts on date mismatch, AFTER
+    // snapshotting to STORAGE_KEY_YESTERDAY. Counters (totalGenerated +
+    // totalServed) reset to 0; cycleNumber inherits.
+    postQueueService.enqueue([makePost('x'), makePost('y')]);
     postQueueService.incrementCycle();
-    assert.equal(postQueueService.size(), 1);
+    assert.equal(postQueueService.size(), 2);
     assert.equal(postQueueService.getCycleNumber(), 1);
 
     // Overwrite localStorage with a stale date
@@ -84,8 +88,13 @@ describe('postQueueService', () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(raw));
 
     postQueueService.loadQueue();
-    assert.equal(postQueueService.size(), 0);
-    assert.equal(postQueueService.getCycleNumber(), 0);
+    // Rehydrated: posts + cycleNumber preserved
+    assert.equal(postQueueService.size(), 2, 'posts rehydrated from yesterday');
+    assert.equal(postQueueService.getCycleNumber(), 1, 'cycleNumber inherited');
+    // Snapshot written
+    const yest = JSON.parse(localStorage.getItem('echolearn_post_queue_yesterday'));
+    assert.equal(yest.date, '1999-01-01');
+    assert.equal(yest.posts.length, 2);
   });
 
   it('loadQueue with same date preserves queue contents', () => {
