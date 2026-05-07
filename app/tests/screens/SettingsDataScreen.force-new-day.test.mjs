@@ -53,4 +53,16 @@ describe('SettingsDataScreen force-new-day dev affordance (Phase 36 GAP-D Fix B)
       'handleForceNewDay must call `navigate(\'/home\')` after mutating localStorage and reloading the queue. Without this, the user stays on the Settings screen and the cold-start path never runs — defeating the whole point of the affordance.',
     );
   });
+
+  it('handler also rolls back the daily-posts cache date so getDailyPosts cache-misses', () => {
+    // Without this, conceptFeedService.getDailyPosts() sees `cached.date === today()`
+    // → cache hit → returns the same posts → no refill triggered. The dev button then
+    // exercises the post-queue snapshot half (Plan 36-09) but not the user-visible
+    // new-day flow. Both caches must roll over together to faithfully simulate midnight.
+    assert.match(
+      source,
+      /handleForceNewDay[\s\S]*?echolearn_daily_posts[\s\S]*?\}/,
+      'handleForceNewDay must also mutate `echolearn_daily_posts.date` to yesterday so concept-feed.service.ts:1407 cache-check fails and the queue-drain / refill chain runs. See follow-up correction note in 36-10-SUMMARY.md.',
+    );
+  });
 });

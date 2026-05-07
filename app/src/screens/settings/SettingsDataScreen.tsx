@@ -87,8 +87,20 @@ export function SettingsDataScreen() {
       const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
       parsed.date = yesterday;
       localStorage.setItem('echolearn_post_queue', JSON.stringify(parsed));
+      // Also roll back the rendered daily-posts cache so HomeScreen's getDailyPosts
+      // sees a date mismatch and falls through to the queue-drain / refill chain
+      // instead of cache-hitting on today's posts. Without this the warm-start path
+      // in HomeScreen.tsx is reached but no NEW content is generated at the 8s
+      // refresh, defeating the dev affordance's purpose. (Both caches roll over
+      // together on a real midnight rollover.)
+      const dailyRaw = localStorage.getItem('echolearn_daily_posts');
+      if (dailyRaw) {
+        const dailyParsed = JSON.parse(dailyRaw);
+        dailyParsed.date = yesterday;
+        localStorage.setItem('echolearn_daily_posts', JSON.stringify(dailyParsed));
+      }
       postQueueService.loadQueue();
-      toast('Queue date set to yesterday. Navigating to /home for cold-start.', 'success');
+      toast('Queue + daily cache dates set to yesterday. Navigating to /home.', 'success');
       navigate('/home');
     } catch (err) {
       console.warn('[SettingsDataScreen] force-new-day failed:', err);
