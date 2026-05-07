@@ -990,7 +990,7 @@ Plans:
 **Goal:** Close four divergences between CLAUDE.md "Concept Feed Generation Pipeline" design and live code: (GAP-1) derived list rebuilt from scratch each refill instead of append-only with cycle position; (GAP-2) no cyclic walker — same concepts re-suggested same order each cycle; (GAP-3) i.i.d. style sampling produces small-N variance (8-entry batches routinely have zero image / zero suggestion); (GAP-4) style-axis interleave alone — same-anchor entries cluster regardless of style spread. Plus GAP-6 doc fix (MAX_QUEUE_SIZE = 32 not documented).
 **Requirements**: GAP-1, GAP-2, GAP-3, GAP-4, GAP-6 (gap-closure phase — no new functional REQ-IDs; tracking via GAP-IDs from 36-RESEARCH.md)
 **Depends on:** Phase 35
-**Plans:** 14/14 plans complete
+**Plans:** 15/16 plans executed
 
 Plans:
 - [x] 36-00-test-stubs-red-PLAN.md — Write 3 RED test stubs (derived-list, style-assignment-stratified, spread-by-concept) covering all four GAPs (Wave 0)
@@ -1004,9 +1004,9 @@ Plans:
 - [x] 36-08-video-completion-signal-PLAN.md — Add `enablejsapi=1` to YouTubeEmbed/InfoFlow iframes + Detector D postMessage listener in PostDetailScreen for video posts (ENDED + currentTime/duration ≥ 0.8) + short tap-to-play emit in InfoFlow setVideoPlaying handler; document detector inventory in CLAUDE.md (Wave 1; gap_closure; closes GAP-C from 36-UAT.md)
 - [x] 36-09-durable-yesterday-snapshot-PLAN.md — STORAGE_KEY_YESTERDAY snapshot key in post-queue.service.ts; load() snapshots prior payload on date-mismatch; getYesterdayQueue reads from snapshot key (Wave 2; gap_closure; closes GAP-D Fix A from 36-UAT round 2)
 - [x] 36-10-dev-force-new-day-PLAN.md — DEV-only "Force new day" button in SettingsDataScreen.tsx; rolls back postQueue date by one day + navigates to /home for cold-start retest (Wave 2; gap_closure; closes GAP-D Fix B verification gap)
-- [ ] 36-11-rehydrate-and-reject-stale-cache-PLAN.md — In-flight (Wave 1 round-3, parallel with 36-12 / 36-13)
+- [x] 36-11-rehydrate-and-reject-stale-cache-PLAN.md — In-flight (Wave 1 round-3, parallel with 36-12 / 36-13)
 - [x] 36-12-promise-mutex-refill-PLAN.md — Promise-based mutex on refillQueue (extracted into leaf module `refill-mutex.ts`); REFILL_THRESHOLD 12 → 16; concurrent callers AWAIT shared Promise instead of bailing (Wave 1 round-3; gap_closure; closes round-3 sub-issue (e) from 36-UAT.md)
-- [ ] 36-13-force-new-day-cleanup-PLAN.md — In-flight (Wave 1 round-3, parallel with 36-11 / 36-12)
+- [x] 36-13-force-new-day-cleanup-PLAN.md — In-flight (Wave 1 round-3, parallel with 36-11 / 36-12)
 
 ---
 
