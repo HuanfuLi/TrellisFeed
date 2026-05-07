@@ -174,6 +174,14 @@ function loadCache(): CachedDailyPosts | null {
     ) {
       return null;
     }
+    // Phase 36-11: stale cache rejection. The served-posts cache must NOT
+    // carry across midnight — yesterday's served posts have already been
+    // shown to the user and should not render as "today's feed". This is the
+    // symmetric counterpart to post-queue.service.ts's load() rehydration.
+    // See .planning/phases/36-.../36-UAT.md round-3 sub-issue (b cause #2)
+    // and (d) — second Force-New-Day was rendering the previous-state served
+    // posts because of this missing date check.
+    if (parsed.date !== today()) return null;
 
     const posts = parsed.posts.filter(isValidDailyPost);
     if (posts.length === 0) return null;
