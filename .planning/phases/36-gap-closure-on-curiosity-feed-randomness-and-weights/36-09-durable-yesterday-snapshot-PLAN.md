@@ -16,7 +16,7 @@ must_haves:
     - "post-queue.service.ts:load() detects date mismatch AND copies the prior payload (non-empty posts only) to a NEW localStorage key (echolearn_post_queue_yesterday) BEFORE returning freshState()"
     - "getYesterdayQueue() now reads from STORAGE_KEY_YESTERDAY (the snapshot key), NOT the live STORAGE_KEY — so it is durable across multiple cold-start mounts of the new day"
     - "Subsequent save() calls of today's queue do NOT destroy the yesterday snapshot (different key)"
-    - "Existing 70 Phase 36 quick-suite tests still pass; 1 new test file (post-queue-yesterday-snapshot.test.mjs) covers the snapshot lifecycle"
+    - "Existing 70 Phase 36 quick-suite tests still pass; 1 new test file (post-queue-yesterday-snapshot.test.mjs) covers the snapshot lifecycle (7 tests including W-1 multi-step rollover, W-2 first-install graceful-empty, and I-2 resetForNewDay-preserves-snapshot contracts from checker iteration)"
     - "Phase 33 grep sentinels intact (`dueAnchors` filter, `allExplored && postQueueService.getTotalGenerated`)"
     - "Phase 35 grep sentinel intact (`USER_ACK_BEFORE_GRAPH_CONTEXT` constant)"
   artifacts:
@@ -142,7 +142,15 @@ Required test cases:
 
 4. **No snapshot when prior payload had empty posts:** Pre-seed live key with `{date: "2026-05-06", posts: []}`. Trigger date-mismatch load. Assert `localStorage.echolearn_post_queue_yesterday` is NOT created (the snapshot logic should skip the empty case).
 
-5. **Snapshot survives a second date-rollover:** Set up snapshot for date "2026-05-06" → today is "2026-05-07". Then change "today" to "2026-05-08" so the live key (now date=2026-05-07) becomes yesterday. Trigger another load. Assert `STORAGE_KEY_YESTERDAY` now contains the 2026-05-07 payload (overwritten — only the most recent yesterday is kept). Don't worry about preserving multi-day history.
+5. **Snapshot is overwritten on a second date-rollover:** Multi-step setup to validate the "only most recent yesterday is kept" semantics:
+   - Pre-seed live key with `{date: "2026-05-06", posts: [<2 posts>]}`. Set `today()` to "2026-05-07". Trigger load — STORAGE_KEY_YESTERDAY now has 2026-05-06 payload.
+   - **Force a save() of the live key with date=2026-05-07** by calling `postQueueService.enqueue([<a 2026-05-07 post>])`. (Without this step, the live key still has date=2026-05-06 and the second rollover would re-snapshot the SAME data — the test would pass for the wrong reason. Per checker W-1.)
+   - Now change `today()` to "2026-05-08" so the live key (date=2026-05-07) becomes yesterday. Trigger another load.
+   - Assert `STORAGE_KEY_YESTERDAY` now contains the 2026-05-07 payload (with the 1 post enqueued in step 2). Don't preserve multi-day history.
+
+6. **First-install behavior — no snapshot key exists** (per checker W-2): Clear all localStorage. Call `postQueueService.getYesterdayQueue()`. Assert it returns `[]` (graceful empty — not undefined, not null, no throw). Future refactors that drop the `if (!raw) return []` guard will fail this test.
+
+7. **resetForNewDay() preserves the snapshot** (per checker I-2): Set up snapshot via Test 1 path. Call `postQueueService.resetForNewDay()`. Assert `localStorage.echolearn_post_queue_yesterday` is STILL present with the same 2 posts. (Rationale: SettingsDataScreen.tsx:218 invokes resetForNewDay via the user-facing "Reset today" button — the snapshot must survive an explicit reset so the next /home mount can still warm-start.)
 
 **Verification:**
 ```bash
@@ -192,7 +200,7 @@ Run the full Phase 36 quick suite + the new test:
 ```bash
 cd app && node --test tests/services/derived-list.test.mjs tests/services/style-assignment-stratified.test.mjs tests/services/spread-by-concept.test.mjs tests/services/refill-queue-integration.test.mjs tests/services/style-assignment.test.mjs tests/services/post-queue.test.mjs tests/screens/HomeScreen.warm-start-guard.test.mjs tests/screens/PostDetailScreen.video-detector.test.mjs tests/components/InfoFlow.short-tap-emit.test.mjs tests/services/post-queue-yesterday-snapshot.test.mjs
 ```
-Expected: 70 prior + 5 new = 75 GREEN.
+Expected: 70 prior + 7 new = 77 GREEN.
 
 Phase 33/35/36 preservation greps (must all return success):
 ```bash
