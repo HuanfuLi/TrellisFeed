@@ -144,36 +144,40 @@ describe('postQueueService', () => {
     assert.deepEqual(yesterday, [], 'same-day state should not be treated as yesterday');
   });
 
-  it('getYesterdayQueue returns stored posts when stored date is different (simulated yesterday)', () => {
-    // Write a stale-dated state directly to localStorage WITHOUT calling loadQueue()
-    // (loadQueue would wipe it via freshState on date mismatch).
-    const staleState = {
+  it('getYesterdayQueue returns stored posts when snapshot key holds them (Phase 36 GAP-D Fix A)', () => {
+    // Phase 36 GAP-D Fix A (2026-05-07): getYesterdayQueue now reads from
+    // STORAGE_KEY_YESTERDAY (the durable snapshot), NOT the live STORAGE_KEY.
+    // Write directly to the snapshot key to simulate a prior cold-start of the
+    // new day having taken its snapshot. Comprehensive snapshot-lifecycle
+    // coverage lives in tests/services/post-queue-yesterday-snapshot.test.mjs;
+    // this test only exercises the read-from-snapshot-key contract.
+    const STORAGE_KEY_YESTERDAY = 'echolearn_post_queue_yesterday';
+    const snapshotPayload = {
       date: '1999-01-01',
       posts: [makePost('y1'), makePost('y2'), makePost('y3')],
-      cycleNumber: 2,
-      totalGenerated: 12,
-      totalServed: 4,
     };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(staleState));
+    localStorage.setItem(STORAGE_KEY_YESTERDAY, JSON.stringify(snapshotPayload));
 
     const yesterday = postQueueService.getYesterdayQueue();
-    assert.equal(yesterday.length, 3, 'should return all 3 stored yesterday posts');
+    assert.equal(yesterday.length, 3, 'should return all 3 yesterday posts from the snapshot key');
     assert.equal(yesterday[0].id, 'y1');
     assert.equal(yesterday[1].id, 'y2');
     assert.equal(yesterday[2].id, 'y3');
   });
 
-  it('getYesterdayQueue returns [] when stale state has no posts field', () => {
-    // Defensive: `parsed.posts || []` handles missing posts key.
-    const staleState = { date: '1999-01-01', cycleNumber: 0, totalGenerated: 0, totalServed: 0 };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(staleState));
+  it('getYesterdayQueue returns [] when snapshot has no posts field', () => {
+    // Defensive: Array.isArray(parsed.posts) handles missing posts key.
+    const STORAGE_KEY_YESTERDAY = 'echolearn_post_queue_yesterday';
+    const snapshotPayload = { date: '1999-01-01' };
+    localStorage.setItem(STORAGE_KEY_YESTERDAY, JSON.stringify(snapshotPayload));
 
     const yesterday = postQueueService.getYesterdayQueue();
     assert.deepEqual(yesterday, []);
   });
 
   it('getYesterdayQueue returns [] gracefully on malformed JSON', () => {
-    localStorage.setItem(STORAGE_KEY, '{not-valid-json}');
+    const STORAGE_KEY_YESTERDAY = 'echolearn_post_queue_yesterday';
+    localStorage.setItem(STORAGE_KEY_YESTERDAY, '{not-valid-json}');
     const yesterday = postQueueService.getYesterdayQueue();
     assert.deepEqual(yesterday, [], 'malformed JSON should be caught and return empty array');
   });

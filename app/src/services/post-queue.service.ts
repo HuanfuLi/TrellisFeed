@@ -4,6 +4,15 @@
 import type { DailyPost } from '../types/index.ts';
 
 const STORAGE_KEY = 'echolearn_post_queue';
+// Phase 36 GAP-D Fix A (2026-05-07): durable yesterday snapshot key. The live
+// STORAGE_KEY is overwritten by the very first save() of today's queue, so a
+// single-key implementation of getYesterdayQueue() is destroyed within
+// milliseconds of any new-day cold start. We snapshot yesterday's payload to
+// this separate key in load()'s date-mismatch branch BEFORE returning
+// freshState, making the warm-start path durable across multiple cold-start
+// mounts of the new day. See .planning/debug/cold-start-warm-start-fragile.md
+// and the CLAUDE.md "Numeric defaults" bullet for the durable-snapshot rationale.
+const STORAGE_KEY_YESTERDAY = 'echolearn_post_queue_yesterday';
 // 2026-04-21 bump: refill threshold 8 → 12. refillQueue now pre-generates
 // images before enqueue (moved from pop-time to enqueue-time), so each
 // refill cycle takes longer. Triggering refill earlier (at 12 remaining
@@ -53,7 +62,23 @@ function load(): QueueState {
     if (!raw) return freshState();
     const parsed = JSON.parse(raw) as Partial<QueueState>;
     if (parsed.date !== today()) {
-      // Date mismatch — return empty for today (warm-start handled by caller)
+      // Date mismatch — snapshot yesterday's payload to a separate key BEFORE
+      // returning freshState. This makes getYesterdayQueue() durable across
+      // multiple cold-start mounts of the new day; without it, the very first
+      // save() of today's queue (in enqueue/markServed/etc.) overwrites the
+      // live STORAGE_KEY with {date: today, ...} and yesterday's posts are lost.
+      // See .planning/debug/cold-start-warm-start-fragile.md and CLAUDE.md
+      // "Numeric defaults" for the durable-snapshot rationale.
+      try {
+        if (Array.isArray(parsed.posts) && parsed.posts.length > 0) {
+          localStorage.setItem(STORAGE_KEY_YESTERDAY, JSON.stringify({
+            date: parsed.date,
+            posts: parsed.posts,
+          }));
+        }
+      } catch (err) {
+        console.warn('[postQueueService] yesterday snapshot failed:', err);
+      }
       return freshState();
     }
     // Phase 36 GAP-1 — defensive read for users on the prior schema.
@@ -217,14 +242,19 @@ export const postQueueService = {
     _state = load();
   },
 
-  /** Peek at yesterday's leftover queue (before today's reset overwrites). */
+  /**
+   * Peek at yesterday's leftover queue (durable across cold-start mounts of the
+   * new day). Reads from STORAGE_KEY_YESTERDAY — the snapshot key written by
+   * load() in its date-mismatch branch — NOT the live STORAGE_KEY (which gets
+   * overwritten by the first save() of today's queue). See Phase 36 GAP-D Fix A
+   * and .planning/debug/cold-start-warm-start-fragile.md.
+   */
   getYesterdayQueue(): DailyPost[] {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
+      const raw = localStorage.getItem(STORAGE_KEY_YESTERDAY);
       if (!raw) return [];
-      const parsed = JSON.parse(raw) as QueueState;
-      if (parsed.date === today()) return []; // not yesterday
-      return parsed.posts || [];
+      const parsed = JSON.parse(raw) as { date?: string; posts?: DailyPost[] };
+      return Array.isArray(parsed.posts) ? parsed.posts : [];
     } catch {
       return [];
     }
