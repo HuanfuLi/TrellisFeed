@@ -23,7 +23,13 @@ const STORAGE_KEY_YESTERDAY = 'echolearn_post_queue_yesterday';
 // refill cycle takes longer. Triggering refill earlier (at 12 remaining
 // instead of 8) gives more runway so the user doesn't hit an empty queue
 // mid-swipe while image generation is still in flight.
-const REFILL_THRESHOLD = 12;
+//
+// Phase 36-12: bumped from 12 → 16. The mutex fix in Plan 36-12 Task 1
+// eliminates the silent-no-op race, but a larger headroom further reduces
+// the chance of the user encountering empty-state during rapid swiping.
+// Forward-looking: the planned double-column feed dequeues more per swipe,
+// so the buffer needs to be larger to maintain the same UX guarantees.
+const REFILL_THRESHOLD = 16;
 const MAX_QUEUE_SIZE = 32;
 
 interface QueueState {
