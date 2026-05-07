@@ -86,14 +86,44 @@ export function SettingsDataScreen() {
       // and (a) snapshots the current payload to STORAGE_KEY_YESTERDAY
       // (Plan 36-09); (b) rehydrates _state.posts from parsed.posts
       // (Plan 36-11) so yesterday's UNSERVED queue auto-populates today's
-      // feed. The rendered daily-posts cache key is NOT touched here —
-      // Plan 36-11's loadCache date-rejection handles staleness symmetrically.
-      // (The negative regression test in this plan asserts that exact
-      // localStorage key string is absent from this handler body.)
+      // feed. See round-3 sub-issue (b cause #1) and Plan 36-11.
       const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
       parsed.date = yesterday;
       localStorage.setItem('echolearn_post_queue', JSON.stringify(parsed));
       postQueueService.loadQueue();
+      // Phase 36-15 (round-4 sub-issue b storage): also mutate the served-
+      // posts cache key. Plan 36-11's loadCache() rejection fires only when
+      // `parsed.date !== today()` — but the dev button cannot advance the
+      // wall clock. So `today()` returns real-today before AND after this
+      // handler runs; if we leave the served-posts cache untouched, it
+      // still equals today(), loadCache() returns truthy, getDailyPosts()
+      // hits its cache-hit branch (concept-feed.service.ts ~1530), and
+      // dequeue()-of-rehydrated-state never runs. The rehydrated _state.posts
+      // from Plan 36-11 sits unreachable. Mirror the same date mutation here
+      // so loadCache()'s rejection fires symmetrically — same logic as the
+      // queue mutation above, applied to the second date-stamped cache key.
+      // This is the wall-clock-asymmetry pattern: services that gate self-
+      // reset on today() comparisons cannot fire when the dev button doesn't
+      // (and shouldn't) advance the clock — the handler must mimic each
+      // mutation that natural midnight rollover would have triggered.
+      // Plan 36-13 reverted this mutation calling it a "redundant dual-
+      // cache hack"; round-4 UAT proved the reversion broke sub-issue (b).
+      // Plan 36-14 owns the runtime consequence (HomeScreen falls back to
+      // postQueueService.getYesterdayQueue() when getCachedDailyPosts()
+      // returns []) — without that re-fallback effect, this storage
+      // mutation alone produces an empty feed. The two plans are
+      // complementary, not duplicative.
+      // See .planning/debug/feed-not-auto-populating-after-force-new-day.md.
+      const dailyRaw = localStorage.getItem('echolearn_daily_posts');
+      if (dailyRaw) {
+        try {
+          const dailyParsed = JSON.parse(dailyRaw);
+          dailyParsed.date = yesterday;
+          localStorage.setItem('echolearn_daily_posts', JSON.stringify(dailyParsed));
+        } catch {
+          // Malformed cache — leave it; loadCache() will reject on parse failure anyway.
+        }
+      }
       // Reset vine progress (echolearn_daily_read). On a real midnight,
       // dailyReadService.loadState() self-resets via the parsed.date !==
       // today() check, but the dev button cannot advance today() — so the
@@ -101,7 +131,7 @@ export function SettingsDataScreen() {
       // resets. Manually mimic the midnight reset here. See round-3
       // sub-issue (a) and daily-read.service.ts:36.
       dailyReadService.reset();
-      toast('Queue date rolled back; vine progress reset. Navigating to /home.', 'success');
+      toast('Queue + daily-posts cache rolled back; vine progress reset. Navigating to /home.', 'success');
       navigate('/home');
     } catch (err) {
       console.warn('[SettingsDataScreen] force-new-day failed:', err);
