@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: gap closure)
-status: Milestone complete
+status: Executing Phase 36
 stopped_at: Completed 36-09-PLAN.md (GAP-D Fix A durable yesterday snapshot)
-last_updated: "2026-05-07T07:59:50.923Z"
+last_updated: "2026-05-07T09:45:11.852Z"
 progress:
   total_phases: 21
   completed_phases: 0
@@ -752,3 +752,4 @@ Completed Phase 27 Plan 04 (27-04-PLAN.md) — Locale switcher + mid-stream abor
 ### Pending Todos
 
 - [Double column feed to further mimic Rednote/Bilibili info flow](todos/pending/2026-05-07-double-column-feed-to-further-mimic-rednote-bilibili-info-flow.md) — area: ui
+- [Fix cosine similarity threshold & cache miss](todos/pending/2026-05-07-fix-cosine-similarity-threshold-cache-miss.md) — area: general
