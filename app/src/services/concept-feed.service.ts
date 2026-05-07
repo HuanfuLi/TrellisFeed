@@ -1167,7 +1167,15 @@ Return ONLY a JSON array of 4 strings, nothing else. Example: ["What is X?", "Ho
   return enrichedPosts;
 }
 
-let _queueRefillRunning = false;
+// Phase 36-12: Promise-based mutex (was boolean).
+// Multiple callers can race after Force-New-Day or rapid swipes; the
+// boolean version made `await refillQueue()` callers silently no-op when
+// a refill was already in flight, leaving generateMorePosts to dequeue
+// against an unchanged empty queue. The Promise reference lets in-flight
+// callers await the same Promise, see it resolve, then dequeue from the
+// now-populated queue. Single LLM body per cycle preserved.
+// See .planning/phases/36-.../36-UAT.md round-3 sub-issue (e).
+let _refillInFlight: Promise<void> | null = null;
 
 /**
  * Refill the post queue using the pre-style assignment pipeline (D-21).
@@ -1175,11 +1183,16 @@ let _queueRefillRunning = false;
  * reassigns failures, generates posts, and enqueues results.
  */
 export async function refillQueue(questions: Question[]): Promise<void> {
-  if (_queueRefillRunning) return;
+  // In-flight: return the same promise so concurrent callers await it,
+  // not a no-op (which would cause silent dequeue-empty in generateMorePosts).
+  if (_refillInFlight) return _refillInFlight;
   if (!postQueueService.needsRefill()) return;
-  _queueRefillRunning = true;
 
-  try {
+  // Capture the in-flight Promise so concurrent callers await this exact
+  // execution. The Promise must clear in BOTH success AND error paths so
+  // a failed refill does not permanently lock subsequent callers.
+  _refillInFlight = (async () => {
+    try {
     const settings = settingsService.getSync();
     // Daily generation cap — gate only applies AFTER the vine is finished.
     //
@@ -1398,9 +1411,11 @@ export async function refillQueue(questions: Question[]): Promise<void> {
       spreadByStyle(combined);
     });
     postQueueService.incrementCycle();
-  } finally {
-    _queueRefillRunning = false;
-  }
+    } finally {
+      _refillInFlight = null;
+    }
+  })();
+  return _refillInFlight;
 }
 
 export const conceptFeedService = {
