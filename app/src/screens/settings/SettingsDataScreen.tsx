@@ -69,6 +69,33 @@ export function SettingsDataScreen() {
     });
   };
 
+  // Phase 36 GAP-D Fix B (dev-only): roll the post-queue date back to yesterday
+  // so the next /home mount runs the cold-start warm-start path. Lets us verify
+  // the warm-start guard (Plan 36-06) + durable yesterday snapshot (Plan 36-09)
+  // without waiting for an actual midnight rollover.
+  // See .planning/debug/cold-start-warm-start-fragile.md for full context.
+  const handleForceNewDay = () => {
+    try {
+      const raw = localStorage.getItem('echolearn_post_queue');
+      if (!raw) {
+        toast('No post queue to roll back. Generate some posts first.', 'info');
+        return;
+      }
+      const parsed = JSON.parse(raw);
+      // Set date to yesterday so the next loadQueue() detects the mismatch
+      // and snapshots the current payload to STORAGE_KEY_YESTERDAY (Plan 36-09).
+      const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+      parsed.date = yesterday;
+      localStorage.setItem('echolearn_post_queue', JSON.stringify(parsed));
+      postQueueService.loadQueue();
+      toast('Queue date set to yesterday. Navigating to /home for cold-start.', 'success');
+      navigate('/home');
+    } catch (err) {
+      console.warn('[SettingsDataScreen] force-new-day failed:', err);
+      toast('Force new day failed. Check console.', 'error');
+    }
+  };
+
   const refreshTokenUsage = () => setTokenUsage(tokenUsageReporter.getByService());
 
   const handleClearTokenUsage = () => {
@@ -143,6 +170,20 @@ export function SettingsDataScreen() {
         <p style={{ fontSize: '0.72rem', color: 'var(--muted-foreground)', marginTop: '-8px', marginBottom: '16px', lineHeight: 1.4 }}>
           {t('settings.descriptions.trellisDevModeHint')}
         </p>
+        {/* Strings hardcoded English: this button is gated by import.meta.env.DEV
+            and never reaches production users, so the i18n workflow's "all 4 bundles
+            per UI string" rule does NOT apply. See CLAUDE.md i18n workflow exemption
+            reasoning. */}
+        {import.meta.env.DEV && (
+          <SettingRow
+            label="Force new day (dev)"
+            description="Sets the post queue date to yesterday and reloads, so the next /home mount runs the cold-start warm-start path. Dev builds only — never visible in production. See .planning/debug/cold-start-warm-start-fragile.md for context."
+          >
+            <Button variant="secondary" size="sm" onClick={handleForceNewDay}>
+              Roll back date
+            </Button>
+          </SettingRow>
+        )}
         <SettingRow label={t('settings.fields.postRetention')}>
           <SelectInput
             value={settings.feed?.postRetentionDays === null ? 'all' : String(settings.feed?.postRetentionDays ?? FEED_DEFAULTS.postRetentionDays)}
