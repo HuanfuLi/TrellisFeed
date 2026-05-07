@@ -11,8 +11,9 @@
 // pattern for any new pure-logic helpers."
 //
 // Both functions mutate `posts` in place. They are O(n²) worst-case (the
-// collision-bump probe + leftover-fill scan) but n ≤ 12 in production
-// (MAX_QUEUE_SIZE = 12), so this is negligible.
+// collision-bump probe + leftover-fill scan) but n ≤ 32 in production
+// (MAX_QUEUE_SIZE = 32; rehydration on new day from Plan 36-11 may reach
+// this cap), so this is negligible.
 
 import type { DailyPost } from '../types';
 
