@@ -1,10 +1,10 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.4
-milestone_name: Curiosity Feed Redesign + UI Polish
-status: v1.4 milestone complete (shipped 2026-05-08)
-stopped_at: v1.4 archived; ready for /gsd:new-milestone (v1.5)
-last_updated: "2026-05-08T07:35:00.000Z"
+milestone: v1.5
+milestone_name: Curiosity Feed v2 + Tech-Debt Hardening
+status: Defining requirements
+stopped_at: Milestone v1.5 started; defining requirements
+last_updated: "2026-05-08T08:00:00.000Z"
 progress:
   total_phases: 0
   completed_phases: 0
@@ -12,24 +12,30 @@ progress:
   completed_plans: 0
 ---
 
-# Project State: v1.4 SHIPPED — 2026-05-08
+# Project State: v1.5 STARTED — 2026-05-08
 
-10 phases (28, 29, 30, 31, 32-absorbed, 32.1, 33, 34, 35, 36) closed. 63 plan SUMMARYs across 22 days (2026-04-16 → 2026-05-08). 570/560 pass / 10 fail / tsc + vite clean. Audit status `tech_debt` — 16 of 26 v1.3-carried failures closed; 10 architectural carry-overs (i18n leaf-module refactor) explicitly accepted to v1.5.
+## Current Position
+
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-05-08 — Milestone v1.5 started (Curiosity Feed v2 + Tech-Debt Hardening)
 
 ## Project Reference
 
-See: `.planning/PROJECT.md` (updated 2026-05-08 after v1.4 milestone close)
+See: `.planning/PROJECT.md` (updated 2026-05-08 — milestone v1.5 started)
 
 **Core value:** Enable learners to transform fragmented information into structured knowledge through AI-driven Q&A, visual mapping, and adaptive spaced repetition — all while maintaining complete local-first privacy.
-**Current focus:** Planning next milestone (v1.5)
+**Current focus:** v1.5 — Curiosity Feed v2 (Pinterest masonry, richer essays, source diversity, engagement signals) + tech-debt hardening (carry-overs + broader hygiene)
 
-## Carry-overs to v1.5
+## Carry-overs from v1.4 (in scope for v1.5)
 
 - **i18n leaf-module refactor** — extract i18n usage from services into `lib/i18n-leaf.ts` so trellis-state.test.mjs / trellis-layout.test.mjs / concept-feed.test.mjs can run under `node --test`. Closes 10 carried test failures. Estimated 1–2h.
 - **VALIDATION drift cleanup** — flip 34-VALIDATION.md to validated; normalize 35-VALIDATION.md from `approved` → `validated`
-- **ROADMAP plan-list polish** — append 36-14 + 36-15 bullets to Phase 36 plan list
+- **ROADMAP plan-list polish** — append 36-14 + 36-15 bullets to Phase 36 plan list (in archived `.planning/milestones/v1.4-ROADMAP.md`)
 - **33-HUMAN-UAT-1/2** — touch-target feel + React.memo behavioral correctness on physical device (intentional carry per 34-CONTEXT.md `<deferred>`)
 - **CLAUDE.md `echolearn_*` localStorage references** — bulk rename or annotate brand-history note (doc-only)
+- **YouTube landscape-as-short bug** — `.planning/notes/2026-05-08-fix-youtube-landscape-video.md`
 
 ## Resolved blockers
 

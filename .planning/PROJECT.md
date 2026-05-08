@@ -12,9 +12,21 @@ The platform prioritizes a high-quality, native-first mobile experience built wi
 
 Enable learners to transform fragmented information into structured knowledge through AI-driven Q&A, visual mapping, and adaptive spaced repetition — all while maintaining complete local-first privacy.
 
-## Current Milestone: v1.5 (next — planning)
+## Current Milestone: v1.5 Curiosity Feed v2 + Tech-Debt Hardening
 
-**Status:** v1.4 shipped 2026-05-08. v1.5 scope TBD — first queued items are the v1.4 carry-overs (i18n leaf-module refactor for service-layer testability, VALIDATION drift fixes on Phase 34/35, ROADMAP polish, 33-HUMAN-UAT-1/2 device retest).
+**Goal:** Ship the second-iteration curiosity feed (Pinterest-style masonry layout, richer essays, source diversity, engagement signals) on top of a fully-hardened codebase that closes all v1.4 carry-overs plus a broader hygiene sweep.
+
+**Target features:**
+
+*A. Curiosity Feed v2 — quality*
+- Pinterest-style masonry feed layout (variable-height tiles, 2-column flow, visual mosaic)
+- Richer post body essays (longer / tighter source grounding / citation render polish)
+- Source diversity (multi-domain, multi-media per concept, no near-duplicates, source quality scoring)
+- Engagement signals (like / save / dismiss, social-proof affordances, content-quality feedback loop) — local-only annotations to preserve local-first privacy
+
+*B. Tech-Debt Hardening — broader hygiene*
+- v1.4 carry-overs: i18n leaf-module refactor (closes 10 carried test failures), VALIDATION drift cleanup (34/35), ROADMAP plan-list polish (36-14 + 36-15 bullets), 33-HUMAN-UAT-1/2 device retest, CLAUDE.md `echolearn_*` doc-drift cleanup, YouTube landscape-listed-as-short bug
+- Broader hygiene: tsc strictness audit, dependency-version sweep, dead-code sweep, perf profiling, project-wide TODO/FIXME triage, sweep of operator-note bugs
 
 ## Previous Milestones
 
@@ -82,4 +94,4 @@ _Last updated: 2026-05-07 — Phase 36 round-4 gap closure verified 16/16 (sub-i
 **Milestone v1.4 complete (2026-05-08):** Phases 28-36 archived as milestone v1.4. Audit: `.planning/milestones/v1.4-MILESTONE-AUDIT.md` (status: tech_debt — 16 of 26 v1.3-carried test failures closed; 10 architectural carry-overs to v1.5). Phase archives moved to `.planning/milestones/v1.4-phases/`. Test baseline at close: 570 / 560 pass / 10 fail / tsc + vite clean. Audit session same day closed SEAM-11 (npm test script split into `test:main` + `test:actions`) and deleted obsolete `trellis-tooltip-copy.test.mjs` (4 tests). v1.5 first wave should pick up i18n leaf-module refactor (closes the 10 carried failures), 34-VALIDATION drift flip, 35-VALIDATION status normalize, ROADMAP plan-list polish (36-14 + 36-15 bullets), 33-HUMAN-UAT-1/2 device retest, and CLAUDE.md `echolearn_*` doc-drift cleanup.
 
 ---
-*Last updated: 2026-05-08 after v1.4 milestone close*
+*Last updated: 2026-05-08 — milestone v1.5 started (Curiosity Feed v2 + Tech-Debt Hardening)*
