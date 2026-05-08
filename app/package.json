@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "test": "node --test tests/**/*.test.mjs",
+    "test": "npm run test:main; npm run test:actions",
+    "test:main": "node --test $(find tests -name '*.test.mjs' -not -name 'trellis-heal.test.mjs' -not -name 'trellis-prune.test.mjs' -not -name 'trellis-replant.test.mjs')",
+    "test:actions": "node --import ./tests/services/_actions-mock-loader.mjs --test tests/services/trellis-heal.test.mjs tests/services/trellis-prune.test.mjs tests/services/trellis-replant.test.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

@@ -685,9 +685,14 @@ Plans:
 
 ---
 
-# Milestone v1.4 (next) — PLANNING
+# Milestone v1.4 — Curiosity Feed Redesign + UI Polish ✓ COMPLETE (2026-05-08)
 
-**Scope:** TBD. First queued phase is Phase 28 (UI/UX polish from audit findings). Pre-existing tsc/Node 25 items from v1.3 (`.planning/milestones/v1.3-phases/27-*/deferred-items.md`) should be rolled into v1.4 planning.
+**Audit:** `.planning/milestones/v1.4-MILESTONE-AUDIT.md` | **Archive:** `.planning/milestones/v1.4-phases/`
+**Roadmap archive:** `.planning/milestones/v1.4-ROADMAP.md` | **Requirements archive:** `.planning/milestones/v1.4-REQUIREMENTS.md`
+**Covers:** Phases 28-36 (10 phases — incl. inserted 32.1 + absorbed 32; 63 plans / 460 commits / 22 days)
+**Theme:** Curiosity feed redesign (VineProgress, persistent derivedList, cyclic walker, stratified style) + UI/UX audit (44×44 touch targets, dark theme, Settings sub-pages, animation polish) + Ask-chat KV-cache prefix preservation + v1.3 gap closure + rebrand EchoLearn → Trellis.
+
+Phases 28-36 were moved from `.planning/phases/` into the milestone archive. Phase sections below are kept in this ROADMAP for historical traceability.
 
 ### Phase 28: UI/UX polish from audit findings
 

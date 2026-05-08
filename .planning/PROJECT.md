@@ -1,18 +1,20 @@
-# PROJECT: EchoLearn
+# PROJECT: Trellis (formerly EchoLearn)
 
 ## What This Is
 
-EchoLearn is an AI-powered personalized learning platform designed to facilitate non-linear knowledge acquisition through AI-driven content generation, visual knowledge mapping, and spaced repetition. It bridges the gap between passive content consumption and active, long-term learning.
+Trellis is an AI-powered personalized learning platform designed to facilitate non-linear knowledge acquisition through AI-driven content generation, visual knowledge mapping, and spaced repetition. It bridges the gap between passive content consumption and active, long-term learning.
 
-The platform prioritizes a high-quality, native-first mobile experience built with React, TypeScript, Vite, and Capacitor, combining local-first privacy with seamless AI integration (OpenAI, Claude, Gemini, and local LLMs).
+The platform prioritizes a high-quality, native-first mobile experience built with React 19, TypeScript 5.9, Vite 7, Tailwind CSS 4, and Capacitor 8, combining local-first privacy with seamless AI integration (OpenAI, Claude, Gemini, local endpoints like LM Studio).
+
+**Brand history:** Renamed EchoLearn → Trellis on 2026-05-07 (commit `9e5d1f38`). On-disk directory and SQLite connection name `'echolearn'` are intentionally preserved for backwards compatibility. localStorage keys migrated `echolearn_*` → `trellis_*` via `legacy-migration.service.ts` runtime migration.
 
 ## Core Value
 
-Enable learners to transform fragmented information into structured knowledge through AI-driven Q&A, visual mapping, and adaptive spaced repetition—all while maintaining complete local-first privacy.
+Enable learners to transform fragmented information into structured knowledge through AI-driven Q&A, visual mapping, and adaptive spaced repetition — all while maintaining complete local-first privacy.
 
-## Current Milestone: v1.4 (next — planning)
+## Current Milestone: v1.5 (next — planning)
 
-**Status:** Awaiting scope. v1.3 (pre-release) closed 2026-04-16 with phases 20-27 shipped — see `.planning/v1.3-MILESTONE-AUDIT.md`. First queued phase is Phase 28 (UI/UX polish from audit findings). Pre-existing tsc/Node 25 items from v1.3 should be rolled into v1.4 planning.
+**Status:** v1.4 shipped 2026-05-08. v1.5 scope TBD — first queued items are the v1.4 carry-overs (i18n leaf-module refactor for service-layer testability, VALIDATION drift fixes on Phase 34/35, ROADMAP polish, 33-HUMAN-UAT-1/2 device retest).
 
 ## Previous Milestones
 
@@ -20,6 +22,7 @@ Enable learners to transform fragmented information into structured knowledge th
 - **v1.1** — phases 7-9 (image-forward feed, post detail, infinite scroll)
 - **v1.2** — phases 10-19 (Planner auto-suggestions, knowledge graph classification, token optimization, feed expansion, web search)
 - **v1.3 (pre-release)** — phases 20-27 (orchestration, streaming, swipe nav, incremental classification, Trellis, harvest actions, i18n/L10n)
+- **v1.4** — phases 28-36 (UI/UX polish + curiosity feed redesign + Ask-chat KV-cache prefix preservation + concept feed pipeline gap closure + EchoLearn → Trellis rebrand) — see `.planning/milestones/v1.4-MILESTONE-AUDIT.md`
 
 ## Key Decisions
 
@@ -27,6 +30,11 @@ Enable learners to transform fragmented information into structured knowledge th
 - **LLM Flexibility:** Support multiple providers (OpenAI, Claude, Gemini, local endpoints like LM Studio).
 - **Visual-First UX:** Post feeds emphasize images and hooks (questions/stories) to drive engagement.
 - **Adaptive Recommendations:** Planner logic respects user trajectory, review performance, and engagement patterns.
+- **Concept feed pipeline (v1.4 / Phase 36):** Three-list architecture — Daily Concept List (anchor nodes filtered by SM-2 due dates) → Derived List (append-only, weighted, persistent across refills with cyclePosition) → Queue (32-max cyclic walker, 4 posts per swipe, refill threshold 16, Promise-mutex guarded). Lazy-skip explored anchors at walk time; stratified style allocation (largest-remainder + Fisher-Yates); spreadByConcept mixer before spreadByStyle. See CLAUDE.md "Concept Feed Generation Pipeline" load-bearing section.
+- **Ask-chat KV-cache prefix (v1.4 / Phase 35):** System prompt is byte-stable across turns (identity + safety + WEB_SEARCH_TOOL_PROMPT only); per-turn graph context lives in tail-position assistant message after history; USER_ACK_BEFORE_GRAPH_CONTEXT user message inserted between for strict-alternation chat templates (Qwen via LM Studio). See CLAUDE.md "Ask-chat system prompt — byte-stable across turns" load-bearing section.
+- **Always-mounted screen state-resync principle (v1.4 / Phase 36-14):** SwipeTabContainer mounts all 5 first-level screens once at boot; any screen reading from a service whose state can change while another screen is in foreground MUST add a `[location.pathname]` `useEffect` to re-sync on navigation. HomeScreen is the canonical pattern (vine progress + warm-start re-fallback). Documented in CLAUDE.md.
+- **Leaf-module pattern for testability (v1.4 / Phase 36):** Services that pull `src/locales/index.ts` transitively can't load under `node --test` (Vite-only `import.meta.env.DEV`). Pure-logic helpers extracted into leaf modules (`feed-spread.ts`, `refill-mutex.ts`) so tests can exercise behavior without dragging in the i18n chain. Pattern carried to v1.5 for systemic i18n cleanup.
+- **Test runner architecture (v1.4 audit):** `npm test` chains `test:main; test:actions`. The latter registers `_actions-mock-loader.mjs` via `--import` for trellis-actions tests (heavy LLM/SQLite/i18n stubs). Cannot register globally because that breaks `web-search.test.mjs` (needs real settings.service).
 
 ## Evolution
 
@@ -70,3 +78,8 @@ This document evolves at phase transitions and milestone boundaries.
 **Phase 36 gap closure round 4 (2026-05-07, verifier 16/16):** UAT round 4 surfaced 2 of round 3's 5 sub-issues regressing — both (a) vine chip and (b) feed auto-populate failed at runtime DESPITE Plan 36-13 + Plan 36-11's source-reading and unit tests passing. Two interaction bugs invisible to unit tests: (1) HomeScreen's `exploredAnchors` `useState` initializer is mount-frozen and the only post-mount setter is wired to `CONCEPT_EXPLORED`; HomeScreen is one of 5 always-mounted SwipeTabContainer slots so `navigate('/home')` doesn't remount it; `dailyReadService.reset()` writes localStorage but emits no event-bus signal — persistence cleared, React state stale. (2) Plan 36-13's revert of the `echolearn_daily_posts.date` mutation framed it as a "redundant dual-cache hack" — but `loadCache()`'s `parsed.date !== today()` rejection only fires when the wall clock advances, which the dev button cannot do; so the cache stayed valid, `getDailyPosts()` short-circuited on cache-hit, and Plan 36-11's rehydrated `_state.posts` was unreachable. Two round-4 plans closed both: (14) HomeScreen sibling `[location.pathname]` effect re-syncs `exploredAnchors` + `creditAwardedRef.current` after Force New Day; same effect bundle widens the existing nav effect with tier-1 (`getCachedDailyPosts`) → tier-2 (`getYesterdayQueue`) warm-start fallback so yesterday's UNSERVED queue surfaces on `/home` navigation. (15) `handleForceNewDay` reinstates the `echolearn_daily_posts.date = yesterday` mutation alongside the existing post-queue mutation; Test 6 inverted in place from negative-assertion to positive (anchor-pair extracted). 7 new GREEN tests in 36-14's two new files; Test 6 inversion + 5 preserved tests in 36-15. Pre-wave npm test baseline: 26 fail / 469 pass; post-wave: 26 fail / 476 pass — wave net-improved by 7 tests with zero new failures. Lessons surfaced: (i) source-reading tests asserting "the call exists" can ship false-confidence — Plan 36-13's Test 5 passed on `dailyReadService.reset()` presence but missed the consumer-side staleness; both 36-14 test files use anchor-pair extraction so the assertion captures the actual containing scope (the meta-rule pattern from Plan 36-13's negative regression test). (ii) the "dev button must mimic every wall-clock side effect" pattern (round 3) extends to "every always-mounted screen consuming that service must re-sync on navigation" (round 4) — single source of asymmetry, two layers of defense. CLAUDE.md got a new bullet documenting this principle under "Concept Feed Generation Pipeline → Numeric defaults".
 
 _Last updated: 2026-05-07 — Phase 36 round-4 gap closure verified 16/16 (sub-issues a + b runtime closed). 16/16 plans complete._
+
+**Milestone v1.4 complete (2026-05-08):** Phases 28-36 archived as milestone v1.4. Audit: `.planning/milestones/v1.4-MILESTONE-AUDIT.md` (status: tech_debt — 16 of 26 v1.3-carried test failures closed; 10 architectural carry-overs to v1.5). Phase archives moved to `.planning/milestones/v1.4-phases/`. Test baseline at close: 570 / 560 pass / 10 fail / tsc + vite clean. Audit session same day closed SEAM-11 (npm test script split into `test:main` + `test:actions`) and deleted obsolete `trellis-tooltip-copy.test.mjs` (4 tests). v1.5 first wave should pick up i18n leaf-module refactor (closes the 10 carried failures), 34-VALIDATION drift flip, 35-VALIDATION status normalize, ROADMAP plan-list polish (36-14 + 36-15 bullets), 33-HUMAN-UAT-1/2 device retest, and CLAUDE.md `echolearn_*` doc-drift cleanup.
+
+---
+*Last updated: 2026-05-08 after v1.4 milestone close*
