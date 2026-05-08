@@ -63,8 +63,45 @@
 
 ## Traceability
 
-(Empty — filled by roadmap.)
+22 / 22 requirements mapped — 100% coverage, no orphans.
+
+| Requirement | Phase | Wave | Status |
+|-------------|-------|------|--------|
+| MASONRY-01  | Phase 42 | Wave 3 | Pending |
+| MASONRY-02  | Phase 42 | Wave 3 | Pending |
+| ENGAGE-01   | Phase 39 | Wave 1 | Pending |
+| ENGAGE-02   | Phase 39 | Wave 1 | Pending |
+| ENGAGE-03   | Phase 39 | Wave 1 | Pending |
+| ENGAGE-04   | Phase 43 | Wave 3 | Pending |
+| CONTENT-01  | Phase 41 | Wave 2 | Pending |
+| CONTENT-02  | Phase 40 | Wave 1 | Pending |
+| CONTENT-03  | Phase 41 | Wave 2 | Pending |
+| CONTENT-04  | Phase 41 | Wave 2 | Pending |
+| TECHDEBT-01 | Phase 37 | Wave 0 | Pending |
+| TECHDEBT-02 | Phase 38 | Wave 0 | Pending |
+| TECHDEBT-03 | Phase 38 | Wave 0 | Pending |
+| TECHDEBT-04 | Phase 38 | Wave 0 | Pending |
+| TECHDEBT-05 | Phase 38 | Wave 0 | Pending |
+| TECHDEBT-06 | Phase 38 | Wave 0 | Pending |
+| TECHDEBT-07 | Phase 45 | Wave 4 | Pending |
+| TECHDEBT-08 | Phase 44 | Wave 4 | Pending |
+| TECHDEBT-09 | Phase 45 | Wave 4 | Pending |
+| TECHDEBT-10 | Phase 45 | Wave 4 | Pending |
+| TECHDEBT-11 | Phase 45 | Wave 4 | Pending |
+| TECHDEBT-12 | Phase 45 | Wave 4 | Pending |
+
+### Phase ownership summary
+
+- **Phase 37** (Wave 0): TECHDEBT-01 (1 req)
+- **Phase 38** (Wave 0): TECHDEBT-02, TECHDEBT-03, TECHDEBT-04, TECHDEBT-05, TECHDEBT-06 (5 reqs)
+- **Phase 39** (Wave 1): ENGAGE-01, ENGAGE-02, ENGAGE-03 (3 reqs)
+- **Phase 40** (Wave 1): CONTENT-02 (1 req)
+- **Phase 41** (Wave 2): CONTENT-01, CONTENT-03, CONTENT-04 (3 reqs)
+- **Phase 42** (Wave 3): MASONRY-01, MASONRY-02 (2 reqs)
+- **Phase 43** (Wave 3): ENGAGE-04 (1 req)
+- **Phase 44** (Wave 4): TECHDEBT-08 (1 req)
+- **Phase 45** (Wave 4): TECHDEBT-07, TECHDEBT-09, TECHDEBT-10, TECHDEBT-11, TECHDEBT-12 (5 reqs)
 
 ---
 
-*Last updated: 2026-05-08*
+*Last updated: 2026-05-08 — Traceability filled by roadmap (9 phases / 4 waves / 22 reqs mapped).*

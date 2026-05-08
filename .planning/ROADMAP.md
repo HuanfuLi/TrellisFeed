@@ -1036,3 +1036,164 @@ _Updated: 2026-05-06 — Phase 36 COMPLETE. Verifier passed 13/13 must-haves (`3
 _Updated: 2026-05-06 — Phase 36 UAT round 1 surfaced 3 gaps after initial close-out (5 tests / 4 pass / 1 issue with 3 sub-gaps). Gap-closure plans 36-06/07/08 created targeting (A) cold-start empty feed (HomeScreen.tsx warm-start vs. error-gate conflict, pre-existing drift from commit 6cda914e), (B) style-mix imbalance (post-queue.service.ts walkDerivedList maxSteps=len*2 silently caps walker at 8 entries when len=4, defeats Phase 36-01 stratified allocation at single-anchor case — Phase 36 regression, missed by 36-04 integration smoke), (C) video/short completion signal absent (YouTubeEmbed iframe lacks enablejsapi=1; short posts have interactive=false bypassing PostDetailScreen detectors — pre-existing drift since Phase 17/18). All three plans parallel-safe (different files); each plan spec includes concrete code replacements per <action> and source-reading regression tests. See `.planning/debug/cold-start-empty-feed.md`, `.planning/debug/style-mix-imbalance.md`, `.planning/debug/video-completion-signal-missing.md` for diagnostics._
 _Updated: 2026-05-06 — Phase 36-07 EXECUTED: walker termination-guard fix closes GAP-B. Three atomic commits on `gsd/phase-33-hygiene-and-polish`: `3664383e` (fix, post-queue.service.ts:301 — `maxSteps = len * 2` → `Math.max(count * 2, len)` + comment block + docstring update; +17/-4) + `62a7697f` (tests, derived-list.test.mjs +Test 11/12 for truncation regression + multi-wrap explored skip; refill-queue-integration.test.mjs +Test 7 for text-art ≥ floor(N × 0.55) at N=16; +58/-0) + `27c941b9` (docs, CLAUDE.md +1 numeric-defaults bullet + 1 closed-divergence strikethrough; +2/-0). Phase 36 quick-suite 53/53 → 56/56 GREEN. Phase 33 sentinels (`dueAnchors` filter at concept-feed.service.ts:798, `allExplored && postQueueService.getTotalGenerated()` cap-gate at lines 1265-1267) preserved byte-unchanged. CLAUDE.md other load-bearing sections byte-stable (html/body overflow=3, ChatInput minWidth=2, USER_ACK=2, dedup threshold=1, MAX_QUEUE_SIZE=1). Out-of-scope: HomeScreen.tsx TS6133 unused-var warning logged but not fixed — in 36-06's parallel-execution territory. Phase 36 now 7/9 plans complete; 36-06 + 36-08 still in-flight._
 _Updated: 2026-05-07 — Phase 36-12 EXECUTED: Promise-mutex refill closes round-3 sub-issue (e) (rapid-swipe / Force-New-Day silent-no-op against empty queue). Six atomic commits on `worktree-agent-ad725506964b3ddbe` worktree off `gsd/phase-33-hygiene-and-polish`, all `--no-verify` per parallel-execution coordination with Wave 1 plans 36-11 / 36-13: `41b9f7e7` (Task 1 initial inline IIFE — superseded by leaf refactor) + `5604cd45` (Task 2 REFILL_THRESHOLD bump 12 → 16) + `567b7c54` (Task 2.5 needsRefill threshold test 12 → 16) + `9a0658a5` (Task 1 leaf-module refactor — extracts `createPromiseMutex` into `app/src/services/refill-mutex.ts` for testability) + `75d41254` (Task 3 mutex tests + wiring tests, 9 GREEN — 3 behavioral mutex semantics + 6 source-reading wiring) + `d65f6b90` (Task 4 CLAUDE.md docs). One Rule-3 deviation: Plan §<task><behavior> Test 4 spec calls `await conceptFeedService.generateMorePosts(qs, 4)`, but concept-feed.service.ts cannot be imported under `node --test` (i18n chain blocker; Node 25 lacks `mock.module`). Resolved via leaf-module pattern (same workaround Plan 36-04 used for `feed-spread.ts`) + source-reading wiring tests. Phase 36 quick suite (12 files): 91/91 GREEN. tsc -b --noEmit exit 0. Phase preservation: STORAGE_KEY_YESTERDAY (Phase 36-09), USER_ACK_BEFORE_GRAPH_CONTEXT (Phase 35), REFILL_THRESHOLD = 16 (this plan) all present. Phase 36 round-3 progress: 1/3 wave plans complete; 36-11 (rehydrate-and-reject-stale-cache) + 36-13 (force-new-day-cleanup) running in parallel against disjoint files._
+
+---
+
+# Milestone v1.5 — Curiosity Feed v2 + Tech-Debt Hardening (STARTED 2026-05-08)
+
+**Starting phase:** 37 (continuing from v1.4 which ended at phase 36)
+**Total requirements:** 22 (MASONRY 2, ENGAGE 4, CONTENT 4, TECHDEBT 12)
+**Target phases:** 9 across 4 waves
+**Granularity:** standard
+
+**Theme:** Ship the second-iteration curiosity feed (Pinterest-style 2-column masonry, richer essays, source diversity, local-first engagement signals) on top of a fully-hardened codebase that closes all v1.4 carry-overs plus a broader hygiene sweep.
+
+**Build order is wave-based** (derived from `.planning/research/SUMMARY.md`):
+
+- Wave 0 → Wave 1 → Wave 2 → Wave 3 → Wave 4 (sequential)
+- Within Wave 1: Phase 39 + Phase 40 are parallel-safe (independent leaf modules)
+- Wave 2 (Phase 41) requires Wave 1 complete
+- Wave 3 (Phase 42 → Phase 43) requires Wave 2 complete; Phase 42 must precede Phase 43 (engagement action row sits on masonry-rendered card)
+- Wave 4 (Phase 44 + Phase 45) parallel-safe within wave; lands LAST so dependency bumps don't trigger StrictMode timing surprises mid-feature
+
+## Phases
+
+- [ ] **Phase 37: i18n Leaf-Module Refactor** — Extract i18n usage from 6 service files into `lib/i18n-leaf.ts` shim; close 10 v1.4-carried test failures; unblock all new-service test coverage
+- [ ] **Phase 38: v1.4 Carry-Over Cleanup** — VALIDATION drift flip (34/35), ROADMAP plan-list polish, 33-HUMAN-UAT-1/2 device retest, CLAUDE.md `echolearn_*` doc-drift cleanup, YouTube landscape-listed-as-short bug fix
+- [ ] **Phase 39: Engagement Service + Walker Extension** — `engagement.service.ts` leaf module (save/dismiss/like, cross-day localStorage); `walkDerivedList` gains optional `dismissedIds` param; `ANCHOR_DISMISSED` event added to AppEvent union
+- [ ] **Phase 40: Source Diversity Leaf Module** — `source-diversity.ts` session-scoped leaf (filterForDiversity, recordServedDomain, scoreSource); bundled domain-tier allowlist (~200 entries); synchronous O(N) scan for mutex safety
+- [ ] **Phase 41: Pipeline Wiring + Essay Depth** — Wire engagement + diversity into refillQueue; add `EssayOptions.depth: 'standard' | 'deep'` to post-essay.service.ts (350-600w deep variant); raise body-slice cap 2000→4000; multi-snippet grounding + ReactMarkdown citation overrides
+- [ ] **Phase 42: Masonry Feed Layout** — `MasonryFeed.tsx` with CSS `column-count: 2` + `break-inside: avoid`; framer-motion entrance animations on leaf cards; vine-bloom end-of-content celebration card
+- [ ] **Phase 43: Engagement UI** — Like/save/dismiss action row on tiles via long-press menu; HomeScreen `ANCHOR_DISMISSED` subscription + `[location.pathname]` engagement resync; "Deep dive" button on PostDetailScreen; "N connections" graph-derived social proof micro-label; Force-New-Day handler updated with `engagementService.reset()`
+- [ ] **Phase 44: Dependency Version Sweep** — Capacitor 8.1→8.3, i18next 26.0.5→26.0.10, react-router-dom 7.13→7.15, eslint / typescript-eslint minor bumps; React 19.x minor bump consolidated here
+- [ ] **Phase 45: Code Quality Sweep** — `tsc` strict-mode audit, dead-code sweep, perf profiling pass (first-paint / queue refill / masonry scroll), project-wide TODO/FIXME triage, operator-note bug sweep
+
+## Phase Details
+
+### Phase 37: i18n Leaf-Module Refactor
+**Goal**: Break the `ERR_IMPORT_ATTRIBUTE_MISSING` chain so all v1.5 services are leaf-importable under `node --test`.
+**Depends on**: Nothing (Wave 0 — first phase)
+**Requirements**: TECHDEBT-01
+**Success Criteria** (what must be TRUE):
+  1. `npm test` baseline shows 10 previously-failing tests now passing (trellis-state, trellis-layout, concept-feed and similar files no longer fail with `ERR_IMPORT_ATTRIBUTE_MISSING`)
+  2. New `src/lib/i18n-leaf.ts` shim exists and is imported by ≥6 service files in place of `src/locales/index.ts`
+  3. `tsc -b --noEmit` exits 0 after the refactor
+  4. Locale-changed runtime behavior unchanged (manual switch from EN→ZH→ES→JA in Settings still updates UI live, no console errors)
+**Plans**: TBD
+
+### Phase 38: v1.4 Carry-Over Cleanup
+**Goal**: Close all v1.4 carry-over documentation drift, device-only QA gaps, and the YouTube short-classification bug so v1.5 starts from a clean baseline.
+**Depends on**: Nothing (Wave 0 — parallel-safe with Phase 37)
+**Requirements**: TECHDEBT-02, TECHDEBT-03, TECHDEBT-04, TECHDEBT-05, TECHDEBT-06
+**Success Criteria** (what must be TRUE):
+  1. `34-VALIDATION.md` shows `status: validated`; `35-VALIDATION.md` normalized from `approved` → `validated`
+  2. Archived `v1.4-ROADMAP.md` Phase 36 entry includes 36-14 + 36-15 plan bullets
+  3. 33-HUMAN-UAT-1 (touch-target feel) + 33-HUMAN-UAT-2 (React.memo behavioral correctness) verified on physical device with results recorded in a UAT log
+  4. CLAUDE.md no longer contains stale `echolearn_*` localStorage references (or they carry an explicit brand-history annotation)
+  5. Feed correctly classifies a landscape video post as `sourceType: 'video'` (not 'short') based on aspect-ratio metadata; regression test added
+**Plans**: TBD
+
+### Phase 39: Engagement Service + Walker Extension
+**Goal**: Foundation leaf service that owns local-first save/dismiss/like state, plus walker support for skipping dismissed anchors.
+**Depends on**: Phase 37 (leaf-importable test infrastructure)
+**Requirements**: ENGAGE-01, ENGAGE-02, ENGAGE-03
+**Success Criteria** (what must be TRUE):
+  1. `engagementService.savePost(postId)` / `getSavedPosts()` / `removeSavedPost(postId)` round-trips through localStorage key `trellis_engagement_v1` and persists across same-day app reload
+  2. `engagementService.likePost(postId)` / `unlikePost(postId)` / `isLiked(postId)` round-trip through the same key
+  3. `engagementService.dismissAnchor(anchorId)` adds the anchor to a dismissed set; `getDismissedAnchorIds()` returns it; `walkDerivedList(count, exploredIds, dismissedIds)` skips matching entries lazily at walk time (no array splicing, cyclePosition uncorrupted)
+  4. `ANCHOR_DISMISSED` event added to AppEvent union; `engagementService.dismissAnchor` emits it; no code path emits both `ANCHOR_DISMISSED` and `CONCEPT_EXPLORED` for the same call (anti-wire test passes)
+  5. Saved/liked posts persist across day boundaries (no date-based reset); dismissed anchors only reset via explicit undo or Clear All Data
+**Plans**: TBD
+
+### Phase 40: Source Diversity Leaf Module
+**Goal**: Foundation leaf module for per-anchor domain rotation; bundled domain-tier allowlist; synchronous O(N) scan inside refillQueue's mutex hold.
+**Depends on**: Phase 37 (leaf-importable test infrastructure); parallel-safe with Phase 39
+**Requirements**: CONTENT-02
+**Success Criteria** (what must be TRUE):
+  1. `filterForDiversity(results, usedDomains)` returns a re-ranked list that prefers unseen domains, with a fallback that allows the lowest-scored blocked domain when all results are filtered out (no silent zero-posts-for-concept failure)
+  2. `recordServedDomain(anchorId, domain)` updates a session-scoped `Map<anchorId, Set<domain>>` synchronously; `reset()` clears the map (called on day boundary)
+  3. `scoreSource(domain)` returns a number in `[0, 1]` from the bundled ~200-entry domain-tier const; runs in O(1) via `Map<string, number>` lookup
+  4. Domain lookup is fully synchronous (no `await`, no network) — verifiable via source-reading test that asserts no `await` / `fetch` / `chatStream` / `chatCompletion` inside the leaf module
+**Plans**: TBD
+
+### Phase 41: Pipeline Wiring + Essay Depth
+**Goal**: Integrate Wave 1 leaf services at their defined seam points and lengthen the essay path; richer markdown citations render correctly.
+**Depends on**: Phase 39 + Phase 40 (Wave 1 services exist)
+**Requirements**: CONTENT-01, CONTENT-03, CONTENT-04
+**Success Criteria** (what must be TRUE):
+  1. After dismissing concept X, the next `refillQueue` cycle does not enqueue any post for concept X (verified via integration test that calls walkDerivedList with the populated dismissedIds set)
+  2. News-branch Tavily call inside `refillQueue` passes `usedDomains` from `recordServedDomain` history; consecutive calls for the same anchor return different top domains (when ≥2 high-quality domains exist for the topic)
+  3. `EssayOptions.depth: 'deep'` produces a 350-600w essay (verified by token/word-count assertion in test); `'standard'` (default) produces 150-250w
+  4. Essay prompt receives `sources.slice(0, 3).map(s => s.snippet)` joined for grounding (multi-snippet) instead of `sources[0].snippet` only
+  5. Markdown citations render via ReactMarkdown component overrides (`sup`, `a`, `section`) — footnote markers render as superscript chips, footnote section renders with custom styling (visual + DOM-snapshot test)
+  6. `generateEssayMeta` body-slice cap raised from 2000 to 4000 chars before any prompt lengthening
+  7. Every new async call inside PostDetailScreen's essay `useEffect` receives `{ signal: abortController.signal }` and is preceded by an `if (signal.aborted) return` guard (D-08 abort-chain audit)
+**Plans**: TBD
+
+### Phase 42: Masonry Feed Layout
+**Goal**: Pinterest-style 2-column masonry feed using CSS `column-count: 2` + `break-inside: avoid`; vine-bloom celebration replaces the bare "no more posts" toast.
+**Depends on**: Phase 41 (services + essay paths stable so UI renders against real data)
+**Requirements**: MASONRY-01, MASONRY-02
+**Success Criteria** (what must be TRUE):
+  1. HomeScreen feed renders as a 2-column masonry layout; no card splits across columns (visual snapshot + DOM-tree test asserting `column-count: 2` + `break-inside: avoid` are present in the rendered styles)
+  2. Card heights vary naturally per content (image / text-art / video / short / news produce visually distinct tile heights without JS column rebalancing)
+  3. Scroll position survives `/home` → `/posts/:id` → back navigation (HomeScreen always-mounted slot preserves `scrollTop` automatically; verified by manual back-nav check + DOM ref assertion)
+  4. framer-motion entrance animations apply to leaf `<motion.div>` cards only, not to the scroll container or InfoFlow root (source-reading test enforces this)
+  5. When all anchors are explored, feed renders a vine-bloom celebration card with suggested-tomorrow plan in place of the prior empty toast
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 43: Engagement UI
+**Goal**: Surface Wave-1 engagement service in the UI: action rows on tiles, deep-dive button on detail, social-proof micro-label, Force-New-Day reset.
+**Depends on**: Phase 42 (masonry card layout exists; engagement row sits on the rendered card)
+**Requirements**: ENGAGE-04
+**Success Criteria** (what must be TRUE):
+  1. Long-press on a feed tile opens a contextual menu with Like / Save / Not interested options; tap commits the corresponding `engagementService` call and dismisses the menu
+  2. Saved posts are accessible via a saved-posts view (route or screen surface); the view lists posts persisted across days
+  3. PostDetailScreen shows a "Deep dive" button below the standard essay; tap triggers `EssayOptions.depth: 'deep'` re-render that streams the 350-600w expansion under the same AbortController contract
+  4. Each tile shows a "N connections in your graph" micro-label computed from `candidatePack` at queue-fill time (no per-render graph traversal)
+  5. HomeScreen subscribes to `ANCHOR_DISMISSED` and re-syncs engagement state on `[location.pathname]` effect (Phase 36-14 canonical pattern)
+  6. `handleForceNewDay` in `SettingsDataScreen` calls `engagementService.reset()` alongside existing post-queue + cache + dailyRead resets; dismissed anchors do not carry over after Force-New-Day
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 44: Dependency Version Sweep
+**Goal**: Bump all in-major safe versions and consolidate React 19.x minor bumps in a single phase to avoid mid-feature StrictMode timing surprises.
+**Depends on**: Phase 43 (Wave 4 lands LAST per build-order rationale; runs parallel-safe with Phase 45)
+**Requirements**: TECHDEBT-08
+**Success Criteria** (what must be TRUE):
+  1. `package.json` shows: Capacitor `^8.3.x`, i18next `^26.0.10`, react-router-dom `^7.15.x`, typescript-eslint + eslint at latest minor (held-back majors documented: Vite 8, TS 6.0, lucide-react 1.x, framer-motion → motion package rename)
+  2. `npm install` completes without peer-dep warnings; `npm audit` reports no new high/critical
+  3. `npm test` baseline equals or improves vs. the post-Phase-43 number (no regressions)
+  4. `tsc -b --noEmit` exits 0; `npm run build` succeeds; locale switch + Ask streaming + queue refill smoke-tested manually
+**Plans**: TBD
+
+### Phase 45: Code Quality Sweep
+**Goal**: Mechanical hygiene pass: tsc strictness audit, dead-code sweep, perf profiling, TODO/FIXME triage, operator-note bug sweep.
+**Depends on**: Phase 43 (parallel-safe with Phase 44 — different file-touch surfaces)
+**Requirements**: TECHDEBT-07, TECHDEBT-09, TECHDEBT-10, TECHDEBT-11, TECHDEBT-12
+**Success Criteria** (what must be TRUE):
+  1. `tsc` strict-mode gaps audited and documented in a phase artifact (`45-TSC-AUDIT.md` or similar); in-scope strictness fixes landed; deferred items annotated with rationale
+  2. Dead-code sweep removes orphan exports, unused imports, and removed-feature residue across `src/`; verified by ESLint `no-unused-vars` clean run
+  3. Perf profiling pass identifies and documents hot paths (first-paint, queue refill, masonry scroll); any P0/P1 finding has a closure commit or a deferred-with-rationale entry
+  4. Project-wide TODO/FIXME triage produces a catalogue (`45-TODO-TRIAGE.md`); each entry is closed, deferred to v1.6, or marked as in-scope-for-v1.5 (and closed inline)
+  5. Operator-note bugs from `.planning/notes/*` are triaged; in-scope items closed; out-of-scope items moved to deferred / out-of-scope sections in REQUIREMENTS.md
+**Plans**: TBD
+
+## Progress
+
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 37. i18n Leaf-Module Refactor | 0/0 | Not started | - |
+| 38. v1.4 Carry-Over Cleanup | 0/0 | Not started | - |
+| 39. Engagement Service + Walker Extension | 0/0 | Not started | - |
+| 40. Source Diversity Leaf Module | 0/0 | Not started | - |
+| 41. Pipeline Wiring + Essay Depth | 0/0 | Not started | - |
+| 42. Masonry Feed Layout | 0/0 | Not started | - |
+| 43. Engagement UI | 0/0 | Not started | - |
+| 44. Dependency Version Sweep | 0/0 | Not started | - |
+| 45. Code Quality Sweep | 0/0 | Not started | - |
+
+---
+
+_Created: 2026-05-08 — v1.5 Roadmap | 9 phases (37-45) | 22 requirements mapped | 4 waves_
