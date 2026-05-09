@@ -1,10 +1,11 @@
 ---
 phase: 38
 slug: v1-4-carry-over-cleanup
-status: draft
-nyquist_compliant: false
+status: approved
+nyquist_compliant: true
 wave_0_complete: false
 created: 2026-05-09
+approved: 2026-05-09
 ---
 
 # Phase 38 — Validation Strategy
@@ -85,6 +86,6 @@ created: 2026-05-09
 - [ ] Wave 0 covers all MISSING references (3 NEW test files listed above)
 - [ ] No watch-mode flags
 - [ ] Feedback latency < 30s
-- [ ] `nyquist_compliant: true` set in frontmatter (flip on plan close)
+- [x] `nyquist_compliant: true` set in frontmatter (flipped on plan-checker pass)
 
-**Approval:** pending
+**Approval:** approved 2026-05-09 (plan-checker iteration 2 — all blockers/warnings resolved)
