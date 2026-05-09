@@ -3,7 +3,7 @@ phase: 37-i18n-leaf-module-refactor
 plan: 03
 type: execute
 wave: 0
-depends_on: ['37-02-tier-1-2-service-migrations']
+depends_on: [02]
 files_modified:
   - app/src/services/youtube-locale-url.ts
   - app/tests/services/youtube-locale.test.mjs
