@@ -17,7 +17,8 @@ describe('style-assignment', () => {
     });
 
     assert.equal(result.length, 20);
-    const validStyles = new Set(['image', 'text-art', 'suggestion', 'news', 'video', 'short']);
+    // (Phase 38 / TECHDEBT-06): the legacy short style was removed from this set — short type is gone.
+    const validStyles = new Set(['image', 'text-art', 'suggestion', 'news', 'video']);
     for (const r of result) {
       assert.ok(typeof r.conceptId === 'string', 'conceptId is string');
       assert.ok(validStyles.has(r.style), `style "${r.style}" is valid`);
@@ -56,7 +57,7 @@ describe('style-assignment', () => {
     assert.ok(pct >= 2 && pct <= 10, `suggestion pct ${pct.toFixed(1)}% should be 2-10%`);
   });
 
-  it('assignStyles with no YouTube API key returns zero video/short, redistributed to text-art', () => {
+  it('assignStyles with no YouTube API key returns zero video, redistributed to text-art', () => {
     const ids = Array.from({ length: 200 }, (_, i) => `c${i}`);
     const result = assignStyles(ids, {
       hasYoutubeKey: false,
@@ -64,14 +65,16 @@ describe('style-assignment', () => {
       hasImageGenKey: true,
     });
 
-    const videoCount = result.filter((r) => r.style === 'video' || r.style === 'short').length;
-    assert.equal(videoCount, 0, 'no video/short without YouTube key');
+    // (Phase 38 / TECHDEBT-06): only the legacy video style remains here — short type is gone.
+    const videoCount = result.filter((r) => r.style === 'video').length;
+    assert.equal(videoCount, 0, 'no video without YouTube key');
 
-    // text-art should have absorbed the video+short weight (0.10+0.15 = 0.25 extra)
+    // text-art should have absorbed the video weight (0.20 extra after Phase 38 rebalance:
+    // video absorbed short's 0.10, so video=0.20 → text-art base 0.55 + 0.20 = 0.75)
     const textArtCount = result.filter((r) => r.style === 'text-art').length;
     const textArtPct = (textArtCount / 200) * 100;
-    // text-art base is 40%, plus 25% = 65%, allow 55-80% range for stats
-    assert.ok(textArtPct >= 55 && textArtPct <= 80, `text-art pct ${textArtPct.toFixed(1)}% should be 55-80%`);
+    // text-art base is 55%, plus 20% = 75%, allow 65-85% range for stats
+    assert.ok(textArtPct >= 65 && textArtPct <= 85, `text-art pct ${textArtPct.toFixed(1)}% should be 65-85%`);
   });
 
   it('assignStyles with no Tavily API key returns zero news, redistributed to text-art', () => {
@@ -93,11 +96,12 @@ describe('style-assignment', () => {
   });
 
   it('reassignFailures replaces failed video/news items with text-art', () => {
+    // (Phase 38 / TECHDEBT-06): the legacy short fixture replaced with video — short type is gone.
     const assignments = [
       { conceptId: 'a', style: 'video' },
       { conceptId: 'b', style: 'text-art' },
       { conceptId: 'c', style: 'news' },
-      { conceptId: 'd', style: 'short' },
+      { conceptId: 'd', style: 'video' },
       { conceptId: 'e', style: 'image' },
     ];
     const failedIds = new Set(['a', 'c', 'd']);
@@ -107,7 +111,7 @@ describe('style-assignment', () => {
     assert.equal(result[0].style, 'text-art', 'failed video -> text-art');
     assert.equal(result[1].style, 'text-art', 'text-art stays text-art');
     assert.equal(result[2].style, 'text-art', 'failed news -> text-art');
-    assert.equal(result[3].style, 'text-art', 'failed short -> text-art');
+    assert.equal(result[3].style, 'text-art', 'failed video (second) -> text-art');
     assert.equal(result[4].style, 'image', 'non-failed image stays image');
   });
 
