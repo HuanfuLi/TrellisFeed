@@ -2,7 +2,7 @@ import type { Question, ServiceResult, AskResult, SessionMessage } from '../type
 import { today } from '../lib/date.ts';
 import { eventBus } from '../lib/event-bus.ts';
 import { toast } from '../lib/toast.ts';
-import i18n from '../locales/index.ts';
+import { t } from '../lib/i18n-leaf.ts';
 import { settingsService } from './settings.service.ts';
 import { chatCompletion } from '../providers/llm/index.ts';
 import { embedText, cosine } from '../providers/embedding/index.ts';
@@ -111,7 +111,7 @@ function saveStore(questions: Question[]): void {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(questions));
   } catch (e) {
     if (e instanceof DOMException && e.name === 'QuotaExceededError') {
-      toast(i18n.t('common.toast.storageFullQuestion'), 'error');
+      toast(t('common.toast.storageFullQuestion'), 'error');
     }
   }
 }
