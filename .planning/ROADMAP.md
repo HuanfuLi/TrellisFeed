@@ -1059,7 +1059,7 @@ _Updated: 2026-05-07 — Phase 36-12 EXECUTED: Promise-mutex refill closes round
 ## Phases
 
 - [x] **Phase 37: i18n Leaf-Module Refactor** — Extract i18n usage from 6 service files into `lib/i18n-leaf.ts` shim; close 10 v1.4-carried test failures; unblock all new-service test coverage (completed 2026-05-09)
-- [ ] **Phase 38: v1.4 Carry-Over Cleanup** — VALIDATION drift flip (34/35), ROADMAP plan-list polish, 33-HUMAN-UAT-1/2 device retest, CLAUDE.md `echolearn_*` doc-drift cleanup, YouTube landscape-listed-as-short bug fix
+- [x] **Phase 38: v1.4 Carry-Over Cleanup** — VALIDATION drift flip (34/35), ROADMAP plan-list polish, 33-HUMAN-UAT-1/2 device retest, CLAUDE.md `echolearn_*` doc-drift cleanup, YouTube landscape-listed-as-short bug fix (completed 2026-05-09)
 - [ ] **Phase 39: Engagement Service + Walker Extension** — `engagement.service.ts` leaf module (save/dismiss/like, cross-day localStorage); `walkDerivedList` gains optional `dismissedIds` param; `ANCHOR_DISMISSED` event added to AppEvent union
 - [ ] **Phase 40: Source Diversity Leaf Module** — `source-diversity.ts` session-scoped leaf (filterForDiversity, recordServedDomain, scoreSource); bundled domain-tier allowlist (~200 entries); synchronous O(N) scan for mutex safety
 - [ ] **Phase 41: Pipeline Wiring + Essay Depth** — Wire engagement + diversity into refillQueue; add `EssayOptions.depth: 'standard' | 'deep'` to post-essay.service.ts (350-600w deep variant); raise body-slice cap 2000→4000; multi-snippet grounding + ReactMarkdown citation overrides
@@ -1093,7 +1093,7 @@ _Updated: 2026-05-07 — Phase 36-12 EXECUTED: Promise-mutex refill closes round
   5. Feed renders all YouTube content as `sourceType: 'video'` (the `'short'` post type is eliminated entirely per CONTEXT.md D-02 — no classifier reintroduced); regression test (`youtube-no-short-classification.test.mjs`) guards probePortrait absence + sourceType/presentationStyle short literals absence + STYLE_WEIGHTS shape
 **Plans**: 3 plans
   - [x] 38-01-doc-cleanup-PLAN.md — TECHDEBT-02 + TECHDEBT-03 + TECHDEBT-05 (VALIDATION frontmatter flips, ROADMAP plan-list polish, project-wide echolearn audit + annotations)
-  - [ ] 38-02-youtube-short-removal-PLAN.md — TECHDEBT-06 (drop `'short'` type from unions; delete probePortrait classifier; merge GAP-C tap-emit into video thumbnail onClick; rebalance STYLE_WEIGHTS; rename test + add invariant test; CLAUDE.md amendment)
+  - [x] 38-02-youtube-short-removal-PLAN.md — TECHDEBT-06 (drop `'short'` type from unions; delete probePortrait classifier; merge GAP-C tap-emit into video thumbnail onClick; rebalance STYLE_WEIGHTS; rename test + add invariant test; CLAUDE.md amendment)
   - [x] 38-03-device-uat-PLAN.md — TECHDEBT-04 (create 38-HUMAN-UAT.md scaffold mirroring Phase 37 shape; operator runs touch-target + React.memo tests on iOS + Android per D-03b)
 
 ### Phase 39: Engagement Service + Walker Extension
@@ -1188,7 +1188,7 @@ _Updated: 2026-05-07 — Phase 36-12 EXECUTED: Promise-mutex refill closes round
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 37. i18n Leaf-Module Refactor | 3/3 | Complete    | 2026-05-09 |
-| 38. v1.4 Carry-Over Cleanup | 2/3 | In Progress|  |
+| 38. v1.4 Carry-Over Cleanup | 3/3 | Complete   | 2026-05-09 |
 | 39. Engagement Service + Walker Extension | 0/0 | Not started | - |
 | 40. Source Diversity Leaf Module | 0/0 | Not started | - |
 | 41. Pipeline Wiring + Essay Depth | 0/0 | Not started | - |

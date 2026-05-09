@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: gap closure)
 status: executing
-stopped_at: Completed 38-01-doc-cleanup-PLAN.md
-last_updated: "2026-05-09T04:18:20.789Z"
+stopped_at: Completed 38-02-youtube-short-removal-PLAN.md
+last_updated: "2026-05-09T04:35:00.508Z"
 last_activity: 2026-05-09
 progress:
-  total_phases: 9
-  completed_phases: 1
-  total_plans: 3
-  completed_plans: 4
+  total_phases: 21
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # Project State: v1.5 ROADMAP CREATED — 2026-05-08
@@ -18,7 +18,7 @@ progress:
 ## Current Position
 
 Phase: 38 (v1-4-carry-over-cleanup) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-05-09
 
@@ -73,6 +73,16 @@ All carry-overs are scheduled into Wave 0:
 
 All v1.4 blockers resolved at close. No open blockers.
 
+## Last decisions (Plan 38-02 close, 2026-05-09)
+
+- **STYLE_WEIGHTS rebalance — video absorbed short's 0.10 → video: 0.20** (per CONTEXT.md Claude's discretion + plan_notes STYLE_WEIGHTS REBALANCE). Total sum preserved at 1.0. The new `youtube-no-short-classification.test.mjs` invariant test asserts BOTH invariants (no `short:` key in STYLE_WEIGHTS + sum within 1e-9 tolerance) — first attempt's regex over-matched the trailing comment `// Phase 38: absorbed short's 0.10`, producing sum=1.1; corrected by anchoring on `key: value` pairs after stripping line comments, landed in single Task 6 commit `863132c1`.
+- **D-02b hybrid interaction — preserved card-level onClick + e.stopPropagation() on thumbnail.** Chose existing card-level `handleActivate` pattern over RESEARCH.md's "split into two click handlers" suggestion. The card-level `onClick` already covers any non-thumbnail tap (title, teaser, hook, channel attribution); `stopPropagation()` on the thumbnail handles inline-play dispatch. Simpler than introducing a new title-area onClick and matches existing structure. Single-emit semantic enforced by renamed `InfoFlow.video-tap-emit.test.mjs` (4/4 green; markExplored AND CONCEPT_EXPLORED each appear EXACTLY ONCE in InfoFlow.tsx).
+- **D-02a aspect-ratio: CSS-only `aspectRatio: 'auto 16 / 9'`** over JS state `[thumbRatio, setThumbRatio]`. Zero new state, no extra render pass; iframe falls back to 16/9 when thumbnail has no intrinsic size yet. RESEARCH.md INV-1e Recommendation followed; device verification deferred to operator UAT (per CONTEXT.md scope).
+- **Strategy C atomic commit ordering** — types and immediate consumers (6 files: types/index.ts + youtube.service.ts + concept-feed.service.ts + style-assignment.ts + InfoFlow.tsx + PostDetailScreen.tsx) in single commit `76323eaa` so CI stays green between commits. Subsequent commits (i18n bundles, post-essay, test files, CLAUDE.md, new invariant) are small + bisection-friendly. Chose this over types-first (which would leave tsc red between commits) and over usage-sites-first (which would require flipping the union LAST — same end-state but reverse order).
+- **trellis_short_posts localStorage stale data NOT cleaned in legacy-migration.service.ts** — Bucket C deferral per CONTEXT.md. Stale data is harmless once read sites are gone (concept-feed.service.ts:1500+ block deleted; post-essay.service.ts cacheKeys array trimmed). User's existing localStorage entries become orphaned but never read; future Wave-4 hygiene phase MAY add a one-shot delete in `legacy-migration.service.ts` if user-facing storage clutter becomes an issue.
+- **Plan 38-02 close-out: 8 tasks across 10 atomic commits + new invariant test + i18n bundle parity preserved.** TECHDEBT-06 acceptance: all 9 must-have truths satisfied (type unions clean, probePortrait deleted, shortAssignments loop deleted, STYLE_WEIGHTS sum=1.0 with video:0.20, GAP-C single-emit migrated, PostDetailScreen guard removed, 4 i18n bundles parity-clean, post-essay cache patch removed, tsc + npm test baselines preserved). Test baseline at close: test:main 566/564/2 (+6 pass cases vs Phase 37 baseline 558/555/3; both remaining fails are pre-existing per Phase 37 STATE.md), test:actions 16/16/0 (improved from baseline 16/14/2). CLAUDE.md GAP-C section retitled "Video post completion signals (Phase 36 GAP-C, generalized in Phase 38 — load-bearing)" with detector inventory + Why-both subsection + Rules 1/3/4 rewritten to reflect video-only world.
+- **Parallelism artifact noted (not a regression):** Task 3's commit `01d870e5` accidentally captured 4 sibling-agent state-update writes (STATE.md/ROADMAP.md/REQUIREMENTS.md modifications + 38-01-doc-cleanup-SUMMARY.md) that the parallel 38-01 agent had left in the staging index. The intended Task 3 changes (post-essay.service.ts + post-essay.service.test.mjs) committed correctly; the extras are sibling finalization writes attributed to the wrong commit. Work is correct in either commit; pure logging/attribution issue. Future parallel executors should consider explicit `git reset HEAD` of unrelated indexed paths before per-task commits when running concurrently.
+
 ## Last decisions (Plan 38-01 close, 2026-05-09)
 
 - **Annotation phrasing chosen via audit table over action prose** (Task 4 fix). Plan PITFALLS.md action block specified em-dash form `historical — pre-2026-05-07 brand`, but audit table line 94 + acceptance criteria's grep pattern both use colon form `historical: pre-2026-05-07 brand`. Initial Task 4 edit followed action prose (em-dash); verification grep returned 0; followed up with single-character punctuation fix BEFORE committing. Folded into Task 4 commit `911a09df`. Documented as Rule 1 inline auto-fix in 38-01 SUMMARY.
@@ -108,8 +118,48 @@ All v1.4 blockers resolved at close. No open blockers.
 
 ## Session Continuity
 
-**Stopped at:** Completed 38-01-doc-cleanup-PLAN.md (Wave 1 of Phase 38 — running in parallel with 38-02 + 38-03)
+**Stopped at:** Completed 38-02-youtube-short-removal-PLAN.md
 **Next action:** Wait for parallel agents 38-02 (YouTube short removal) + 38-03 (Device UAT scaffold) to complete; then orchestrator runs verification (incl. hooks) and proceeds to Phase 38 close-out.
+
+**Files written this session (Plan 38-02 close):**
+
+- `app/src/types/index.ts` (MODIFIED — `'short'` removed from PresentationStyle + PostSnapshot.sourceType unions)
+- `app/src/services/youtube.service.ts` (MODIFIED — probePortrait deleted; sourceType/presentationStyle hardcoded to `'video'`)
+- `app/src/services/concept-feed.service.ts` (MODIFIED — VALID_SOURCE_TYPES, SHORT_QUERY_MODIFIERS, isShort param, shortAssignments loop, trellis_short_posts cache read all deleted; pre-validation pass simplified)
+- `app/src/services/style-assignment.ts` (MODIFIED — STYLE_WEIGHTS rebalanced video:0.10 → 0.20; weights.short references removed; reassignFailures simplified)
+- `app/src/components/InfoFlow.tsx` (MODIFIED — isShortPost variable + short-card render block deleted; GAP-C emit migrated into video thumbnail onClick; aspect-ratio: auto for video card; minHeight short check removed; ~130 lines deleted, ~30 lines added in thumbnail handler)
+- `app/src/screens/PostDetailScreen.tsx` (MODIFIED — `if (post.sourceType === 'short') return;` guard deleted)
+- `app/src/services/post-essay.service.ts` (MODIFIED — trellis_short_posts removed from cacheKeys array)
+- `app/src/locales/{en,zh,es,ja}.json` (MODIFIED — `infoFlow.shortTag` key deleted from all 4 bundles; bundle-parity test green)
+- `app/tests/services/post-essay.service.test.mjs` (MODIFIED — trellis_short_posts assertion deleted)
+- `app/tests/components/InfoFlow.video-tap-emit.test.mjs` (NEW — renamed from InfoFlow.short-tap-emit.test.mjs via git mv; 4 assertions retargeted to video card thumbnail onClick)
+- `app/tests/services/style-assignment.test.mjs` (MODIFIED — validStyles, no-YouTube-key arithmetic, reassignFailures fixture)
+- `app/tests/services/style-assignment-stratified.test.mjs` (MODIFIED — counter, valid set, hasYoutubeKey=false assertion)
+- `app/tests/services/refill-queue-integration.test.mjs` (MODIFIED — b4 fixture short → video; STYLE_WEIGHTS comment refreshed)
+- `app/tests/concept-quota.test.mjs` (MODIFIED — sourceType iteration array; short removed)
+- `app/tests/services/youtube-no-short-classification.test.mjs` (NEW — 4 source-reading invariants: probePortrait absent / sourceType:'short' absent / presentationStyle:'short' absent / STYLE_WEIGHTS no `short:` key + sum=1.0)
+- `CLAUDE.md` (MODIFIED — GAP-C section retitled "Video post completion signals (Phase 36 GAP-C, generalized in Phase 38 — load-bearing)"; detector inventory updated; Why-both subsection rewritten for hybrid interaction; Rules 1+3+4 rewritten)
+- `.planning/phases/38-v1-4-carry-over-cleanup/38-02-youtube-short-removal-SUMMARY.md` (NEW — close-out)
+- `.planning/STATE.md` (this file)
+
+**Plan 38-02 commits:**
+
+- `76323eaa` (Task 1: atomic 6-file short-type removal — types/youtube.service/concept-feed/style-assignment/InfoFlow/PostDetailScreen)
+- `6696f346` (Task 2: i18n bundle deletions — en/zh/es/ja)
+- `01d870e5` (Task 3: post-essay.service.ts trellis_short_posts removed + paired test assertion deleted; also captured 4 sibling-agent state-update writes — see Plan 38-02 close decision on parallelism artifact)
+- `8de21a88` (Task 4: rename InfoFlow.short-tap-emit.test.mjs → video-tap-emit.test.mjs via git mv; 4 assertions updated)
+- `ce4324fd` (Task 5A: style-assignment.test.mjs)
+- `914a74b3` (Task 5B: style-assignment-stratified.test.mjs)
+- `3e381a29` (Task 5C: refill-queue-integration.test.mjs)
+- `63e46c9e` (Task 5D: concept-quota.test.mjs)
+- `863132c1` (Task 6: NEW youtube-no-short-classification invariant test)
+- `6bff92d0` (Task 7: CLAUDE.md GAP-C section amendment)
+
+**Test baseline (post-Plan-38-02):** test:main 566/564/2 (+6 pass cases vs Phase 37 baseline 558/555/3 — 4 from new invariant test + 2 from net assertion changes; both remaining fails are pre-existing per Phase 37 STATE.md: tests/concept-feed.test.mjs ERR_MODULE_NOT_FOUND for extensionless youtube.service import + tests/services/trellis-layout.test.mjs:64 getVineColor date-dependent assertion. Neither failure message contains `'short'` or `ERR_IMPORT_ATTRIBUTE_MISSING`.) test:actions 16/16/0 (matches Plan 38-01 close — improved over the older 16/14/2 baseline note). tsc -b --noEmit exits 0.
+
+**Stopped at:** Completed 38-02-youtube-short-removal-PLAN.md
+
+---
 
 **Files written this session (Plan 38-01 close):**
 
