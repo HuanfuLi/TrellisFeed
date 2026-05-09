@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.3
-milestone_name: gap closure)
-status: verifying
-stopped_at: Completed 38-04-fresh-install-bugs-PLAN.md
-last_updated: "2026-05-09T06:09:06.545Z"
+milestone: v1.5
+milestone_name: Curiosity Feed v2 + Tech-Debt Hardening
+status: Phase 38 complete (4/4 plans incl. gap-closure 38-04) — ready for /gsd:discuss-phase 39 or /gsd:plan-phase 39
+stopped_at: Phase 38 verified passed (5/5 must-haves + UAT 2/2 + 2 fresh-install bugs closed via Plan 38-04 gap closure); ready to advance to Wave 1
+last_updated: "2026-05-09T06:30:00.000Z"
 last_activity: 2026-05-09
 progress:
-  total_phases: 21
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_phases: 9
+  completed_phases: 2
+  total_plans: 4
+  completed_plans: 4
 ---
 
 # Project State: v1.5 ROADMAP CREATED — 2026-05-08
@@ -126,8 +126,8 @@ All v1.4 blockers resolved at close. No open blockers.
 
 ## Session Continuity
 
-**Stopped at:** Completed 38-04-fresh-install-bugs-PLAN.md
-**Next action:** Wait for parallel agents 38-02 (YouTube short removal) + 38-03 (Device UAT scaffold) to complete; then orchestrator runs verification (incl. hooks) and proceeds to Phase 38 close-out.
+**Stopped at:** Phase 38 fully closed — 4/4 plans complete (38-01 doc cleanup ✓, 38-02 YouTube short removal ✓, 38-03 device UAT both tests pass on iOS+Android ✓, 38-04 fresh-install bugs gap-closure ✓). All 5 v1.4 carry-overs (TECHDEBT-02..06) closed. 2 fresh-install bugs surfaced during Plan 38-03 device UAT (Bug A: stale Chinese text-art in welcome posts under English locale; Bug B: hardcoded mock flashcards on first launch) closed via Plan 38-04. Test baseline: test:main 566/564/2 + test:actions 16/16/0; tsc -b --noEmit exit 0.
+**Next action:** `/gsd:discuss-phase 39` (recommended — 4 ENGAGE-* requirements warrant context discussion) or `/gsd:plan-phase 39` to skip discussion. Phase 39 (engagement service) is parallel-safe with Phase 40 (source diversity); both Wave 1.
 
 **Files written this session (Plan 38-02 close):**
 
