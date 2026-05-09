@@ -688,6 +688,8 @@ export type AppEvent =
   | { type: 'ANCHOR_DELETED'; payload: { anchorId: string } }
   | { type: 'HARVEST_COMPLETED'; payload: { count: number } }
   | { type: 'CONCEPT_EXPLORED'; payload: { anchorId: string } }
+  | { type: 'ANCHOR_DISMISSED'; payload: { anchorId: string } }
+  | { type: 'ENGAGEMENT_CHANGED'; payload: { kind: 'save' | 'unsave' | 'like' | 'unlike' | 'undismiss'; id: string } }
   // Unified graph-mutation signal. Fires after any classification commit, anchor
   // creation, prune, replant, or reorg step. Subscribers don't need to discriminate
   // why the graph changed — just re-read store. Replaces the former
