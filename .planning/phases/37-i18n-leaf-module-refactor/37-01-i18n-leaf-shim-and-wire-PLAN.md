@@ -2,7 +2,7 @@
 phase: 37-i18n-leaf-module-refactor
 plan: 01
 type: execute
-wave: 0
+wave: 1
 depends_on: []
 files_modified:
   - app/src/lib/i18n-leaf.ts

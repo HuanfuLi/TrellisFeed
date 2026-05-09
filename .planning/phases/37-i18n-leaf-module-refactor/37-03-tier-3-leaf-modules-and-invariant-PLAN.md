@@ -2,7 +2,7 @@
 phase: 37-i18n-leaf-module-refactor
 plan: 03
 type: execute
-wave: 0
+wave: 3
 depends_on: [02]
 files_modified:
   - app/src/services/youtube-locale-url.ts

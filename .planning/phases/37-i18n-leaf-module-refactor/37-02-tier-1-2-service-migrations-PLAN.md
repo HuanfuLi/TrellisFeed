@@ -2,7 +2,7 @@
 phase: 37-i18n-leaf-module-refactor
 plan: 02
 type: execute
-wave: 0
+wave: 2
 depends_on: [01]
 files_modified:
   - app/src/services/flashcard.service.ts
