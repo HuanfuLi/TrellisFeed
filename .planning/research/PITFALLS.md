@@ -198,9 +198,9 @@ The specific tests at risk:
 ### Pitfall 8: Engagement State localStorage Key Not Listed in the `trellis_*` Migration Registry
 
 **What goes wrong:**
-`legacy-migration.service.ts` migrated all `echolearn_*` keys to `trellis_*` keys at v1.4. If engagement signals add a new `trellis_engagement_state` key, this key will not have a legacy migration entry — that's fine. But if a developer accidentally uses `echolearn_engagement_*` as the key name (copy-paste from an older service file that hasn't been fully rebranded), there is no runtime migration and the key is silently orphaned on upgrade. The user's engagement history vanishes.
+`legacy-migration.service.ts` migrated all `echolearn_*` keys to `trellis_*` keys at v1.4. If engagement signals add a new `trellis_engagement_state` key, this key will not have a legacy migration entry — that's fine. But if a developer accidentally uses `echolearn_engagement_*` as the key name (copy-paste from an older service file that hasn't been fully rebranded), there is no runtime migration and the key is silently orphaned on upgrade. The user's engagement history vanishes. (Note: the `echolearn_*` prefix is historical: pre-2026-05-07 brand. All such keys were one-shot migrated to `trellis_*` by `legacy-migration.service.ts`. New code MUST use `trellis_*`.)
 
-More commonly: the CLAUDE.md "Brand history" note says `localStorage keys use trellis_*` but the SQLite connection name is still `'echolearn'`. A developer working on engagement signals may reach for the SQLite connection (reasonable, since like/save are permanent records) but use the wrong connection name string literal.
+More commonly: the CLAUDE.md "Brand history" note says `localStorage keys use trellis_*` but the SQLite connection name is still `'echolearn'`. A developer working on engagement signals may reach for the SQLite connection (reasonable, since like/save are permanent records) but use the wrong connection name string literal. (SQLite connection name `'echolearn'` is intentionally preserved; only localStorage keys were rebranded.)
 
 **Why it happens:**
 - Brand rename happened in v1.4 (commit `9e5d1f38`). New developers (or agent threads) reading the codebase see both `echolearn` (in SQLite) and `trellis_` (in localStorage) and may cross them up.
@@ -338,7 +338,7 @@ React 19 in Strict Mode intentionally double-invokes `useEffect` setup+cleanup i
 | Engagement signals | Dismiss wired to markExplored → vine credit pollution | Separate dismiss skip set from explored anchor set (Pitfall 2) |
 | Engagement signals | Engagement state not reset on Force-New-Day | `engagementService.reset()` in `handleForceNewDay` (Pitfall 3) |
 | Engagement signals | Like/Save schema migration missing from SQLite | Migration script or localStorage storage decision (Pitfall 13) |
-| Engagement signals | New `echolearn_` localStorage key after v1.4 rebrand | Lint check: no `echolearn_` in new service files (Pitfall 8) |
+| Engagement signals | New (incorrect) `echolearn_` localStorage key after v1.4 rebrand — historical prefix, pre-2026-05-07 | Lint check: no `echolearn_` in new service files (Pitfall 8) |
 | Source diversity | Domain lookup inside refill mutex holds lock too long | Synchronous local allowlist only; no network inside `_refillMutex.run()` (Pitfall 4) |
 | Source diversity | Strict filter silently returns zero posts for a concept | Fallback: allow lowest-blocked domain when all filtered (Pitfall 4) |
 | Richer essays | New async call in PostDetailScreen essay useEffect missing abort guard | D-08 pattern: every call gets `signal` + aborted-check (Pitfall 5) |
