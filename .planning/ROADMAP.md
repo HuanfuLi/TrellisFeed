@@ -1106,7 +1106,8 @@ _Updated: 2026-05-07 — Phase 36-12 EXECUTED: Promise-mutex refill closes round
   3. `engagementService.dismissAnchor(anchorId)` adds the anchor to a dismissed set; `getDismissedAnchorIds()` returns it; `walkDerivedList(count, exploredIds, dismissedIds)` skips matching entries lazily at walk time (no array splicing, cyclePosition uncorrupted)
   4. `ANCHOR_DISMISSED` event added to AppEvent union; `engagementService.dismissAnchor` emits it; no code path emits both `ANCHOR_DISMISSED` and `CONCEPT_EXPLORED` for the same call (anti-wire test passes)
   5. Saved/liked posts persist across day boundaries (no date-based reset); dismissed anchors only reset via explicit undo or Clear All Data
-**Plans**: TBD
+**Plans**: 1 plan
+  - [ ] 39-01-engagement-service-PLAN.md — engagement leaf service + walker dismissedIds extension + ANCHOR_DISMISSED/ENGAGEMENT_CHANGED events + post-history pin (D-04) + behavioral & source-reading anti-wire tests (ENGAGE-01, ENGAGE-02, ENGAGE-03)
 
 ### Phase 40: Source Diversity Leaf Module
 **Goal**: Foundation leaf module for per-anchor domain rotation; bundled domain-tier allowlist; synchronous O(N) scan inside refillQueue's mutex hold.
@@ -1189,7 +1190,7 @@ _Updated: 2026-05-07 — Phase 36-12 EXECUTED: Promise-mutex refill closes round
 |-------|----------------|--------|-----------|
 | 37. i18n Leaf-Module Refactor | 3/3 | Complete    | 2026-05-09 |
 | 38. v1.4 Carry-Over Cleanup | 4/4 | Complete   | 2026-05-09 |
-| 39. Engagement Service + Walker Extension | 0/0 | Not started | - |
+| 39. Engagement Service + Walker Extension | 0/1 | Planned     | - |
 | 40. Source Diversity Leaf Module | 0/0 | Not started | - |
 | 41. Pipeline Wiring + Essay Depth | 0/0 | Not started | - |
 | 42. Masonry Feed Layout | 0/0 | Not started | - |
