@@ -239,6 +239,13 @@ async function* generateTextArtEssay(post: DailyPost, questions: Question[], opt
  * (Phase 38 / TECHDEBT-06): the legacy shorts cache key was removed — short post type
  * was deleted entirely. Stale data in user localStorage is harmless once the read
  * site is gone (Bucket C cleanup deferred per CONTEXT.md).
+ *
+ * Phase 41 D-03 + RESEARCH Pitfall 9 — selective merge so partial essays don't clobber.
+ * When the generator was called with depth: 'deep' it returns bodyMarkdownDeep populated
+ * but bodyMarkdown empty; that empty string MUST NOT overwrite the existing standard.
+ * Symmetric for the standard path. Empty whyCare / takeaway are also preserved
+ * (1-sentence fields — empty means "not regenerated"); quickAskPrompts is an array
+ * (empty array is meaningful, replace it).
  */
 export function patchPostEssayInCache(postId: string, essay: EssayContent): void {
   const cacheKeys = ['trellis_daily_posts', 'trellis_video_cache', 'trellis_news_posts'];
@@ -250,7 +257,13 @@ export function patchPostEssayInCache(postId: string, essay: EssayContent): void
       const posts: DailyPost[] = cached?.posts ?? (Array.isArray(cached) ? cached : []);
       const idx = posts.findIndex((p: DailyPost) => p.id === postId);
       if (idx >= 0) {
-        posts[idx] = { ...posts[idx], ...essay };
+        const merged: DailyPost = { ...posts[idx] };
+        if (essay.bodyMarkdown && essay.bodyMarkdown.trim() !== '') merged.bodyMarkdown = essay.bodyMarkdown;
+        if (essay.bodyMarkdownDeep && essay.bodyMarkdownDeep.trim() !== '') merged.bodyMarkdownDeep = essay.bodyMarkdownDeep;
+        if (essay.whyCare) merged.whyCare = essay.whyCare;
+        if (essay.takeaway) merged.takeaway = essay.takeaway;
+        if (essay.quickAskPrompts) merged.quickAskPrompts = essay.quickAskPrompts;
+        posts[idx] = merged;
         if (cached?.posts) {
           cached.posts = posts;
           localStorage.setItem(key, JSON.stringify(cached));
