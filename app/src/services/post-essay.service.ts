@@ -184,10 +184,13 @@ async function* generateTextArtEssay(post: DailyPost, questions: Question[], opt
 
 /**
  * Patch a post's essay content into the correct localStorage cache after generation.
- * Checks daily cache, video cache, news cache, and shorts cache.
+ * Checks daily cache, video cache, and news cache.
+ * (Phase 38 / TECHDEBT-06): the legacy shorts cache key was removed — short post type
+ * was deleted entirely. Stale data in user localStorage is harmless once the read
+ * site is gone (Bucket C cleanup deferred per CONTEXT.md).
  */
 export function patchPostEssayInCache(postId: string, essay: EssayContent): void {
-  const cacheKeys = ['trellis_daily_posts', 'trellis_video_cache', 'trellis_news_posts', 'trellis_short_posts'];
+  const cacheKeys = ['trellis_daily_posts', 'trellis_video_cache', 'trellis_news_posts'];
   for (const key of cacheKeys) {
     try {
       const raw = localStorage.getItem(key);

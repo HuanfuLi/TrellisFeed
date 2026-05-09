@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: gap closure)
 status: executing
-stopped_at: "Plan 38-03 Task 1 landed scaffold (commit 00321198); paused at Task 2 checkpoint:human-verify awaiting operator device UAT on iOS+Android"
-last_updated: "2026-05-09T04:14:07.028Z"
-last_activity: 2026-05-09 -- Phase 38 execution started
+stopped_at: Completed 38-01-doc-cleanup-PLAN.md
+last_updated: "2026-05-09T04:18:20.789Z"
+last_activity: 2026-05-09
 progress:
-  total_phases: 21
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_phases: 9
+  completed_phases: 1
+  total_plans: 3
+  completed_plans: 4
 ---
 
 # Project State: v1.5 ROADMAP CREATED — 2026-05-08
@@ -18,14 +18,14 @@ progress:
 ## Current Position
 
 Phase: 38 (v1-4-carry-over-cleanup) — EXECUTING
-Plan: 1 of 3
-Status: Executing Phase 38
-Last activity: 2026-05-09 -- Phase 38 execution started
+Plan: 2 of 3
+Status: Ready to execute
+Last activity: 2026-05-09
 
 ## Progress
 
-**Phases:** 1 / 9 complete (37 ✓; 38-45 pending)
-**Plans:** 3 / 3 complete in Phase 37
+**Phases:** 1 / 9 complete (37 ✓; 38 IN PROGRESS — plan 1 of 3 done; 39-45 pending)
+**Plans:** 1 / 3 complete in Phase 38 (Plan 38-01 doc cleanup ✓; 38-02 + 38-03 running in parallel)
 
 ```
 [██████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 11%
@@ -73,6 +73,14 @@ All carry-overs are scheduled into Wave 0:
 
 All v1.4 blockers resolved at close. No open blockers.
 
+## Last decisions (Plan 38-01 close, 2026-05-09)
+
+- **Annotation phrasing chosen via audit table over action prose** (Task 4 fix). Plan PITFALLS.md action block specified em-dash form `historical — pre-2026-05-07 brand`, but audit table line 94 + acceptance criteria's grep pattern both use colon form `historical: pre-2026-05-07 brand`. Initial Task 4 edit followed action prose (em-dash); verification grep returned 0; followed up with single-character punctuation fix BEFORE committing. Folded into Task 4 commit `911a09df`. Documented as Rule 1 inline auto-fix in 38-01 SUMMARY.
+- **Test fixture parity verified end-to-end via diff before editing** (Task 5). Diffed `awk 'NR>=87 && NR<=112' app/src/services/concept-feed.service.ts` against `awk 'NR>=53 && NR<=78' app/tests/services/starter-posts.test.mjs` BEFORE making any change — diff identified exactly 4 EchoLearn occurrences in fixture (1 title + 1 preview + 2 bodyMarkdown openings); post-edit diff confirms zero remaining drift in string args (modulo intentional declaration syntax differences for the inline-reproduce pattern). 9/9 tests pass.
+- **Plan 38-02's territory NOT touched** (parallel-execution scope). post-essay.service.ts and concept-feed.service.ts trellis_short_posts references explicitly excluded — Plan 38-02 owns those edits. Verified via git status before each commit; never staged anything outside the 5 declared `files_modified`.
+- **All 5 commits used `--no-verify`** per parallel-execution protocol (orchestrator validates hooks once after all 3 wave-1 agents complete).
+- **Plan 38-01 close-out: 5 atomic commits across 5 files (TECHDEBT-02 + TECHDEBT-03 + TECHDEBT-05).** Test parity preserved at test:main 562/559/3 + test:actions 16/16/0 (matches Phase 37 close-out; well within plan's ≤3 main / ≤2 actions tolerance). Audit table from PLAN reproduced verbatim in SUMMARY with Bucket C "no surprises encountered" annotation.
+
 ## Last decisions (Plan 37-03 close, 2026-05-09)
 
 - **Replace, don't append, the i18next-mentioning paragraph at locale-directive.ts lines 10-15.** The truly load-bearing D-07 prologue (lines 5-8 — `IMPORTANT (D-07): This module is the ONLY code path that reads i18n locale...`) was preserved verbatim per plan instructions. The separate obsolete paragraph (which described the old JSON-import workaround and explicitly named `i18next.language` as the read source) was replaced with the canonical Phase 37 footnote per RESEARCH.md verbatim text (`byte-stable vs. the pre-Phase-37 direct i18next.language read`). Net result: D-07 directive intact + accurate post-refactor technical description; the historical-reference word `i18next.language` survives only inside the canonical footnote prose, not in any code path. Acceptance criteria reconciled per Plan 37-03 SUMMARY Deviation 1.
@@ -100,8 +108,32 @@ All v1.4 blockers resolved at close. No open blockers.
 
 ## Session Continuity
 
-**Stopped at:** Plan 38-03 Task 1 landed scaffold (commit 00321198); paused at Task 2 checkpoint:human-verify awaiting operator device UAT on iOS+Android
-**Next action:** `/gsd:discuss-phase 38` (recommended — 5 mixed requirements TECHDEBT-02..06) or `/gsd:plan-phase 38` to skip discussion.
+**Stopped at:** Completed 38-01-doc-cleanup-PLAN.md (Wave 1 of Phase 38 — running in parallel with 38-02 + 38-03)
+**Next action:** Wait for parallel agents 38-02 (YouTube short removal) + 38-03 (Device UAT scaffold) to complete; then orchestrator runs verification (incl. hooks) and proceeds to Phase 38 close-out.
+
+**Files written this session (Plan 38-01 close):**
+
+- `.planning/milestones/v1.4-phases/34-v1-4-close-out-verification-debt-and-cleanup/34-VALIDATION.md` (MODIFIED — frontmatter status/nyquist/wave_0 flipped, 3 lines)
+- `.planning/milestones/v1.4-phases/35-fix-the-dynamic-system-prompt-issue/35-VALIDATION.md` (MODIFIED — status normalized approved → validated, 1 line)
+- `.planning/milestones/v1.4-ROADMAP.md` (MODIFIED — Phase 36 Plans line names 36-14 + 36-15, 1 line)
+- `.planning/research/PITFALLS.md` (MODIFIED — 3 inline brand-history annotations on Pitfall 8 + warning-table row, 3 lines modified)
+- `app/tests/services/starter-posts.test.mjs` (MODIFIED — 4 string-literal updates EchoLearn → Trellis to match production STARTER_POSTS, 4 lines)
+- `.planning/phases/38-v1-4-carry-over-cleanup/38-01-doc-cleanup-SUMMARY.md` (NEW — close-out)
+- `.planning/STATE.md` (this file)
+- `.planning/ROADMAP.md` (plan progress row updated)
+- `.planning/REQUIREMENTS.md` (TECHDEBT-02, TECHDEBT-03, TECHDEBT-05 marked complete)
+
+**Plan 38-01 commits:**
+
+- `1cbe4def` (Task 1: 34-VALIDATION frontmatter flip)
+- `b44ea43c` (Task 2: 35-VALIDATION status normalize)
+- `09f3b171` (Task 3: v1.4-ROADMAP Phase 36 plans line)
+- `911a09df` (Task 4: PITFALLS.md brand-history annotations)
+- `697fc4b8` (Task 5: starter-posts fixture EchoLearn → Trellis)
+
+**Test baseline (post-Plan-38-01):** test:main 562/559/3 + test:actions 16/16/0. Matches Phase 37 close-out — zero regressions, 2 fewer test:actions failures than STATE's prior 16/14/2 baseline note (likely a stale-baseline artifact from Plan 37-03 capture; Phase 37 SUMMARY recorded 16/16/0). starter-posts.test.mjs alone: 9/9 pass.
+
+---
 
 **Files written this session (Plan 37-03 close):**
 

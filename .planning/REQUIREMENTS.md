@@ -28,10 +28,10 @@
 ### TECHDEBT — v1.4 carry-overs + broader hygiene
 
 - [x] **TECHDEBT-01** i18n leaf-module refactor: `src/lib/i18n-leaf.ts` shim breaks `ERR_IMPORT_ATTRIBUTE_MISSING` chain; 6 service files migrated; 10 carried test failures closed
-- [ ] **TECHDEBT-02** VALIDATION drift cleanup: `34-VALIDATION.md` flipped from draft to validated; `35-VALIDATION.md` normalized from `approved` → `validated`
-- [ ] **TECHDEBT-03** ROADMAP plan-list polish: 36-14 + 36-15 bullets appended to Phase 36 entry in archived `v1.4-ROADMAP.md`
+- [x] **TECHDEBT-02** VALIDATION drift cleanup: `34-VALIDATION.md` flipped from draft to validated; `35-VALIDATION.md` normalized from `approved` → `validated`
+- [x] **TECHDEBT-03** ROADMAP plan-list polish: 36-14 + 36-15 bullets appended to Phase 36 entry in archived `v1.4-ROADMAP.md`
 - [ ] **TECHDEBT-04** 33-HUMAN-UAT-1/2 device retest: touch-target feel + React.memo behavioral correctness verified on physical device
-- [ ] **TECHDEBT-05** CLAUDE.md `echolearn_*` localStorage references cleaned up (bulk rename or annotated brand-history note)
+- [x] **TECHDEBT-05** CLAUDE.md `echolearn_*` localStorage references cleaned up (bulk rename or annotated brand-history note)
 - [ ] **TECHDEBT-06** YouTube landscape-listed-as-short bug fixed: feed correctly classifies landscape video posts vs portrait shorts
 - [ ] **TECHDEBT-07** TypeScript strictness audit: `tsc` 5.9.x strict-mode gaps documented; remediation plan or in-scope fixes
 - [ ] **TECHDEBT-08** Dependency-version sweep: Capacitor 8.1→8.3, i18next 26.0.5→26.0.10, react-router-dom 7.13→7.15, eslint / typescript-eslint minor bumps

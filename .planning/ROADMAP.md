@@ -1092,9 +1092,9 @@ _Updated: 2026-05-07 — Phase 36-12 EXECUTED: Promise-mutex refill closes round
   4. CLAUDE.md no longer contains stale `echolearn_*` localStorage references (or they carry an explicit brand-history annotation)
   5. Feed renders all YouTube content as `sourceType: 'video'` (the `'short'` post type is eliminated entirely per CONTEXT.md D-02 — no classifier reintroduced); regression test (`youtube-no-short-classification.test.mjs`) guards probePortrait absence + sourceType/presentationStyle short literals absence + STYLE_WEIGHTS shape
 **Plans**: 3 plans
-  - [ ] 38-01-doc-cleanup-PLAN.md — TECHDEBT-02 + TECHDEBT-03 + TECHDEBT-05 (VALIDATION frontmatter flips, ROADMAP plan-list polish, project-wide echolearn audit + annotations)
+  - [x] 38-01-doc-cleanup-PLAN.md — TECHDEBT-02 + TECHDEBT-03 + TECHDEBT-05 (VALIDATION frontmatter flips, ROADMAP plan-list polish, project-wide echolearn audit + annotations)
   - [ ] 38-02-youtube-short-removal-PLAN.md — TECHDEBT-06 (drop `'short'` type from unions; delete probePortrait classifier; merge GAP-C tap-emit into video thumbnail onClick; rebalance STYLE_WEIGHTS; rename test + add invariant test; CLAUDE.md amendment)
-  - [ ] 38-03-device-uat-PLAN.md — TECHDEBT-04 (create 38-HUMAN-UAT.md scaffold mirroring Phase 37 shape; operator runs touch-target + React.memo tests on iOS + Android per D-03b)
+  - [x] 38-03-device-uat-PLAN.md — TECHDEBT-04 (create 38-HUMAN-UAT.md scaffold mirroring Phase 37 shape; operator runs touch-target + React.memo tests on iOS + Android per D-03b)
 
 ### Phase 39: Engagement Service + Walker Extension
 **Goal**: Foundation leaf service that owns local-first save/dismiss/like state, plus walker support for skipping dismissed anchors.
@@ -1188,7 +1188,7 @@ _Updated: 2026-05-07 — Phase 36-12 EXECUTED: Promise-mutex refill closes round
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 37. i18n Leaf-Module Refactor | 3/3 | Complete    | 2026-05-09 |
-| 38. v1.4 Carry-Over Cleanup | 0/0 | Not started | - |
+| 38. v1.4 Carry-Over Cleanup | 2/3 | In Progress|  |
 | 39. Engagement Service + Walker Extension | 0/0 | Not started | - |
 | 40. Source Diversity Leaf Module | 0/0 | Not started | - |
 | 41. Pipeline Wiring + Essay Depth | 0/0 | Not started | - |

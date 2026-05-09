@@ -17,7 +17,7 @@ describe('post-essay.service', () => {
     assert.ok(source.includes('trellis_daily_posts'), 'should patch main cache');
     assert.ok(source.includes('trellis_video_cache'), 'should patch video cache');
     assert.ok(source.includes('trellis_news_posts'), 'should patch news cache');
-    assert.ok(source.includes('trellis_short_posts'), 'should patch shorts cache');
+    // (Phase 38 / TECHDEBT-06): the legacy shorts cache assertion was deleted — short post type removed.
   });
 
   // POST-02: PostDetailScreen imports and calls generatePostEssay from post-essay.service
