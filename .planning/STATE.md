@@ -1,34 +1,34 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.3
-milestone_name: gap closure)
-status: verifying
-stopped_at: Completed 37-03-tier-3-leaf-modules-and-invariant-PLAN.md
-last_updated: "2026-05-09T02:20:50.744Z"
+milestone: v1.5
+milestone_name: Curiosity Feed v2 + Tech-Debt Hardening
+status: Phase 37 complete
+stopped_at: Phase 37 closed (TECHDEBT-01 verified + UAT passed); ready for Phase 38
+last_updated: "2026-05-09T03:00:00.000Z"
 last_activity: 2026-05-09
 progress:
-  total_phases: 21
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_phases: 9
+  completed_phases: 1
+  total_plans: 3
+  completed_plans: 3
 ---
 
 # Project State: v1.5 ROADMAP CREATED — 2026-05-08
 
 ## Current Position
 
-Phase: 37
+Phase: 38 (next)
 Plan: Not started
-Status: Phase complete — ready for verification
+Status: Phase 37 complete (TECHDEBT-01 closed; UAT passed). Ready for `/gsd:discuss-phase 38` or `/gsd:plan-phase 38`.
 Last activity: 2026-05-09
 
 ## Progress
 
-**Phases:** 0 / 9 complete (37-45)
-**Plans:** 0 / 0 (plans not yet created)
+**Phases:** 1 / 9 complete (37 ✓; 38-45 pending)
+**Plans:** 3 / 3 complete in Phase 37
 
 ```
-[░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 0%
+[██████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 11%
 ```
 
 ### Wave Order
@@ -45,7 +45,7 @@ See: `.planning/PROJECT.md` (updated 2026-05-08 — milestone v1.5 started)
 
 **Core value:** Enable learners to transform fragmented information into structured knowledge through AI-driven Q&A, visual mapping, and adaptive spaced repetition — all while maintaining complete local-first privacy.
 
-**Current focus:** Phase 37 — i18n-leaf-module-refactor
+**Current focus:** Phase 38 — v1.4 carry-over cleanup (TECHDEBT-02..06)
 
 ## Requirement Coverage
 
@@ -100,8 +100,8 @@ All v1.4 blockers resolved at close. No open blockers.
 
 ## Session Continuity
 
-**Stopped at:** Completed 37-03-tier-3-leaf-modules-and-invariant-PLAN.md
-**Next action:** Phase 37 ready for `/gsd:verify-work`. After verifier sign-off, manual UAT (Settings → switch EN → ZH → ES → JA, verify toasts/dates/voices update without console errors). Then proceed to Phase 38 (v1.4 carry-over cleanup).
+**Stopped at:** Phase 37 fully closed — verifier 5/5 + Nyquist-compliant validation + human UAT 1/1 + ROADMAP/REQUIREMENTS/PROJECT.md updated.
+**Next action:** `/gsd:discuss-phase 38` (recommended — 5 mixed requirements TECHDEBT-02..06) or `/gsd:plan-phase 38` to skip discussion.
 
 **Files written this session (Plan 37-03 close):**
 
