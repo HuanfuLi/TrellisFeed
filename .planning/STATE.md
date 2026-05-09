@@ -1,34 +1,34 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.3
-milestone_name: gap closure)
-status: executing
-stopped_at: Completed 38-02-youtube-short-removal-PLAN.md
-last_updated: "2026-05-09T04:35:00.508Z"
+milestone: v1.5
+milestone_name: Curiosity Feed v2 + Tech-Debt Hardening
+status: Phase 38 complete — ready for /gsd:discuss-phase 39 or /gsd:plan-phase 39
+stopped_at: Phase 38 verified passed (5/5 must-haves); ready to advance to Wave 1
+last_updated: "2026-05-09T05:30:00.000Z"
 last_activity: 2026-05-09
 progress:
-  total_phases: 21
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_phases: 9
+  completed_phases: 2
+  total_plans: 3
+  completed_plans: 3
 ---
 
 # Project State: v1.5 ROADMAP CREATED — 2026-05-08
 
 ## Current Position
 
-Phase: 38 (v1-4-carry-over-cleanup) — EXECUTING
-Plan: 3 of 3
-Status: Ready to execute
+Phase: 39 (next — Wave 1 foundation service)
+Plan: Not started
+Status: Phase 38 complete (verifier passed 5/5 must-haves). Ready for `/gsd:discuss-phase 39` or `/gsd:plan-phase 39`.
 Last activity: 2026-05-09
 
 ## Progress
 
-**Phases:** 1 / 9 complete (37 ✓; 38 IN PROGRESS — plan 1 of 3 done; 39-45 pending)
-**Plans:** 1 / 3 complete in Phase 38 (Plan 38-01 doc cleanup ✓; 38-02 + 38-03 running in parallel)
+**Phases:** 2 / 9 complete (37 ✓; 38 ✓; 39-45 pending)
+**Plans:** 3 / 3 complete in Phase 38 (38-01 doc cleanup ✓; 38-02 YouTube short removal ✓; 38-03 device UAT ✓)
 
 ```
-[██████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 11%
+[████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 22%
 ```
 
 ### Wave Order
@@ -45,7 +45,7 @@ See: `.planning/PROJECT.md` (updated 2026-05-08 — milestone v1.5 started)
 
 **Core value:** Enable learners to transform fragmented information into structured knowledge through AI-driven Q&A, visual mapping, and adaptive spaced repetition — all while maintaining complete local-first privacy.
 
-**Current focus:** Phase 38 — v1-4-carry-over-cleanup
+**Current focus:** Phase 39 — engagement service + walker extension (Wave 1 foundation)
 
 ## Requirement Coverage
 
@@ -72,6 +72,13 @@ All carry-overs are scheduled into Wave 0:
 ## Resolved blockers
 
 All v1.4 blockers resolved at close. No open blockers.
+
+## Last decisions (Phase 38 close, 2026-05-09)
+
+- **Phase 38 verified passed: 5/5 must-haves satisfied** (verifier sonnet — see `38-VERIFICATION.md`). VALIDATION drift flips on archived 34/35; v1.4-ROADMAP plan-list polish for 36-14/36-15; 33-HUMAN-UAT-1 + 33-HUMAN-UAT-2 verified on physical iOS+Android device with `result: pass`; CLAUDE.md echolearn references annotated with brand-history; YouTube `'short'` post type structurally eliminated (probePortrait deleted, sourceType union cleaned, STYLE_WEIGHTS rebalanced video:0.20, GAP-C tap-emit migrated to thumbnail onClick, invariant test guards regression). Test baseline at close: test:main 566/564/2 + test:actions 16/16/0 (+6 passing cases vs Phase 37 baseline; both remaining test:main fails are pre-existing concept-feed ERR_MODULE_NOT_FOUND + trellis-layout date-dependent).
+- **Out-of-scope finding filed for v1.5 backlog: GraphScreen mindmap drag latency on Android Chromium WebView** (recently introduced, perceptible-but-usable, warm-up smooths it out — surfaced during 38-03 device UAT session). Captured at `.planning/notes/2026-05-09-graphscreen-drag-lag-android.md` for triage in `/gsd:discuss-phase` of a later v1.5 phase. NOT part of TECHDEBT-04 (Phase 33 deferral set is explicitly the 2 specific tests that passed); does NOT block Phase 38 close-out.
+- **REQUIREMENTS.md traceability matrix manual sync (TECHDEBT-04 + TECHDEBT-06 rows).** The `phase complete` CLI updates checkboxes but not the traceability table rows; manually flipped both `Pending → ✓ Complete` to keep the matrix in sync with the checkbox list. Same gap was caught at Plan 38-01 close (TECHDEBT-02/03/05 rows) — recurring drift, future fix candidate for `gsd-tools requirements mark-complete`.
+- **`phase complete 38` reports `is_last_phase: true` despite Phases 39-45 remaining.** CLI inspects only the STATE cursor, not the ROADMAP-tail. Cosmetic; ROADMAP correctly shows 39-45 unchecked. Does not affect execution flow.
 
 ## Last decisions (Plan 38-02 close, 2026-05-09)
 

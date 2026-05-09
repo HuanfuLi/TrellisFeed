@@ -30,7 +30,7 @@
 - [x] **TECHDEBT-01** i18n leaf-module refactor: `src/lib/i18n-leaf.ts` shim breaks `ERR_IMPORT_ATTRIBUTE_MISSING` chain; 6 service files migrated; 10 carried test failures closed
 - [x] **TECHDEBT-02** VALIDATION drift cleanup: `34-VALIDATION.md` flipped from draft to validated; `35-VALIDATION.md` normalized from `approved` → `validated`
 - [x] **TECHDEBT-03** ROADMAP plan-list polish: 36-14 + 36-15 bullets appended to Phase 36 entry in archived `v1.4-ROADMAP.md`
-- [ ] **TECHDEBT-04** 33-HUMAN-UAT-1/2 device retest: touch-target feel + React.memo behavioral correctness verified on physical device
+- [x] **TECHDEBT-04** 33-HUMAN-UAT-1/2 device retest: touch-target feel + React.memo behavioral correctness verified on physical device
 - [x] **TECHDEBT-05** CLAUDE.md `echolearn_*` localStorage references cleaned up (bulk rename or annotated brand-history note)
 - [x] **TECHDEBT-06** YouTube landscape-listed-as-short bug fixed: feed correctly classifies landscape video posts vs portrait shorts
 - [ ] **TECHDEBT-07** TypeScript strictness audit: `tsc` 5.9.x strict-mode gaps documented; remediation plan or in-scope fixes
@@ -80,9 +80,9 @@
 | TECHDEBT-01 | Phase 37 | Wave 0 | ✓ Complete |
 | TECHDEBT-02 | Phase 38 | Wave 0 | ✓ Complete |
 | TECHDEBT-03 | Phase 38 | Wave 0 | ✓ Complete |
-| TECHDEBT-04 | Phase 38 | Wave 0 | Pending |
+| TECHDEBT-04 | Phase 38 | Wave 0 | ✓ Complete |
 | TECHDEBT-05 | Phase 38 | Wave 0 | ✓ Complete |
-| TECHDEBT-06 | Phase 38 | Wave 0 | Pending |
+| TECHDEBT-06 | Phase 38 | Wave 0 | ✓ Complete |
 | TECHDEBT-07 | Phase 45 | Wave 4 | Pending |
 | TECHDEBT-08 | Phase 44 | Wave 4 | Pending |
 | TECHDEBT-09 | Phase 45 | Wave 4 | Pending |
