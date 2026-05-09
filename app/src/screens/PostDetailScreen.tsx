@@ -307,30 +307,35 @@ export function PostDetailScreen() {
         const discoverMeta = discoverMetaRef.current;
 
         // 1. Stream the body content from the appropriate generator
-        // D-15 scope: signal threading is on the generatePostEssay branch;
-        // connection/discover branches rely on the abort-guard return pattern
-        // for unmount cancellation.
+        // D-15 scope (extended Phase 41 SC-7): all 3 branches now thread the AbortSignal
+        // AND have a pre-call abort guard. Walker termination + LOCALE_CHANGED mid-stream
+        // cancel + unmount cleanup all funnel through the same single AbortController.
         if (post.sourceType === 'connection' && connectionMeta) {
+          if (abortController.signal.aborted) return; // Phase 41 SC-7 — pre-call guard
           for await (const chunk of conceptFeedService.generateConnectionPost(
             connectionMeta.questionA,
             connectionMeta.questionB,
             connectionMeta.conceptNounA,
             connectionMeta.conceptNounB,
+            { signal: abortController.signal }, // Phase 41 SC-7 — generator-API signal
           )) {
             if (abortController.signal.aborted) return;
             accumulated += chunk;
             setStreamingBody(accumulated);
           }
         } else if (discoverMeta && post.id.includes('-post-')) {
+          if (abortController.signal.aborted) return; // Phase 41 SC-7 — pre-call guard
           for await (const chunk of conceptFeedService.generateDiscoverPost(
             discoverMeta.concept,
             discoverMeta.title,
+            { signal: abortController.signal }, // Phase 41 SC-7
           )) {
             if (abortController.signal.aborted) return;
             accumulated += chunk;
             setStreamingBody(accumulated);
           }
         } else {
+          if (abortController.signal.aborted) return; // Phase 41 SC-7 — pre-call guard
           for await (const chunk of generatePostEssay(post, questionsRef.current, { signal: abortController.signal })) {
             if (abortController.signal.aborted) return; // D-08
             accumulated += chunk;
