@@ -1,12 +1,13 @@
-import i18next from 'i18next';
+import { t, getCurrentLocale } from './i18n-leaf.ts';
 import type { SupportedLocale } from '../types';
 
 // ─── Locale-aware date/greeting (D-11) ────────────────────────────────────────
-// Reads i18next.language (the global singleton configured by `src/locales`).
-// INTL_LOCALE maps our bare locale codes to the BCP-47 tag Intl wants
-// (zh → zh-CN so Intl uses Simplified Chinese month names).
-// This module imports from `i18next` directly (not from `src/locales/index.ts`)
-// so Node 25's `node --test` can exercise it without triggering the JSON
+// Reads the active locale via the i18n-leaf shim (Phase 37 — TECHDEBT-01),
+// which delegates to the i18next singleton in production and to identity
+// defaults under `node --test`. INTL_LOCALE maps our bare locale codes to the
+// BCP-47 tag Intl wants (zh → zh-CN so Intl uses Simplified Chinese month
+// names). This module imports the leaf shim (not '../locales/index.ts') so
+// Node 25's `node --test` can exercise it without triggering the JSON
 // import-attribute error on {en,zh,es,ja}.json.
 const INTL_LOCALE: Record<SupportedLocale, string> = {
   en: 'en-US',
@@ -16,7 +17,7 @@ const INTL_LOCALE: Record<SupportedLocale, string> = {
 };
 
 export function currentIntlLocale(): string {
-  const lng = i18next.language as SupportedLocale;
+  const lng = getCurrentLocale() as SupportedLocale;
   const locale: SupportedLocale = lng in INTL_LOCALE ? lng : 'en';
   return INTL_LOCALE[locale];
 }
@@ -62,7 +63,7 @@ export function addDays(date: string, days: number): string {
 }
 
 export function formatDateLabel(date: string): string {
-  if (isToday(date)) return i18next.t('common.today');
+  if (isToday(date)) return t('common.today');
   const dt = parseDateLocal(date);
   return dt.toLocaleDateString(currentIntlLocale(), {
     weekday: 'short',
@@ -73,7 +74,7 @@ export function formatDateLabel(date: string): string {
 
 export function getGreeting(): string {
   const hour = new Date().getHours();
-  if (hour < 12) return i18next.t('common.greeting.morning');
-  if (hour < 17) return i18next.t('common.greeting.afternoon');
-  return i18next.t('common.greeting.evening');
+  if (hour < 12) return t('common.greeting.morning');
+  if (hour < 17) return t('common.greeting.afternoon');
+  return t('common.greeting.evening');
 }

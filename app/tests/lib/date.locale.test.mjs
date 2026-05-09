@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import i18next from 'i18next';
+import { bindI18nLeaf } from '../../src/lib/i18n-leaf.ts';
 
 // Initialize the i18next global singleton — date.ts reads i18next.language
 // for both Intl formatting and translated greeting/today labels. Give it the
@@ -49,10 +50,15 @@ await i18next.init({
   },
 });
 
-// date.ts is a leaf module (only imports '../locales' for i18n; no JSON).
-// To avoid triggering the JSON-import chain under Node 25, date.ts imports
-// `i18next` directly and reads `currentIntlLocale` from a sibling pure-TS
-// helper. The test imports the same helper.
+// Phase 37: date.ts now reads via the i18n-leaf shim (Pitfall 1 mitigation).
+// Wire the leaf to the test-local i18next singleton AFTER init AND BEFORE the
+// dynamic import of date.ts so subsequent `i18next.changeLanguage(...)` calls
+// in tests propagate through `getCurrentLocale()` and `t(...)`.
+bindI18nLeaf(i18next.t.bind(i18next), () => i18next.language);
+
+// date.ts is a leaf module (only imports the i18n-leaf shim, no JSON). To
+// avoid triggering the JSON-import chain under Node 25, the test wires the
+// leaf above and then dynamically imports date.ts.
 const { formatDate, formatDateLabel, getGreeting, today, currentIntlLocale } =
   await import('../../src/lib/date.ts');
 
