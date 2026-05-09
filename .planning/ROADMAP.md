@@ -1062,7 +1062,7 @@ _Updated: 2026-05-07 — Phase 36-12 EXECUTED: Promise-mutex refill closes round
 - [x] **Phase 38: v1.4 Carry-Over Cleanup** — VALIDATION drift flip (34/35), ROADMAP plan-list polish, 33-HUMAN-UAT-1/2 device retest, CLAUDE.md `echolearn_*` doc-drift cleanup, YouTube landscape-listed-as-short bug fix (completed 2026-05-09)
 - [x] **Phase 39: Engagement Service + Walker Extension** — `engagement.service.ts` leaf module (save/dismiss/like, cross-day localStorage); `walkDerivedList` gains optional `dismissedIds` param; `ANCHOR_DISMISSED` event added to AppEvent union (completed 2026-05-09)
 - [x] **Phase 40: Source Diversity Leaf Module** — `source-diversity.ts` session-scoped leaf (filterForDiversity, recordServedDomain, scoreSource); bundled domain-tier allowlist (~200 entries); synchronous O(N) scan for mutex safety (completed 2026-05-09)
-- [ ] **Phase 41: Pipeline Wiring + Essay Depth** — Wire engagement + diversity into refillQueue; add `EssayOptions.depth: 'standard' | 'deep'` to post-essay.service.ts (350-600w deep variant); raise body-slice cap 2000→4000; multi-snippet grounding + ReactMarkdown citation overrides
+- [x] **Phase 41: Pipeline Wiring + Essay Depth** — Wire engagement + diversity into refillQueue; add `EssayOptions.depth: 'standard' | 'deep'` to post-essay.service.ts (350-600w deep variant); raise body-slice cap 2000→4000; multi-snippet grounding + ReactMarkdown citation overrides _(Plan 41-01 + 41-02 complete; Phase 43 unblocked for Deep dive button)_
 - [ ] **Phase 42: Masonry Feed Layout** — `MasonryFeed.tsx` with CSS `column-count: 2` + `break-inside: avoid`; framer-motion entrance animations on leaf cards; vine-bloom end-of-content celebration card
 - [ ] **Phase 43: Engagement UI** — Like/save/dismiss action row on tiles via long-press menu; HomeScreen `ANCHOR_DISMISSED` subscription + `[location.pathname]` engagement resync; "Deep dive" button on PostDetailScreen; "N connections" graph-derived social proof micro-label; Force-New-Day handler updated with `engagementService.reset()`
 - [ ] **Phase 44: Dependency Version Sweep** — Capacitor 8.1→8.3, i18next 26.0.5→26.0.10, react-router-dom 7.13→7.15, eslint / typescript-eslint minor bumps; React 19.x minor bump consolidated here
@@ -1135,7 +1135,7 @@ _Updated: 2026-05-07 — Phase 36-12 EXECUTED: Promise-mutex refill closes round
   7. Every new async call inside PostDetailScreen's essay `useEffect` receives `{ signal: abortController.signal }` and is preceded by an `if (signal.aborted) return` guard (D-08 abort-chain audit)
 **Plans**: 2 plans
   - [x] 41-01-refillqueue-source-diversity-wiring-PLAN.md — wire sourceDiversityService into news creation + pre-fetch loops; add WebSearchOptions.excludeDomains → Tavily; reset() at loadCache day boundary; SC-1 walker dismissedIds integration test (CONTENT-02 closed; multi-snippet newsMeta.sources shape landed)
-  - [ ] 41-02-essay-depth-citation-rendering-PLAN.md — EssayOptions.depth + bodyMarkdownDeep additive field on EssayContent + PostSnapshot; depth-aware prompts in 4 generators; sources.slice(0,3) news grounding + footnote prompt; meta cap 2000→4000; PostDetailScreen 3-branch abort threading audit; ReactMarkdown sup/a/section overrides + sanitize sup-attr spread fix (CONTENT-01, CONTENT-03, CONTENT-04)
+  - [x] 41-02-essay-depth-citation-rendering-PLAN.md — EssayOptions.depth + bodyMarkdownDeep additive field on EssayContent + PostSnapshot; depth-aware prompts in 4 generators; sources.slice(0,3) news grounding + footnote prompt; meta cap 2000→4000; PostDetailScreen 3-branch abort threading audit; ReactMarkdown sup/a/section overrides + sanitize sup-attr spread fix (CONTENT-01, CONTENT-03, CONTENT-04)
 
 ### Phase 42: Masonry Feed Layout
 **Goal**: Pinterest-style 2-column masonry feed using CSS `column-count: 2` + `break-inside: avoid`; vine-bloom celebration replaces the bare "no more posts" toast.
@@ -1195,7 +1195,7 @@ _Updated: 2026-05-07 — Phase 36-12 EXECUTED: Promise-mutex refill closes round
 | 38. v1.4 Carry-Over Cleanup | 4/4 | Complete   | 2026-05-09 |
 | 39. Engagement Service + Walker Extension | 1/1 | Complete    | 2026-05-09 |
 | 40. Source Diversity Leaf Module | 1/1 | Complete    | 2026-05-09 |
-| 41. Pipeline Wiring + Essay Depth | 0/2 | Planned    |  |
+| 41. Pipeline Wiring + Essay Depth | 2/2 | Complete   | 2026-05-09 |
 | 42. Masonry Feed Layout | 0/0 | Not started | - |
 | 43. Engagement UI | 0/0 | Not started | - |
 | 44. Dependency Version Sweep | 0/0 | Not started | - |

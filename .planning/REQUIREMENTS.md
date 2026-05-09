@@ -20,10 +20,10 @@
 
 ### CONTENT — Source diversity + richer essays
 
-- [ ] **CONTENT-01** User can request a "Deep dive" essay variant (350-600w) from `PostDetailScreen`; standard 150-250w teaser remains default
+- [x] **CONTENT-01** User can request a "Deep dive" essay variant (350-600w) from `PostDetailScreen`; standard 150-250w teaser remains default _(Phase 41-02 ships the API + bodyMarkdownDeep field + tests; Phase 43 ships the user-facing button)_
 - [x] **CONTENT-02** Web-search filters for per-concept domain rotation: repeated Tavily calls for the same anchor pass `exclude_domains` so re-queries surface fresh sources _(Phase 40 leaf + Phase 41-01 Tavily wire complete)_
-- [ ] **CONTENT-03** Essay prompts include 2-3 Tavily snippets (multi-snippet grounding) instead of `sources[0].snippet` only
-- [ ] **CONTENT-04** Citations in markdown render via ReactMarkdown `sup`/`a`/`section` component overrides for clean footnote presentation
+- [x] **CONTENT-03** Essay prompts include 2-3 Tavily snippets (multi-snippet grounding) instead of `sources[0].snippet` only _(Phase 41-01 widened Tavily maxResults to 3 + stored multi-snippet shape; Phase 41-02 generateNewsEssay consumes sources.slice(0, 3))_
+- [x] **CONTENT-04** Citations in markdown render via ReactMarkdown `sup`/`a`/`section` component overrides for clean footnote presentation _(Phase 41-02 — Markdown.tsx components prop + sanitize sup-attr spread fix; LLM emits [^N] markers via generateNewsEssay's footnote prompt)_
 
 ### TECHDEBT — v1.4 carry-overs + broader hygiene
 
@@ -73,10 +73,10 @@
 | ENGAGE-02   | Phase 39 | Wave 1 | Pending |
 | ENGAGE-03   | Phase 39 | Wave 1 | Pending |
 | ENGAGE-04   | Phase 43 | Wave 3 | Pending |
-| CONTENT-01  | Phase 41 | Wave 2 | Pending |
+| CONTENT-01  | Phase 41 | Wave 2 | ✓ Complete (Phase 41-02 ships API + bodyMarkdownDeep field + tests; Phase 43 ships button) |
 | CONTENT-02  | Phase 40+41 | Wave 1+2 | ✓ Complete (Phase 40 leaf + Phase 41-01 wire) |
-| CONTENT-03  | Phase 41 | Wave 2 | Pending |
-| CONTENT-04  | Phase 41 | Wave 2 | Pending |
+| CONTENT-03  | Phase 41 | Wave 2 | ✓ Complete (Phase 41-01 multi-snippet shape + Phase 41-02 sources.slice(0, 3) consumption) |
+| CONTENT-04  | Phase 41 | Wave 2 | ✓ Complete (Phase 41-02 ReactMarkdown overrides + sanitize spread fix + footnote prompt) |
 | TECHDEBT-01 | Phase 37 | Wave 0 | ✓ Complete |
 | TECHDEBT-02 | Phase 38 | Wave 0 | ✓ Complete |
 | TECHDEBT-03 | Phase 38 | Wave 0 | ✓ Complete |

@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: gap closure)
-status: executing
-stopped_at: Plan 41-01 complete — Plan 41-02 may proceed (Wave 2 sequencing on concept-feed.service.ts file-level overlap)
-last_updated: "2026-05-09T19:00:00.000Z"
-last_activity: 2026-05-09 -- Plan 41-01 closed (CONTENT-02 complete)
+status: verifying
+stopped_at: Plan 41-02 complete — Phase 41 ready for verify-work
+last_updated: "2026-05-09T15:16:39.831Z"
+last_activity: 2026-05-09
 progress:
   total_phases: 21
   completed_phases: 0
   total_plans: 0
-  completed_plans: 1
+  completed_plans: 2
 ---
 
 # Project State: v1.5 ROADMAP CREATED — 2026-05-08
@@ -19,16 +19,16 @@ progress:
 
 Phase: 41 (pipeline-wiring-essay-depth) — EXECUTING
 Plan: 2 of 2
-Status: Plan 41-01 complete; Plan 41-02 ready to proceed (Wave 2 sequencing)
-Last activity: 2026-05-09 -- Plan 41-01 closed (CONTENT-02 complete)
+Status: Phase complete — ready for verification
+Last activity: 2026-05-09
 
 ## Progress
 
-**Phases:** 2 / 9 complete (37 ✓; 38 ✓; 39 ready for verification; 40 ready for verification; 41 in progress 1/2; 42-45 pending)
-**Plans:** 1 / 2 complete in Phase 41 (41-01 source-diversity-wiring ✓); 1 / 1 complete in Phase 40 (40-01 source-diversity-service ✓); 1 / 1 complete in Phase 39 (39-01 engagement-service ✓)
+**Phases:** 2 / 9 complete (37 ✓; 38 ✓; 39 ready for verification; 40 ready for verification; 41 ready for verification 2/2 plans; 42-45 pending)
+**Plans:** 2 / 2 complete in Phase 41 (41-01 source-diversity-wiring ✓; 41-02 essay-depth-citation-rendering ✓); 1 / 1 complete in Phase 40 (40-01 source-diversity-service ✓); 1 / 1 complete in Phase 39 (39-01 engagement-service ✓)
 
 ```
-[████████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 30%
+[████████████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 38%
 ```
 
 ### Wave Order
@@ -72,6 +72,21 @@ All carry-overs are scheduled into Wave 0:
 ## Resolved blockers
 
 All v1.4 blockers resolved at close. No open blockers.
+
+## Last decisions (Plan 41-02 close, 2026-05-09)
+
+- **SC-7(a) regex anchor permits trailing inline comments.** Initial regex `if \(abortController\.signal\.aborted\) return[^;]*;\s*\n\s*for await/g` matched 0 because the trailing `// Phase 41 SC-7 — pre-call guard` comment doesn't end in `;`. Updated to `/if \(abortController\.signal\.aborted\) return;[^\n]*\n\s*for await/g` — anchors on the literal `;` then permits any non-newline characters before the line break + for-await opener. Rule 3 in-test-iteration fix folded into Task 5 commit `6c3fa72d`.
+- **Essay useEffect block scoped via SECOND occurrence of "On-enter essay generation".** The FIRST occurrence is the state-block comment near the top of the component (line ~80); the SECOND opens the actual useEffect (line ~282). End boundary chosen as `Fetch cached images` (the carousel useEffect comment that follows the essay useEffect) — bounded the source-reading window precisely without false-positiving on later useEffects. Rule 3 in-test-iteration fix folded into Task 5 commit.
+- **Footnote prompt instruction uses explicit numeric markers `[^1]`, `[^2]`, `[^3]` (not `[^N]` placeholder).** D-04 verbatim. Concrete examples are clearer to the LLM and match the test's `assert.match(/\[\^1\]/)` etc. Test additionally asserts the case-insensitive substring `footnotes section` to lock the section emission instruction.
+- **patchPostEssayInCache selective merge: truthiness check on bodyMarkdown via `essay.bodyMarkdown && essay.bodyMarkdown.trim() !== ''`.** Empty string AND whitespace-only string both treated as "not regenerated" — matches the existing `if (post.bodyMarkdown && post.bodyMarkdown.trim() !== '') return;` skip pattern in PostDetailScreen.tsx. Symmetric for bodyMarkdownDeep. whyCare/takeaway use simple truthiness; quickAskPrompts uses truthiness check (replaces if defined; explicit `undefined` skips).
+- **Trailing options bag for generateConnectionPost / generateDiscoverPost (Pitfall 6 — back-compat).** Both functions had no options bag pre-Phase-41; positional callers (e.g. PostDetailScreen pre-Task-5) remain valid. Task 5 immediately consumes the new bag.
+- **Markdown.tsx full-file rewrite over Edit-tool patches.** The plan listed too many discrete additions (Components type import, citationComponents object, components prop wiring, SC-5(c) sup-attr fix) for clean atomic patches; full rewrite preserves the existing plugin chain + sanitize schema + KaTeX import while making the additions reviewable as a single semantic unit. Counterweight test guards plugin chain + sanitize tagNames + dataCite + span/div spread to catch any regression.
+- **react-markdown v10 exports `type Components` directly from index** — verified via `node_modules/react-markdown/index.d.ts:2`; no shim or local type definition needed. tsc -b --noEmit exits 0 throughout.
+- **data-footnote-ref / data-footnote-backref discriminator chosen over href-prefix matching.** The hast-util-sanitize default schema applies a clobber prefix (e.g. `user-content-fn-N`) that may be overridable by callers; relying on the prefix is brittle. The data attributes are emitted by remark-gfm regardless of clobber prefix and survive sanitize.
+- **News post `bodyMarkdown: ''` invariant preserved** (CLAUDE.md "News post pipeline" load-bearing rule). Plan 41-02 changed only the on-enter streamer (`generateNewsEssay`); news creation at concept-feed.service.ts:1083 (`bodyMarkdown: ''` literal) is unchanged. tests/services/post-essay.service.test.mjs `news branch defers body to streaming` test still 6/6 green.
+- **Phase 35 byte-stable system-prompt rule does NOT apply** (per CLAUDE.md "Other one-shot LLM call sites" footnote rule 6). post-essay generators are one-shot calls (no multi-turn history), so depth-conditional prompts and dynamic content interpolation are intentional.
+- **CONTENT-01 + CONTENT-03 + CONTENT-04 promoted from `[ ]` to `[x]`.** Phase 41 fully closes its 3 requirements. Phase 43 owns the user-facing "Deep dive" button (consumes the API + cache field shipped here); Phase 41-02 ships the API + tests + rendering only.
+- **Plan 41-02 close-out: 6 atomic per-task commits + close-out commit.** Test baseline: pre-Plan-41-02 626/2 → post-Plan-41-02 655/2 (+29 passes: 11 post-essay-depth + 10 PostDetailScreen-abort-threading + 8 Markdown-citation-overrides; same 2 pre-existing carry-over failures from Plan 39-01 / 40-01 / 41-01 — `tests/concept-feed.test.mjs` ERR_MODULE_NOT_FOUND for extensionless youtube.service import + `tests/services/trellis-layout.test.mjs:64` getVineColor date-dependent assertion). test:actions 16/16/0 unchanged. tsc -b --noEmit exits 0.
 
 ## Last decisions (Plan 41-01 close, 2026-05-09)
 
@@ -161,8 +176,36 @@ All v1.4 blockers resolved at close. No open blockers.
 
 ## Session Continuity
 
-**Stopped at:** Phase 41 context gathered
-**Next action:** `/gsd:verify-work 40 01` (verifier sweep over Plan 40-01 must-haves) → after verification, `/gsd:plan-phase 41` (pipeline + essay depth, Wave 2; consumes Phase 40's leaf at the news pre-fetch loop + news creation loop in concept-feed.service.ts).
+**Stopped at:** Plan 41-02 complete — Phase 41 ready for verify-work
+**Next action:** `/gsd:verify-work 41 02` (verifier sweep over Plan 41-02 must-haves) → after verification, `/gsd:plan-phase 42` (masonry feed layout, Wave 3; depends on Phase 41 services + essay paths stable).
+
+**Files written this session (Plan 41-02 close):**
+
+- `app/src/types/index.ts` (MODIFIED — PostSnapshot gains optional bodyMarkdownDeep?: string with documenting comment; inherited by DailyPost)
+- `app/src/services/post-essay.service.ts` (MODIFIED — EssayOptions.depth knob + EssayContent.bodyMarkdownDeep field; depth-conditional wordCountInstruction in all 4 generators; sources.slice(0, 3) multi-snippet grounding + footnote prompt instruction in generateNewsEssay; meta slice cap 2000→4000; patchPostEssayInCache field-by-field selective merge)
+- `app/src/services/concept-feed.service.ts` (MODIFIED — generateConnectionPost + generateDiscoverPost gain trailing options?: { signal?: AbortSignal }; chatStream calls thread signal: options?.signal)
+- `app/src/screens/PostDetailScreen.tsx` (MODIFIED — D-15 comment block extended to "Phase 41 SC-7" scope; 3 pre-call abort guards + 2 new { signal: abortController.signal } args added across 3 async essay branches)
+- `app/src/components/Markdown.tsx` (REWRITE — preserves all existing plugin chain + sanitize schema; adds Components type import; adds citationComponents object with sup/a/section overrides; wires components={citationComponents} into ReactMarkdown JSX; SC-5(c) Pitfall 4 fix: sup attribute list now spreads defaultSchema.attributes?.['sup'])
+- `app/tests/services/post-essay-depth.test.mjs` (NEW — 192 lines, 11 cases: SC-3/4/5(a)/6 source-reading + 3 patchPostEssayInCache merge behavioral tests)
+- `app/tests/screens/PostDetailScreen-abort-threading.test.mjs` (NEW — 117 lines, 10 cases: SC-7(a)/(b)/(c) source-reading + 2 counterweights)
+- `app/tests/components/Markdown-citation-overrides.test.mjs` (NEW — 70 lines, 8 cases: SC-5(b)/(c) source-reading + 2 counterweights)
+- `.planning/phases/41-pipeline-wiring-essay-depth/41-02-essay-depth-citation-rendering-SUMMARY.md` (NEW — close-out)
+- `.planning/STATE.md` (this file)
+- `.planning/REQUIREMENTS.md` (CONTENT-01 + CONTENT-03 + CONTENT-04 marked complete)
+- `.planning/ROADMAP.md` (Phase 41 + plan list rows marked [x])
+
+**Plan 41-02 commits:**
+
+- `6ba839de` (Task 1: bodyMarkdownDeep field + depth knob — feat)
+- `e8634daa` (Task 2: depth-aware prompts + multi-snippet news + footnote instruction + meta cap 4000 — feat)
+- `a19b2fa5` (Task 3: patchPostEssayInCache selective merge — feat)
+- `aaee719a` (Task 4: AbortSignal threading on generateConnectionPost + generateDiscoverPost — feat)
+- `6c3fa72d` (Task 5: SC-7 abort threading — pre-call guards + signal args on all 3 essay branches — feat)
+- `397d388a` (Task 6: ReactMarkdown sup/a/section overrides + sanitize sup-attr spread fix — feat)
+
+**Test baseline (post-Plan-41-02):** test:main 657/655/2 (+29 passes from 3 new test files); test:actions 16/16/0 (unchanged); tsc -b --noEmit → exit 0. Same 2 pre-existing carry-over failures from Plan 41-01 (concept-feed.test.mjs extension-resolution + trellis-layout date-dependent assertion). Pass count exceeds plan's expected lower bound.
+
+---
 
 **Files written this session (Plan 40-01 close):**
 
