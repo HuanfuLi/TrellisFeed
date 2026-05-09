@@ -1090,8 +1090,11 @@ _Updated: 2026-05-07 — Phase 36-12 EXECUTED: Promise-mutex refill closes round
   2. Archived `v1.4-ROADMAP.md` Phase 36 entry includes 36-14 + 36-15 plan bullets
   3. 33-HUMAN-UAT-1 (touch-target feel) + 33-HUMAN-UAT-2 (React.memo behavioral correctness) verified on physical device with results recorded in a UAT log
   4. CLAUDE.md no longer contains stale `echolearn_*` localStorage references (or they carry an explicit brand-history annotation)
-  5. Feed correctly classifies a landscape video post as `sourceType: 'video'` (not 'short') based on aspect-ratio metadata; regression test added
-**Plans**: TBD
+  5. Feed renders all YouTube content as `sourceType: 'video'` (the `'short'` post type is eliminated entirely per CONTEXT.md D-02 — no classifier reintroduced); regression test (`youtube-no-short-classification.test.mjs`) guards probePortrait absence + sourceType/presentationStyle short literals absence + STYLE_WEIGHTS shape
+**Plans**: 3 plans
+  - [ ] 38-01-doc-cleanup-PLAN.md — TECHDEBT-02 + TECHDEBT-03 + TECHDEBT-05 (VALIDATION frontmatter flips, ROADMAP plan-list polish, project-wide echolearn audit + annotations)
+  - [ ] 38-02-youtube-short-removal-PLAN.md — TECHDEBT-06 (drop `'short'` type from unions; delete probePortrait classifier; merge GAP-C tap-emit into video thumbnail onClick; rebalance STYLE_WEIGHTS; rename test + add invariant test; CLAUDE.md amendment)
+  - [ ] 38-03-device-uat-PLAN.md — TECHDEBT-04 (create 38-HUMAN-UAT.md scaffold mirroring Phase 37 shape; operator runs touch-target + React.memo tests on iOS + Android per D-03b)
 
 ### Phase 39: Engagement Service + Walker Extension
 **Goal**: Foundation leaf service that owns local-first save/dismiss/like state, plus walker support for skipping dismissed anchors.
