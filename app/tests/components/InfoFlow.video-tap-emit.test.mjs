@@ -1,7 +1,11 @@
 // Phase 36 GAP-C regression guard: ensures InfoFlow.tsx fires CONCEPT_EXPLORED
-// on short tap-to-play. Shorts never navigate to PostDetailScreen (interactive=false
-// at line 295), so the existing detectors A/B/C/D never run for them.
-// See .planning/debug/video-completion-signal-missing.md.
+// on video thumbnail tap-to-play (inline play). Phase 38 (TECHDEBT-06) removed the
+// 'short' post type entirely; the GAP-C emit migrated from the short-card onClick
+// into the video-card thumbnail onClick. Hybrid interaction (D-02b): thumbnail tap
+// = inline play + emit; title/teaser tap = navigate to PostDetailScreen (Detectors
+// A/B/C/D still cover deep engagement after navigation).
+// See .planning/debug/video-completion-signal-missing.md
+// and .planning/phases/38-v1-4-carry-over-cleanup/38-CONTEXT.md (D-02b).
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { readFileSync } from 'node:fs';
@@ -12,22 +16,23 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const INFOFLOW_PATH = resolve(__dirname, '../../src/components/InfoFlow.tsx');
 const source = readFileSync(INFOFLOW_PATH, 'utf-8');
 
-describe('InfoFlow short tap-to-play emit (Phase 36 GAP-C)', () => {
-  it('contains Phase 36 GAP-C comment in the short tap branch', () => {
+describe('InfoFlow video tap-to-play emit (Phase 36 GAP-C, generalized in Phase 38)', () => {
+  it('contains Phase 36 GAP-C comment in the video thumbnail tap branch', () => {
     assert.ok(
       source.includes('Phase 36 GAP-C'),
-      'InfoFlow.tsx must reference Phase 36 GAP-C in the short tap-to-play handler comment.',
+      'InfoFlow.tsx must reference Phase 36 GAP-C in the video thumbnail tap-to-play handler comment (generalized in Phase 38).',
     );
   });
 
-  it('fires markExplored exactly once (only in the short branch, not the video branch)', () => {
+  it('fires markExplored exactly once (in the video thumbnail tap branch — no double-emit)', () => {
     const matches = source.match(/dailyReadService\.markExplored/g) || [];
     assert.equal(
       matches.length,
       1,
-      `InfoFlow.tsx must call dailyReadService.markExplored exactly once — in the short tap branch. ` +
-      `Found ${matches.length} occurrences. Video posts route via onOpen → PostDetailScreen → Detector D, ` +
-      `so they should NOT have a duplicate emit here (would double-fire).`,
+      `InfoFlow.tsx must call dailyReadService.markExplored exactly once — in the video thumbnail tap-to-play handler. ` +
+      `Found ${matches.length} occurrences. Adding a second emit at the card-level onClick (which navigates to PostDetailScreen) ` +
+      `would double-fire (idempotent via dailyReadService.isExplored, but unnecessary work + confusing semantics). ` +
+      `Phase 38 generalization preserved single-emit semantic from Phase 36 GAP-C.`,
     );
   });
 
@@ -36,7 +41,7 @@ describe('InfoFlow short tap-to-play emit (Phase 36 GAP-C)', () => {
     assert.equal(
       matches.length,
       1,
-      'InfoFlow.tsx must emit CONCEPT_EXPLORED exactly once (in the short tap-to-play handler). ' +
+      'InfoFlow.tsx must emit CONCEPT_EXPLORED exactly once (in the video thumbnail tap-to-play handler). ' +
       'Reuse the existing event type — do NOT introduce a new event (CLAUDE.md best practice rule 6).',
     );
   });
