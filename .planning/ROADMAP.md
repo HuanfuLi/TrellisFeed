@@ -1195,7 +1195,7 @@ _Updated: 2026-05-07 — Phase 36-12 EXECUTED: Promise-mutex refill closes round
 | 38. v1.4 Carry-Over Cleanup | 4/4 | Complete   | 2026-05-09 |
 | 39. Engagement Service + Walker Extension | 1/1 | Complete    | 2026-05-09 |
 | 40. Source Diversity Leaf Module | 1/1 | Complete    | 2026-05-09 |
-| 41. Pipeline Wiring + Essay Depth | 2/2 | Complete   | 2026-05-09 |
+| 41. Pipeline Wiring + Essay Depth | 2/2 | Complete    | 2026-05-09 |
 | 42. Masonry Feed Layout | 0/0 | Not started | - |
 | 43. Engagement UI | 0/0 | Not started | - |
 | 44. Dependency Version Sweep | 0/0 | Not started | - |
