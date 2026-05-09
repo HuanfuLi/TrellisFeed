@@ -7,14 +7,15 @@
 // in src/locales/index.ts.
 //
 // PRODUCTION: src/main.tsx calls bindI18nLeaf(i18n.t.bind(i18n), () => i18n.language)
-// once after `import i18n from './locales'` so all consumers go through the
-// real i18next instance. Behavior is byte-stable vs. the pre-Phase-37 direct
+// once after the locales/index module is imported, so all consumers go through
+// the real i18next instance. Behavior is byte-stable vs. the pre-Phase-37 direct
 // i18next reads.
 //
 // TESTS: identity defaults (`t(key) => key`, `getCurrentLocale() => 'en'`)
 // require zero setup. Tests that need real translations call bindI18nLeaf
-// themselves with a stub i18next instance. NEVER import from '../locales/index.ts'
-// in test code — that re-introduces the JSON-import chain Phase 37 unwinds.
+// themselves with a stub i18next instance. NEVER import the locales/index
+// module in test code — that re-introduces the JSON-import chain Phase 37
+// unwinds.
 //
 // CONSUMERS: do NOT call t() or getCurrentLocale() at module top level. Bind
 // happens after locale init in main.tsx; top-level calls would resolve against
@@ -33,8 +34,8 @@ let _getLocale: LocaleGetter = () => 'en';
 /**
  * Bind the leaf shim to a live i18next-like instance.
  *
- * Call once at app boot from main.tsx AFTER `import i18n from './locales'`
- * has evaluated. Idempotent (later calls overwrite earlier bindings — useful
+ * Call once at app boot from main.tsx AFTER the locales/index module has
+ * evaluated. Idempotent (later calls overwrite earlier bindings — useful
  * for test reset patterns).
  */
 export function bindI18nLeaf(tFn: TFn, getLocale: LocaleGetter): void {
