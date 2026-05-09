@@ -2,7 +2,7 @@ import type { FlashCard, ChatSession, ReviewSchedule } from '../types';
 import { today } from '../lib/date.ts';
 import { eventBus } from '../lib/event-bus.ts';
 import { toast } from '../lib/toast.ts';
-import i18n from '../locales/index.ts';
+import { t } from '../lib/i18n-leaf.ts';
 import { settingsService } from './settings.service.ts';
 import { chatCompletion } from '../providers/llm/index.ts';
 import { questionService } from './question.service.ts';
@@ -78,7 +78,7 @@ function saveAll(cards: FlashCard[]): void {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(cards));
   } catch (e) {
     if (e instanceof DOMException && e.name === 'QuotaExceededError') {
-      toast(i18n.t('common.toast.storageFullFlashcards'), 'error');
+      toast(t('common.toast.storageFullFlashcards'), 'error');
     }
   }
 }
