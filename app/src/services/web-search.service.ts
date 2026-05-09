@@ -14,6 +14,7 @@ interface WebSearchOptions {
   topic?: 'general' | 'news';
   maxResults?: number;
   includeImages?: boolean;
+  excludeDomains?: string[];  // Phase 41 D-02 — per-anchor domain rotation via Tavily exclude_domains
 }
 
 // ─── Web Search ───────────────────────────────────────────────────────────────
@@ -47,6 +48,11 @@ export async function webSearch(
   };
   if (options?.includeImages) {
     body.include_images = true;
+  }
+  // Phase 41 D-02 + Pitfall 1 — only set exclude_domains when array has length;
+  // empty/undefined ⇒ omit from wire payload to keep request minimal.
+  if (options?.excludeDomains?.length) {
+    body.exclude_domains = options.excludeDomains;
   }
   const headers = {
     'Content-Type': 'application/json',
