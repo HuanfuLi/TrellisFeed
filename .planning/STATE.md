@@ -1,31 +1,31 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.5
-milestone_name: Curiosity Feed v2 + Tech-Debt Hardening
-status: Phase 38 complete — ready for /gsd:discuss-phase 39 or /gsd:plan-phase 39
-stopped_at: Phase 38 verified passed (5/5 must-haves); ready to advance to Wave 1
-last_updated: "2026-05-09T05:30:00.000Z"
+milestone: v1.3
+milestone_name: gap closure)
+status: verifying
+stopped_at: Completed 38-04-fresh-install-bugs-PLAN.md
+last_updated: "2026-05-09T06:09:06.545Z"
 last_activity: 2026-05-09
 progress:
-  total_phases: 9
-  completed_phases: 2
-  total_plans: 3
-  completed_plans: 3
+  total_phases: 21
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # Project State: v1.5 ROADMAP CREATED — 2026-05-08
 
 ## Current Position
 
-Phase: 39 (next — Wave 1 foundation service)
-Plan: Not started
-Status: Phase 38 complete (verifier passed 5/5 must-haves). Ready for `/gsd:discuss-phase 39` or `/gsd:plan-phase 39`.
+Phase: 38 (v1-4-carry-over-cleanup) — EXECUTING
+Plan: 4 of 4
+Status: Phase complete — ready for verification
 Last activity: 2026-05-09
 
 ## Progress
 
-**Phases:** 2 / 9 complete (37 ✓; 38 ✓; 39-45 pending)
-**Plans:** 3 / 3 complete in Phase 38 (38-01 doc cleanup ✓; 38-02 YouTube short removal ✓; 38-03 device UAT ✓)
+**Phases:** 1 / 9 complete (37 ✓; 38 IN PROGRESS — all 4 plans done, awaiting verification; 39-45 pending)
+**Plans:** 4 / 4 complete in Phase 38 (38-01 doc cleanup ✓; 38-02 youtube-short-removal ✓; 38-03 device-uat ✓; 38-04 fresh-install-bugs ✓)
 
 ```
 [████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 22%
@@ -45,7 +45,7 @@ See: `.planning/PROJECT.md` (updated 2026-05-08 — milestone v1.5 started)
 
 **Core value:** Enable learners to transform fragmented information into structured knowledge through AI-driven Q&A, visual mapping, and adaptive spaced repetition — all while maintaining complete local-first privacy.
 
-**Current focus:** Phase 39 — engagement service + walker extension (Wave 1 foundation)
+**Current focus:** Phase 38 — v1-4-carry-over-cleanup
 
 ## Requirement Coverage
 
@@ -73,12 +73,13 @@ All carry-overs are scheduled into Wave 0:
 
 All v1.4 blockers resolved at close. No open blockers.
 
-## Last decisions (Phase 38 close, 2026-05-09)
+## Last decisions (Plan 38-04 close, 2026-05-09)
 
-- **Phase 38 verified passed: 5/5 must-haves satisfied** (verifier sonnet — see `38-VERIFICATION.md`). VALIDATION drift flips on archived 34/35; v1.4-ROADMAP plan-list polish for 36-14/36-15; 33-HUMAN-UAT-1 + 33-HUMAN-UAT-2 verified on physical iOS+Android device with `result: pass`; CLAUDE.md echolearn references annotated with brand-history; YouTube `'short'` post type structurally eliminated (probePortrait deleted, sourceType union cleaned, STYLE_WEIGHTS rebalanced video:0.20, GAP-C tap-emit migrated to thumbnail onClick, invariant test guards regression). Test baseline at close: test:main 566/564/2 + test:actions 16/16/0 (+6 passing cases vs Phase 37 baseline; both remaining test:main fails are pre-existing concept-feed ERR_MODULE_NOT_FOUND + trellis-layout date-dependent).
-- **Out-of-scope finding filed for v1.5 backlog: GraphScreen mindmap drag latency on Android Chromium WebView** (recently introduced, perceptible-but-usable, warm-up smooths it out — surfaced during 38-03 device UAT session). Captured at `.planning/notes/2026-05-09-graphscreen-drag-lag-android.md` for triage in `/gsd:discuss-phase` of a later v1.5 phase. NOT part of TECHDEBT-04 (Phase 33 deferral set is explicitly the 2 specific tests that passed); does NOT block Phase 38 close-out.
-- **REQUIREMENTS.md traceability matrix manual sync (TECHDEBT-04 + TECHDEBT-06 rows).** The `phase complete` CLI updates checkboxes but not the traceability table rows; manually flipped both `Pending → ✓ Complete` to keep the matrix in sync with the checkbox list. Same gap was caught at Plan 38-01 close (TECHDEBT-02/03/05 rows) — recurring drift, future fix candidate for `gsd-tools requirements mark-complete`.
-- **`phase complete 38` reports `is_last_phase: true` despite Phases 39-45 remaining.** CLI inspects only the STATE cursor, not the ROADMAP-tail. Cosmetic; ROADMAP correctly shows 39-45 unchecked. Does not affect execution flow.
+- **Strip `textArtContent` field (not the whole post) on LOCALE_CHANGED.** Removing the post from cache would lose its position in the queue and re-trigger full essay-generation. Stripping only the locale-sensitive field lets `_backgroundGenerateTextArt` regenerate exactly what changed.
+- **Reset `_textArtBgRunning = false` inside the same handler.** Without it, an in-flight pre-locale-switch generation that resolves AFTER the strip would be the last writer to the cache, restoring stale content. Resetting the in-flight flag lets the next render path re-fire generation under the new locale. Single-line addition inside the subscriber callback.
+- **Delete `makeSeedCards` outright (5 hardcoded English flashcards: Marx / quantum / backprop / supervised / thermodynamics).** Trellis is local-first personalized learning per PROJECT.md; pre-canned mock content contradicts the model. Empty review queue is the correct fresh-install default. Don't write the empty array back to localStorage on first launch — the same `if (!raw) return []` branch runs every load until real cards exist (single localStorage.getItem, negligible cost).
+- **Pre-verification confirmed all preconditions before edit (Plan-orchestrator pattern).** Zero `fc-seed`/`makeSeedCards` references outside flashcard.service.ts; `eventBus` already imported at concept-feed.service.ts:4; `LOCALE_CHANGED` event type at types/index.ts:676 with `{ locale: SupportedLocale }` payload. No deviations needed; both edits landed verbatim.
+- **Test baseline preserved exactly (566/564/2 + 16/16/0).** Identical to post-Plan-38-02 baseline — both pre-existing main-suite fails (concept-feed.test.mjs ERR_MODULE_NOT_FOUND on extensionless youtube.service import + getVineColor date-dependent assertion) unchanged. Zero new failures.
 
 ## Last decisions (Plan 38-02 close, 2026-05-09)
 
@@ -125,7 +126,7 @@ All v1.4 blockers resolved at close. No open blockers.
 
 ## Session Continuity
 
-**Stopped at:** Completed 38-02-youtube-short-removal-PLAN.md
+**Stopped at:** Completed 38-04-fresh-install-bugs-PLAN.md
 **Next action:** Wait for parallel agents 38-02 (YouTube short removal) + 38-03 (Device UAT scaffold) to complete; then orchestrator runs verification (incl. hooks) and proceeds to Phase 38 close-out.
 
 **Files written this session (Plan 38-02 close):**
