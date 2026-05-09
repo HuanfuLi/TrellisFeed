@@ -1,12 +1,12 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.5
-milestone_name: Curiosity Feed v2 + Tech-Debt Hardening
-status: Phase 37 context gathered
-stopped_at: Phase 37 CONTEXT.md committed; ready for /gsd:plan-phase 37
-last_updated: "2026-05-08T10:15:00.000Z"
+milestone: v1.3
+milestone_name: gap closure)
+status: executing
+last_updated: "2026-05-09T00:28:37.158Z"
+last_activity: 2026-05-09
 progress:
-  total_phases: 9
+  total_phases: 21
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -16,10 +16,10 @@ progress:
 
 ## Current Position
 
-Phase: 37 — i18n Leaf-Module Refactor (context gathered)
-Plan: —
-Status: CONTEXT.md committed; ready for `/gsd:plan-phase 37`
-Last activity: 2026-05-08 — Phase 37 context capture (9 files in scope after audit; 3-plan structure recommended)
+Phase: 37 (i18n-leaf-module-refactor) — EXECUTING
+Plan: 2 of 3
+Status: In Progress (Plan 37-01 complete; Plan 37-02 next)
+Last activity: 2026-05-09 — Plan 37-01 complete (shim + main.tsx wire shipped, smoke 4/4 green, baseline 12 failures preserved)
 
 ## Progress
 
@@ -44,7 +44,7 @@ See: `.planning/PROJECT.md` (updated 2026-05-08 — milestone v1.5 started)
 
 **Core value:** Enable learners to transform fragmented information into structured knowledge through AI-driven Q&A, visual mapping, and adaptive spaced repetition — all while maintaining complete local-first privacy.
 
-**Current focus:** v1.5 — Curiosity Feed v2 (Pinterest masonry, richer essays, source diversity, engagement signals) + tech-debt hardening (carry-overs + broader hygiene)
+**Current focus:** Phase 37 — i18n-leaf-module-refactor
 
 ## Requirement Coverage
 
@@ -72,6 +72,11 @@ All carry-overs are scheduled into Wave 0:
 
 All v1.4 blockers resolved at close. No open blockers.
 
+## Last decisions (Plan 37-01 close, 2026-05-09)
+
+- **Cast `i18n.t.bind(i18n) as any` at the bind site in main.tsx** — bridges i18next's literal-key-union type from i18n.d.ts module augmentation to the leaf shim's intentionally-generic TFn signature. Single-line cast preserves the plan's regex invariant; eslint-disable + 4-line explanatory comment annotates the bridge. Alternative (widening TFn or wrapper closure) rejected: would couple shim to bundle internals or add a function-call hop in production for zero functional gain.
+- **Atomic-pair commit for shim source + smoke test** — per Plan 37-01 plan_notes Pitfall 7 mitigation. Shipping the test alone would fail; shipping the source alone leaves the hold-out unverifiable. Two atomic commits at plan close: `4e72565a` (shim+test) + `04056289` (main.tsx wire). Bisection-friendly per D-03.
+
 ## Last decisions (Roadmap creation, 2026-05-08)
 
 - **9 phases across 4 waves** following synthesizer's recommended dependency graph; merged Wave 0 carry-over cleanup into a single Phase 38 (TECHDEBT-02 through TECHDEBT-06) for cohesion since they're all v1.4 documentation/QA cleanup
@@ -83,9 +88,14 @@ All v1.4 blockers resolved at close. No open blockers.
 
 ## Session Continuity
 
-**Next action:** `/gsd:plan-phase 37` to create plan(s) for the i18n Leaf-Module Refactor.
+**Next action:** Execute Plan 37-02 (Tier 1+2 service migrations — 5 atomic commits, closes 10 carried test failures).
 
-**Files written this session:**
-- `.planning/ROADMAP.md` (appended v1.5 section, lines 1018-1199)
+**Files written this session (Plan 37-01 close):**
+
+- `app/src/lib/i18n-leaf.ts` (NEW — leaf shim)
+- `app/tests/lib/i18n-leaf.test.mjs` (NEW — 4-assertion smoke test)
+- `app/src/main.tsx` (MODIFIED — default-import + bindI18nLeaf wire)
+- `.planning/phases/37-i18n-leaf-module-refactor/37-01-SUMMARY.md` (NEW — Plan 37-01 close-out)
 - `.planning/STATE.md` (this file)
-- `.planning/REQUIREMENTS.md` (Traceability section filled)
+- `.planning/ROADMAP.md` (plan progress row updated)
+- `.planning/REQUIREMENTS.md` (TECHDEBT-01 stays open — Plan 37-02/03 close it)
