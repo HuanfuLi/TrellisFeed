@@ -82,7 +82,7 @@ interface CachedDailyPosts {
   connectionCards?: ConnectionCardData[];
 }
 
-const VALID_SOURCE_TYPES = new Set<DailyPost['sourceType']>(['recent', 'related', 'resurfaced', 'starter', 'mixed', 'connection', 'video', 'short', 'text-art', 'news', 'suggestion']);
+const VALID_SOURCE_TYPES = new Set<DailyPost['sourceType']>(['recent', 'related', 'resurfaced', 'starter', 'mixed', 'connection', 'video', 'text-art', 'news', 'suggestion']);
 
 export const STARTER_POSTS: DailyPost[] = [
   makeStarterPost(
@@ -770,17 +770,10 @@ const VIDEO_QUERY_MODIFIERS = [
   ' how it works',
   ' deep dive',
 ];
-const SHORT_QUERY_MODIFIERS = [
-  ' #shorts',
-  ' explained #shorts',
-  ' tutorial #shorts',
-  ' in 60 seconds #shorts',
-];
 const YOUTUBE_FETCH_POOL_SIZE = 15;
 
-function buildYoutubeQuery(conceptName: string, cycleNumber: number, isShort: boolean): string {
-  const modifiers = isShort ? SHORT_QUERY_MODIFIERS : VIDEO_QUERY_MODIFIERS;
-  const modifier = modifiers[Math.abs(cycleNumber) % modifiers.length];
+function buildYoutubeQuery(conceptName: string, cycleNumber: number): string {
+  const modifier = VIDEO_QUERY_MODIFIERS[Math.abs(cycleNumber) % VIDEO_QUERY_MODIFIERS.length];
   return `${conceptName}${modifier}`.trim();
 }
 
@@ -790,8 +783,8 @@ function buildYoutubeQuery(conceptName: string, cycleNumber: number, isShort: bo
  * each YouTube/Tavily query is executed at most ONCE per refill cycle instead of
  * twice (pre-validation + actual fetch). Cuts YouTube quota burn ~50%.
  *
- * Cache key for YouTube: `${conceptId}:${style}` where style is 'video'|'short'
- * (both styles may fetch for the same concept in one cycle with different modifiers).
+ * Cache key for YouTube: `${conceptId}:${style}` where style is 'video'
+ * (Phase 38 / TECHDEBT-06: 'short' style was removed; only 'video' remains).
  * Cache key for Tavily: `conceptId` (news is a single style per concept).
  */
 interface PreFetchCache {
@@ -804,7 +797,7 @@ interface PreFetchCache {
  * Reuses the existing LLM generation prompt for text-style posts,
  * fetches from YouTube/Tavily for video/news, and generates text-art content.
  *
- * If `preFetched` is provided, the video/short/news loops consume cached
+ * If `preFetched` is provided, the video/news loops consume cached
  * API results instead of issuing fresh calls (Phase 33 quota-burn fix
  * 2026-04-20). When absent (legacy callers / session-post path), loops
  * fall back to calling the APIs directly.
@@ -823,7 +816,6 @@ async function generatePostBatch(
     a.style === 'text-art' || a.style === 'image' || a.style === 'suggestion',
   );
   const videoAssignments = assignments.filter(a => a.style === 'video');
-  const shortAssignments = assignments.filter(a => a.style === 'short');
   const newsAssignments = assignments.filter(a => a.style === 'news');
 
   // Cross-cycle YouTube videoId dedup is now handled by the module-scope helper
@@ -1034,7 +1026,7 @@ Return ONLY a JSON array of 4 strings, nothing else. Example: ["What is X?", "Ho
       if (cached) {
         data = cached;
       } else {
-        const query = buildYoutubeQuery(conceptName, cycleNumber, false);
+        const query = buildYoutubeQuery(conceptName, cycleNumber);
         const searchResult = await youtubeService.searchVideos(query, YOUTUBE_FETCH_POOL_SIZE);
         data = searchResult.success ? searchResult.data : undefined;
       }
@@ -1067,50 +1059,8 @@ Return ONLY a JSON array of 4 strings, nothing else. Example: ["What is X?", "Ho
     } catch { /* video fetch failed — already reassigned in pre-validation */ }
   }
 
-  // Generate short posts from YouTube (use shorts query modifier, cross-cycle dedup via helper)
-  for (const a of shortAssignments) {
-    try {
-      const concept = byId.get(a.conceptId);
-      const conceptName = concept?.title ?? concept?.content?.slice(0, 50) ?? a.conceptId;
-      // Phase 33 quota-burn fix (2026-04-20): prefer cached pre-fetch result.
-      const cacheKey = `${a.conceptId}:short`;
-      const cached = preFetched?.youtube.get(cacheKey);
-      let data: YouTubeSearchResult[] | undefined;
-      if (cached) {
-        data = cached;
-      } else {
-        const query = buildYoutubeQuery(conceptName, cycleNumber, true);
-        const searchResult = await youtubeService.searchVideos(query, YOUTUBE_FETCH_POOL_SIZE);
-        data = searchResult.success ? searchResult.data : undefined;
-      }
-      if (data && data.length > 0) {
-        const freshShort = data.find(v => !hasSeenVideoId(v.videoId));
-        if (freshShort) {
-          addSeenVideoId(freshShort.videoId);
-          posts.push({
-            id: makePostId(date, 'short', a.conceptId),
-            date,
-            title: freshShort.title || conceptName,
-            teaser: { hook: freshShort.title || conceptName, preview: freshShort.description?.slice(0, 170) || '' },
-            bodyMarkdown: '',
-            whyCare: '',
-            takeaway: '',
-            quickAskPrompts: [],
-            narrativeMode: 'mechanism-breakdown' as PostNarrativeMode,
-            contextLabel: 'Short',
-            sourceType: 'short',
-            sourceQuestionIds: [a.conceptId],
-            sourceQuestionTitles: [conceptName],
-            keywords: concept?.keywords?.slice(0, 4) ?? [],
-            generatedAt: Date.now(),
-            origin: 'ai',
-            presentationStyle: 'short',
-            videoMeta: { videoId: freshShort.videoId, channelTitle: freshShort.channelTitle, thumbnailUrl: freshShort.thumbnailUrl },
-          });
-        }
-      }
-    } catch { /* short fetch failed */ }
-  }
+  // (Phase 38 / TECHDEBT-06) — short posts loop deleted. The short post type was
+  // removed entirely; all YouTube content is constructed by the video loop above.
 
   // Generate news posts from Tavily
   for (const a of newsAssignments) {
@@ -1285,7 +1235,7 @@ export async function refillQueue(questions: Question[]): Promise<void> {
     // YouTube, maxResults:1 for Tavily since news loop picks results[0]) and
     // stores the result in preFetched. Generation loops read from the cache.
     // Halves YouTube calls per cycle; also halves Tavily calls.
-    const videoAssigns = assignments.filter(a => a.style === 'video' || a.style === 'short');
+    const videoAssigns = assignments.filter(a => a.style === 'video');
     const newsAssigns = assignments.filter(a => a.style === 'news');
     const failedIds = new Set<string>();
     const preFetched: PreFetchCache = {
@@ -1305,7 +1255,7 @@ export async function refillQueue(questions: Question[]): Promise<void> {
       ...videoAssigns.map(async (a) => {
         try {
           const conceptName = getConceptName(a.conceptId);
-          const query = buildYoutubeQuery(conceptName, validationCycle, a.style === 'short');
+          const query = buildYoutubeQuery(conceptName, validationCycle);
           const searchResult = await youtubeService.searchVideos(query, YOUTUBE_FETCH_POOL_SIZE);
           if (!searchResult.success || !searchResult.data?.length) {
             // Phase 33 quota-burn fix (2026-04-20): on quota-exhausted, flip the
@@ -1515,15 +1465,10 @@ export const conceptFeedService = {
         if (newsPost) return newsPost;
       }
     } catch { /* ignore */ }
-    // Check shorts cache
-    try {
-      const shortsRaw = localStorage.getItem('trellis_short_posts');
-      if (shortsRaw) {
-        const shortsCache = JSON.parse(shortsRaw) as { posts?: DailyPost[] };
-        const shortsPost = shortsCache.posts?.find((p: DailyPost) => p.id === id);
-        if (shortsPost) return shortsPost;
-      }
-    } catch { /* ignore */ }
+    // (Phase 38 / TECHDEBT-06) — trellis_short_posts cache read deleted. The short
+    // post type was removed entirely; reading stale data into the live posts array
+    // would type-error against the new union. Stale localStorage data is harmless
+    // once the read site is gone (Bucket C cleanup deferred per CONTEXT.md).
     return null;
   },
 
@@ -1789,11 +1734,12 @@ export const conceptFeedService = {
         newPosts.map(p => p.sourceQuestionIds[0] ?? p.id),
         availability,
       );
-      // Bug B (2026-04-19): assignStyles can return any of image|text-art|suggestion|news|video|short,
+      // Bug B (2026-04-19): assignStyles can return any of image|text-art|suggestion|news|video,
       // but generateSessionPosts only emits LLM TEXT content — there's no YouTube/Tavily fetch here,
-      // so a 'short'/'video'/'news' assignment leaves the post with no videoMeta/newsMeta and the
+      // so a 'video'/'news' assignment leaves the post with no videoMeta/newsMeta and the
       // render layer can't draw anything. Restrict to text-style only; daily refillQueue handles
-      // video/news/short for the same anchor on its next cycle.
+      // video/news for the same anchor on its next cycle.
+      // (Phase 38 / TECHDEBT-06): 'short' was removed from the style union — no longer in this list.
       const TEXT_ONLY_STYLES = new Set<PresentationStyle>(['text-art', 'image', 'suggestion']);
       const styled = newPosts.map((post, i) => {
         const candidate = sessionAssignments[i]?.style;

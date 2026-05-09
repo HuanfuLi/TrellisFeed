@@ -117,22 +117,12 @@ function inferQuestionIdFromFlashcard(card: FlashCard): string | null {
   return null;
 }
 
-/** Probe hq720 thumbnail for portrait detection; fall back to API thumbnail. */
-function probePortrait(videoId: string, fallbackUrl: string): Promise<boolean> {
-  const hq720Url = `https://i.ytimg.com/vi/${videoId}/hq720.jpg`;
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => resolve(img.naturalHeight > img.naturalWidth);
-    img.onerror = () => {
-      // hq720 not available — try the API-provided thumbnail as fallback
-      const fallback = new Image();
-      fallback.onload = () => resolve(fallback.naturalHeight > fallback.naturalWidth);
-      fallback.onerror = () => resolve(false);
-      fallback.src = fallbackUrl;
-    };
-    img.src = hq720Url;
-  });
-}
+// (Phase 38 / TECHDEBT-06) — the portrait-probe helper was deleted; YouTube content is
+// uniformly 'video'. Image-probe-based portrait detection was unreliable (thumbnail aspect
+// ratio uncorrelated with video orientation) AND the original videos.list?part=
+// contentDetails alternative was rejected as too quota-expensive. Removing the
+// classifier eliminates the "landscape video listed as short" bug class
+// structurally — there is no classifier to be wrong. See 38-CONTEXT.md D-02.
 
 // ─── Service ──────────────────────────────────────────────────────────────────
 
@@ -505,9 +495,8 @@ export const youtubeService = {
 
       const bodyMarkdown = ''; // Deferred to on-enter streaming (POST-05)
 
-      // Probe hq720 thumbnail to determine portrait (short) vs landscape (video)
-      const isPortrait = await probePortrait(result.videoId, result.thumbnailUrl);
-      const videoType = isPortrait ? 'short' : 'video';
+      // Phase 38 (TECHDEBT-06): all YouTube content is sourceType / presentationStyle
+      // 'video' — short post type was removed entirely. See 38-CONTEXT.md D-02.
 
       const videoMeta: VideoMetadata = {
         videoId: result.videoId,
@@ -527,7 +516,7 @@ export const youtubeService = {
             .slice(0, 8);
 
       const post: DailyPost = {
-        id: `${videoType}-${result.videoId}`,
+        id: `video-${result.videoId}`,
         date: today(),
         title: result.title,
         teaser: {
@@ -540,13 +529,13 @@ export const youtubeService = {
         quickAskPrompts: [],
         narrativeMode: 'mechanism-breakdown',
         contextLabel: 'Video from YouTube',
-        sourceType: videoType,
+        sourceType: 'video',
         sourceQuestionIds: sourceIds,
         sourceQuestionTitles: sourceTitles,
         keywords,
         generatedAt: Date.now(),
         origin: 'ai',
-        presentationStyle: videoType,
+        presentationStyle: 'video',
         videoMeta,
       };
 

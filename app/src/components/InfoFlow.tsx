@@ -74,22 +74,22 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen, videoP
   const { t } = useTranslation();
 
   // ── Image generation state ──────────────────────────────────────────────────
-  // Video/short posts skip AI image generation entirely (D-08: use YouTube thumbnail).
+  // Video posts skip AI image generation entirely (D-08: use YouTube thumbnail).
+  // (Phase 38 / TECHDEBT-06): 'short' post type was removed entirely — all YouTube
+  // content is now sourceType: 'video' / presentationStyle: 'video'.
   const isSuggestion = post.sourceType === 'suggestion' && !!post.suggestionMeta?.topics;
   const isVideoPost = post.sourceType === 'video';
-  const isShortPost = post.sourceType === 'short';
   const isNewsPost = post.sourceType === 'news';
   const presentationStyle = post.presentationStyle;
 
-  // Short video playback now uses parent videoPlaying/setVideoPlaying (unified state, D-02/D-28/D-29)
+  // Video playback uses parent videoPlaying/setVideoPlaying (unified state, D-02/D-28/D-29)
 
-  // Non-image presentation styles and video/short posts skip image generation entirely
+  // Non-image presentation styles and video posts skip image generation entirely
   const [image, setImage] = useState<GeneratedImage | null>(null);
   const [imageResolved, setImageResolved] = useState(
-    () => isSuggestion || isVideoPost || isShortPost || isNewsPost
+    () => isSuggestion || isVideoPost || isNewsPost
       || presentationStyle === 'text-art'
       || presentationStyle === 'image-less'
-      || presentationStyle === 'short'
       || presentationStyle === 'video'
       || presentationStyle === 'news'
       || imageGenerationService.hasCachedImage(post.id, inferImageStyle(post)),
@@ -105,7 +105,7 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen, videoP
 
   useEffect(() => {
     // Skip AI image generation for non-image presentation styles
-    if (isSuggestion || isVideoPost || isShortPost || isNewsPost) return;
+    if (isSuggestion || isVideoPost || isNewsPost) return;
     if (presentationStyle && presentationStyle !== 'image') {
       setImageResolved(true);
       return;
@@ -133,7 +133,7 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen, videoP
 
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [post.id, isSuggestion, isVideoPost, isShortPost, isNewsPost, presentationStyle]);
+  }, [post.id, isSuggestion, isVideoPost, isNewsPost, presentationStyle]);
 
   // Suggestion post — D-23/D-26: only topic buttons are interactive, card tap is no-op
   if (isSuggestion) {
@@ -153,15 +153,15 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen, videoP
   // (because metadata is missing, the style is unrecognized, or the image gen failed),
   // fall back to text-art. This catches:
   //   - Failed image gen (no Nano Banana key, network/sandbox failure)             → 'image'
-  //   - Session posts assigned 'short'/'video'/'news' with no metadata (Bug B)     → empty card
+  //   - Session posts assigned 'video'/'news' with no metadata (Bug B)             → empty card
   //   - YouTube non-video items propagated as posts with undefined videoId (Bug C) → empty card
   //   - Suggestion posts with no topics (LLM failed + no neighbor anchors)         → empty card
   //   - Legacy 'image-less' or undefined presentationStyle from older caches       → empty card
   // The previous fallback only caught the first case (`presentationStyle === 'image'`),
   // which is why post-32.1 deploys still showed text-only cards on device.
+  // (Phase 38 / TECHDEBT-06): 'short' branch removed — all YouTube content is now 'video'.
   const wouldRenderVisual =
     (isVideoPost && !!post.videoMeta?.videoId) ||
-    (isShortPost && !!post.videoMeta?.videoId) ||
     isNewsPost ||
     !!image ||
     presentationStyle === 'text-art';
@@ -295,7 +295,10 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen, videoP
   // elements (video stop button, etc.) can safely be actual <button>s without
   // tripping the "<button> cannot be a descendant of <button>" DOM-nesting
   // invariant. Preserves click + keyboard (Enter/Space) affordances.
-  const interactive = !isShortPost;
+  // (Phase 38 / TECHDEBT-06): 'short' card branch removed — all video posts are
+  // interactive (D-02b hybrid: thumbnail tap = inline play + emit, card-level
+  // tap = handleActivate → navigate to PostDetailScreen).
+  const interactive = !isSuggestion;
   const handleActivate = () => { if (interactive) onOpen(post.id, post); };
   return (
     <div
@@ -315,14 +318,12 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen, videoP
         flexDirection: 'column',
         justifyContent: (image || isVideoPost || effectivePresentationStyle === 'text-art') ? 'space-between' : 'flex-start',
         gap: '20px',
-        padding: isShortPost ? '0' : (image || isVideoPost || effectivePresentationStyle === 'text-art') ? '0 0 20px' : '20px 0',
+        padding: (image || isVideoPost || effectivePresentationStyle === 'text-art') ? '0 0 20px' : '20px 0',
         borderRadius: 'var(--radius-xl)',
-        background: isShortPost
-          ? 'var(--card)'
-          : 'linear-gradient(180deg, color-mix(in srgb, var(--primary-80) 20%, var(--surface-container-high)), var(--surface-container-high))',
+        background: 'linear-gradient(180deg, color-mix(in srgb, var(--primary-80) 20%, var(--surface-container-high)), var(--surface-container-high))',
         border: '1.5px solid color-mix(in srgb, var(--primary-40) 22%, var(--border))',
         boxShadow: 'var(--shadow-2)',
-        cursor: isShortPost ? 'default' : 'pointer',
+        cursor: 'pointer',
         transition: 'transform 0.18s ease, background 0.25s ease',
         textAlign: 'left',
         animation: isActive ? 'card-slide-in 0.35s ease' : 'none',
@@ -330,10 +331,12 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen, videoP
       }}
     >
 
-        {/* Video card: inline landscape playback (D-28) — tapping play does NOT trigger essay generation */}
+        {/* Video card: inline playback (D-28) — tapping thumbnail plays inline; card-level tap navigates to PostDetailScreen.
+            (Phase 38 D-02a): aspect-ratio: auto so the thumbnail's natural dimensions drive the container size
+            (16/9 fallback for the playing-iframe state which has no intrinsic size). */}
         {isVideoPost && post.videoMeta?.videoId && (
           <div
-            style={{ position: 'relative', width: '100%', aspectRatio: '16 / 9', overflow: 'hidden' }}
+            style={{ position: 'relative', width: '100%', aspectRatio: 'auto 16 / 9', overflow: 'hidden' }}
           >
             {videoPlaying === post.id ? (
               <>
@@ -372,8 +375,28 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen, videoP
             ) : (
               <div
                 onClick={(e) => {
-                  e.stopPropagation();
-                  setVideoPlaying(post.id);
+                  if (videoPlaying !== post.id) {
+                    e.stopPropagation();
+                    setVideoPlaying(post.id);
+                    // Phase 36 GAP-C: emit CONCEPT_EXPLORED so the lazy-skip walker (Phase 36 GAP-2)
+                    // sees this video tap as concept exploration. Generalized in Phase 38 — formerly
+                    // gated on sourceType === 'short'; now applies to all video posts since the
+                    // short type was removed (TECHDEBT-06). Detector D in PostDetailScreen still
+                    // handles deep-engagement completion for users who tap title/teaser → navigate.
+                    // Idempotent via dailyReadService.isExplored (no-op if already set).
+                    try {
+                      const allQ = questionService.getAll({ includeFlagged: true });
+                      const byId = new Map(allQ.map(q => [q.id, q]));
+                      const anchorId = getAnchorIdForPost(post, byId);
+                      if (anchorId && !dailyReadService.isExplored(anchorId)) {
+                        dailyReadService.markExplored(anchorId);
+                        eventBus.emit({ type: 'CONCEPT_EXPLORED', payload: { anchorId } });
+                      }
+                    } catch (err) {
+                      // Defensive: never let signal-emit errors break tap-to-play.
+                      console.warn('[InfoFlow] video tap-to-play emit failed:', err);
+                    }
+                  }
                 }}
                 style={{ cursor: 'pointer', position: 'relative', width: '100%', height: '100%' }}
               >
@@ -420,136 +443,8 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen, videoP
           </div>
         )}
 
-        {/* Short video card (D-01, D-02, D-03) — portrait, fills card width */}
-        {isShortPost && post.videoMeta?.videoId && (
-          <div
-            onClick={(e) => {
-              if (videoPlaying !== post.id) {
-                e.stopPropagation();
-                setVideoPlaying(post.id);
-                // Phase 36 GAP-C: tap-to-play on a short post is a strong implicit
-                // completion signal (5-15s clips). Shorts have interactive=false at
-                // ConceptCard line 295 — they never navigate to PostDetailScreen, so
-                // Detectors A/B/C/D never run. Emit CONCEPT_EXPLORED here instead.
-                // Idempotent via the markExplored call below (no-op if already set).
-                // See .planning/debug/video-completion-signal-missing.md.
-                try {
-                  const allQ = questionService.getAll({ includeFlagged: true });
-                  const byId = new Map(allQ.map(q => [q.id, q]));
-                  const anchorId = getAnchorIdForPost(post, byId);
-                  if (anchorId && !dailyReadService.isExplored(anchorId)) {
-                    dailyReadService.markExplored(anchorId);
-                    eventBus.emit({ type: 'CONCEPT_EXPLORED', payload: { anchorId } });
-                  }
-                } catch (err) {
-                  // Defensive: never let signal-emit errors break tap-to-play.
-                  console.warn('[InfoFlow] short tap-to-play emit failed:', err);
-                }
-              }
-            }}
-            style={{
-              cursor: videoPlaying === post.id ? 'default' : 'pointer',
-              width: '100%',
-            }}
-          >
-            {videoPlaying === post.id ? (
-              <div style={{
-                position: 'relative',
-                width: '100%',
-                aspectRatio: '9/16',
-                overflow: 'hidden',
-              }}>
-                <iframe
-                  // Phase 36 GAP-C: enablejsapi=1 added for symmetry. Shorts emit
-                  // CONCEPT_EXPLORED on tap-to-play (see setVideoPlaying handler) — the
-                  // postMessage path is not used here, but keep the param for any future
-                  // postMessage-based detection on shorts.
-                  src={`https://www.youtube.com/embed/${post.videoMeta.videoId}?playsinline=1&autoplay=1&rel=0&enablejsapi=1`}
-                  style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none', pointerEvents: 'auto' }}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                  title={normalizedTitle || t('infoFlow.postImageAlt')}
-                />
-                {/* Transparent overlay — pointer-events:none lets YouTube controls receive taps (G2 / UAT-31-4 fix).
-                    Swipe-stop is wired separately via SwipeTabContext at line ~936; D-07 accepts that
-                    tap-on-playing may not stop playback — close button below is the explicit stop affordance. */}
-                <div
-                  style={{ position: 'absolute', inset: 0, zIndex: 2, pointerEvents: 'none', background: 'transparent' }}
-                  aria-hidden="true"
-                />
-                {/* Close button — visible affordance to stop */}
-                <button
-                  onClick={(e) => { e.stopPropagation(); setVideoPlaying(null); }}
-                  style={{
-                    position: 'absolute', top: 8, right: 8, zIndex: 3,
-                    width: 32, height: 32, borderRadius: '50%',
-                    background: 'rgba(0,0,0,0.6)', border: 'none', color: 'white',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    cursor: 'pointer', padding: 0,
-                  }}
-                  aria-label="Stop video"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-            ) : (
-              <div style={{
-                position: 'relative',
-                width: '100%',
-                aspectRatio: '9/16',
-                overflow: 'hidden',
-              }}>
-                {post.videoMeta.thumbnailUrl && <img
-                  src={post.videoMeta.thumbnailUrl}
-                  alt={normalizedTitle}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />}
-                <span style={{
-                  position: 'absolute',
-                  top: 12,
-                  right: 12,
-                  fontSize: '0.65rem',
-                  fontWeight: 700,
-                  letterSpacing: '0.08em',
-                  textTransform: 'uppercase',
-                  color: '#fff',
-                  background: 'rgba(255,0,0,0.85)',
-                  padding: '4px 10px',
-                  borderRadius: '6px',
-                }}>
-                  {t('infoFlow.shortTag')}
-                </span>
-                <div style={{
-                  position: 'absolute',
-                  inset: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}>
-                  <div style={{
-                    width: 56,
-                    height: 56,
-                    borderRadius: '50%',
-                    background: 'rgba(0,0,0,0.6)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                    <div style={{
-                      width: 0,
-                      height: 0,
-                      borderLeft: '20px solid white',
-                      borderTop: '12px solid transparent',
-                      borderBottom: '12px solid transparent',
-                      marginLeft: 5,
-                    }} />
-                  </div>
-                </div>
-                {/* No heading overlay — short video card is thumbnail-only */}
-              </div>
-            )}
-          </div>
-        )}
+        {/* (Phase 38 / TECHDEBT-06) — short video card deleted. The Phase 36 GAP-C
+            tap-to-play emit migrated into the video card thumbnail onClick above. */}
 
         {/* Text-art notebook card (D-12, D-13, D-14) — square area like image posts */}
         {effectivePresentationStyle === 'text-art' && (() => {
@@ -592,60 +487,60 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive, onOpen, videoP
           );
         })()}
 
-        {/* AI-generated image header — only rendered for image presentation style */}
-        {!isVideoPost && !isShortPost && image && effectivePresentationStyle !== 'text-art' && (
+        {/* AI-generated image header — only rendered for image presentation style.
+            (Phase 38 / TECHDEBT-06): the legacy short-post guard was removed — short type no longer exists. */}
+        {!isVideoPost && image && effectivePresentationStyle !== 'text-art' && (
           <FeedPostImage
             imageData={image}
             aspectPadding="100%"
           />
         )}
 
-        {/* Hook, channel attribution, preview, and tags — NOT rendered for short */}
-        {!isShortPost && (
-          <div style={{ padding: '0 20px' }}>
-            <p
-              style={{
-                fontSize: '1.2rem',
-                fontWeight: 800,
-                lineHeight: 1.25,
-                color: 'var(--foreground)',
-                marginBottom: '10px',
-              }}
-            >
-              {normalizedHook}
+        {/* Hook, channel attribution, preview, and tags — rendered for all non-suggestion posts.
+            (Phase 38 / TECHDEBT-06): the legacy short-post wrapper was removed — short type is gone. */}
+        <div style={{ padding: '0 20px' }}>
+          <p
+            style={{
+              fontSize: '1.2rem',
+              fontWeight: 800,
+              lineHeight: 1.25,
+              color: 'var(--foreground)',
+              marginBottom: '10px',
+            }}
+          >
+            {normalizedHook}
+          </p>
+          {isVideoPost && post.videoMeta?.channelTitle && (
+            <p style={{ fontSize: '0.78rem', color: 'var(--muted-foreground)', marginBottom: '6px' }}>
+              {t('infoFlow.byChannel', { channel: post.videoMeta.channelTitle })}
             </p>
-            {isVideoPost && post.videoMeta?.channelTitle && (
-              <p style={{ fontSize: '0.78rem', color: 'var(--muted-foreground)', marginBottom: '6px' }}>
-                {t('infoFlow.byChannel', { channel: post.videoMeta.channelTitle })}
-              </p>
-            )}
-            {/* Preview: show when no image is present */}
-            {!image && !isVideoPost && effectivePresentationStyle !== 'text-art' && (
-              <p style={{ fontSize: '0.9rem', color: 'var(--foreground)', lineHeight: 1.6, opacity: 0.88 }}>
-                {normalizedPreview}
-              </p>
-            )}
-            {/* Bottom tags: source concepts + narrative mode */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '12px' }}>
-              {post.sourceQuestionTitles?.slice(0, 2).map((title, idx) => (
-                <span
-                  key={idx}
-                  style={{
-                    fontSize: '0.7rem',
-                    color: 'var(--muted-foreground)',
-                    backgroundColor: 'var(--surface)',
-                    border: '1px solid var(--border)',
-                    padding: '3px 8px',
-                    borderRadius: '100px',
-                  }}
-                >
-                  {title}
-                </span>
-              ))}
-            </div>
-            </div>
-            )}
-            </div>
+          )}
+          {/* Preview: show when no image is present */}
+          {!image && !isVideoPost && effectivePresentationStyle !== 'text-art' && (
+            <p style={{ fontSize: '0.9rem', color: 'var(--foreground)', lineHeight: 1.6, opacity: 0.88 }}>
+              {normalizedPreview}
+            </p>
+          )}
+          {/* Bottom tags: source concepts + narrative mode */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '12px' }}>
+            {post.sourceQuestionTitles?.slice(0, 2).map((title, idx) => (
+              <span
+                key={idx}
+                style={{
+                  fontSize: '0.7rem',
+                  color: 'var(--muted-foreground)',
+                  backgroundColor: 'var(--surface)',
+                  border: '1px solid var(--border)',
+                  padding: '3px 8px',
+                  borderRadius: '100px',
+                }}
+              >
+                {title}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
 
   );
 }
@@ -958,7 +853,7 @@ export function InlineInfoFlow({ items, onOpenConnection, showConnectionScores =
                 // Text-flavored styles size to content. New presentationStyles default to 'auto'
                 // — opt-in here if they need a fixed frame. Prior deny-list silently broke text-art.
                 minHeight: item.kind === 'concept'
-                  ? (item.post.presentationStyle === 'video' || item.post.presentationStyle === 'short' ? '320px' : 'auto')
+                  ? (item.post.presentationStyle === 'video' ? '320px' : 'auto')
                   : item.kind === 'milestone' ? '200px' : 'auto',
                 animation: shouldAnimate ? `card-slide-in 0.3s ease ${Math.min(index, 5) * 0.05}s both` : undefined,
               }}

@@ -284,9 +284,11 @@ export function PostDetailScreen() {
   // Matches useQuestions.ts:120-123 house pattern verbatim.
   useEffect(() => {
     if (!post) return;
-    // Skip if post already has content (starter posts, cached essays, shorts)
+    // Skip if post already has content (starter posts, cached essays)
+    // (Phase 38 / TECHDEBT-06): the `if (post.sourceType === 'short') return;` guard
+    // was deleted with the short post type. All video posts now flow through this
+    // path; their bodyMarkdown is also '' so on-enter streaming generates the essay.
     if (post.bodyMarkdown && post.bodyMarkdown.trim() !== '') return;
-    if (post.sourceType === 'short') return;
 
     const abortController = new AbortController();
     const unsubLocale = eventBus.subscribe('LOCALE_CHANGED', () => {

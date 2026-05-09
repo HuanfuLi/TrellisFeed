@@ -11,8 +11,13 @@ import type { PresentationStyle } from '../types';
 // into text-art (now 55%). YouTube share kept at 25% total. Image still
 // held at 10% because image generation is expensive on both providers.
 //
+// Phase 38 (TECHDEBT-06, 2026-05-09): short post type removed entirely.
+// `video` absorbed short's 0.10 weight (now video: 0.20). YouTube share
+// still totals 20% but rendered exclusively as a single landscape video
+// card (D-02 — no portrait/landscape classifier). Sum stays at 1.0.
+//
 // Effective distribution when YouTube is unavailable (drained quota):
-//   video+short redistributed to text-art (+25%) → text-art = 80%, news = 10%,
+//   video redistributed to text-art (+20%) → text-art = 75%, news = 10%,
 //   image = 10%, suggestion = 5% — prevents the "news flood" seen when YouTube
 //   was off.
 export const STYLE_WEIGHTS: Record<string, number> = {
@@ -20,8 +25,7 @@ export const STYLE_WEIGHTS: Record<string, number> = {
   'text-art': 0.55,
   suggestion: 0.05,
   news: 0.10,
-  video: 0.10,
-  short: 0.10,
+  video: 0.20,  // Phase 38: absorbed short's 0.10 (short type removed)
 };
 
 export interface StyleAssignment {
@@ -48,9 +52,8 @@ export function assignStyles(
   const weights = { ...STYLE_WEIGHTS };
 
   if (!availability.hasYoutubeKey) {
-    weights['text-art'] += weights.video + weights.short;
+    weights['text-art'] += weights.video;
     weights.video = 0;
-    weights.short = 0;
   }
   if (!availability.hasTavilyKey) {
     weights['text-art'] += weights.news;
@@ -127,7 +130,7 @@ export function reassignFailures(
 ): StyleAssignment[] {
   return assignments.map((a) =>
     failedConceptIds.has(a.conceptId) &&
-    (a.style === 'video' || a.style === 'short' || a.style === 'news')
+    (a.style === 'video' || a.style === 'news')
       ? { ...a, style: 'text-art' as PresentationStyle }
       : a,
   );

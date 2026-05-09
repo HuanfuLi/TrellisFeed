@@ -471,7 +471,7 @@ export type PostNarrativeMode =
   | 'starter';
 
 /** Visual presentation style assigned to each feed post by the weighted mix algorithm. */
-export type PresentationStyle = 'image' | 'text-art' | 'image-less' | 'video' | 'short' | 'news' | 'suggestion';
+export type PresentationStyle = 'image' | 'text-art' | 'image-less' | 'video' | 'news' | 'suggestion';
 
 export interface FeedTeaser {
   hook: string;
@@ -489,7 +489,7 @@ export interface PostSnapshot {
   quickAskPrompts: string[];
   narrativeMode: PostNarrativeMode;
   contextLabel: string;
-  sourceType: 'recent' | 'related' | 'resurfaced' | 'starter' | 'mixed' | 'connection' | 'video' | 'short' | 'text-art' | 'news' | 'suggestion';
+  sourceType: 'recent' | 'related' | 'resurfaced' | 'starter' | 'mixed' | 'connection' | 'video' | 'text-art' | 'news' | 'suggestion';
   sourceQuestionIds: string[];
   sourceQuestionTitles: string[];
   keywords: string[];
