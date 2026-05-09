@@ -10,6 +10,7 @@ import { questionService } from './question.service';
 import { postQueueService } from './post-queue.service';
 import { postHistoryService } from './post-history.service';
 import { dailyReadService } from './daily-read.service';
+import { engagementService } from './engagement.service.ts';
 import { assignStyles, reassignFailures, type ApiAvailability } from './style-assignment';
 import { computeLeafState } from './trellis-state.service';
 import { hasSeenVideoId, addSeenVideoId } from './concept-feed-dedup';
@@ -1202,11 +1203,15 @@ export async function refillQueue(questions: Question[]): Promise<void> {
     // Removal-on-read is LAZY: walkDerivedList skips conceptIds in `exploredIds`
     // (already computed at line ~1199). Physical splice would corrupt the walker's
     // index — see RESEARCH § Pitfall 1.
+    //
+    // Phase 39 D-07: dismissedIds (from engagementService) is the second lazy-skip
+    // gate. Same semantics as exploredIds — never splice the derived list.
     const dueConceptIds = buildConceptBatch(questions);
     postQueueService.appendToDerivedList(dueConceptIds);
     // Walk batchSize entries — large enough to refill the queue past REFILL_THRESHOLD
     // (12) up toward MAX_QUEUE_SIZE (32). 16 leaves room for downgrades + spread.
-    const conceptIds = postQueueService.walkDerivedList(16, exploredIds);
+    const dismissedIds = new Set(engagementService.getDismissedAnchorIds());
+    const conceptIds = postQueueService.walkDerivedList(16, exploredIds, dismissedIds);
     if (conceptIds.length === 0) return;
 
     // Step 2: Pre-check API keys — validate non-empty strings (D-20, D-21 step 1).
