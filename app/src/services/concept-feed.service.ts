@@ -608,6 +608,22 @@ function _persistStylesToCache(styledPosts: DailyPost[]): void {
   saveCache(cachedNow);
 }
 
+// Phase 38-04: invalidate cached textArtContent on locale change so welcome
+// posts (and any cached text-art posts) regenerate under the new locale.
+// Without this, text-art generated under one locale stays in the cache
+// forever and renders mismatched against the user's UI locale.
+eventBus.subscribe('LOCALE_CHANGED', () => {
+  const cached = loadCache();
+  if (!cached) return;
+  const stripped = cached.posts.map(p => {
+    if (p.presentationStyle !== 'text-art' || !p.textArtContent) return p;
+    const { textArtContent: _drop, ...rest } = p;
+    return rest as DailyPost;
+  });
+  saveCache({ ...cached, posts: stripped });
+  _textArtBgRunning = false;
+});
+
 // spreadByStyle (Phase 31, rewritten 2026-04-21) and spreadByConcept (Phase 36
 // GAP-4) live in ./feed-spread.ts (leaf module — see import block at top of
 // file). Re-exported above for downstream callers/tests that import from this
