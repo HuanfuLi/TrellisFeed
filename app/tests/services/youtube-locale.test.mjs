@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import i18next from 'i18next';
+import { bindI18nLeaf } from '../../src/lib/i18n-leaf.ts';
 
 // Initialize i18next singleton once — youtube.service reads i18next.language.
 await i18next.init({
@@ -13,6 +14,11 @@ await i18next.init({
     ja: { translation: {} },
   },
 });
+
+// Phase 37: wire the leaf shim to the test-local i18next instance so
+// buildYoutubeSearchUrl (which now reads via getCurrentLocale()) sees
+// `i18next.changeLanguage(...)` calls below. Pitfall 1 mitigation.
+bindI18nLeaf(i18next.t.bind(i18next), () => i18next.language);
 
 // localStorage shim so settingsService.getSync() finds a youtube apiKey.
 const store = new Map();

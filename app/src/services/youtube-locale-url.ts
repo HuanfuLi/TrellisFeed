@@ -7,7 +7,7 @@
 //
 // `youtube.service.ts` delegates to `buildYoutubeSearchUrl` to avoid
 // duplication; both paths stay in lockstep.
-import i18next from 'i18next';
+import { getCurrentLocale } from '../lib/i18n-leaf.ts';
 import type { SupportedLocale } from '../types';
 
 export const YOUTUBE_SEARCH_URL = 'https://www.googleapis.com/youtube/v3/search';
@@ -32,7 +32,7 @@ export interface BuildYoutubeSearchUrlArgs {
 
 export function buildYoutubeSearchUrl(args: BuildYoutubeSearchUrlArgs): string {
   const { query, maxResults, apiKey } = args;
-  const lng = i18next.language as SupportedLocale;
+  const lng = getCurrentLocale() as SupportedLocale;
   const locale: SupportedLocale = lng in YOUTUBE_LOCALE_PARAMS ? lng : 'en';
   const { hl, regionCode, relevanceLanguage } = YOUTUBE_LOCALE_PARAMS[locale];
 
