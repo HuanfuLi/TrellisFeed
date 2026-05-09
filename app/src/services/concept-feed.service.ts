@@ -11,6 +11,7 @@ import { postQueueService } from './post-queue.service';
 import { postHistoryService } from './post-history.service';
 import { dailyReadService } from './daily-read.service';
 import { engagementService } from './engagement.service.ts';
+import { sourceDiversityService, extractDomain } from './source-diversity.service.ts';
 import { assignStyles, reassignFailures, type ApiAvailability } from './style-assignment';
 import { computeLeafState } from './trellis-state.service';
 import { hasSeenVideoId, addSeenVideoId } from './concept-feed-dedup';
@@ -1087,12 +1088,21 @@ Return ONLY a JSON array of 4 strings, nothing else. Example: ["What is X?", "Ho
       // Phase 33 quota-burn fix (2026-04-20): prefer cached pre-fetch result.
       const cached = preFetched?.news.get(a.conceptId);
       let result: WebSearchResult | undefined;
+      let topSources: WebSearchResult[] = [];  // Phase 41 SC-4 — stored on newsMeta.sources for multi-snippet grounding
       if (cached) {
         result = cached;
+        topSources = [cached];  // pre-fetch loop already filtered + stored single chosen result
       } else {
-        const searchResult = await webSearch(conceptName + ' latest research findings', { maxResults: 1 });
+        // Phase 41 D-02 + Pattern 2 — getUsedDomains → exclude → filterForDiversity → recordServedDomain
+        const usedDomains = sourceDiversityService.getUsedDomains(a.conceptId);
+        const searchResult = await webSearch(
+          conceptName + ' latest research findings',
+          { maxResults: 3, excludeDomains: [...usedDomains] },
+        );
         if (searchResult.success && searchResult.data?.results.length) {
-          result = searchResult.data.results[0];
+          const filtered = sourceDiversityService.filterForDiversity(searchResult.data.results, usedDomains);
+          result = filtered[0];
+          topSources = filtered.slice(0, 3);  // Pitfall 2 — store full top-3 for SC-4 multi-snippet grounding
         }
       }
       if (result) {
@@ -1120,12 +1130,18 @@ Return ONLY a JSON array of 4 strings, nothing else. Example: ["What is X?", "Ho
           origin: 'ai',
           presentationStyle: 'news',
           newsMeta: {
-            // index 1 (matching news.service.ts) and snippet preserved so generateNewsEssay
-            // has actual article text in its prompt context — see commit 961347ec.
-            sources: [{ index: 1, title: result.title, url: result.url, snippet: result.content }],
+            // Phase 41 SC-4 — multi-snippet grounding. topSources is filtered.slice(0, 3) from
+            // sourceDiversityService.filterForDiversity (re-ranked unseen-first per Phase 40 D-06).
+            // Old shape was a 1-element array; new shape is up to 3 entries indexed 1..N.
+            sources: topSources.map((r, i) => ({ index: i + 1, title: r.title, url: r.url, snippet: r.content })),
             fetchedAt: Date.now(),
           },
         });
+        // Phase 41 D-02 — record AFTER commit so the per-anchor used set reflects what
+        // we actually shipped to the user. extractDomain returns undefined for malformed URLs;
+        // short-circuit guard avoids polluting the used set with 'undefined'.
+        const domain = extractDomain(result.url);
+        if (domain) sourceDiversityService.recordServedDomain(a.conceptId, domain);
       }
     } catch { /* news fetch failed */ }
   }
@@ -1293,7 +1309,12 @@ export async function refillQueue(questions: Question[]): Promise<void> {
       ...newsAssigns.map(async (a) => {
         try {
           const conceptName = getConceptName(a.conceptId);
-          const results = await webSearch(conceptName + ' latest research findings', { maxResults: 1 });
+          // Phase 41 D-02 + Pattern 2 — getUsedDomains → exclude → filterForDiversity → recordServedDomain
+          const usedDomains = sourceDiversityService.getUsedDomains(a.conceptId);
+          const results = await webSearch(
+            conceptName + ' latest research findings',
+            { maxResults: 3, excludeDomains: [...usedDomains] },
+          );
           if (!results.success || !results.data?.results.length) {
             // Tavily doesn't distinguish a dedicated quota code today, but if the
             // error message indicates 403/auth failure, treat as quota-exhausted
@@ -1304,7 +1325,12 @@ export async function refillQueue(questions: Question[]): Promise<void> {
             }
             failedIds.add(a.conceptId);
           } else {
-            preFetched.news.set(a.conceptId, results.data.results[0]);
+            const filtered = sourceDiversityService.filterForDiversity(results.data.results, usedDomains);
+            const chosen = filtered[0];
+            preFetched.news.set(a.conceptId, chosen);
+            // Phase 41 D-02 — record AFTER commit. extractDomain undefined-guard.
+            const domain = extractDomain(chosen.url);
+            if (domain) sourceDiversityService.recordServedDomain(a.conceptId, domain);
           }
         } catch {
           failedIds.add(a.conceptId);

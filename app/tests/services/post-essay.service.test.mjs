@@ -107,10 +107,12 @@ describe('post-essay.service', () => {
     const fnStart = source.indexOf('for (const a of newsAssignments)');
     assert.ok(fnStart !== -1, 'concept-feed.service.ts should contain `for (const a of newsAssignments)` block');
     // Bound the inspected region to cover the entire news loop.
-    // 2500 chars after Phase 33 quota-burn fix (2026-04-20) added a preFetched cache
-    // indirection block before the actual fetch (was 2000). Still tight enough to not
-    // spill into the generateTextArtContent block that follows.
-    const fnBody = source.slice(fnStart, fnStart + 2500);
+    // 3500 chars after Phase 41-01 (2026-05-09) added the source-diversity wiring
+    // (getUsedDomains → filterForDiversity → recordServedDomain triple + multi-snippet
+    // topSources mapping + after-commit recordServedDomain block). Was 2500 after
+    // Phase 33 quota-burn fix (2026-04-20) added the preFetched cache indirection.
+    // Still tight enough to not spill into the generateTextArtContent block that follows.
+    const fnBody = source.slice(fnStart, fnStart + 3500);
 
     // bodyMarkdown MUST be set to '' (empty string) so PostDetailScreen triggers
     // generateNewsEssay streaming (post-essay.service.ts:133). Storing the raw Tavily
