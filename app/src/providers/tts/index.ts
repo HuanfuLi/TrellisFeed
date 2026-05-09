@@ -1,4 +1,4 @@
-import i18next from 'i18next';
+import { getCurrentLocale } from '../../lib/i18n-leaf.ts';
 import type { TTSConfig, SupportedLocale } from '../../types';
 
 // ─── Locale-aware TTS voice (D-13) ────────────────────────────────────────────
@@ -23,7 +23,7 @@ function timeoutSignal(ms: number): AbortSignal {
 }
 
 function resolveVoice(config: TTSConfig): string {
-  const lng = i18next.language as SupportedLocale;
+  const lng = getCurrentLocale() as SupportedLocale;
   const locale: SupportedLocale = lng in LOCALE_VOICE_FALLBACK ? lng : 'en';
   // Respect user override: any voice other than the default 'alloy' means
   // the user intentionally picked it in SettingsScreen — don't override.

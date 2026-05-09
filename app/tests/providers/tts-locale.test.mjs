@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import i18next from 'i18next';
+import { bindI18nLeaf } from '../../src/lib/i18n-leaf.ts';
 
-// Initialize i18next singleton once (TTS provider reads i18next.language).
+// Initialize i18next singleton once (TTS provider reads via the i18n-leaf
+// shim, which is bound below to this i18next instance — Phase 37).
 await i18next.init({
   lng: 'en',
   fallbackLng: 'en',
@@ -13,6 +15,14 @@ await i18next.init({
     ja: { translation: {} },
   },
 });
+
+// Phase 37: wire the leaf shim to the test-local i18next instance so
+// resolveVoice's getCurrentLocale() call sees subsequent
+// `i18next.changeLanguage(...)` calls in the tests (Pitfall 1 mitigation).
+// MUST run AFTER i18next.init AND BEFORE the dynamic import of the module
+// under test (the global fetch shim setup below also runs before the import,
+// but its order vs. the bind doesn't matter — the bind doesn't fetch).
+bindI18nLeaf(i18next.t.bind(i18next), () => i18next.language);
 
 // Mock window.fetch + fetch on globalThis — synthesize() uses window.fetch,
 // which in Node exists if we attach it to globalThis.window. We capture the
