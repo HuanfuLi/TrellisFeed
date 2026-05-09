@@ -1,7 +1,7 @@
 ---
 phase: 35
 slug: fix-the-dynamic-system-prompt-issue
-status: approved
+status: validated
 nyquist_compliant: true
 wave_0_complete: true
 created: 2026-04-29
