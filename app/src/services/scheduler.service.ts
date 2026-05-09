@@ -23,7 +23,7 @@ import { plannerAutoGenService } from './plannerAutoGen.service';
 import { today } from '../lib/date';
 import { eventBus } from '../lib/event-bus';
 import { toast } from '../lib/toast';
-import i18n from '../locales';
+import { t } from '../lib/i18n-leaf.ts';
 
 // ── Daily execution flags (localStorage) ─────────────────────────────────────
 
@@ -81,7 +81,7 @@ async function checkPodcast(): Promise<void> {
 
   markDoneToday(PODCAST_DONE_KEY);
   console.log('[Scheduler] Triggering podcast generation at', `${Math.floor(now / 60)}:${String(now % 60).padStart(2, '0')}`, `(trigger was ${Math.floor(effectiveTrigger / 60)}:${String(effectiveTrigger % 60).padStart(2, '0')})`);
-  toast(i18n.t('common.toast.generatingDailyPodcast'), 'info');
+  toast(t('common.toast.generatingDailyPodcast'), 'info');
 
   try {
     await podcastService.generatePodcast(today());
@@ -127,7 +127,7 @@ function checkReviewReminder(): void {
 
   markDoneToday(REVIEW_DONE_KEY);
   console.log('[Scheduler] Review reminder triggered');
-  toast(i18n.t('common.toast.reviewReminder'), 'info');
+  toast(t('common.toast.reviewReminder'), 'info');
   eventBus.emit({ type: 'REVIEW_DUE_COUNT_CHANGED', payload: { count: -1 } });
 }
 
