@@ -1058,7 +1058,7 @@ _Updated: 2026-05-07 — Phase 36-12 EXECUTED: Promise-mutex refill closes round
 
 ## Phases
 
-- [ ] **Phase 37: i18n Leaf-Module Refactor** — Extract i18n usage from 6 service files into `lib/i18n-leaf.ts` shim; close 10 v1.4-carried test failures; unblock all new-service test coverage
+- [x] **Phase 37: i18n Leaf-Module Refactor** — Extract i18n usage from 6 service files into `lib/i18n-leaf.ts` shim; close 10 v1.4-carried test failures; unblock all new-service test coverage (completed 2026-05-09)
 - [ ] **Phase 38: v1.4 Carry-Over Cleanup** — VALIDATION drift flip (34/35), ROADMAP plan-list polish, 33-HUMAN-UAT-1/2 device retest, CLAUDE.md `echolearn_*` doc-drift cleanup, YouTube landscape-listed-as-short bug fix
 - [ ] **Phase 39: Engagement Service + Walker Extension** — `engagement.service.ts` leaf module (save/dismiss/like, cross-day localStorage); `walkDerivedList` gains optional `dismissedIds` param; `ANCHOR_DISMISSED` event added to AppEvent union
 - [ ] **Phase 40: Source Diversity Leaf Module** — `source-diversity.ts` session-scoped leaf (filterForDiversity, recordServedDomain, scoreSource); bundled domain-tier allowlist (~200 entries); synchronous O(N) scan for mutex safety
@@ -1184,7 +1184,7 @@ _Updated: 2026-05-07 — Phase 36-12 EXECUTED: Promise-mutex refill closes round
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 37. i18n Leaf-Module Refactor | 2/3 | In Progress|  |
+| 37. i18n Leaf-Module Refactor | 3/3 | Complete   | 2026-05-09 |
 | 38. v1.4 Carry-Over Cleanup | 0/0 | Not started | - |
 | 39. Engagement Service + Walker Extension | 0/0 | Not started | - |
 | 40. Source Diversity Leaf Module | 0/0 | Not started | - |

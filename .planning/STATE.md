@@ -2,8 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: gap closure)
-status: executing
-last_updated: "2026-05-09T00:50:14.263Z"
+status: verifying
+stopped_at: Completed 37-03-tier-3-leaf-modules-and-invariant-PLAN.md
+last_updated: "2026-05-09T01:11:50.410Z"
 last_activity: 2026-05-09
 progress:
   total_phases: 21
@@ -18,8 +19,8 @@ progress:
 
 Phase: 37 (i18n-leaf-module-refactor) — EXECUTING
 Plan: 3 of 3
-Status: Ready to execute (Plan 37-02 complete; Plan 37-03 next)
-Last activity: 2026-05-09 — Plan 37-02 complete (5 atomic commits, 7 of 10 carried failures CLOSED, tsc green)
+Status: Phase complete — ready for verification
+Last activity: 2026-05-09
 
 ## Progress
 
@@ -72,6 +73,12 @@ All carry-overs are scheduled into Wave 0:
 
 All v1.4 blockers resolved at close. No open blockers.
 
+## Last decisions (Plan 37-03 close, 2026-05-09)
+
+- **Replace, don't append, the i18next-mentioning paragraph at locale-directive.ts lines 10-15.** The truly load-bearing D-07 prologue (lines 5-8 — `IMPORTANT (D-07): This module is the ONLY code path that reads i18n locale...`) was preserved verbatim per plan instructions. The separate obsolete paragraph (which described the old JSON-import workaround and explicitly named `i18next.language` as the read source) was replaced with the canonical Phase 37 footnote per RESEARCH.md verbatim text (`byte-stable vs. the pre-Phase-37 direct i18next.language read`). Net result: D-07 directive intact + accurate post-refactor technical description; the historical-reference word `i18next.language` survives only inside the canonical footnote prose, not in any code path. Acceptance criteria reconciled per Plan 37-03 SUMMARY Deviation 1.
+- **De-collide leaf shim docstring with the new invariant test regex.** The leaf's pre-Plan-37-03 docstring (shipped in Plan 37-01) contained 3 literal `from '../locales'` substrings (all comment text saying what NOT to do); the invariant test's regex `/from\s+['"]\.\.?\/(\.\.\/)?locales/` doesn't distinguish comments from code. Chose to rephrase the leaf's prose (`the locales/index module is imported`) over tightening the regex (which is verbatim from canonical RESEARCH.md). Single-commit fix landed alongside the invariant test in `a9c57cbe`. See Plan 37-03 SUMMARY Deviation 2.
+- **Phase 37 close-out: 9 source files migrated (5 Tier 1+2 + 4 Tier 3) + 1 production wire (main.tsx) + 2 new test files (smoke + invariant) + 4 paired test updates = 16 file changes across 11 atomic commits over 3 plans (2+5+5).** TECHDEBT-01 acceptance: 7 of 10 carried `ERR_IMPORT_ATTRIBUTE_MISSING` failures CLOSED (remaining 3 main-suite fails are pre-existing assertion / extension-resolution issues — never `ERR_IMPORT_ATTRIBUTE_MISSING` — out of scope per CLAUDE.md scope-boundary rule); shim exists with 9 service/lib/provider files importing it; tsc -b --noEmit exits 0; manual locale-switch UAT handed off to operator before `/gsd:verify-work`.
+
 ## Last decisions (Plan 37-02 close, 2026-05-09)
 
 - **Use `.ts` extension on shim import specifier (`from '../lib/i18n-leaf.ts'`) in all 5 Tier 1+2 service files.** Plan 37-02 / RESEARCH.md § Open Question A specified extensionless `from '../lib/i18n-leaf'` claiming Node 25 native ESM auto-resolves `.ts`. Live verification under `node --test tests/services/trellis-state.test.mjs` showed Node DID NOT auto-add `.ts` — produced `ERR_MODULE_NOT_FOUND`. Matched the existing convention in flashcard.service.ts (lines 2-7 all use `.ts` extensions). Resolved as Rule 3 blocking fix during Task 1 amendment; Tasks 2-5 used the `.ts` form from the start. **Plan 37-03 must adopt the same `.ts` convention** for the 4 Tier 3 source migrations and any test file using `from '../../src/lib/i18n-leaf.ts'`.
@@ -93,26 +100,34 @@ All v1.4 blockers resolved at close. No open blockers.
 
 ## Session Continuity
 
-**Stopped at:** Completed 37-02-tier-1-2-service-migrations-PLAN.md
-**Next action:** Execute Plan 37-03 (Tier 3 already-leaf module migrations — 4 atomic commits + paired test updates + source-reading invariant test). **Plan 37-03 must use `.ts` extension on all shim imports per Plan 37-02's discovered convention.**
+**Stopped at:** Completed 37-03-tier-3-leaf-modules-and-invariant-PLAN.md
+**Next action:** Phase 37 ready for `/gsd:verify-work`. After verifier sign-off, manual UAT (Settings → switch EN → ZH → ES → JA, verify toasts/dates/voices update without console errors). Then proceed to Phase 38 (v1.4 carry-over cleanup).
 
-**Files written this session (Plan 37-02 close):**
+**Files written this session (Plan 37-03 close):**
 
-- `app/src/services/flashcard.service.ts` (MODIFIED — leaf import + 1 call site rewritten)
-- `app/src/services/podcast.service.ts` (MODIFIED — leaf import + 1 call site rewritten)
-- `app/src/services/question.service.ts` (MODIFIED — leaf import + 1 call site rewritten)
-- `app/src/services/scheduler.service.ts` (MODIFIED — leaf import + 2 call sites rewritten)
-- `app/src/services/session.service.ts` (MODIFIED — leaf import + 3 call sites rewritten)
-- `.planning/phases/37-i18n-leaf-module-refactor/37-02-SUMMARY.md` (NEW — Plan 37-02 close-out)
+- `app/tests/services/leaf-imports.test.mjs` (NEW — 4 source-reading invariant assertions)
+- `app/src/services/youtube-locale-url.ts` (MODIFIED — leaf import + 1 call site rewritten)
+- `app/tests/services/youtube-locale.test.mjs` (MODIFIED — bindI18nLeaf wired)
+- `app/src/lib/date.ts` (MODIFIED — leaf import + 5 call sites rewritten — 1 .language + 4 .t)
+- `app/tests/lib/date.locale.test.mjs` (MODIFIED — bindI18nLeaf wired)
+- `app/src/providers/llm/locale-directive.ts` (MODIFIED — leaf import + 1 call site + D-07 block preserved verbatim + Phase 37 footnote added)
+- `app/tests/providers/llm-locale-injection.test.mjs` (MODIFIED — bindI18nLeaf wired)
+- `app/src/providers/tts/index.ts` (MODIFIED — leaf import + 1 call site rewritten)
+- `app/tests/providers/tts-locale.test.mjs` (MODIFIED — bindI18nLeaf wired)
+- `app/src/lib/i18n-leaf.ts` (MODIFIED — docstring de-collided to remove literal `from '../locales'` substrings that false-positive against the new invariant test regex)
+- `.planning/phases/37-i18n-leaf-module-refactor/37-03-SUMMARY.md` (NEW — Plan 37-03 close-out)
 - `.planning/STATE.md` (this file)
 - `.planning/ROADMAP.md` (plan progress row updated)
-- `.planning/REQUIREMENTS.md` (TECHDEBT-01 stays open — Plan 37-03 closes it)
+- `.planning/REQUIREMENTS.md` (TECHDEBT-01 marked complete — Phase 37 fully closes it)
 
-**Plan 37-02 commits:**
-- `fb2e78c9` (flashcard) - amended once mid-task to add `.ts` extension
-- `c95fcff5` (podcast)
-- `6ac80467` (question - chain-closing commit; test:main 10 → 3 fail)
-- `976e82ba` (scheduler - 2 call sites)
-- `23474957` (session - 3 call sites)
+**Plan 37-03 commits:**
 
-**Test baseline (post-Plan-37-02):** test:main 558/555/3 + test:actions 16/14/2. Pre-Phase-37: 558/548/10 + 16/14/2 = 12 fail. Net: 7 closures (all from the import-attribute chain). Remaining 3 main fails are pre-existing assertion / extension-resolution issues that the import-attribute crash had been masking — NOT Phase 37 regressions, NOT in scope for Plan 37-03 closure. tsc -b --noEmit → exit 0.
+- `fce07880` (Task 1: youtube-locale-url + paired test)
+- `b73349ec` (Task 2: lib/date + paired test, 5 call sites)
+- `c098854d` (Task 3: locale-directive + paired test, D-07 preserved + Phase 37 footnote)
+- `8757ae9d` (Task 4: tts/index + paired test)
+- `a9c57cbe` (Task 5: invariant test added + leaf docstring de-collided)
+
+**Test baseline (post-Plan-37-03):** test:main 558/555/3 + test:actions 16/14/2 — IDENTICAL to Plan 37-02 close (zero new regressions introduced by Tier 3 migrations). 4 Tier 3 paired tests stayed green throughout (22 cases total: 6+5+6+5). New invariant test green (4/4). tsc -b --noEmit → exit 0.
+
+**Phase 37 lifetime totals:** Pre-Phase-37 baseline 558/548/10 + 16/14/2 = 12 fail. Post-Phase-37 baseline 558/555/3 + 16/14/2 = 5 fail. Net 7 closures (all `ERR_IMPORT_ATTRIBUTE_MISSING` chain). Remaining 5 fails are pre-existing assertion / extension-resolution issues unrelated to i18n.

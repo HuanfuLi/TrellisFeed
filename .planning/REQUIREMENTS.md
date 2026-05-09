@@ -27,7 +27,7 @@
 
 ### TECHDEBT — v1.4 carry-overs + broader hygiene
 
-- [ ] **TECHDEBT-01** i18n leaf-module refactor: `src/lib/i18n-leaf.ts` shim breaks `ERR_IMPORT_ATTRIBUTE_MISSING` chain; 6 service files migrated; 10 carried test failures closed
+- [x] **TECHDEBT-01** i18n leaf-module refactor: `src/lib/i18n-leaf.ts` shim breaks `ERR_IMPORT_ATTRIBUTE_MISSING` chain; 6 service files migrated; 10 carried test failures closed
 - [ ] **TECHDEBT-02** VALIDATION drift cleanup: `34-VALIDATION.md` flipped from draft to validated; `35-VALIDATION.md` normalized from `approved` → `validated`
 - [ ] **TECHDEBT-03** ROADMAP plan-list polish: 36-14 + 36-15 bullets appended to Phase 36 entry in archived `v1.4-ROADMAP.md`
 - [ ] **TECHDEBT-04** 33-HUMAN-UAT-1/2 device retest: touch-target feel + React.memo behavioral correctness verified on physical device
