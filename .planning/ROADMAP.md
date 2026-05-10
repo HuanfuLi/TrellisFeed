@@ -1153,7 +1153,7 @@ _Updated: 2026-05-07 — Phase 36-12 EXECUTED: Promise-mutex refill closes round
   - [ ] 42-03-card-slide-in-removal-PLAN.md — Delete @keyframes card-slide-in + 3 callsites (D-06)
   - [ ] 42-04-vine-bloom-card-and-i18n-PLAN.md — VineBloomCard with useTrellisData consumption + 12 home.celebration.* keys across 4 locales (MASONRY-02)
   - [ ] 42-05-source-reading-invariant-tests-PLAN.md — 4 new test files locking 8 UI-SPEC + 1 Pitfall 1 invariants
-  - [ ] 42-06-roadmap-requirements-wording-correction-PLAN.md — 4 line edits aligning ROADMAP/REQUIREMENTS with D-02 height-accumulating split
+  - [x] 42-06-roadmap-requirements-wording-correction-PLAN.md — 4 line edits aligning ROADMAP/REQUIREMENTS with D-02 height-accumulating split
   - [ ] 42-07-phase-close-out-PLAN.md — STATE/REQUIREMENTS/ROADMAP/VALIDATION updates + PHASE-SUMMARY
 **UI hint**: yes
 
@@ -1203,7 +1203,7 @@ _Updated: 2026-05-07 — Phase 36-12 EXECUTED: Promise-mutex refill closes round
 | 39. Engagement Service + Walker Extension | 1/1 | Complete    | 2026-05-09 |
 | 40. Source Diversity Leaf Module | 1/1 | Complete    | 2026-05-09 |
 | 41. Pipeline Wiring + Essay Depth | 2/2 | Complete    | 2026-05-09 |
-| 42. Masonry Feed Layout | 0/0 | Not started | - |
+| 42. Masonry Feed Layout | 1/7 | In Progress|  |
 | 43. Engagement UI | 0/0 | Not started | - |
 | 44. Dependency Version Sweep | 0/0 | Not started | - |
 | 45. Code Quality Sweep | 0/0 | Not started | - |
