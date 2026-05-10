@@ -8,7 +8,7 @@ updated: 2026-05-09T02:30:00.000Z
 
 ## Current Test
 
-[awaiting operator retest of UAT-1..UAT-9 after final fix bundle: `afe42922` (1A chrome + denest suggestion + text-art breakpoints), `db864ffa` (UAT-7+8 inline-play removal + 5:4 video crop), `df3a2553` (3B text-art prompt + tightener)]
+[awaiting operator retest of UAT-1..UAT-10 after `3a02c45d` (UAT-8 round 3 letterbox→paddingTop hack + UAT-10 queue 16→24 + swipe pop 4→8)]
 
 ## Tests
 
@@ -50,7 +50,12 @@ evidence: Operator screenshot 2026-05-09 showed gray-circle play button overlay 
 
 ### 8. Video thumbnail aspect — 5:4 landscape crop
 expected: Per operator after rejecting portrait + native + hide-thumbnail options: "G sounds a little better if crop 5:4 (landscape) for landscape thumbnails. Vertical crop WILL DEFINITELY cause poor visual."
-result: RESOLVED — fix committed at `db864ffa`. Video card thumbnail wrapped in `aspectRatio: '5 / 4'` container with `object-fit: cover`. From a 16:9 source (1.78:1), 5:4 (1.25:1) keeps full vertical framing intact and crops ~40px each horizontal edge. Tile is now ~152px tall vs prior ~107px native 16:9 at half-width — 45% more vertical real estate without portrait's destructive top/bottom crop. New negative regression test asserts the aspectRatio literal '5 / 4' is present.
+result: RESOLVED across 2 rounds. Round 2 `db864ffa` used `aspectRatio: '5 / 4'` CSS — produced LETTERBOX (black bars top+bottom) instead of cropping (operator: "did not crop thumbnail but actually added black upper and lower edges"). Round 3 `3a02c45d` switched to the bulletproof `paddingTop: '80%'` hack (4/5 = 0.8) with the img absolute-positioned over the padding box. Forces a real computed height before the img lays out, so `object-fit: cover` correctly crops L+R and preserves vertical framing. Test contract updated from asserting the aspectRatio literal to asserting paddingTop + position absolute + objectFit cover (3 paired assertions).
+evidence: Operator report 2026-05-10 after `db864ffa` showed black bars top/bottom — letterbox geometry consistent with the img falling back to its intrinsic 16:9 ratio inside a 0-height container. CSS aspect-ratio property likely didn't compute a real height inside the flex column ancestor.
+
+### 10. Buffer queue + per-swipe pop bumped for masonry consumption
+expected: Per operator 2026-05-10: "Should enlarge buffer queue to 24 and each swipe for more should pop 8 posts." Masonry half-width tiles consume twice as fast as the prior single-column InlineInfoFlow.
+result: RESOLVED — fix committed at `3a02c45d`. REFILL_THRESHOLD 16 → 24 (post-queue.service.ts), walker batchSize 16 → 24 (concept-feed.service.ts:1275), generateMorePosts default count 4 → 8, loadNextBatch default limit 4 → 8, HomeScreen swipe call site passes 8 explicitly. MAX_QUEUE_SIZE held at 32 — increasing further risks longer initial load waits without proportional UX gain. CLAUDE.md "Concept Feed Generation Pipeline" numeric defaults updated with new constants + dated rationale.
 
 ### 9. Suggestion-card nested padding
 expected: SuggestionCard topic pills (multi-line topic strings) wrapped to 4+ lines because of nested padding (16px outer card pad + 16px button pad = 32px lost per side at half-width). Should denest.
@@ -67,13 +72,13 @@ suggested next step: `/gsd:debug "feed dominated by news+video, text-art absent 
 
 ## Summary
 
-total: 9
+total: 10
 passed: 0
-issues: 5
+issues: 6
 pending: 4
 skipped: 0
 blocked: 0
-note: All 5 issues are RESOLVED with code commits awaiting operator visual retest. Once UAT-1..4 are confirmed (currently still pending behavioral verification independent of layout), phase verification can flip to `passed`.
+note: All 6 issues are RESOLVED with code commits awaiting operator visual retest. Once UAT-1..4 are confirmed (currently still pending behavioral verification independent of layout), phase verification can flip to `passed`.
 
 ## Gaps
 
