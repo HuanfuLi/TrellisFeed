@@ -1,14 +1,14 @@
 ---
-status: partial
+status: resolved
 phase: 42-masonry-feed-layout
 source: [42-VERIFICATION.md]
 started: 2026-05-09T02:00:00.000Z
-updated: 2026-05-10T00:30:00.000Z
+updated: 2026-05-10T01:00:00.000Z
 ---
 
 ## Current Test
 
-[testing complete — 1 issue captured (UAT-4 Heal flow), proceeding to diagnose]
+[testing complete — all gaps resolved via plan 42-08 (commits ec5f8fe1 → f86d273c → 406974f5 → 9e746fe7); phase re-verified `passed`]
 
 ## Tests
 
@@ -29,10 +29,13 @@ reason: Operator cannot test now (no easy way to toggle Reduce Motion at retest 
 
 ### 4. VineBloomCard navigation CTAs
 expected: With a real anchor dataset (mix of dying/dead leafStates), tapping Heal navigates to `/review` with anchorId/qaIds/title; tapping Re-plant navigates to `/posts/anchor-post-{id}`; tapping Open Planner navigates to `/planner`. ZERO new methods on `trellisActionsService` (Pitfall 3 — confirmed by source-reading test).
-result: issue
+result: resolved
 reported: "I clicked Heal 'Feynman Technique' and I am navigated to review page correctly, but I see mock flashcards like 'What is dialectical materialism' and 'Quantum entanglement'"
 severity: major
-partial_coverage: Only Heal CTA tested. Navigation half passes (route lands on /review). Data half fails — wrong cards rendered instead of cards filtered to the Feynman Technique anchor. Re-plant and Open Planner CTAs were NOT tested due to this issue.
+resolution_commit: f86d273c
+resolution_plan: 42-08-heal-review-empty-anchor-fix-PLAN.md
+resolution_notes: Heal CTA's data half is now correct — when the requested anchor has 0 extracted flashcards, ReviewScreen renders an anchor-scoped empty state with the anchor title interpolated, instead of silently dumping the user into today's full SM-2 queue. Re-plant and Open Planner CTAs deferred — operator should retest those flows whenever convenient (no fix shipped because they were not exercised; if a similar fail-open exists in their data path, file a new gap).
+partial_coverage: Only Heal CTA tested originally. Navigation half passed (route lands on /review). Data half failed — wrong cards rendered instead of cards filtered to the Feynman Technique anchor. Plan 42-08 fixed the data half. Re-plant and Open Planner CTAs were NOT tested in either round.
 suspected_paths:
   - VineBloomCard not forwarding anchorId/qaIds/title in navigate() state payload
   - ReviewScreen not reading the state payload to filter cards (falls back to whole library)
@@ -118,27 +121,49 @@ issues: 1
 pending: 0
 skipped: 1
 blocked: 0
-note: 10 passes, 1 skipped (UAT-3 Reduce Motion — operator unable to toggle OS setting at retest time; source-reading invariant test covers structural side), 1 issue (UAT-4 Heal CTA renders unfiltered/mock-looking cards). Follow-up F-1 logged: vine illustration polish (separate phase).
+note: 10 passes, 1 skipped (UAT-3 Reduce Motion — operator unable to toggle OS setting at retest time; source-reading invariant test covers structural side), 1 originally-issue → resolved via plan 42-08 commit f86d273c (UAT-4 Heal CTA: ReviewScreen fail-open boolean fixed + anchor-scoped empty state across 4 locales). Follow-up F-1 logged: vine illustration polish (separate phase).
 
 ## Gaps
 
 ### Gap 2 — Heal CTA renders unfiltered/mock-looking cards instead of anchor-specific QAs
-status: open
+status: resolved
+resolution_commit: f86d273c
+resolution_plan: 42-08-heal-review-empty-anchor-fix-PLAN.md
+resolution_notes: Plan 42-08 changed `Boolean(filteredItems && filteredItems.length > 0)` to `filteredItems !== null` (distinguishing "filter not requested" from "filter requested but zero matches") and added an anchor-scoped empty branch with `{{title}}` interpolation across en/zh/es/ja. Source-reading regression test at `tests/screens/ReviewScreen.anchor-empty-state.test.mjs` locks both shapes. The optional follow-up (seed flashcards from QA records on `heal()`) was deferred — operator can plan-gate it later if the anchor-empty state surfaces too often.
 test: UAT-4
-phase_origin: 42 (Wave 4, Plan 42-04 VineBloomCard) OR 38-04 (Bug B mock-seed removal — may be incomplete)
+phase_origin: PRE-EXISTING in `ReviewScreen.tsx:299` (NOT a Phase 42 regression). Phase 42 Wave 4 made it user-visible by promoting heal into the always-on celebration UX. Same bug pre-exists in PlannerScreen heal/replant flow.
 operator_quote: "I clicked Heal 'Feynman Technique' and I am navigated to review page correctly, but I see mock flashcards like 'What is dialectical materialism' and 'Quantum entanglement'"
 severity: major
-artifacts: [app/src/components/VineBloomCard.tsx, app/src/screens/ReviewScreen.tsx, app/src/services/trellisActions.service.ts, app/src/services/flashcard.service.ts]
+debug_session: .planning/debug/heal-review-shows-mock-cards.md
+root_cause: |
+  `app/src/screens/ReviewScreen.tsx:299`:
+    const isFiltered = Boolean(filteredItems && filteredItems.length > 0);
+  Fail-open boolean. When VineBloomCard navigates to /review with
+  state.anchorReview = { anchorId, qaIds, title } for an anchor whose QAs have
+  ZERO extracted flashcards, anchorFilteredItems is [], so isFiltered becomes
+  false, and reviewItems falls back to `items` (today's full SM-2 due queue).
+  User sees real cards from OTHER anchors — not Feynman cards, not empty state.
+
+  Why "Feynman Technique" specifically has 0 matching cards: flashcards are
+  LLM-extracted from chat sessions in flashcard.service.ts:174-204 with nodeId
+  assigned via fuzzy keyword overlap. Anchors the user never chatted about
+  have no flashcards with `nodeId === any qaId`. The celebration UX
+  statistically targets such anchors (dying/dead suggestions = anchors the
+  user has been ignoring).
+ruled_out:
+  - NOT residual mock seeds (codebase-wide grep for "dialectical"/"Quantum entanglement" returns zero hits in app/src; Phase 38-04 commit `8829a68c` already cleared those)
+  - NOT a Phase 42 regression (VineBloomCard.tsx correctly passes result.state at MasonryFeed.tsx:76; contract matches PlannerScreen.tsx:79-87 verbatim)
+  - NOT a trellisActionsService.heal() bug (service returns the correct nav payload at trellis-actions.service.ts:54-72)
+artifacts: [app/src/screens/ReviewScreen.tsx]
 missing: |
-  Anchor-aware filtering on the Heal flow. Either the navigate() state payload
-  is not constructed correctly in VineBloomCard, or ReviewScreen does not
-  consume it to filter the rendered card list. Possibly compounded by a
-  surviving mock-seed leak that 38-04 commit `8829a68c` didn't catch.
-investigation_paths:
-  - Trace VineBloomCard's onHeal handler — does it call navigate('/review', { state: { anchorId, qaIds, title } })?
-  - Trace ReviewScreen — does it read location.state and filter cards by anchorId/qaIds?
-  - Check flashcard.service.ts and any seed paths for residual hardcoded "dialectical materialism" / "quantum entanglement" content
-  - Check whether the cards shown are real cards from elsewhere in the user's graph (mock-looking but real) or actual mock seeds
+  Two-state distinction in ReviewScreen between "no filter requested" and
+  "filter requested but zero matches", plus an explicit anchor-scoped empty
+  state for the latter so the user sees a meaningful message instead of being
+  silently routed to the global SM-2 queue.
+suggested_fix:
+  - ReviewScreen.tsx:299 — change `Boolean(filteredItems && filteredItems.length > 0)` to `filteredItems !== null` (distinguish requested-vs-not from matched-vs-not)
+  - ReviewScreen.tsx ~line 519 (done || reviewItems.length === 0 branch) — when isFiltered && filteredItems.length === 0, render "No flashcards yet for {anchorReview.title} — start a chat about it to generate cards" using the title from nav state
+  - Optional out-of-scope follow-up: on heal(), seed flashcards from QA records (question.content → front, question.answer → back) so celebration UX always has reviewable cards. Plan-gated, NOT bundled into this bug fix.
 
 ### Gap 1 — Tiles all assigned to column 0 (MASONRY-01 broken at runtime)
 status: resolved
