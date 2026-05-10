@@ -8,7 +8,7 @@ updated: 2026-05-09T02:30:00.000Z
 
 ## Current Test
 
-[awaiting operator retest of UAT-1..UAT-5 after fix commits `1de44017` (Bug A+B) and `5f8a77f9` (Bug C — column overflow)]
+[awaiting operator retest of UAT-1..UAT-6 after fix commits `1de44017` (Bug A+B), `5f8a77f9` (Bug C — column overflow), `f2471499` (UAT-6 — card typography for half-width)]
 
 ## Tests
 
@@ -38,9 +38,10 @@ expected: Both masonry columns fit inside HomeScreen's 448px maxWidth content ar
 result: RESOLVED — fix committed at `5f8a77f9` (minWidth: 0 on BOTH column wrappers + width: 100% on outer flex container). Same root cause as CLAUDE.md ChatInput rule. 1 new regression lock added (layout test count 10 → 11, all green; tsc clean). Awaiting operator visual retest.
 evidence: Operator screenshot 2026-05-09 after `1de44017` shows 2 columns rendering but right column overflows off the right edge of the viewport. Cards inside have intrinsic content width that flex refuses to shrink without minWidth: 0.
 
-### 6. Card typography tuned for half-width (follow-up)
-expected: Existing card components (NewsCard, video card, etc.) were designed for full-width InlineInfoFlow. At 50% width inside masonry columns, font sizes / paddings / line-heights may need a half-width variant or shrink rule.
-result: pending — surface only after UAT-5 fix lands and 2-column layout is visible
+### 6. Card typography tuned for half-width
+expected: Existing card components (NewsCard, video card, text-art card) were designed for full-width InlineInfoFlow. At 50% width inside masonry columns, font sizes / paddings / line-heights need to shrink so headlines don't dominate the column or wrap to 1-2 words per line.
+result: RESOLVED — fix committed at `f2471499`. News headline 1.25 → 0.95rem; concept hook 1.2 → 0.95rem; text-art breakpoints 1.25/1.5/2rem → 0.95/1.15/1.5rem; internal paddings tightened proportionally. InlineInfoFlow is no longer used by any screen so direct edits are safe. 42/42 Phase 42 tests + counterweights green; tsc clean. Awaiting operator visual retest. Connection/milestone cards untouched — surface only if reported.
+evidence: Operator screenshot 2026-05-09 after `5f8a77f9` shows news cards with massive serif headlines wrapping to 1-2 words per line at half-width.
 
 ## Summary
 
