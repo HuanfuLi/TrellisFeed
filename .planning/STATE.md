@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: gap closure)
 status: executing
-stopped_at: Completed 42-04-vine-bloom-card-and-i18n-PLAN.md
-last_updated: "2026-05-10T01:33:02.782Z"
+stopped_at: Completed 42-05-source-reading-invariant-tests-PLAN.md
+last_updated: "2026-05-10T01:44:43.645Z"
 last_activity: 2026-05-10
 progress:
   total_phases: 21
@@ -18,17 +18,17 @@ progress:
 ## Current Position
 
 Phase: 42 (masonry-feed-layout) — EXECUTING
-Plan: 5 of 7
+Plan: 6 of 7
 Status: Ready to execute
 Last activity: 2026-05-10
 
 ## Progress
 
-**Phases:** 2 / 9 complete (37 ✓; 38 ✓; 39 ready for verification; 40 ready for verification; 41 ready for verification 2/2 plans; 42 in flight 4/7 plans; 43-45 pending)
-**Plans:** 4 / 7 complete in Phase 42 (42-01 masonry-feed-skeleton ✓; 42-03 card-slide-in-removal ✓; 42-04 vine-bloom-card-and-i18n ✓; 42-06 roadmap-requirements-wording-correction ✓; 42-02 / 42-05 / 42-07 pending); 2 / 2 complete in Phase 41 (41-01 source-diversity-wiring ✓; 41-02 essay-depth-citation-rendering ✓); 1 / 1 complete in Phase 40 (40-01 source-diversity-service ✓); 1 / 1 complete in Phase 39 (39-01 engagement-service ✓)
+**Phases:** 2 / 9 complete (37 ✓; 38 ✓; 39 ready for verification; 40 ready for verification; 41 ready for verification 2/2 plans; 42 in flight 6/7 plans; 43-45 pending)
+**Plans:** 6 / 7 complete in Phase 42 (42-01 masonry-feed-skeleton ✓; 42-02 homescreen-swap ✓; 42-03 card-slide-in-removal ✓; 42-04 vine-bloom-card-and-i18n ✓; 42-05 source-reading-invariant-tests ✓; 42-06 roadmap-requirements-wording-correction ✓; 42-07 pending); 2 / 2 complete in Phase 41 (41-01 source-diversity-wiring ✓; 41-02 essay-depth-citation-rendering ✓); 1 / 1 complete in Phase 40 (40-01 source-diversity-service ✓); 1 / 1 complete in Phase 39 (39-01 engagement-service ✓)
 
 ```
-[████████████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 38%
+[██████████████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 42%
 ```
 
 ### Wave Order
@@ -91,6 +91,16 @@ All v1.4 blockers resolved at close. No open blockers.
 - **Strict file-staging discipline** (lesson from Plan 38-02 close decision on parallelism artifact): explicit `git add app/src/index.css` (Task 1) and `git add app/src/components/InfoFlow.tsx` (Task 2) only — never `git add -A` or `.`. Sibling-agent in-progress writes (MasonryFeed.tsx, HomeScreen.tsx, .DS_Store, Android resource files) NOT captured by either commit.
 - **Cross-tree negative grep is the load-bearing acceptance check.** `grep -rn "card-slide-in" app/src/` exits 1 (no matches) across the entire src tree (was 4 occurrences — 1 in index.css + 3 in InfoFlow.tsx). D-06 satisfied (one animation system, not two; framer-motion at the MasonryFeed wrapper now owns ALL feed-entrance animation). Plan 42-05 will add `tests/lib/no-card-slide-in.test.mjs` to lock this against future drift.
 - **Plan 42-03 close-out: 2 atomic per-task commits + close-out commit.** No new tests added (this plan is pure-deletion; Plan 42-05 will add the source-reading invariant test). Test baseline preserved exactly — `app/tests/` had zero references to `card-slide-in` pre-deletion (verified via `grep -rn "card-slide-in" app/tests/` returning empty), so no test updates were required. Total deviations: 1 auto-fixed (Rule 1 — TS6133 on now-unused destructured local).
+
+## Last decisions (Plan 42-05 close, 2026-05-10)
+
+- **Pure additive test infra plan — zero source files mutated.** All four new test files land under `app/tests/` (components/, screens/, lib/). Source-of-truth files (MasonryFeed.tsx, HomeScreen.tsx, trellis-actions.service.ts, index.css) were last touched by Plans 42-01..42-04 and remain unchanged here. The plan locks structural invariants AGAINST those files; it does not modify them.
+- **23 source-reading assertions across 4 test files lock all 8 UI-SPEC invariants + 4 NEW invariants (RESEARCH Pitfalls 1, 2, 4 + § 1 path b architectural decision).** Map: UI-SPEC #1 → MasonryFeed.layout (motion.div in/out check); #2 → MasonryFeed.layout (4 negative greps for column-count/break-inside variants); #3 → MasonryFeed.layout (3 negative greps for will-change/perspective); #4 → HomeScreen.no-more-posts-toast (toast key + substring); #5 → MasonryFeed.celebration (full VineBloomCard suite); #6 → MasonryFeed.layout (immutability has() skip-gate); #7 → no-card-slide-in (cross-tree walker); #8 → pre-existing bundle-parity test (no new test needed); NEW Pitfall 1 → MasonryFeed.layout (MotionConfig + reducedMotion="user"); NEW Pitfall 4 → MasonryFeed.layout (no markExplored / CONCEPT_EXPLORED); NEW Pitfall 2 → HomeScreen.no-more-posts-toast (allExplored present); NEW § 1 path b → MasonryFeed.celebration (no getCelebrationSuggestions/getDailyActions/getSuggestedMoves on trellis-actions surface).
+- **Counterweight assertions in EVERY test file (not only the cross-tree walker).** Even single-file Pattern A tests open with positive presence checks ('columnHeightsRef declaration', 'function VineBloomCard declared', 'MasonryFeed wiring present', 'walker reaches >= 50 files'). Without these, a path/regex regression could silently false-pass. This raises the per-test-file assertion floor from "negative grep only" to "negative grep AND counterweight" — established as the load-bearing pattern for source-reading invariant tests.
+- **Auto-fix Rule 1 in Task 3: relaxed `InlineInfoFlow` substring assertion.** Plan PLAN.md prescribed `!/InlineInfoFlow/.test(source)` — a broad substring negative grep. This failed against the current HomeScreen.tsx because line 834 contains the historical comment `{/* Phase 42 MASONRY-01: Pinterest-style 2-column masonry feed (replaces InlineInfoFlow). */}` (preserved per plan-42-02 close note: "InlineInfoFlow named import dropped, but type InfoFlowItem import preserved"). Refined the assertion into two narrower checks: import-line negative grep `!/import\s+\{[^}]*\bInlineInfoFlow\b[^}]*\}\s+from/` AND JSX-element negative grep `!/<\s*InlineInfoFlow\b/`. Both pass; the plan's stated intent ("InlineInfoFlow is de-wired") is preserved while honoring the operator-confirmed comment retention. Same class as Plan 41-01 walker-window auto-fix: source-reading test specs sometimes need narrowing once they meet the actual file content.
+- **Solo executor in Wave 3 — used standard `git commit -m '...'` per `<solo_execution>` instruction.** No parallel siblings to race against; pre-commit hooks ran normally. Each task committed atomically with its own verify gate (4 commits: `11873bed`, `4eed64df`, `6ab93747`, `43414dd7`). No commit-attribution shuffles. Contrast with Plan 42-04 which needed `git commit --no-verify -o <paths>` due to parallel-staging races with siblings.
+- **Counterweight invariants preserved across the Phase 42 cutover.** `tests/components/InfoFlow.video-tap-emit.test.mjs` (4/4 pass — GAP-C single-emit at the InfoFlow video thumbnail tap unaffected by the InlineInfoFlow → MasonryFeed home swap) and `tests/locales/bundle-parity.test.mjs` (6/6 pass — i18n parity across 4 bundles unchanged from Plan 42-04). These external invariants now serve as cross-plan witnesses to the Phase 42 contract integrity.
+- **Plan 42-05 close-out: 4 atomic per-task commits + close-out commit (this).** Phase 42 progress: 6 / 7 plans complete (42-01 ✓; 42-02 ✓; 42-03 ✓; 42-04 ✓; 42-05 ✓; 42-06 ✓; 42-07 pending — phase close-out). Next plan: 42-07 (phase close-out).
 
 ## Last decisions (Plan 42-04 close, 2026-05-09)
 
@@ -204,7 +214,7 @@ All v1.4 blockers resolved at close. No open blockers.
 
 ## Session Continuity
 
-**Stopped at:** Completed 42-04-vine-bloom-card-and-i18n-PLAN.md
+**Stopped at:** Completed 42-05-source-reading-invariant-tests-PLAN.md
 **Next action:** `/gsd:verify-work 42 04` (verifier sweep over Plan 42-04 must-haves) → after Wave 2 verification, Plan 42-05 (source-reading invariant tests) → Plan 42-07 (phase close-out).
 
 **Files written this session (Plan 42-04 close):**
