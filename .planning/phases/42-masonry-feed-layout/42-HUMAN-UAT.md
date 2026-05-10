@@ -8,7 +8,7 @@ updated: 2026-05-09T02:30:00.000Z
 
 ## Current Test
 
-[awaiting operator retest of UAT-1..UAT-6 after fix commits `1de44017` (Bug A+B), `5f8a77f9` (Bug C — column overflow), `f2471499` (UAT-6 — card typography for half-width)]
+[awaiting operator retest of UAT-1..UAT-9 after final fix bundle: `afe42922` (1A chrome + denest suggestion + text-art breakpoints), `db864ffa` (UAT-7+8 inline-play removal + 5:4 video crop), `df3a2553` (3B text-art prompt + tightener)]
 
 ## Tests
 
@@ -40,17 +40,40 @@ evidence: Operator screenshot 2026-05-09 after `1de44017` shows 2 columns render
 
 ### 6. Card typography tuned for half-width
 expected: Existing card components (NewsCard, video card, text-art card) were designed for full-width InlineInfoFlow. At 50% width inside masonry columns, font sizes / paddings / line-heights need to shrink so headlines don't dominate the column or wrap to 1-2 words per line.
-result: RESOLVED — fix committed at `f2471499`. News headline 1.25 → 0.95rem; concept hook 1.2 → 0.95rem; text-art breakpoints 1.25/1.5/2rem → 0.95/1.15/1.5rem; internal paddings tightened proportionally. InlineInfoFlow is no longer used by any screen so direct edits are safe. 42/42 Phase 42 tests + counterweights green; tsc clean. Awaiting operator visual retest. Connection/milestone cards untouched — surface only if reported.
-evidence: Operator screenshot 2026-05-09 after `5f8a77f9` shows news cards with massive serif headlines wrapping to 1-2 words per line at half-width.
+result: RESOLVED across 3 commits. `f2471499` first-pass shrink (news headline 1.25 → 0.95rem; concept hook 1.2 → 0.95rem). `afe42922` (1A) chrome tightening: borderRadius 16 → 8, padding 14 → 10 across all variants, suggestion-card nested padding fix (TopicButton padding 0/16 → 6/10, ChevronRight removed). `df3a2553` (3B) text-art prompt+tightener at the source so cards never receive multi-sentence content. 47/47 Phase 42 tests + counterweights green; tsc clean.
+evidence: Operator screenshot 2026-05-09 after `5f8a77f9` showed news cards with massive serif headlines. Subsequent screenshot after `f2471499` showed text-art still wrapping ('Why the Smell of Safety Makes AI Unsafe' → 5 lines) and suggestion-card pills wrapping to 4 lines.
+
+### 7. Inline-play removed from feed video cards
+expected: Per operator: "Remove the inline play feature." Tapping a video card should navigate to PostDetailScreen (not start inline playback in the feed).
+result: RESOLVED — fix committed at `db864ffa`. Removed videoPlaying state, conditional iframe branch, transparent pointer-overlay, close button, thumbnail-tap CONCEPT_EXPLORED emit, AND the play-button overlay (gray-circle/white-triangle in card center). Also deleted the dead InlineInfoFlow + InfoFlowPreview functions (760 LOC removed). CLAUDE.md "Video post completion signals" section rewritten — Detector D (PostDetailScreen postMessage) is now the sole feed-level video signal; new rule #6 documents the 5:4 thumbnail aspect choice with the operator-rejected alternatives. Test contract flipped from positive (assert markExplored exactly once) to negative (assert ZERO markExplored / videoPlaying / inline iframe).
+evidence: Operator screenshot 2026-05-09 showed gray-circle play button overlay center-blocking the YouTube thumbnail.
+
+### 8. Video thumbnail aspect — 5:4 landscape crop
+expected: Per operator after rejecting portrait + native + hide-thumbnail options: "G sounds a little better if crop 5:4 (landscape) for landscape thumbnails. Vertical crop WILL DEFINITELY cause poor visual."
+result: RESOLVED — fix committed at `db864ffa`. Video card thumbnail wrapped in `aspectRatio: '5 / 4'` container with `object-fit: cover`. From a 16:9 source (1.78:1), 5:4 (1.25:1) keeps full vertical framing intact and crops ~40px each horizontal edge. Tile is now ~152px tall vs prior ~107px native 16:9 at half-width — 45% more vertical real estate without portrait's destructive top/bottom crop. New negative regression test asserts the aspectRatio literal '5 / 4' is present.
+
+### 9. Suggestion-card nested padding
+expected: SuggestionCard topic pills (multi-line topic strings) wrapped to 4+ lines because of nested padding (16px outer card pad + 16px button pad = 32px lost per side at half-width). Should denest.
+result: RESOLVED in `afe42922`. Outer card padding 16 → 10, removed minHeight: 280px (let masonry compute), TopicButton padding 0/16 → 6/10, fontSize 14 → 13, removed ChevronRight icon (saves 20px), Sparkles 16 → 13, header gap/marginBottom 8/16 → 6/8.
+evidence: Operator screenshot 2026-05-09 showed "PLA vs PETG / thermal / resistance / comparison" wrapping to 4 lines per topic pill.
+
+### REGRESSION TRIAGE — text-art / image distribution skewed
+status: open (NOT a Phase 42 regression — separate investigation queued)
+operator_observation: "All posts are news and videos again. No text-art and image posts."
+phase 42 surface confirmed clean: Phase 42 commits only touched MasonryFeed.tsx, InfoFlow.tsx (exports + 3 deletions + chrome typography + inline-play removal), HomeScreen.tsx (swap), index.css (1 keyframe), 4 locale bundles, 5 test files. ZERO touch to style-assignment.ts, concept-feed.service.ts (until 3B text-art prompt — but that affects content per post, not distribution), post-queue.service.ts.
+last pipeline-relevant change before this skew: Phase 41-01 commits 83804b5c, c68bd4b2 (sourceDiversityService wired into news pre-fetch + Tavily maxResults 3).
+effective STYLE_WEIGHTS (style-assignment.ts:23-29): text-art 55%, video 20%, image 10%, news 10%, suggestion 5% (when all API keys present).
+suggested next step: `/gsd:debug "feed dominated by news+video, text-art absent despite 55% weight"` after operator confirms Phase 42 layout work is complete. Likely investigation paths: (a) cache holding pre-rebalance posts (Force-New-Day clears), (b) image-gen failure path silently downgrading to text-art at line 1386 then text-art content failing → fallback path → cards not rendering, (c) Phase 41-01 sourceDiversityService over-pre-fetching news.
 
 ## Summary
 
-total: 7
+total: 9
 passed: 0
-issues: 2
-pending: 5
+issues: 5
+pending: 4
 skipped: 0
 blocked: 0
+note: All 5 issues are RESOLVED with code commits awaiting operator visual retest. Once UAT-1..4 are confirmed (currently still pending behavioral verification independent of layout), phase verification can flip to `passed`.
 
 ## Gaps
 
