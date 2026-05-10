@@ -140,6 +140,43 @@ describe('MasonryFeed layout invariants (Phase 42)', () => {
     );
   });
 
+  // UAT-12 regression lock — per-style height estimates (Solution A).
+  // Before: Pass 1 used a fixed 280px estimate per tile so the comparator
+  // balanced COUNT, not HEIGHT. After: per-style estimates close the 60-110px
+  // height differences between styles so tall tiles correctly land in the
+  // shorter column from the very first render.
+  it('Pass 1 estimates per-tile height by style (UAT-12 column-balance regression lock)', () => {
+    assert.ok(
+      /STYLE_HEIGHT_ESTIMATES/.test(masonrySource),
+      'MasonryFeed.tsx must declare a STYLE_HEIGHT_ESTIMATES table — without per-style estimates, ' +
+      'a fixed default makes the Pass 1 comparator balance count instead of height (UAT-12 from 2026-05-10).',
+    );
+    assert.ok(
+      /function\s+estimateHeightForItem\s*\(/.test(masonrySource),
+      'MasonryFeed.tsx must declare an estimateHeightForItem(item) helper that maps each ' +
+      'InfoFlowItem to its per-style height estimate.',
+    );
+    assert.ok(
+      /estimateHeightForItem\(item\)/.test(masonrySource),
+      'MasonryFeed.tsx Pass 1 must call estimateHeightForItem(item) (or equivalent style-aware ' +
+      'estimator) when no measured height is cached. A fixed numeric fallback like `?? 280` regresses ' +
+      'the column-balance fix.',
+    );
+    assert.ok(
+      !/\?\?\s*280/.test(masonrySource),
+      'MasonryFeed.tsx Pass 1 must NOT use the fixed `?? 280` fallback that the per-style ' +
+      'estimate replaced. Found a `?? 280` literal — this regresses UAT-12.',
+    );
+    // Spot-check that the table covers all the major presentation styles
+    // touched by the masonry pipeline.
+    for (const key of ['news', 'image', 'video', 'text-art', 'suggestion']) {
+      assert.ok(
+        new RegExp(`['"]?${key}['"]?\\s*:\\s*\\d`).test(masonrySource),
+        `STYLE_HEIGHT_ESTIMATES must include a numeric entry for "${key}".`,
+      );
+    }
+  });
+
   // UAT-5 regression lock (Phase 42 post-execute fix) — Bug B.
   // Pass 1 (assignment loop) must run during render (not exclusively inside a
   // useLayoutEffect) so first-paint filters see populated assignments.

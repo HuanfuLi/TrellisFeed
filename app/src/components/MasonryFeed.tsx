@@ -261,6 +261,43 @@ function getId(item: InfoFlowItem): string {
   return '';
 }
 
+// Phase 42 UAT-12 (2026-05-10) — per-style height estimates for Pass 1
+// comparator. Operator screenshot showed 130-200px column imbalance because
+// a fixed 280px estimate ignores the 60-110px height differences between
+// presentation styles at half-width. The comparator was effectively
+// balancing COUNT, not HEIGHT — so a random clustering of tall tiles in
+// one column persisted until the next refill. These numbers are calibrated
+// against measured DOM heights of each card variant after the chrome
+// tightening (commits afe42922 + dec6241c + b2626cd4). Pass 2's DOM
+// re-measure still overrides for subsequent batches; this only governs
+// the comparator decision DURING the first render of a new tile.
+const STYLE_HEIGHT_ESTIMATES: Record<string, number> = {
+  news: 225,        // source attr + headline (3 lines) + body (5 lines) + tag
+  image: 280,       // 1:1 image (≈ column width) + hook + tag
+  video: 250,       // 5:4 thumbnail (column × 0.8) + hook + channel + tag
+  'text-art': 290,  // 1:1 text-art card + hook below + tag
+  suggestion: 180,  // header + 4 short topic buttons (after b2626cd4 shrink)
+  connection: 280,  // mid-size colored card with two concept names + bridge
+  milestone: 240,   // emoji + headline + body + maxWidth 280 cap
+  default: 260,     // safe middle estimate for unknown / future styles
+};
+
+function estimateHeightForItem(item: InfoFlowItem): number {
+  if (item.kind === 'connection') return STYLE_HEIGHT_ESTIMATES.connection;
+  if (item.kind === 'milestone') return STYLE_HEIGHT_ESTIMATES.milestone;
+  if (item.kind === 'concept') {
+    // Suggestion posts use sourceType, not presentationStyle.
+    if (item.post.sourceType === 'suggestion') return STYLE_HEIGHT_ESTIMATES.suggestion;
+    if (item.post.sourceType === 'video') return STYLE_HEIGHT_ESTIMATES.video;
+    if (item.post.sourceType === 'news') return STYLE_HEIGHT_ESTIMATES.news;
+    const ps = item.post.presentationStyle;
+    if (ps === 'text-art') return STYLE_HEIGHT_ESTIMATES['text-art'];
+    if (ps === 'image') return STYLE_HEIGHT_ESTIMATES.image;
+    return STYLE_HEIGHT_ESTIMATES.default;
+  }
+  return STYLE_HEIGHT_ESTIMATES.default;
+}
+
 export function MasonryFeed({
   items,
   onOpenConnection,
@@ -318,8 +355,9 @@ export function MasonryFeed({
   // filters at the bottom of this function see populated assignments — refs don't trigger
   // re-renders, so a ref-only post-commit assignment would leave the first paint empty.
   // The has() check makes the loop idempotent under StrictMode double-invocation.
-  // Estimate of 280px per unmeasured tile lets the comparator zigzag during the initial
-  // batch (without it, [0,0] + <= tie-breaker would pile every new item into column 0).
+  // Per-style estimates (UAT-12) replace the prior fixed 280 default — the comparator
+  // now zigzags based on EXPECTED tile heights, not just count, closing the 130-200px
+  // column imbalance the operator reported when tall tiles clustered randomly.
   for (const item of items) {
     const itemId = getId(item);
     if (!itemId) continue;
@@ -328,7 +366,7 @@ export function MasonryFeed({
     const col: 0 | 1 = heights[0] <= heights[1] ? 0 : 1;
     tileColumnAssignmentsRef.current.set(itemId, col);
     const measured = tileRefsMap.current.get(itemId)?.clientHeight;
-    columnHeightsRef.current[col] += (measured ?? 280) + 12;
+    columnHeightsRef.current[col] += (measured ?? estimateHeightForItem(item)) + 12;
   }
 
   // Pass 2: post-paint, re-measure all column heights from clientHeight to absorb async
