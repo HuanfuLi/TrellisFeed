@@ -211,7 +211,9 @@
       "noneDue": "No hay fichas pendientes hoy — ¡vuelve mañana!",
       "reviewed": "Repasadas",
       "avgRating": "Nota media",
-      "allFlashcardsCta": "Todas las fichas"
+      "allFlashcardsCta": "Todas las fichas",
+      "anchorEmptyHeading": "Aún no hay fichas",
+      "anchorEmptyBody": "Aún no hay fichas para {{title}} — empieza una conversación sobre este concepto para generar fichas."
     },
     "session": {
       "moveBreadcrumb": "Movimiento sugerido: {{title}}",

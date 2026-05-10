@@ -211,7 +211,9 @@
       "noneDue": "今日は復習対象のカードがありません — また明日！",
       "reviewed": "復習済み",
       "avgRating": "平均評価",
-      "allFlashcardsCta": "すべてのフラッシュカード"
+      "allFlashcardsCta": "すべてのフラッシュカード",
+      "anchorEmptyHeading": "フラッシュカードはまだありません",
+      "anchorEmptyBody": "{{title}} のフラッシュカードはまだありません — チャットを始めてカードを生成しましょう。"
     },
     "session": {
       "moveBreadcrumb": "おすすめアクション：{{title}}",

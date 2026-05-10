@@ -211,7 +211,9 @@
       "noneDue": "No cards due today — come back tomorrow!",
       "reviewed": "Reviewed",
       "avgRating": "Avg rating",
-      "allFlashcardsCta": "All Flashcards"
+      "allFlashcardsCta": "All Flashcards",
+      "anchorEmptyHeading": "No flashcards yet",
+      "anchorEmptyBody": "No flashcards yet for {{title}} — start a chat about it to generate cards."
     },
     "session": {
       "moveBreadcrumb": "Suggested move: {{title}}",

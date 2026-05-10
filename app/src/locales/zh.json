@@ -211,7 +211,9 @@
       "noneDue": "今天没有待复习的卡片 — 明天再来吧！",
       "reviewed": "已复习",
       "avgRating": "平均评分",
-      "allFlashcardsCta": "所有闪卡"
+      "allFlashcardsCta": "所有闪卡",
+      "anchorEmptyHeading": "暂无闪卡",
+      "anchorEmptyBody": "{{title}} 暂无闪卡 — 与它聊一聊以生成卡片。"
     },
     "session": {
       "moveBreadcrumb": "建议行动：{{title}}",
