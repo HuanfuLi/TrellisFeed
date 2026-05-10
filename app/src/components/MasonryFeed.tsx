@@ -1,5 +1,5 @@
-import { useContext, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { MotionConfig, motion, type Variants } from 'framer-motion';
 import { Heart, Sprout } from 'lucide-react';
@@ -9,12 +9,6 @@ import {
   MilestoneCard,
   type InfoFlowItem,
 } from './InfoFlow';
-// Plan 42-01 deviation (Rule 3): SwipeTabContext lives in '../lib/swipe-tab-context'
-// (verified by `grep "import.*SwipeTabContext" app/src/components/InfoFlow.tsx` →
-// the InfoFlow source-of-truth file imports it from that path). The plan stub
-// referenced './SwipeTabContainer' as the import source which is the consumer,
-// not the declarer; corrected here so tsc -b --noEmit stays green.
-import { SwipeTabContext } from '../lib/swipe-tab-context';
 import { useTrellisData } from '../state/useTrellisData';
 import { useQuestions } from '../state/useQuestions';
 import { trellisActionsService } from '../services/trellis-actions.service';
@@ -285,66 +279,15 @@ export function MasonryFeed({
   const tileColumnAssignmentsRef = useRef<Map<string, 0 | 1>>(new Map());
   const tileRefsMap = useRef<Map<string, HTMLDivElement | null>>(new Map());
 
-  // ===== VIDEO STATE OWNERSHIP — PORTED VERBATIM FROM InlineInfoFlow (InfoFlow.tsx:742-797) =====
-  // Phase 36 GAP-C tap detector preservation requires these 3 useEffects to live at the wrapper level.
-  // Do NOT modify the logic; each block is byte-for-byte from InfoFlow.tsx 746-797.
-  // The single emit (markExplored + CONCEPT_EXPLORED) lives inside MemoizedConceptCard's thumbnail
-  // onClick — adding a sibling here would break the InfoFlow.video-tap-emit single-emit invariant
-  // per RESEARCH.md Pitfall 4.
-
-  const [videoPlaying, setVideoPlaying] = useState<string | null>(null);
-  const swipeCtx = useContext(SwipeTabContext);
-
-  // (1) visibilitychange + swipeProgress (verbatim from InfoFlow.tsx:746-768)
-  // Stop all videos when tab loses visibility (browser tab switch) AND when
-  // user swipes away from Home tab (index 0) so two iframes never play together.
-  useEffect(() => {
-    const onVisChange = () => {
-      if (document.hidden) setVideoPlaying(null);
-    };
-    document.addEventListener('visibilitychange', onVisChange);
-    let unsub: (() => void) | undefined;
-    if (swipeCtx) {
-      unsub = swipeCtx.swipeProgress.on('change', (v) => {
-        if (Math.round(v) !== 0) setVideoPlaying(null);
-      });
-    }
-    return () => {
-      document.removeEventListener('visibilitychange', onVisChange);
-      unsub?.();
-    };
-  }, [swipeCtx]);
-
-  // (2) intra-app navigation away from /home (verbatim from InfoFlow.tsx:773-776)
-  // The swipeProgress handler above only fires on horizontal tab-to-tab; this
-  // covers Outlet overlays (PostDetail, settings sub-pages) that keep Home
-  // technically "active" under the overlay.
-  const location = useLocation();
-  useEffect(() => {
-    if (location.pathname !== '/home') setVideoPlaying(null);
-  }, [location.pathname]);
-
-  // (3) IntersectionObserver scroll-out cleanup (verbatim from InfoFlow.tsx:782-797)
-  // Stop video when the currently-playing card is scrolled out of viewport.
-  // Observer only activates while a video is playing → zero perf overhead in the
-  // common case. Fullscreen guard prevents stop when YouTube takes over the viewport.
-  useEffect(() => {
-    if (!videoPlaying) return;
-    const card = document.querySelector<HTMLElement>(`[data-feed-id="${videoPlaying}"]`);
-    if (!card) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) return;
-        if (document.fullscreenElement) return;
-        setVideoPlaying(null);
-      },
-      { threshold: 0.3 },
-    );
-    observer.observe(card);
-    return () => observer.disconnect();
-  }, [videoPlaying]);
-
-  // ===== END VIDEO STATE PORT =====
+  // Phase 42 UAT-7+8 — inline video play removed. Video tiles are navigation-only:
+  // tapping a video card navigates to PostDetailScreen, which owns the iframe and
+  // Detector D (postMessage CONCEPT_EXPLORED on play ≥ 80%). The 3 verbatim-port
+  // useEffects (visibilitychange / location pathname / IntersectionObserver) that
+  // previously stopped inline-playing iframes are no longer needed because no
+  // iframes mount at the feed level. CLAUDE.md "Video post completion signals"
+  // section was updated in the same commit to drop the thumbnail-tap inline-play
+  // emit row and rule #3 (which prevented sibling-emits) was rephrased as a
+  // negative invariant ("don't re-introduce inline play in feed cards").
 
   // newPostIds Set — same pattern as InfoFlow.tsx:798-820.
   // On first render, mark all current items as "already seen" so they don't animate.
@@ -414,8 +357,6 @@ export function MasonryFeed({
           feedIndex={items.indexOf(item)}
           isActive={shouldAnimate}
           onOpen={onOpenPost}
-          videoPlaying={videoPlaying}
-          setVideoPlaying={setVideoPlaying}
         />
       ) : item.kind === 'connection' ? (
         <ConnectionCard

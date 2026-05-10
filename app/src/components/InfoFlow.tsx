@@ -1,17 +1,11 @@
-import React, { useState, useEffect, useRef, useContext } from 'react';
-import { X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useLocation } from 'react-router-dom';
-import { SwipeTabContext } from '../lib/swipe-tab-context';
 import type { BlindboxItem, DailyPost, GeneratedImage, Question } from '../types';
 import { FeedPostImage } from './FeedPostImage';
 import { imageGenerationService } from '../services/imageGeneration.service';
 import { inferImageStyle, buildImagePrompt } from '../services/postFormatting.service';
 import { normalizePlainText } from '../lib/text-normalization';
 import { settingsService } from '../services/settings.service';
-import { dailyReadService, getAnchorIdForPost } from '../services/daily-read.service';
-import { questionService } from '../services/question.service';
-import { eventBus } from '../lib/event-bus';
 import { SuggestionCard } from './SuggestionCard';
 
 // ── Text-art theme pool (random selection per render) ──────────────────────────
@@ -70,19 +64,19 @@ interface ConceptCardProps {
   onOpen: (postId: string, post: DailyPost) => void;
 }
 
-function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive: _isActive, onOpen, videoPlaying, setVideoPlaying }: ConceptCardProps & { videoPlaying: string | null; setVideoPlaying: (id: string | null) => void }) {
+function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive: _isActive, onOpen }: ConceptCardProps) {
   const { t } = useTranslation();
 
   // ── Image generation state ──────────────────────────────────────────────────
   // Video posts skip AI image generation entirely (D-08: use YouTube thumbnail).
   // (Phase 38 / TECHDEBT-06): 'short' post type was removed entirely — all YouTube
   // content is now sourceType: 'video' / presentationStyle: 'video'.
+  // (Phase 42 UAT-7+8): inline-play removed. Video card is navigation-only —
+  // tap → PostDetailScreen which owns the iframe + Detector D engagement signal.
   const isSuggestion = post.sourceType === 'suggestion' && !!post.suggestionMeta?.topics;
   const isVideoPost = post.sourceType === 'video';
   const isNewsPost = post.sourceType === 'news';
   const presentationStyle = post.presentationStyle;
-
-  // Video playback uses parent videoPlaying/setVideoPlaying (unified state, D-02/D-28/D-29)
 
   // Non-image presentation styles and video posts skip image generation entirely
   const [image, setImage] = useState<GeneratedImage | null>(null);
@@ -329,120 +323,21 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive: _isActive, onO
       }}
     >
 
-        {/* Video card: inline playback (D-28) — tapping thumbnail plays inline; card-level tap navigates to PostDetailScreen.
-            (Phase 38 D-02a): aspect-ratio: auto so the thumbnail's natural dimensions drive the container size
-            (16/9 fallback for the playing-iframe state which has no intrinsic size). */}
-        {isVideoPost && post.videoMeta?.videoId && (
-          <div
-            style={{ position: 'relative', width: '100%', aspectRatio: 'auto 16 / 9', overflow: 'hidden' }}
-          >
-            {videoPlaying === post.id ? (
-              <>
-                <iframe
-                  // Phase 36 GAP-C: enablejsapi=1 added for symmetry with YouTubeEmbed.
-                  // Inline-feed video posts route to PostDetailScreen via onOpen for the
-                  // Detector D postMessage path; this iframe is the inline preview.
-                  src={`https://www.youtube.com/embed/${post.videoMeta.videoId}?autoplay=1&playsinline=1&rel=0&enablejsapi=1`}
-                  style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none', pointerEvents: 'auto' }}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                  title={normalizedTitle || t('infoFlow.postImageAlt')}
-                />
-                {/* Transparent overlay — pointer-events:none lets YouTube controls receive taps (G2 / UAT-31-4 fix).
-                    Swipe-stop is wired separately via SwipeTabContext at line ~936; D-07 accepts that
-                    tap-on-playing may not stop playback — close button below is the explicit stop affordance. */}
-                <div
-                  style={{ position: 'absolute', inset: 0, zIndex: 2, pointerEvents: 'none', background: 'transparent' }}
-                  aria-hidden="true"
-                />
-                {/* Close button — visible affordance to stop */}
-                <button
-                  onClick={(e) => { e.stopPropagation(); setVideoPlaying(null); }}
-                  style={{
-                    position: 'absolute', top: 8, right: 8, zIndex: 3,
-                    width: 32, height: 32, borderRadius: '50%',
-                    background: 'rgba(0,0,0,0.6)', border: 'none', color: 'white',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    cursor: 'pointer', padding: 0,
-                  }}
-                  aria-label="Stop video"
-                >
-                  <X size={18} />
-                </button>
-              </>
-            ) : (
-              <div
-                onClick={(e) => {
-                  if (videoPlaying !== post.id) {
-                    e.stopPropagation();
-                    setVideoPlaying(post.id);
-                    // Phase 36 GAP-C: emit CONCEPT_EXPLORED so the lazy-skip walker (Phase 36 GAP-2)
-                    // sees this video tap as concept exploration. Generalized in Phase 38 — formerly
-                    // gated on sourceType === 'short'; now applies to all video posts since the
-                    // short type was removed (TECHDEBT-06). Detector D in PostDetailScreen still
-                    // handles deep-engagement completion for users who tap title/teaser → navigate.
-                    // Idempotent via dailyReadService.isExplored (no-op if already set).
-                    try {
-                      const allQ = questionService.getAll({ includeFlagged: true });
-                      const byId = new Map(allQ.map(q => [q.id, q]));
-                      const anchorId = getAnchorIdForPost(post, byId);
-                      if (anchorId && !dailyReadService.isExplored(anchorId)) {
-                        dailyReadService.markExplored(anchorId);
-                        eventBus.emit({ type: 'CONCEPT_EXPLORED', payload: { anchorId } });
-                      }
-                    } catch (err) {
-                      // Defensive: never let signal-emit errors break tap-to-play.
-                      console.warn('[InfoFlow] video tap-to-play emit failed:', err);
-                    }
-                  }
-                }}
-                style={{ cursor: 'pointer', position: 'relative', width: '100%', height: '100%' }}
-              >
-                {post.videoMeta.thumbnailUrl && <img
-                  src={post.videoMeta.thumbnailUrl}
-                  alt={normalizedTitle}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />}
-                <div
-                  style={{
-                    position: 'absolute',
-                    inset: 0,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    background: 'rgba(0,0,0,0.15)',
-                  }}
-                >
-                  <div
-                    style={{
-                      width: 48,
-                      height: 48,
-                      borderRadius: '50%',
-                      background: 'rgba(0,0,0,0.7)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: 0,
-                        height: 0,
-                        borderLeft: '16px solid white',
-                        borderTop: '10px solid transparent',
-                        borderBottom: '10px solid transparent',
-                        marginLeft: 4,
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
+        {/* Video card thumbnail — Phase 42 UAT-7+8: inline-play removed. Card-level
+            tap (parent <div> at line 303) navigates to PostDetailScreen, which owns
+            the iframe AND Detector D (postMessage CONCEPT_EXPLORED on play ≥ 80%).
+            Aspect 5/4 (landscape, wider-than-tall) preserves vertical framing of
+            16:9 source thumbnails via object-fit: cover (~40px crop each horizontal
+            edge — most YouTube subjects center horizontally). */}
+        {isVideoPost && post.videoMeta?.videoId && post.videoMeta.thumbnailUrl && (
+          <div style={{ position: 'relative', width: '100%', aspectRatio: '5 / 4', overflow: 'hidden' }}>
+            <img
+              src={post.videoMeta.thumbnailUrl}
+              alt={normalizedTitle}
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
           </div>
         )}
-
-        {/* (Phase 38 / TECHDEBT-06) — short video card deleted. The Phase 36 GAP-C
-            tap-to-play emit migrated into the video card thumbnail onClick above. */}
 
         {/* Text-art notebook card (D-12, D-13, D-14) — square area like image posts */}
         {effectivePresentationStyle === 'text-art' && (() => {
@@ -559,15 +454,13 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive: _isActive, onO
 // every render that DOES occur — memo only changes WHETHER a render occurs,
 // not what happens inside one.
 function conceptCardPropsEqual(
-  prev: ConceptCardProps & { videoPlaying: string | null; setVideoPlaying: (id: string | null) => void },
-  next: ConceptCardProps & { videoPlaying: string | null; setVideoPlaying: (id: string | null) => void },
+  prev: ConceptCardProps,
+  next: ConceptCardProps,
 ): boolean {
   return (
     prev.post.id === next.post.id &&
     prev.isActive === next.isActive &&
-    prev.videoPlaying === next.videoPlaying &&
     prev.onOpen === next.onOpen &&
-    prev.setVideoPlaying === next.setVideoPlaying &&
     prev.feedIndex === next.feedIndex
   );
 }
@@ -727,300 +620,5 @@ export function MilestoneCard({ item, isActive }: { item: BlindboxItem; isActive
         {item.body}
       </p>
     </div>
-  );
-}
-
-interface InlineInfoFlowProps {
-  items: InfoFlowItem[];
-  onOpenConnection: (idA: string, idB: string) => void;
-  showConnectionScores?: boolean;
-  onOpenPost: (postId: string, post: DailyPost) => void;
-  onLoadMore?: () => void;
-  isLoadingMore?: boolean;
-}
-
-export function InlineInfoFlow({ items, onOpenConnection, showConnectionScores = false, onOpenPost, onLoadMore, isLoadingMore }: InlineInfoFlowProps) {
-  const { t } = useTranslation();
-  const [videoPlaying, setVideoPlaying] = useState<string | null>(null);
-  const seenPostIdsRef = useRef(new Set<string>());
-
-  // D-29: Stop all videos when tab loses visibility (swipe-away or browser tab switch)
-  const swipeCtx = useContext(SwipeTabContext);
-  useEffect(() => {
-    const onVisChange = () => {
-      if (document.hidden) setVideoPlaying(null);
-    };
-    document.addEventListener('visibilitychange', onVisChange);
-
-    // Also stop videos when user swipes away from Home tab (index 0)
-    let unsub: (() => void) | undefined;
-    if (swipeCtx) {
-      unsub = swipeCtx.swipeProgress.on('change', (v) => {
-        if (Math.round(v) !== 0) setVideoPlaying(null);
-      });
-    }
-
-    return () => {
-      document.removeEventListener('visibilitychange', onVisChange);
-      unsub?.();
-    };
-  }, [swipeCtx]);
-
-  // Phase 33 gap fix (Bug 1, 2026-04-20): Stop video when the user navigates
-  // intra-app away from /home (e.g., into PostDetailScreen which mounts as an
-  // Outlet overlay above the swipe strip). The swipeProgress handler above
-  // only fires on horizontal tab-to-tab navigation; the Outlet overlay keeps
-  // Home "active" under the overlay, so this second subscription is required
-  // to prevent two iframes (feed + detail) from playing simultaneously.
-  const location = useLocation();
-  useEffect(() => {
-    if (location.pathname !== '/home') setVideoPlaying(null);
-  }, [location.pathname]);
-
-  // Phase 33 gap fix (Bug 2, 2026-04-20): Stop video when the currently-playing
-  // card is scrolled out of viewport. IntersectionObserver only activates while
-  // a video is playing, so zero perf overhead in the common case. Fullscreen
-  // guard avoids stopping when YouTube's own fullscreen takes over the viewport.
-  useEffect(() => {
-    if (!videoPlaying) return;
-    const card = document.querySelector<HTMLElement>(`[data-feed-id="${videoPlaying}"]`);
-    if (!card) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) return;
-        if (document.fullscreenElement) return;
-        setVideoPlaying(null);
-      },
-      { threshold: 0.3 },
-    );
-    observer.observe(card);
-    return () => observer.disconnect();
-  }, [videoPlaying]);
-  // On first render, mark all current items as "already seen" so they
-  // don't animate. Only items added AFTER mount will animate.
-  const [newPostIds] = useState<Set<string>>(() => {
-    const seen = seenPostIdsRef.current;
-    const incoming = new Set<string>();
-    for (const item of items) {
-      const id = item.kind === 'concept' ? item.post.id : item.kind === 'connection' ? `conn-${item.questionA.id}-${item.questionB.id}` : item.kind === 'milestone' ? item.item.id : '';
-      if (id && !seen.has(id)) {
-        incoming.add(id);
-      }
-      if (id) seen.add(id);
-    }
-    return incoming;
-  });
-
-  // Mark any items that arrive after mount as new (for animation on load-more)
-  useEffect(() => {
-    const seen = seenPostIdsRef.current;
-    for (const item of items) {
-      const id = item.kind === 'concept' ? item.post.id : item.kind === 'connection' ? `conn-${item.questionA.id}-${item.questionB.id}` : item.kind === 'milestone' ? item.item.id : '';
-      if (id) seen.add(id);
-    }
-  }, [items]);
-
-  return (
-    <div>
-      {items.length === 0 ? (
-        <div
-          style={{
-            padding: '32px 20px',
-            textAlign: 'center',
-            borderRadius: 'var(--radius-xl)',
-            border: '1px solid var(--border)',
-            backgroundColor: 'var(--surface-variant)',
-          }}
-        >
-          <p style={{ fontSize: '1.5rem', marginBottom: '8px' }}>✨</p>
-          <p style={{ fontWeight: 700, marginBottom: '4px' }}>{t('infoFlow.emptyTitle')}</p>
-          <p style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>
-            {t('infoFlow.emptyBodyInline')}
-          </p>
-        </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {items.map((item, index) => {
-            const itemId = item.kind === 'concept' ? item.post.id : item.kind === 'connection' ? `conn-${item.questionA.id}-${item.questionB.id}` : item.kind === 'milestone' ? item.item.id : '';
-            const shouldAnimate = newPostIds.has(itemId);
-            return (
-            <div
-              key={index}
-              data-feed-id={itemId}
-              data-concept-id={item.kind === 'concept' ? (item.post.sourceQuestionIds?.[0] ?? '') : undefined}
-              style={{
-                position: 'relative',
-                // Allow-list: only media-driven styles need a fixed minHeight (iframe aspect ratio).
-                // Text-flavored styles size to content. New presentationStyles default to 'auto'
-                // — opt-in here if they need a fixed frame. Prior deny-list silently broke text-art.
-                minHeight: item.kind === 'concept'
-                  ? (item.post.presentationStyle === 'video' ? '320px' : 'auto')
-                  : item.kind === 'milestone' ? '200px' : 'auto',
-              }}
-            >
-              {item.kind === 'concept' ? (
-                <MemoizedConceptCard
-                  post={item.post}
-                  feedIndex={index}
-                  isActive={shouldAnimate}
-                  onOpen={onOpenPost}
-                  videoPlaying={videoPlaying}
-                  setVideoPlaying={setVideoPlaying}
-                />
-              ) : item.kind === 'connection' ? (
-                <ConnectionCard
-                  questionA={item.questionA}
-                  questionB={item.questionB}
-                  conceptNounA={item.conceptNounA}
-                  conceptNounB={item.conceptNounB}
-                  bridgeInsight={item.bridgeInsight}
-                  cosineSimilarity={item.cosineSimilarity}
-                  showScore={showConnectionScores}
-                  onOpenConnection={onOpenConnection}
-                />
-              ) : (
-                <MilestoneCard item={item.item} isActive={shouldAnimate} />
-              )}
-            </div>
-            );
-          })}
-
-          {/* Load More button at the bottom of the feed */}
-          {onLoadMore && (
-            <button
-              onClick={onLoadMore}
-              disabled={isLoadingMore}
-              className="active-squish"
-              style={{
-                width: '100%',
-                padding: '14px 20px',
-                borderRadius: 'var(--radius-xl)',
-                border: '1.5px solid var(--border)',
-                backgroundColor: 'var(--surface-variant)',
-                color: isLoadingMore ? 'var(--muted-foreground)' : 'var(--primary-40)',
-                fontSize: '0.9rem',
-                fontWeight: 600,
-                cursor: isLoadingMore ? 'not-allowed' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                opacity: isLoadingMore ? 0.7 : 1,
-              }}
-            >
-              {isLoadingMore ? (
-                <>
-                  <span style={{ display: 'inline-block', width: '14px', height: '14px', border: '2px solid var(--muted-foreground)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-                  {t('infoFlow.generating')}
-                </>
-              ) : (
-                t('infoFlow.more')
-              )}
-            </button>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-interface InfoFlowPreviewProps {
-  items: InfoFlowItem[];
-  onOpen: () => void;
-}
-
-export function InfoFlowPreview({ items, onOpen }: InfoFlowPreviewProps) {
-  const { t } = useTranslation();
-  const conceptCount = items.filter((item) => item.kind === 'concept').length;
-  const connectionCount = items.filter((item) => item.kind === 'connection').length;
-
-  return (
-    <button
-      onClick={onOpen}
-      style={{
-        width: '100%',
-        textAlign: 'left',
-        background: 'none',
-        padding: 0,
-        border: 'none',
-        cursor: 'pointer',
-      }}
-    >
-      <div
-        style={{
-          borderRadius: 'var(--radius-xl)',
-          border: '1.5px solid var(--border)',
-          overflow: 'hidden',
-          boxShadow: 'var(--shadow-1)',
-          transition: 'transform 0.2s, box-shadow 0.2s',
-        }}
-        onPointerEnter={(event) => {
-          event.currentTarget.style.transform = 'scale(1.01)';
-          event.currentTarget.style.boxShadow = 'var(--shadow-2)';
-        }}
-        onPointerLeave={(event) => {
-          event.currentTarget.style.transform = 'scale(1)';
-          event.currentTarget.style.boxShadow = 'var(--shadow-1)';
-        }}
-      >
-        <div
-          style={{
-            padding: '16px 20px',
-            background: 'linear-gradient(145deg, #FFB36B 0%, #F26D52 55%, #D94B6A 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
-          <div>
-            <p style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.1em', color: 'white', opacity: 0.8, textTransform: 'uppercase', marginBottom: '2px' }}>
-              {t('infoFlow.curiosityFeed')}
-            </p>
-            <p style={{ fontSize: '1.1rem', fontWeight: 700, color: 'white' }}>
-              {items.length > 0 ? t('infoFlow.postsReady', { count: items.length }) : t('infoFlow.startWithOneQuestion')}
-            </p>
-          </div>
-          {items.length > 0 && (
-            <div
-              style={{
-                padding: '8px 20px',
-                borderRadius: '100px',
-                backgroundColor: 'white',
-                color: '#D94B6A',
-                fontWeight: 700,
-                fontSize: '0.875rem',
-              }}
-            >
-              {t('infoFlow.open')}
-            </div>
-          )}
-        </div>
-
-        {items.length > 0 && (
-          <div
-            style={{
-              padding: '12px 20px',
-              backgroundColor: 'var(--surface-variant)',
-              display: 'flex',
-              gap: '20px',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#F26D52', animation: 'glow-pulse 2s ease-in-out infinite', display: 'inline-block' }} />
-              <span style={{ fontSize: '0.8rem', color: 'var(--foreground)', fontWeight: 600 }}>{conceptCount}</span>
-              <span style={{ fontSize: '0.8rem', color: 'var(--muted-foreground)' }}>{t('infoFlow.conceptsLabel')}</span>
-            </div>
-            {connectionCount > 0 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--node-sky)', display: 'inline-block' }} />
-                <span style={{ fontSize: '0.8rem', color: 'var(--foreground)', fontWeight: 600 }}>{connectionCount}</span>
-                <span style={{ fontSize: '0.8rem', color: 'var(--muted-foreground)' }}>{t('infoFlow.connectionsLabel')}</span>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    </button>
   );
 }
