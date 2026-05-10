@@ -62,8 +62,20 @@
       "podcastNotGenerated": "Not yet generated",
       "podcastStatusPending": "pending"
     },
-    "toast": {
-      "noMorePosts": "No more posts to generate right now"
+    "celebration": {
+      "vineBloomTitle": "Vine in bloom",
+      "suggestionsHeader": "Tomorrow's vine tending",
+      "healAction": "Heal '{{anchor}}'",
+      "replantAction": "Re-plant '{{anchor}}'",
+      "healBadge": "dying",
+      "replantBadge": "dead",
+      "fallbackHealthy": "Your vine is fully healthy.",
+      "fallbackReviewCount": "{{count}} anchor will be due for review tomorrow.",
+      "fallbackReviewCount_other": "{{count}} anchors will be due for review tomorrow.",
+      "fallbackReviewCountZero": "Check back tomorrow for fresh concepts.",
+      "openPlanner": "Open Planner",
+      "actionRowAria": "{{action}} {{anchor}} — opens action",
+      "anchorFallback": "this concept"
     },
     "feed": {
       "creditToast": "+1 credit earned!",
