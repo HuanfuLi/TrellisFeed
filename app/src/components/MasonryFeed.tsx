@@ -482,11 +482,15 @@ export function MasonryFeed({
     // OS-level Reduce Motion honoring for all motion descendants — disables
     // transform + layout animations while preserving opacity/color animations.
     <MotionConfig reducedMotion="user">
-      <div style={{ display: 'flex', gap: '8px' }}>
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      {/* width: '100%' is explicit so the flex container fills HomeScreen's 448px-cap content area.
+          minWidth: 0 on each column is LOAD-BEARING — same gotcha as CLAUDE.md ChatInput rule.
+          Without it, flex children with intrinsic content width (image-bearing cards, news headlines)
+          refuse to shrink below their natural size and the right column overflows the parent. */}
+      <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {colATiles.map((item, idx) => renderTile(item, idx))}
         </div>
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {colBTiles.map((item, idx) => renderTile(item, idx))}
         </div>
       </div>

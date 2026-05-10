@@ -145,6 +145,23 @@ describe('MasonryFeed layout invariants (Phase 42)', () => {
   // useLayoutEffect) so first-paint filters see populated assignments.
   // Refs do not trigger re-renders, so a ref-only post-commit assignment
   // would leave the first paint with empty columns.
+  // UAT-5b regression lock — flex columns must shrink below intrinsic content width.
+  // Same root cause as CLAUDE.md ChatInput rule: flex children with intrinsic content
+  // (image-bearing cards, news headlines) overflow the parent unless minWidth: 0 is
+  // explicit on each column. The fix also pins the outer container to width: '100%'
+  // so it fills HomeScreen's maxWidth-capped content area predictably.
+  it('column wrappers have minWidth: 0 alongside flex: 1 (UAT-5b regression lock — same as ChatInput rule)', () => {
+    const minWidthCount = (masonrySource.match(/minWidth:\s*0/g) || []).length;
+    assert.ok(
+      minWidthCount >= 2,
+      `MasonryFeed.tsx must declare minWidth: 0 on BOTH column wrappers (found ${minWidthCount} occurrence(s)). Without minWidth: 0, flex children with intrinsic content width overflow the parent — same load-bearing gotcha as the ChatInput input (CLAUDE.md "ChatInput flex shrink"). UAT-5b from 2026-05-09 retest.`,
+    );
+    assert.ok(
+      /width:\s*['"]100%['"]/.test(masonrySource),
+      'MasonryFeed.tsx outer flex container must declare width: "100%" so it fills the HomeScreen maxWidth-capped content area. UAT-5b from 2026-05-09 retest.',
+    );
+  });
+
   it('Pass 1 assignment loop runs during render, not exclusively inside useLayoutEffect (UAT-5 Bug B regression lock)', () => {
     // The assignment loop signature is `tileColumnAssignmentsRef.current.set(itemId, col)`.
     // Find its position. Pass 1 must run during render so first-paint filters see
