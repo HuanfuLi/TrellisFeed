@@ -209,9 +209,11 @@ export function HomeScreen() {
     isLoadingMoreRef.current = true;
     setIsLoadingMore(true);
     try {
-      // Pop 4 per swipe — see CLAUDE.md "Concept Feed Generation Pipeline" (queue serves
-      // 4 per swipe by design). Was 6; that was an undocumented divergence.
-      const newPosts = await infiniteScrollService.loadNextBatch(questionsRef.current, 4);
+      // Pop 8 per swipe — bumped from 4 on 2026-05-10 for the masonry feed (operator
+      // request: half-width tiles consume twice as fast as the prior single-column
+      // InlineInfoFlow). See CLAUDE.md "Concept Feed Generation Pipeline" — paired
+      // with REFILL_THRESHOLD bump 16 → 24 in post-queue.service.ts.
+      const newPosts = await infiniteScrollService.loadNextBatch(questionsRef.current, 8);
       if (newPosts.length > 0) {
         // Phase 33 UAT-4 fix (2026-04-20): only pre-generate images for posts
         // that actually RENDER an image. Previously this loop ran generateImage

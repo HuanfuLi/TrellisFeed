@@ -1270,9 +1270,11 @@ export async function refillQueue(questions: Question[]): Promise<void> {
     const dueConceptIds = buildConceptBatch(questions);
     postQueueService.appendToDerivedList(dueConceptIds);
     // Walk batchSize entries — large enough to refill the queue past REFILL_THRESHOLD
-    // (12) up toward MAX_QUEUE_SIZE (32). 16 leaves room for downgrades + spread.
+    // (24, bumped from 16 for masonry on 2026-05-10) up toward MAX_QUEUE_SIZE (32).
+    // 24 keeps the walker batch proportional to the new threshold so a single refill
+    // restores ~one swipe of headroom (8) on top of the 24-post threshold.
     const dismissedIds = new Set(engagementService.getDismissedAnchorIds());
-    const conceptIds = postQueueService.walkDerivedList(16, exploredIds, dismissedIds);
+    const conceptIds = postQueueService.walkDerivedList(24, exploredIds, dismissedIds);
     if (conceptIds.length === 0) return;
 
     // Step 2: Pre-check API keys — validate non-empty strings (D-20, D-21 step 1).
@@ -1621,7 +1623,7 @@ export const conceptFeedService = {
    * Serve posts from the queue. Triggers background refill when needed (D-11).
    * Phase 31: drains from postQueueService instead of generating inline.
    */
-  async generateMorePosts(questions: Question[], count = 4): Promise<DailyPost[]> {
+  async generateMorePosts(questions: Question[], count = 8): Promise<DailyPost[]> {
     // Exclude off-topic/flagged questions
     questions = questions.filter((q) => !q.flagged);
 

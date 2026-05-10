@@ -27,9 +27,12 @@ const STORAGE_KEY_YESTERDAY = 'trellis_post_queue_yesterday';
 // Phase 36-12: bumped from 12 → 16. The mutex fix in Plan 36-12 Task 1
 // eliminates the silent-no-op race, but a larger headroom further reduces
 // the chance of the user encountering empty-state during rapid swiping.
-// Forward-looking: the planned double-column feed dequeues more per swipe,
-// so the buffer needs to be larger to maintain the same UX guarantees.
-const REFILL_THRESHOLD = 16;
+// Phase 42 UAT (2026-05-10): masonry feed lands → operator bumps refill
+// threshold 16 → 24 to keep more runway in the buffer (each swipe-for-more
+// now pops 8 posts instead of 4, so the prior 16 threshold drained twice
+// as fast). MAX_QUEUE_SIZE held at 32 — increasing further risks longer
+// initial load waits without a proportional UX gain.
+const REFILL_THRESHOLD = 24;
 const MAX_QUEUE_SIZE = 32;
 
 interface QueueState {

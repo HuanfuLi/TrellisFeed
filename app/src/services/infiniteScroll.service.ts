@@ -39,10 +39,11 @@ export const infiniteScrollService = {
    * Deduplicates and triggers background refill when queue runs low.
    *
    * @param questions - Current user questions (required for queue refill)
-   * @param limit - Number of posts to request (default 4, D-45)
+   * @param limit - Number of posts to request (default 8 — bumped from 4 on 2026-05-10
+   *   for the masonry feed; operator request — half-width tiles consume faster).
    * @returns Deduplicated array of new posts (may be < limit if duplicates filtered)
    */
-  async loadNextBatch(questions: Question[], limit = 4): Promise<DailyPost[]> {
+  async loadNextBatch(questions: Question[], limit = 8): Promise<DailyPost[]> {
     try {
       // Serve from postQueueService via conceptFeedService
       const batch = await conceptFeedService.generateMorePosts(questions, limit);

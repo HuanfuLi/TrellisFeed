@@ -67,12 +67,29 @@ describe('InfoFlow video card — inline-play removed (Phase 42 UAT-7+8)', () =>
     );
   });
 
-  it('video card thumbnail uses 5:4 aspect ratio (operator-chosen, UAT-8 round 2)', () => {
+  it('video card thumbnail uses 5:4 aspect via paddingTop hack (UAT-8 round 3)', () => {
+    // Round 3 (2026-05-10): switched from CSS `aspect-ratio` (which produced
+    // letterbox black bars top/bottom because the property didn't compute a
+    // real container height inside the flex column ancestor) to `paddingTop:
+    // '80%'` — the bulletproof pre-CSS-aspect-ratio hack. 4/5 = 0.8 = 80%
+    // computes height as a fraction of width, forcing a real box for the
+    // absolute-positioned img + object-fit: cover to crop into.
     assert.ok(
-      /aspectRatio:\s*['"]5\s*\/\s*4['"]/.test(source),
-      'InfoFlow.tsx video card must wrap the thumbnail in `aspectRatio: "5 / 4"` — operator chose 5:4 ' +
-      'landscape over portrait crop (which would destroy vertical framing of 16:9 source thumbnails). ' +
-      'object-fit: cover preserves the central subject vertically intact, crops ~40px each horizontal edge.',
+      /paddingTop:\s*['"]80%['"]/.test(source),
+      'InfoFlow.tsx video card must wrap the thumbnail in `paddingTop: "80%"` — operator chose 5:4 ' +
+      'landscape (4/5 = 0.8 = 80%). The earlier `aspectRatio: "5 / 4"` produced letterbox black ' +
+      'bars top/bottom on operator device (UAT-8 round 3 retest 2026-05-10) — the CSS property ' +
+      'did not compute a real container height inside the flex column ancestor.',
+    );
+    assert.ok(
+      /position:\s*['"]absolute['"]/.test(source),
+      'InfoFlow.tsx video card img must be position: absolute alongside the paddingTop hack — ' +
+      'without it, the img collapses to 0 height inside the padding-only container.',
+    );
+    assert.ok(
+      /objectFit:\s*['"]cover['"]/.test(source),
+      'InfoFlow.tsx video card img must use objectFit: cover to crop the 16:9 source ' +
+      'horizontally into the 5:4 container (preserves vertical framing).',
     );
   });
 });
