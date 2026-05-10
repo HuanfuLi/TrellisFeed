@@ -70,14 +70,14 @@ export type InfoFlowItem =
   | { kind: 'connection'; questionA: Question; questionB: Question; conceptNounA: string; conceptNounB: string; bridgeInsight: string; cosineSimilarity: number }
   | { kind: 'milestone'; item: BlindboxItem };
 
-// Line 573 — leaf cards reused verbatim
-export const MemoizedConceptCard = React.memo(ConceptCard, conceptCardPropsEqual);
-// Line 610 — ConnectionCard
+// Line 573 — MemoizedConceptCard (CURRENTLY NOT EXPORTED — Plan 42-01 Task 1 adds the export keyword)
+const MemoizedConceptCard = React.memo(ConceptCard, conceptCardPropsEqual);
+// Line 610 — ConnectionCard (CURRENTLY NOT EXPORTED — Plan 42-01 Task 1 adds the export keyword)
 function ConnectionCard({ ...props }: ConnectionCardProps) { ... }
-// Line 700 — MilestoneCard
+// Line 700 — MilestoneCard (CURRENTLY NOT EXPORTED — Plan 42-01 Task 1 adds the export keyword)
 function MilestoneCard({ item, isActive }: { item: BlindboxItem; isActive: boolean }) { ... }
-// NOTE: ConnectionCard + MilestoneCard are NOT exported today — plan 42-01's first task ALSO adds them to InfoFlow.tsx exports
-//       (single-line export keyword addition; pure additive, no behavior change).
+// NOTE: All three symbols (MemoizedConceptCard at line 573, ConnectionCard at line 610, MilestoneCard at line 700) are NOT exported today.
+//       Plan 42-01 Task 1 adds the `export` keyword to all THREE (single-line additive edits per site; pure additive, no behavior change).
 
 // Line 731 — InlineInfoFlowProps (MasonryFeed accepts the SAME prop shape minus onLoadMore/isLoadingMore)
 interface InlineInfoFlowProps {
@@ -117,38 +117,44 @@ import { MotionConfig, motion, type Variants } from 'framer-motion';
 <tasks>
 
 <task type="auto" tdd="true">
-  <name>Task 1: Export ConnectionCard and MilestoneCard from InfoFlow.tsx (additive — pure export keyword addition)</name>
+  <name>Task 1: Export MemoizedConceptCard, ConnectionCard, and MilestoneCard from InfoFlow.tsx (additive — pure export keyword addition)</name>
   <files>app/src/components/InfoFlow.tsx</files>
   <read_first>
-    - app/src/components/InfoFlow.tsx (read lines 600-730 to see current ConnectionCard + MilestoneCard signatures)
+    - app/src/components/InfoFlow.tsx (read lines 565-580 to confirm the MemoizedConceptCard signature at line 573, lines 600-620 for ConnectionCard at line 610, and lines 695-715 for MilestoneCard at line 700)
     - .planning/phases/42-masonry-feed-layout/42-RESEARCH.md (§ 1 + Example 1, lines 490-635 for the consumption pattern)
   </read_first>
   <behavior>
-    - Test 1: After edit, `grep -n "^export function ConnectionCard\|^export function MilestoneCard" app/src/components/InfoFlow.tsx` returns BOTH lines
-    - Test 2: tsc -b --noEmit exits 0 (no breakage from making previously-internal functions exported)
+    - Test 1: After edit, `grep -n "^export const MemoizedConceptCard\|^export function ConnectionCard\|^export function MilestoneCard" app/src/components/InfoFlow.tsx` returns ALL THREE lines
+    - Test 2: tsc -b --noEmit exits 0 (no breakage from making previously-internal symbols exported)
     - Test 3: All other lines in InfoFlow.tsx unchanged (no behavior change to existing component renderers)
   </behavior>
   <action>
-    Add the `export` keyword to `function ConnectionCard(...)` at `app/src/components/InfoFlow.tsx:610` and `function MilestoneCard(...)` at line 700. Pure additive change — these functions stay in the same file at the same line numbers; only the `export` keyword is added so MasonryFeed.tsx can `import { ConnectionCard, MilestoneCard }`.
+    Add the `export` keyword to THREE symbols in `app/src/components/InfoFlow.tsx`:
 
-    Concrete edits:
-    - Line 610: `function ConnectionCard({ ... }: ConnectionCardProps) {` → `export function ConnectionCard({ ... }: ConnectionCardProps) {`
-    - Line 700: `function MilestoneCard({ item, isActive }: { item: BlindboxItem; isActive: boolean }) {` → `export function MilestoneCard({ item, isActive }: { item: BlindboxItem; isActive: boolean }) {`
+    1. Line 573: `const MemoizedConceptCard = React.memo(ConceptCard, conceptCardPropsEqual);`
+       → `export const MemoizedConceptCard = React.memo(ConceptCard, conceptCardPropsEqual);`
+    2. Line 610: `function ConnectionCard({ ... }: ConnectionCardProps) {`
+       → `export function ConnectionCard({ ... }: ConnectionCardProps) {`
+    3. Line 700: `function MilestoneCard({ item, isActive }: { item: BlindboxItem; isActive: boolean }) {`
+       → `export function MilestoneCard({ item, isActive }: { item: BlindboxItem; isActive: boolean }) {`
+
+    Pure additive change — these symbols stay in the same file at the same line numbers; only the `export` keyword is added so MasonryFeed.tsx can `import { MemoizedConceptCard, ConnectionCard, MilestoneCard }`.
 
     Do NOT modify any other line in this file. The 3 `card-slide-in` callsites at lines 197, 329, 858 are removed in plan 42-03 (separate atomic commit).
 
-    Atomic commit message: `feat(42): export ConnectionCard + MilestoneCard from InfoFlow for MasonryFeed reuse`
+    Atomic commit message: `feat(42): export MemoizedConceptCard + ConnectionCard + MilestoneCard from InfoFlow for MasonryFeed reuse`
   </action>
   <verify>
-    <automated>cd /Users/Code/EchoLearn/app && grep -c "^export function ConnectionCard\|^export function MilestoneCard" src/components/InfoFlow.tsx | grep -q "^2$" &amp;&amp; npx tsc -b --noEmit</automated>
+    <automated>cd /Users/Code/EchoLearn/app &amp;&amp; grep -c "^export const MemoizedConceptCard\|^export function ConnectionCard\|^export function MilestoneCard" src/components/InfoFlow.tsx | grep -q "^3$" &amp;&amp; npx tsc -b --noEmit</automated>
   </verify>
   <acceptance_criteria>
+    - `grep -c "^export const MemoizedConceptCard" app/src/components/InfoFlow.tsx` returns `1`
     - `grep -c "^export function ConnectionCard" app/src/components/InfoFlow.tsx` returns `1`
     - `grep -c "^export function MilestoneCard" app/src/components/InfoFlow.tsx` returns `1`
     - `cd app && npx tsc -b --noEmit` exits 0
-    - `git diff app/src/components/InfoFlow.tsx` shows ONLY the `export` keyword addition on 2 lines (no other changes)
+    - `git diff app/src/components/InfoFlow.tsx` shows ONLY the `export` keyword addition on 3 lines (no other changes)
   </acceptance_criteria>
-  <done>Both ConnectionCard and MilestoneCard are exported from InfoFlow.tsx; tsc clean; ready for MasonryFeed import.</done>
+  <done>MemoizedConceptCard, ConnectionCard, and MilestoneCard are all exported from InfoFlow.tsx; tsc clean; ready for MasonryFeed import.</done>
 </task>
 
 <task type="auto" tdd="true">
@@ -465,7 +471,7 @@ import { MotionConfig, motion, type Variants } from 'framer-motion';
 <success_criteria>
 - File `app/src/components/MasonryFeed.tsx` exists and exports `MasonryFeed` React component
 - All 13 acceptance criteria of Task 2 verified via grep + tsc
-- ConnectionCard and MilestoneCard exported from InfoFlow.tsx (additive — no behavior change)
+- MemoizedConceptCard, ConnectionCard, and MilestoneCard exported from InfoFlow.tsx (additive — no behavior change)
 - Zero new dependencies introduced (framer-motion + lucide-react already installed)
 - Phase 36 GAP-C single-emit invariant preserved (no new emit added in MasonryFeed.tsx)
 </success_criteria>
@@ -477,3 +483,5 @@ After completion, create `.planning/phases/42-masonry-feed-layout/42-01-SUMMARY.
 - Atomic commit hashes for the 2 tasks
 - Note that VineBloomCard is a placeholder (`return null`) and gets its real implementation in plan 42-04
 </output>
+</content>
+</invoke>

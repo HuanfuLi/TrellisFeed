@@ -101,7 +101,7 @@ Output: 6 file modifications/creations + 1 file move.
       - [x] 42-01-masonry-feed-skeleton-PLAN.md — MasonryFeed.tsx with height-accumulating split + framer-motion entrance + MotionConfig reduced-motion gate (MASONRY-01)
       - [x] 42-02-homescreen-swap-PLAN.md — InlineInfoFlow → MasonryFeed swap; noMorePosts toast deletion; allExplored locally computed (MASONRY-01 + MASONRY-02)
       - [x] 42-03-card-slide-in-removal-PLAN.md — Delete @keyframes card-slide-in + 3 callsites (D-06)
-      - [x] 42-04-vine-bloom-card-and-i18n-PLAN.md — VineBloomCard with useTrellisData consumption + 12 home.celebration.* keys across 4 locales (MASONRY-02)
+      - [x] 42-04-vine-bloom-card-and-i18n-PLAN.md — VineBloomCard with useTrellisData consumption + 13 home.celebration.* keys across 4 locales (MASONRY-02)
       - [x] 42-05-source-reading-invariant-tests-PLAN.md — 4 new test files locking 8 UI-SPEC + 1 Pitfall 1 invariants
       - [x] 42-06-roadmap-requirements-wording-correction-PLAN.md — 4 line edits aligning ROADMAP/REQUIREMENTS with D-02 height-accumulating split
       - [x] 42-07-phase-close-out-PLAN.md — STATE/REQUIREMENTS/ROADMAP/VALIDATION updates + PHASE-SUMMARY (this plan)
@@ -150,12 +150,14 @@ Output: 6 file modifications/creations + 1 file move.
     | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
     |---------|------|------|-------------|-----------|-------------------|-------------|--------|
     | 42-05-T1 | 42-05 | 3 | MASONRY-01 | source-reading + behavioral | `node --test tests/components/MasonryFeed.layout.test.mjs` | ✅ created plan 42-05 | ✅ green |
-    | 42-03-T1+T2 | 42-03 | 1 | MASONRY-01 | source-reading | `node --test tests/lib/no-card-slide-in.test.mjs` | ✅ created plan 42-05 (test); plan 42-03 made it pass | ✅ green |
+    | 42-03-T1+T2 | 42-03 | 2 | MASONRY-01 | source-reading | `node --test tests/lib/no-card-slide-in.test.mjs` | ✅ created plan 42-05 (test); plan 42-03 made it pass | ✅ green |
     | (existing) | (regression) | - | MASONRY-01 | source-reading (regression) | `node --test tests/components/InfoFlow.video-tap-emit.test.mjs` | ✅ pre-existing | ✅ green |
     | 42-05-T2 | 42-05 | 3 | MASONRY-02 | source-reading | `node --test tests/components/MasonryFeed.celebration.test.mjs` | ✅ created plan 42-05 | ✅ green |
     | 42-05-T3 | 42-05 | 3 | MASONRY-02 | source-reading | `node --test tests/screens/HomeScreen.no-more-posts-toast.test.mjs` | ✅ created plan 42-05 | ✅ green |
     | (existing) | (regression) | - | MASONRY-02 | source-reading (regression) | `node --test tests/locales/bundle-parity.test.mjs` | ✅ pre-existing | ✅ green |
     ```
+
+    Note: Plan 42-03 wave was revised from 1 → 2 in revision iteration 1 (sits alongside 42-02 + 42-04 in Wave 2).
 
     EDIT 3 — Validation Sign-Off section: flip all checkboxes from `[ ]` to `[x]`:
     - [x] All tasks have `<automated>` verify or Wave 0 dependencies
@@ -246,10 +248,10 @@ Output: 6 file modifications/creations + 1 file move.
     ## What Shipped
 
     1. **MasonryFeed.tsx** — NEW. 2-column height-accumulating split (D-02), framer-motion entrance on leaf tiles only (D-03/D-04/D-05), `<MotionConfig reducedMotion="user">` wrapper (RESEARCH.md Pitfall 1 — framer-motion v12 does NOT auto-respect prefers-reduced-motion), Phase 36 GAP-C video state ownership ported verbatim from InlineInfoFlow.
-    2. **VineBloomCard** — co-located inside MasonryFeed.tsx. Inline 88x88 SVG vine illustration with bloom path-draw (matches `vineLoadingPulse` aesthetic at HomeScreen.tsx:759-767). Consumes `useTrellisData()` directly to derive heal/replant suggestions (RESEARCH.md § 1 path b — NO new trellisActionsService getter). Routes via existing `trellisActionsService.heal()` / `.replant()` handlers; "Open Planner" CTA uses `useNavigate('/planner')`.
+    2. **VineBloomCard** — co-located inside MasonryFeed.tsx. Inline 88x88 SVG vine illustration with bloom path-draw (matches `vineLoadingPulse` aesthetic at HomeScreen.tsx:759-767). Consumes `useTrellisData()` directly to derive heal/replant suggestions (RESEARCH.md § 1 path b — NO new trellisActionsService getter). Routes via existing `trellisActionsService.heal()` / `.replant()` handlers; "Open Planner" CTA uses `useNavigate('/planner')`. Uses `t('home.celebration.anchorFallback')` for nullish-safe i18n fallback (per Warning 6 from revision iteration 1).
     3. **HomeScreen swap** — `InlineInfoFlow` → `MasonryFeed` at /home (D-01). `toast(t('home.toast.noMorePosts'), 'info')` at line 240 deleted (D-11). `allExplored` computed locally from `dailyReadService.getExploredAnchors()` + `useQuestions()` filter (RESEARCH.md Pitfall 2 — `infiniteScrollService.allExplored` does NOT exist as service state).
     4. **`card-slide-in` keyframe deletion** (D-06) — 1 keyframe block + 3 callsites in InfoFlow.tsx removed; framer-motion replaces all entrance animation; one animation system, not two.
-    5. **i18n bundle parity** — 12 new `home.celebration.*` keys added to all 4 locale bundles (en/zh/es/ja); 1 deprecated `home.toast.noMorePosts` key removed from all 4. bundle-parity.test.mjs green.
+    5. **i18n bundle parity** — 13 new `home.celebration.*` keys added to all 4 locale bundles (en/zh/es/ja); 1 deprecated `home.toast.noMorePosts` key removed from all 4. bundle-parity.test.mjs green.
     6. **Source-reading invariant tests** — 4 new test files locking the 8 UI-SPEC structural invariants + the new MotionConfig assertion + the GAP-C single-emit invariant.
     7. **ROADMAP/REQUIREMENTS wording correction** — 4 line edits aligning the documented mechanism with D-02's height-accumulating split (replacing the stale `column-count: 2` + `break-inside: avoid` literal-assertion wording).
 
@@ -258,7 +260,7 @@ Output: 6 file modifications/creations + 1 file move.
     - [42-01-SUMMARY.md](./42-01-SUMMARY.md) — MasonryFeed skeleton + height-accumulator + framer-motion + GAP-C video state port
     - [42-02-SUMMARY.md](./42-02-SUMMARY.md) — HomeScreen InlineInfoFlow → MasonryFeed swap + toast deletion + allExplored computation
     - [42-03-SUMMARY.md](./42-03-SUMMARY.md) — card-slide-in keyframe + 3 callsite deletion
-    - [42-04-SUMMARY.md](./42-04-SUMMARY.md) — VineBloomCard implementation + 4-bundle i18n parity (12 added, 1 removed)
+    - [42-04-SUMMARY.md](./42-04-SUMMARY.md) — VineBloomCard implementation + 4-bundle i18n parity (13 added incl. anchorFallback, 1 removed)
     - [42-05-SUMMARY.md](./42-05-SUMMARY.md) — 4 source-reading invariant test files
     - [42-06-SUMMARY.md](./42-06-SUMMARY.md) — ROADMAP/REQUIREMENTS wording alignment
 
@@ -276,6 +278,7 @@ Output: 6 file modifications/creations + 1 file move.
     - **Height-accumulating 2-column split** — pattern proven for stable, append-friendly masonry without dependencies. Reusable for any future 2+-column layout.
     - **Co-located celebration card inside the feed component** — VineBloomCard inside MasonryFeed.tsx mirrors MilestoneCard inside InfoFlow.tsx; avoids premature abstraction.
     - **Hook-level data derivation over service surface expansion** — VineBloomCard consumes `useTrellisData()` rather than adding `trellisActionsService.getCelebrationSuggestions()`. Pattern preserves clean service boundaries when the "what to suggest" filter is structural (a one-line `leafState ===` filter) and shared with one other consumer (PlannerScreen).
+    - **i18n-safe nullish fallback via dedicated key** — VineBloomCard's `node.anchor.title ?? node.anchor.content ?? t('home.celebration.anchorFallback')` pattern (Warning 6 from revision iteration 1). Avoids hardcoded English literals leaking into non-EN locales; namespace cohesion preserved (no cross-namespace reuse).
 
     ## Test Baseline
 
@@ -310,14 +313,14 @@ Output: 6 file modifications/creations + 1 file move.
   <name>Task 6: Update STATE.md with Phase 42 close-out entry</name>
   <files>.planning/STATE.md</files>
   <read_first>
-    - .planning/STATE.md (full file — locate the `## Last decisions` section to insert the new Phase 42 entry at the top, per the project's reverse-chronological convention)
+    - .planning/STATE.md (full file — locate the `## Last decisions` section to insert the new Phase 42 entry at the top, per the project's reverse-chronological convention; locate the live frontmatter field name for "stopped at" and use it verbatim — verified 2026-05-09 to be `stopped_at:`)
     - .planning/phases/42-masonry-feed-layout/42-PHASE-SUMMARY.md (just created — for cross-reference)
   </read_first>
   <action>
     Edit `.planning/STATE.md`:
 
-    EDIT 1 — Frontmatter:
-    - `stopped_at: "Phase 42 UI-SPEC approved (6/6 dimensions verified)"` → `stopped_at: "Phase 42 complete — ready for verification"`
+    EDIT 1 — Frontmatter (use whatever field name the live STATE.md uses for "stopped at" — verified 2026-05-09 to be `stopped_at:`; if the live shape has changed, use the actual field name):
+    - `stopped_at: ...` → `stopped_at: "Phase 42 complete — ready for verification"` (preserve quoting style of the existing value; use bare string if the file is unquoted)
     - `last_updated: "..."` → current timestamp
     - `last_activity: 2026-05-09` → keep at current date
     - In `progress:` block:
@@ -332,11 +335,12 @@ Output: 6 file modifications/creations + 1 file move.
     - `**Plans:** ...` row: append `; 7 / 7 complete in Phase 42 (42-01 ✓; 42-02 ✓; 42-03 ✓; 42-04 ✓; 42-05 ✓; 42-06 ✓; 42-07 ✓)`
     - Update the progress bar percentage if appropriate.
 
-    EDIT 4 — Insert NEW "## Last decisions (Plan 42-07 close, <date>)" section AT THE TOP of the existing `## Last decisions` chronology (project convention is reverse-chronological — newest first). Include:
+    EDIT 4 — Insert NEW "## Last decisions (Plan 42-07 close, <date>)" section AT THE TOP of the existing `## Last decisions` chronology (project convention is reverse-chronological — newest first). Include the phrase **"Phase 42 complete"** somewhere in the body so the verify step can grep for it. Suggested content:
 
     ```markdown
     ## Last decisions (Phase 42 close, 2026-05-09)
 
+    - **Phase 42 complete** — MASONRY-01 + MASONRY-02 closed; 7 plans landed across 4 waves; verifier-ready.
     - **MotionConfig reducedMotion="user" wrapper at MasonryFeed scope, not App root** (RESEARCH.md Open Question 1). Surgical scope; doesn't disturb existing animations (BottomNavigation, SwipeTabContainer, PostCarousel, etc.). Phase 45 may revisit project-wide reduced-motion handling as part of accessibility audit.
     - **`allExplored` computed by HomeScreen, NOT read from a service** (RESEARCH.md Pitfall 2). `infiniteScrollService.allExplored` does NOT exist as service state — it's a local `const` inside `concept-feed.service.ts:1591`. HomeScreen derives it from `dailyReadService.getExploredAnchors()` + `useQuestions().questions.filter(q => q.isAnchorNode)`. Re-render triggered automatically by HomeScreen's existing `[location.pathname === '/home']` resync at lines 467-522.
     - **VineBloomCard consumes useTrellisData() directly — NO new trellisActionsService method** (RESEARCH.md § 1 path b). The "what to suggest" filter is structural (`leafState === 'dead' / 'dying' / 'falling'`); centralizing into a service-level helper would be premature abstraction (only 2 callers — PlannerScreen and VineBloomCard — both inline the filter trivially). trellis-actions.service.ts surface UNCHANGED.
@@ -344,7 +348,10 @@ Output: 6 file modifications/creations + 1 file move.
     - **`card-slide-in` keyframe + 3 callsites deletion** (D-06; RESEARCH.md Pitfall 7). One animation system, not two. Cross-tree negative grep test (`tests/lib/no-card-slide-in.test.mjs`) locks the deletion.
     - **ROADMAP + REQUIREMENTS wording correction landed in plan 42-06 BEFORE the negative-grep test in plan 42-05** so the source-reading test contract is consistent with the documented mechanism. RESEARCH.md § 8 verbatim replacement text used.
     - **`home.toast` parent object deleted from all 4 locale bundles** (UI-SPEC § DEPRECATED i18n keys; verified via grep that `noMorePosts` was the sole child).
-    - **i18n bundle delta:** +11 net keys per bundle (12 added under `home.celebration.*`; 1 deleted at `home.toast.noMorePosts`). bundle-parity.test.mjs green.
+    - **i18n bundle delta:** +12 net keys per bundle (13 added under `home.celebration.*` incl. `anchorFallback`; 1 deleted at `home.toast.noMorePosts`). bundle-parity.test.mjs green.
+    - **Plan 42-04 anchorFallback i18n key added in revision iteration 1** (Warning 6). VineBloomCard's anchor name fallback (`node.anchor.title ?? node.anchor.content ?? <fallback>`) was originally hardcoded to English literal `'anchor'`; revised to `t('home.celebration.anchorFallback')` so non-EN locales render the localized gloss ("这个概念" / "este concepto" / "この概念") when both fields are nullish.
+    - **Plan 42-03 wave revised 1 → 2 in revision iteration 1** (Blocker 2). Originally co-equal with 42-01 in Wave 1; both touched InfoFlow.tsx on disjoint lines but the parallel-write race risk was unacceptable. Moved to Wave 2 (depends_on: ["42-01"]) so it serializes after 42-01's `export` keyword additions land.
+    - **Plan 42-01 Task 1 expanded to export THREE symbols in revision iteration 1** (Blocker 1). Originally exported only ConnectionCard + MilestoneCard; the actual `MemoizedConceptCard` at line 573 was also unexported, which would have broken Task 2's import. Revised to add `export` keyword to all three (lines 573, 610, 700).
     - **Test baseline (post-Phase-42):** [filled in by close-out commit; expected ≈ 680/2 fail + 16/16/0 actions; 4 new test files contribute ≈ 20-30 passes; same 2 pre-existing carry-over failures unchanged]
     ```
 
@@ -353,14 +360,15 @@ Output: 6 file modifications/creations + 1 file move.
     Atomic commit message: `docs(42): update STATE.md with Phase 42 close-out`
   </action>
   <verify>
-    <automated>grep -q "stopped_at:.*Phase 42 complete" /Users/Code/EchoLearn/.planning/STATE.md &amp;&amp; grep -q "Last decisions (Phase 42 close" /Users/Code/EchoLearn/.planning/STATE.md &amp;&amp; grep -q "42 ready for verification 7/7 plans" /Users/Code/EchoLearn/.planning/STATE.md</automated>
+    <automated>grep -q "Phase 42 complete" /Users/Code/EchoLearn/.planning/STATE.md &amp;&amp; grep -q "Last decisions (Phase 42 close" /Users/Code/EchoLearn/.planning/STATE.md &amp;&amp; grep -q "42 ready for verification 7/7 plans" /Users/Code/EchoLearn/.planning/STATE.md</automated>
   </verify>
   <acceptance_criteria>
-    - Frontmatter `stopped_at` mentions "Phase 42 complete"
+    - The phrase `Phase 42 complete` appears somewhere in `.planning/STATE.md` (Warning 7 — softened from `stopped_at:.*Phase 42 complete` because the field name shape may evolve; the phrase appearance is the load-bearing assertion)
     - Body has new section "## Last decisions (Phase 42 close, ...)"
     - Progress line shows `42 ready for verification 7/7 plans`
     - Progress: total_plans incremented by 7; completed_plans incremented by 7
     - Other phases' status text unchanged
+    - The "stopped at" frontmatter field (whatever its live name — verified 2026-05-09 to be `stopped_at:`) carries the new Phase 42 close value
   </acceptance_criteria>
   <done>STATE.md captures Phase 42 close.</done>
 </task>
@@ -389,3 +397,5 @@ After completion, write a brief `.planning/phases/42-masonry-feed-layout/42-07-S
 - 6 atomic commit hashes for the close-out tasks
 - Confirmation that the Phase is verifier-ready
 </output>
+</content>
+</invoke>

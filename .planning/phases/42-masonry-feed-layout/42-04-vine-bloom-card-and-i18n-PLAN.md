@@ -18,26 +18,27 @@ must_haves:
     - "VineBloomCard component (co-located in MasonryFeed.tsx per UI-SPEC Open Items recommendation) replaces the placeholder stub from plan 42-01"
     - "VineBloomCard consumes useTrellisData() directly to derive heal/replant suggestions (RESEARCH.md § 1 path b — NO new trellisActionsService getter)"
     - "VineBloomCard renders inline SVG vine illustration matching vineLoadingPulse aesthetic at HomeScreen.tsx:759-767 (UI-SPEC § Vine SVG Specification — verbatim)"
-    - "12 new home.celebration.* keys exist in all 4 locale bundles (en/zh/es/ja) with bundle parity"
+    - "13 new home.celebration.* keys exist in all 4 locale bundles (en/zh/es/ja) with bundle parity (12 from UI-SPEC + 1 anchorFallback for i18n-safe fallback per Warning 6)"
     - "1 deprecated home.toast.noMorePosts key removed from all 4 locale bundles symmetrically"
     - "Action rows route via trellisActionsService.heal() / .replant() returning ActionNavigationResult, then navigate(result.navigateTo, { state: result.state })"
     - "Open Planner CTA routes to /planner via useNavigate"
     - "framer-motion celebration entrance + bloom path-draw use the variants verbatim from UI-SPEC § Animation Contract"
+    - "VineBloomCard anchor name fallback uses t('home.celebration.anchorFallback') instead of hardcoded English literal 'anchor' (i18n parity for non-EN locales)"
   artifacts:
     - path: "app/src/components/MasonryFeed.tsx"
       provides: "VineBloomCard fully implemented (replaces 42-01 placeholder)"
       contains: "function VineBloomCard"
     - path: "app/src/locales/en.json"
-      provides: "12 new home.celebration.* keys; home.toast.noMorePosts deleted"
+      provides: "13 new home.celebration.* keys; home.toast.noMorePosts deleted"
       contains: "celebration"
     - path: "app/src/locales/zh.json"
-      provides: "12 new keys translated to zh"
+      provides: "13 new keys translated to zh"
     - path: "app/src/locales/es.json"
-      provides: "12 new keys translated to es"
+      provides: "13 new keys translated to es"
     - path: "app/src/locales/ja.json"
-      provides: "12 new keys translated to ja"
+      provides: "13 new keys translated to ja"
     - path: "app/src/locales/i18n.d.ts"
-      provides: "Module augmentation updated for new home.celebration.* keys (and removed home.toast.noMorePosts)"
+      provides: "Module augmentation auto-derived from typeof en (no manual edit needed — verified via Read 2026-05-09; file uses `typeof en` import, types update automatically)"
   key_links:
     - from: "app/src/components/MasonryFeed.tsx (VineBloomCard)"
       to: "app/src/state/useTrellisData.ts"
@@ -56,13 +57,15 @@ must_haves:
 <objective>
 Replace the `VineBloomCard` placeholder in `app/src/components/MasonryFeed.tsx` (introduced as `function VineBloomCard() { return null }` in plan 42-01) with the full implementation per UI-SPEC § VineBloomCard internal layout + § Vine SVG Specification + RESEARCH.md § Example 2.
 
-Add 12 new i18n keys under `home.celebration.*` namespace to all 4 locale bundles (en canonical + zh/es/ja translated via Sonnet subagent per `app/scripts/translate-locales.md`). Delete the deprecated `home.toast.noMorePosts` key from all 4 bundles symmetrically. Update `i18n.d.ts` module augmentation to reflect both changes.
+Add 13 new i18n keys under `home.celebration.*` namespace to all 4 locale bundles (12 from UI-SPEC + 1 `anchorFallback` for i18n-safe fallback when both `node.anchor.title` and `node.anchor.content` are nullish — per Warning 6 from checker iteration 1). Translate via Sonnet subagent per `app/scripts/translate-locales.md`. Delete the deprecated `home.toast.noMorePosts` key from all 4 bundles symmetrically. The `i18n.d.ts` module augmentation auto-derives from `typeof en` (verified 2026-05-09); no manual edit needed unless type-check fails.
 
 The card consumes `useTrellisData()` directly (RESEARCH.md § 1 path b — NO new `trellisActionsService.getCelebrationSuggestions()` getter; mirrors PlannerScreen.tsx:46-47's filter pattern). Action rows use the existing `trellisActionsService.heal()` / `.replant()` handlers; CTA uses `useNavigate('/planner')`.
 
 Purpose: Close MASONRY-02 (vine-bloom celebration card replaces the bare toast) by shipping the actual celebration UI + the i18n bundle parity for it.
 
-Output: Modified `MasonryFeed.tsx` with real VineBloomCard implementation; 4 locale bundles updated; `i18n.d.ts` module augmentation updated.
+Output: Modified `MasonryFeed.tsx` with real VineBloomCard implementation; 4 locale bundles updated; `i18n.d.ts` confirmed auto-deriving (no manual edit unless tsc reports a type error).
+
+**Bundle delta:** +13 keys (12 from UI-SPEC + 1 anchorFallback) − 1 key (home.toast.noMorePosts) = net +12 keys per bundle.
 </objective>
 
 <execution_context>
@@ -91,7 +94,7 @@ Output: Modified `MasonryFeed.tsx` with real VineBloomCard implementation; 4 loc
 @app/scripts/translate-locales.md
 
 <interfaces>
-**EN canonical keys to ADD** (verbatim from UI-SPEC § i18n Bundle Updates):
+**EN canonical keys to ADD** (verbatim from UI-SPEC § i18n Bundle Updates, PLUS the 13th `anchorFallback` key added per Warning 6 for i18n-safe fallback):
 
 ```json
 "celebration": {
@@ -106,9 +109,12 @@ Output: Modified `MasonryFeed.tsx` with real VineBloomCard implementation; 4 loc
   "fallbackReviewCount_other": "{{count}} anchors will be due for review tomorrow.",
   "fallbackReviewCountZero": "Check back tomorrow for fresh concepts.",
   "openPlanner": "Open Planner",
-  "actionRowAria": "{{action}} {{anchor}} — opens action"
+  "actionRowAria": "{{action}} {{anchor}} — opens action",
+  "anchorFallback": "this concept"
 }
 ```
+
+**Why `anchorFallback` is added (per Warning 6):** VineBloomCard's heal/replant handlers reference `node.anchor.title ?? node.anchor.content ?? <fallback>`. Plan 42-04 iteration 0 used the hardcoded English literal `'anchor'` — breaks i18n parity in zh/es/ja when both fields are nullish. Replacing with `t('home.celebration.anchorFallback')` keeps the namespace cohesive (celebration card lives in `home.celebration.*`; reusing `planner.deadFallback` would cross namespaces). Selected EN copy `"this concept"` reads as a calm gloss matching the celebration's botanical voice without leaking implementation detail like "anchor" or "node".
 
 **Key to DELETE from all 4 bundles:**
 - `home.toast.noMorePosts` (sole consumer at HomeScreen.tsx:240 was deleted in plan 42-02; verified zero other consumers via `grep -rn "home.toast.noMorePosts" app/src/` returns 0 after plan 42-02 lands)
@@ -144,13 +150,27 @@ const { layout } = useTrellisData();
 const deadNodes = layout.nodes.filter((n) => n.leafState === 'dead');
 const dyingNodes = layout.nodes.filter((n) => n.leafState === 'dying' || n.leafState === 'falling');
 ```
+
+**i18n.d.ts shape** (verified 2026-05-09 via Read):
+```typescript
+import 'i18next';
+import en from './en.json';
+
+declare module 'i18next' {
+  interface CustomTypeOptions {
+    defaultNS: 'translation';
+    resources: { translation: typeof en };
+  }
+}
+```
+This auto-derives the type tree from `en.json` shape — adding new keys to en.json automatically makes them type-known in `t()` calls. Task 4 verifies this end-to-end and only edits the file IF tsc reports a type error after en.json updates.
 </interfaces>
 </context>
 
 <tasks>
 
 <task type="auto" tdd="true">
-  <name>Task 1: Replace VineBloomCard placeholder in MasonryFeed.tsx with full implementation (consumes useTrellisData + trellisActionsService + i18n)</name>
+  <name>Task 1: Replace VineBloomCard placeholder in MasonryFeed.tsx with full implementation (consumes useTrellisData + trellisActionsService + i18n; uses t('home.celebration.anchorFallback') for nullish-safe fallback)</name>
   <files>app/src/components/MasonryFeed.tsx</files>
   <read_first>
     - app/src/components/MasonryFeed.tsx (read entire file — locate the `function VineBloomCard() { return null; }` placeholder from plan 42-01 and the surrounding gate `{allExplored && (...)}` block)
@@ -170,9 +190,11 @@ const dyingNodes = layout.nodes.filter((n) => n.leafState === 'dying' || n.leafS
     - Test 5: VineBloomCard imports/uses `useTranslation` from `react-i18next`
     - Test 6: VineBloomCard contains the inline SVG (`<svg width="88" height="88" viewBox="0 0 88 88"`) + `<motion.circle` for the bloom
     - Test 7: VineBloomCard references `t('home.celebration.vineBloomTitle')`, `t('home.celebration.openPlanner')`, AND at least one of `t('home.celebration.healAction'`, `t('home.celebration.replantAction'`, `t('home.celebration.fallbackHealthy'`
-    - Test 8: VineBloomCard contains the leafState filter `n.leafState === 'dead'` AND `n.leafState === 'dying'` (PlannerScreen pattern)
-    - Test 9: tsc -b --noEmit exits 0
-    - Test 10: NO new trellisActionsService method added (no edits to trellis-actions.service.ts)
+    - Test 8: VineBloomCard references `t('home.celebration.anchorFallback')` (Warning 6 — i18n-safe fallback for null anchor name)
+    - Test 9: VineBloomCard contains the leafState filter `n.leafState === 'dead'` AND `n.leafState === 'dying'` (PlannerScreen pattern)
+    - Test 10: NO occurrence of the hardcoded English literal `?? 'anchor'` anywhere in MasonryFeed.tsx (negative grep — Warning 6 lock)
+    - Test 11: tsc -b --noEmit exits 0
+    - Test 12: NO new trellisActionsService method added (no edits to trellis-actions.service.ts)
   </behavior>
   <action>
     Replace the placeholder `function VineBloomCard() { return null; }` in `app/src/components/MasonryFeed.tsx` with the full implementation, AND add the necessary imports at the top of the file.
@@ -208,7 +230,7 @@ const dyingNodes = layout.nodes.filter((n) => n.leafState === 'dying' || n.leafS
 
     **EDIT 3 — Replace the `function VineBloomCard() { return null; }` placeholder with the FULL implementation:**
 
-    Use this exact body (mirror RESEARCH.md § Example 2 lines 662-791 — verbatim with the exact handlers, copy structure, and styles from UI-SPEC § VineBloomCard internal layout):
+    Use this exact body (mirror RESEARCH.md § Example 2 lines 662-791 — verbatim with the exact handlers, copy structure, and styles from UI-SPEC § VineBloomCard internal layout). NOTE the 2 changes from RESEARCH.md Example 2: anchor name fallback uses `t('home.celebration.anchorFallback')` instead of the hardcoded literal `'anchor'` (Warning 6 fix from checker iteration 1):
 
     ```tsx
     function VineBloomCard() {
@@ -237,7 +259,8 @@ const dyingNodes = layout.nodes.filter((n) => n.leafState === 'dying' || n.leafS
       // "your vine is fully healthy" framing. Refine in a follow-up if UAT requests precision.
 
       const handleHeal = (node: typeof dyingNodes[number]) => {
-        const anchorName = node.anchor.title ?? node.anchor.content ?? 'anchor';
+        // Warning 6 fix: use i18n key for nullish fallback (was hardcoded English 'anchor' — broke zh/es/ja parity)
+        const anchorName = node.anchor.title ?? node.anchor.content ?? t('home.celebration.anchorFallback');
         const qaChildIds = node.qaChildren.map((q) => q.id);
         const result = trellisActionsService.heal(node.anchor.id, anchorName, qaChildIds);
         navigate(result.navigateTo, { state: result.state });
@@ -316,7 +339,8 @@ const dyingNodes = layout.nodes.filter((n) => n.leafState === 'dying' || n.leafS
                 const iconColor = s.kind === 'heal' ? '#66BB6A' : '#4CAF50'; // PlannerScreen convention
                 const labelKey = s.kind === 'heal' ? 'home.celebration.healAction' : 'home.celebration.replantAction';
                 const badgeKey = s.kind === 'heal' ? 'home.celebration.healBadge' : 'home.celebration.replantBadge';
-                const anchorName = s.node.anchor.title ?? s.node.anchor.content ?? 'anchor';
+                // Warning 6 fix: i18n-safe nullish fallback (was hardcoded English 'anchor')
+                const anchorName = s.node.anchor.title ?? s.node.anchor.content ?? t('home.celebration.anchorFallback');
                 return (
                   <button
                     key={s.node.anchor.id}
@@ -416,10 +440,10 @@ const dyingNodes = layout.nodes.filter((n) => n.leafState === 'dying' || n.leafS
     - The MasonryFeed component itself (height-accumulator + render logic from plan 42-01) — UNCHANGED
     - The placeholder gate `{allExplored && (<div style={{ marginTop: '24px' }}><VineBloomCard /></div>)}` — UNCHANGED
 
-    Atomic commit message: `feat(42): implement VineBloomCard with useTrellisData consumption + framer-motion bloom + i18n`
+    Atomic commit message: `feat(42): implement VineBloomCard with useTrellisData consumption + framer-motion bloom + i18n (incl. anchorFallback for non-EN parity)`
   </action>
   <verify>
-    <automated>cd /Users/Code/EchoLearn/app &amp;&amp; grep -q "function VineBloomCard" src/components/MasonryFeed.tsx &amp;&amp; grep -q "useTrellisData" src/components/MasonryFeed.tsx &amp;&amp; grep -q "trellisActionsService" src/components/MasonryFeed.tsx &amp;&amp; grep -q "useNavigate" src/components/MasonryFeed.tsx &amp;&amp; grep -q "useTranslation" src/components/MasonryFeed.tsx &amp;&amp; grep -q "home.celebration.vineBloomTitle" src/components/MasonryFeed.tsx &amp;&amp; grep -q "home.celebration.openPlanner" src/components/MasonryFeed.tsx &amp;&amp; grep -q "leafState === 'dead'" src/components/MasonryFeed.tsx &amp;&amp; grep -q "leafState === 'dying'" src/components/MasonryFeed.tsx &amp;&amp; grep -q 'viewBox="0 0 88 88"' src/components/MasonryFeed.tsx &amp;&amp; grep -q "motion.circle" src/components/MasonryFeed.tsx &amp;&amp; ! grep -q "function VineBloomCard() { return null; }" src/components/MasonryFeed.tsx &amp;&amp; npx tsc -b --noEmit</automated>
+    <automated>cd /Users/Code/EchoLearn/app &amp;&amp; grep -q "function VineBloomCard" src/components/MasonryFeed.tsx &amp;&amp; grep -q "useTrellisData" src/components/MasonryFeed.tsx &amp;&amp; grep -q "trellisActionsService" src/components/MasonryFeed.tsx &amp;&amp; grep -q "useNavigate" src/components/MasonryFeed.tsx &amp;&amp; grep -q "useTranslation" src/components/MasonryFeed.tsx &amp;&amp; grep -q "home.celebration.vineBloomTitle" src/components/MasonryFeed.tsx &amp;&amp; grep -q "home.celebration.openPlanner" src/components/MasonryFeed.tsx &amp;&amp; grep -q "home.celebration.anchorFallback" src/components/MasonryFeed.tsx &amp;&amp; grep -q "leafState === 'dead'" src/components/MasonryFeed.tsx &amp;&amp; grep -q "leafState === 'dying'" src/components/MasonryFeed.tsx &amp;&amp; grep -q 'viewBox="0 0 88 88"' src/components/MasonryFeed.tsx &amp;&amp; grep -q "motion.circle" src/components/MasonryFeed.tsx &amp;&amp; ! grep -q "function VineBloomCard() { return null; }" src/components/MasonryFeed.tsx &amp;&amp; ! grep -qE "\\?\\?\\s*'anchor'" src/components/MasonryFeed.tsx &amp;&amp; npx tsc -b --noEmit</automated>
   </verify>
   <acceptance_criteria>
     - `grep -c "function VineBloomCard" app/src/components/MasonryFeed.tsx` returns ≥ `1`
@@ -430,6 +454,7 @@ const dyingNodes = layout.nodes.filter((n) => n.leafState === 'dying' || n.leafS
     - `grep -c "useTranslation" app/src/components/MasonryFeed.tsx` returns ≥ `1`
     - `grep -c "home.celebration.vineBloomTitle" app/src/components/MasonryFeed.tsx` returns ≥ `1`
     - `grep -c "home.celebration.openPlanner" app/src/components/MasonryFeed.tsx` returns ≥ `1`
+    - `grep -c "home.celebration.anchorFallback" app/src/components/MasonryFeed.tsx` returns ≥ `2` (used in BOTH `handleHeal` and the `.map(s => ...)` row render — Warning 6 lock)
     - `grep -c "home.celebration.fallbackHealthy" app/src/components/MasonryFeed.tsx` returns ≥ `1`
     - `grep -c "leafState === 'dead'" app/src/components/MasonryFeed.tsx` returns ≥ `1`
     - `grep -c "leafState === 'dying'" app/src/components/MasonryFeed.tsx` returns ≥ `1`
@@ -437,14 +462,15 @@ const dyingNodes = layout.nodes.filter((n) => n.leafState === 'dying' || n.leafS
     - `grep -c "motion.circle" app/src/components/MasonryFeed.tsx` returns ≥ `1`
     - `grep -c "celebrationVariants" app/src/components/MasonryFeed.tsx` returns ≥ `1`
     - `grep -c "bloomPathVariants" app/src/components/MasonryFeed.tsx` returns ≥ `1`
+    - `grep -cE "\\?\\?\\s*'anchor'" app/src/components/MasonryFeed.tsx` returns `0` (NO hardcoded English fallback — Warning 6 lock)
     - `git diff app/src/services/trellis-actions.service.ts` shows ZERO changes (no new method added)
     - `cd app && npx tsc -b --noEmit` exits 0
   </acceptance_criteria>
-  <done>VineBloomCard fully implemented; consumes useTrellisData hook (no service surface change); SVG + framer-motion + i18n all wired; tsc clean. Pending i18n bundle parity (Tasks 2-3).</done>
+  <done>VineBloomCard fully implemented; consumes useTrellisData hook (no service surface change); SVG + framer-motion + i18n all wired; nullish-safe i18n fallback via `t('home.celebration.anchorFallback')`; tsc clean. Pending i18n bundle parity (Tasks 2-3).</done>
 </task>
 
 <task type="auto" tdd="true">
-  <name>Task 2: Add 12 home.celebration.* keys to en.json + delete home.toast.noMorePosts (en canonical)</name>
+  <name>Task 2: Add 13 home.celebration.* keys to en.json + delete home.toast.noMorePosts (en canonical)</name>
   <files>app/src/locales/en.json</files>
   <read_first>
     - app/src/locales/en.json (read entire `home` namespace to confirm current structure; verify `home.toast` ONLY contains `noMorePosts` so the parent object can be safely removed)
@@ -477,7 +503,7 @@ const dyingNodes = layout.nodes.filter((n) => n.leafState === 'dying' || n.leafS
     }
     ```
 
-    **(B) ADD a new `home.celebration` object** with all 12 keys (verbatim from UI-SPEC § i18n Bundle Updates):
+    **(B) ADD a new `home.celebration` object** with all 13 keys (12 verbatim from UI-SPEC § i18n Bundle Updates + 1 `anchorFallback` per Warning 6):
 
     ```json
     "celebration": {
@@ -492,7 +518,8 @@ const dyingNodes = layout.nodes.filter((n) => n.leafState === 'dying' || n.leafS
       "fallbackReviewCount_other": "{{count}} anchors will be due for review tomorrow.",
       "fallbackReviewCountZero": "Check back tomorrow for fresh concepts.",
       "openPlanner": "Open Planner",
-      "actionRowAria": "{{action}} {{anchor}} — opens action"
+      "actionRowAria": "{{action}} {{anchor}} — opens action",
+      "anchorFallback": "this concept"
     }
     ```
 
@@ -500,23 +527,24 @@ const dyingNodes = layout.nodes.filter((n) => n.leafState === 'dying' || n.leafS
 
     **DO NOT TOUCH:** Any other key in en.json. Specifically preserve all existing namespaces (common, planner, ask, review, graph, podcast, posts, settings, onboarding, questionDetail).
 
-    Atomic commit message: `feat(42): add home.celebration.* (12 keys) + remove home.toast in en.json`
+    Atomic commit message: `feat(42): add home.celebration.* (13 keys, +anchorFallback) + remove home.toast in en.json`
   </action>
   <verify>
-    <automated>cd /Users/Code/EchoLearn/app &amp;&amp; node -e "const d=require('./src/locales/en.json'); if(d.home.toast)throw new Error('home.toast still present'); if(!d.home.celebration)throw new Error('home.celebration missing'); const expected=['vineBloomTitle','suggestionsHeader','healAction','replantAction','healBadge','replantBadge','fallbackHealthy','fallbackReviewCount','fallbackReviewCount_other','fallbackReviewCountZero','openPlanner','actionRowAria']; for(const k of expected){if(!(k in d.home.celebration))throw new Error('missing key: home.celebration.'+k);} console.log('en.json OK: 12 celebration keys present, home.toast removed');"</automated>
+    <automated>cd /Users/Code/EchoLearn/app &amp;&amp; node -e "const d=require('./src/locales/en.json'); if(d.home.toast)throw new Error('home.toast still present'); if(!d.home.celebration)throw new Error('home.celebration missing'); const expected=['vineBloomTitle','suggestionsHeader','healAction','replantAction','healBadge','replantBadge','fallbackHealthy','fallbackReviewCount','fallbackReviewCount_other','fallbackReviewCountZero','openPlanner','actionRowAria','anchorFallback']; for(const k of expected){if(!(k in d.home.celebration))throw new Error('missing key: home.celebration.'+k);} if(Object.keys(d.home.celebration).length!==13)throw new Error('expected 13 keys, got '+Object.keys(d.home.celebration).length); console.log('en.json OK: 13 celebration keys present, home.toast removed');"</automated>
   </verify>
   <acceptance_criteria>
-    - `cd app && node -e "console.log(Object.keys(require('./src/locales/en.json').home.celebration).length)"` outputs `12`
+    - `cd app && node -e "console.log(Object.keys(require('./src/locales/en.json').home.celebration).length)"` outputs `13`
     - `cd app && node -e "console.log('toast' in require('./src/locales/en.json').home)"` outputs `false`
+    - `cd app && node -e "console.log(require('./src/locales/en.json').home.celebration.anchorFallback)"` outputs `this concept`
     - en.json is valid JSON (`node -e "require('./src/locales/en.json')"` exits 0)
-    - All 12 EN canonical values match UI-SPEC § i18n Bundle Updates verbatim (no typos in interpolation tokens like `{{anchor}}`, `{{count}}`)
+    - All 13 EN canonical values match the spec (12 verbatim from UI-SPEC § i18n Bundle Updates + 1 `anchorFallback: "this concept"` per Warning 6); no typos in interpolation tokens like `{{anchor}}`, `{{count}}`
     - The Markdown apostrophe in `Tomorrow's` and the em-dash in `{{action}} {{anchor}} — opens action` are present byte-for-byte (UTF-8 right-single-quote U+2019 and em-dash U+2014; copy from UI-SPEC verbatim)
   </acceptance_criteria>
-  <done>en.json canonical complete; ready for Sonnet subagent translation pass in Task 3.</done>
+  <done>en.json canonical complete (13 keys); ready for Sonnet subagent translation pass in Task 3.</done>
 </task>
 
 <task type="auto" tdd="true">
-  <name>Task 3: Translate the 12 home.celebration.* keys to zh/es/ja AND delete home.toast in all 3 bundles (Sonnet subagent per app/scripts/translate-locales.md)</name>
+  <name>Task 3: Translate the 13 home.celebration.* keys to zh/es/ja AND delete home.toast in all 3 bundles (Sonnet subagent per app/scripts/translate-locales.md)</name>
   <files>app/src/locales/zh.json, app/src/locales/es.json, app/src/locales/ja.json</files>
   <read_first>
     - app/scripts/translate-locales.md (Sonnet subagent prompt — load it and run 3 times, once per non-EN locale)
@@ -534,7 +562,7 @@ const dyingNodes = layout.nodes.filter((n) => n.leafState === 'dying' || n.leafS
 
     1. **DELETE the `home.toast` parent object** (or just the `noMorePosts` key if the bundle has other keys under `home.toast` — verify by reading first). Symmetric with en.json's deletion.
 
-    2. **ADD a new `home.celebration` object** with all 12 keys translated to the target locale, following these guardrails:
+    2. **ADD a new `home.celebration` object** with all 13 keys translated to the target locale (12 from UI-SPEC + 1 `anchorFallback` per Warning 6), following these guardrails:
 
     **Translation guardrails (verbatim from UI-SPEC § i18n Bundle Updates):**
     - **Proper nouns (NEVER translated):** `Trellis`, `Spaced Repetition`, `Transformer Attention`, anchor names (interpolated via `{{anchor}}`)
@@ -543,6 +571,7 @@ const dyingNodes = layout.nodes.filter((n) => n.leafState === 'dying' || n.leafS
     - **Interpolation placeholders:** `{{anchor}}`, `{{count}}`, `{{action}}` MUST appear verbatim (UTF-8 double-curly braces)
     - **Plural form:** `fallbackReviewCount_other` is i18next's built-in `_other` suffix for `count !== 1`. Some locales (zh, ja) don't pluralize nouns — Sonnet may produce identical strings for both forms, which is correct per i18next conventions
     - **Calm tone:** No exclamation marks anywhere in celebration copy (matches en's quieter "in bloom" tone)
+    - **`anchorFallback` (NEW key, Warning 6):** Calm gloss for when the anchor name is nullish. EN: "this concept". Translate as a calm, generic placeholder consistent with botanical voice; do NOT reuse implementation-specific words like "anchor" or "node".
 
     Expected outputs per bundle (Sonnet's translations are guidance; human-review is part of CLAUDE.md i18n Workflow):
 
@@ -560,7 +589,8 @@ const dyingNodes = layout.nodes.filter((n) => n.leafState === 'dying' || n.leafS
       "fallbackReviewCount_other": "明天将有 {{count}} 个锚点到期复习。",
       "fallbackReviewCountZero": "明天再回来探索新概念。",
       "openPlanner": "打开 Planner",
-      "actionRowAria": "{{action}} {{anchor}} — 打开操作"
+      "actionRowAria": "{{action}} {{anchor}} — 打开操作",
+      "anchorFallback": "这个概念"
     }
     ```
 
@@ -578,7 +608,8 @@ const dyingNodes = layout.nodes.filter((n) => n.leafState === 'dying' || n.leafS
       "fallbackReviewCount_other": "{{count}} anclas estarán listas para revisar mañana.",
       "fallbackReviewCountZero": "Vuelve mañana a por nuevos conceptos.",
       "openPlanner": "Abrir Planner",
-      "actionRowAria": "{{action}} {{anchor}} — abre acción"
+      "actionRowAria": "{{action}} {{anchor}} — abre acción",
+      "anchorFallback": "este concepto"
     }
     ```
 
@@ -596,7 +627,8 @@ const dyingNodes = layout.nodes.filter((n) => n.leafState === 'dying' || n.leafS
       "fallbackReviewCount_other": "明日、{{count}} 個のアンカーが復習期限を迎えます。",
       "fallbackReviewCountZero": "明日また新しい概念をチェックしてください。",
       "openPlanner": "プランナーを開く",
-      "actionRowAria": "{{action}} {{anchor}} — 操作を開く"
+      "actionRowAria": "{{action}} {{anchor}} — 操作を開く",
+      "anchorFallback": "この概念"
     }
     ```
 
@@ -607,57 +639,71 @@ const dyingNodes = layout.nodes.filter((n) => n.leafState === 'dying' || n.leafS
     **POST-EDIT CHECK — bundle parity:**
     Run `cd app && node --test tests/locales/bundle-parity.test.mjs` — must pass (all 4 bundles have identical key sets).
 
-    Atomic commit message: `feat(42): translate home.celebration.* to zh/es/ja + remove home.toast (bundle parity)`
+    Atomic commit message: `feat(42): translate home.celebration.* (13 keys) to zh/es/ja + remove home.toast (bundle parity)`
   </action>
   <verify>
-    <automated>cd /Users/Code/EchoLearn/app &amp;&amp; node -e "for(const loc of ['zh','es','ja']){const d=require('./src/locales/'+loc+'.json'); if(d.home.toast)throw new Error(loc+'.json: home.toast still present'); if(!d.home.celebration)throw new Error(loc+'.json: home.celebration missing'); const expected=['vineBloomTitle','suggestionsHeader','healAction','replantAction','healBadge','replantBadge','fallbackHealthy','fallbackReviewCount','fallbackReviewCount_other','fallbackReviewCountZero','openPlanner','actionRowAria']; for(const k of expected){if(!(k in d.home.celebration))throw new Error(loc+'.json missing: home.celebration.'+k);} console.log(loc+'.json OK');}" &amp;&amp; node --test tests/locales/bundle-parity.test.mjs</automated>
+    <automated>cd /Users/Code/EchoLearn/app &amp;&amp; node -e "for(const loc of ['zh','es','ja']){const d=require('./src/locales/'+loc+'.json'); if(d.home.toast)throw new Error(loc+'.json: home.toast still present'); if(!d.home.celebration)throw new Error(loc+'.json: home.celebration missing'); const expected=['vineBloomTitle','suggestionsHeader','healAction','replantAction','healBadge','replantBadge','fallbackHealthy','fallbackReviewCount','fallbackReviewCount_other','fallbackReviewCountZero','openPlanner','actionRowAria','anchorFallback']; for(const k of expected){if(!(k in d.home.celebration))throw new Error(loc+'.json missing: home.celebration.'+k);} if(Object.keys(d.home.celebration).length!==13)throw new Error(loc+'.json: expected 13 keys, got '+Object.keys(d.home.celebration).length); console.log(loc+'.json OK');}" &amp;&amp; node --test tests/locales/bundle-parity.test.mjs</automated>
   </verify>
   <acceptance_criteria>
-    - All 3 of `zh.json`, `es.json`, `ja.json` contain a `home.celebration` object with all 12 keys
+    - All 3 of `zh.json`, `es.json`, `ja.json` contain a `home.celebration` object with all 13 keys
     - All 3 bundles do NOT contain `home.toast` (or `home.toast.noMorePosts`)
     - All 4 bundles parse as valid JSON
     - `cd app && node --test tests/locales/bundle-parity.test.mjs` exits 0 (key sets identical across all 4 bundles)
     - All translated values contain the same interpolation placeholders as EN canonical (`{{anchor}}`, `{{count}}`, `{{action}}` verbatim)
     - Brand tokens preserved: `Trellis` not translated; `Planner` capitalized in es/ja; `Planner` either kept or rendered as 「Planner」 in zh
     - No exclamation marks in any celebration string in any locale
+    - `anchorFallback` translated as a calm placeholder (not the literal word "anchor" / "锚点" / "ancla" / "アンカー" — Warning 6 spirit: should NOT leak implementation-specific terminology)
   </acceptance_criteria>
-  <done>All 4 locale bundles have parity-clean home.celebration namespace with 12 keys; home.toast removed from all 4; bundle-parity.test.mjs green.</done>
+  <done>All 4 locale bundles have parity-clean home.celebration namespace with 13 keys; home.toast removed from all 4; bundle-parity.test.mjs green.</done>
 </task>
 
 <task type="auto" tdd="true">
-  <name>Task 4: Update i18n.d.ts module augmentation to reflect added/removed keys</name>
+  <name>Task 4: Verify i18n.d.ts module augmentation auto-derives the new keys (no manual edit unless tsc fails)</name>
   <files>app/src/locales/i18n.d.ts</files>
   <read_first>
-    - app/src/locales/i18n.d.ts (read entire file to understand current shape — does it use `typeof en` to derive types, or hand-author the union? approach informs the edit)
+    - app/src/locales/i18n.d.ts (read entire file — verified 2026-05-09 to use `typeof en` auto-derivation)
     - app/src/locales/en.json (the canonical key set, post-Task-2)
   </read_first>
+  <behavior>
+    - Test 1: `cd app && npx tsc -b --noEmit` exits 0 with MasonryFeed.tsx's t() calls in place — proves new keys type-check end-to-end
+    - Test 2: MasonryFeed.tsx (post-Task-1) consumes the new keys via concrete t() calls — proves keys aren't dead code
+    - Test 3: Bundle parity preserved (Task 3's bundle-parity test green)
+  </behavior>
   <action>
-    Update `app/src/locales/i18n.d.ts` so that:
+    Verified 2026-05-09: `app/src/locales/i18n.d.ts` uses `typeof en` auto-derivation:
 
-    1. The 12 new `home.celebration.*` keys are type-known (so `t('home.celebration.vineBloomTitle')` etc. type-check as valid in MasonryFeed.tsx).
-    2. `home.toast.noMorePosts` (and the parent `home.toast` if removed) are no longer type-recognized.
+    ```typescript
+    import 'i18next';
+    import en from './en.json';
 
-    **Implementation approach depends on how i18n.d.ts is structured today:**
+    declare module 'i18next' {
+      interface CustomTypeOptions {
+        defaultNS: 'translation';
+        resources: { translation: typeof en };
+      }
+    }
+    ```
 
-    - **If i18n.d.ts uses `typeof import('./en.json')` to derive the type tree** — no manual edit needed; the type set will auto-update from en.json's structure. Verify by running `tsc -b --noEmit` after Task 2 lands and confirming MasonryFeed.tsx's `t('home.celebration.vineBloomTitle')` calls compile without error.
+    This means the type tree updates AUTOMATICALLY from en.json's structure when Task 2 lands. **In the auto-derive case, this task should NOT modify i18n.d.ts.** The task's gate is end-to-end type-checking: as long as MasonryFeed.tsx's `t('home.celebration.vineBloomTitle')` etc. calls compile, the module augmentation is working.
 
-    - **If i18n.d.ts has hand-authored `interface CustomTypeOptions { resources: { home: { ... } } }`** — manually add the `celebration` sub-object with its 12 keys to the `home` interface, and remove `toast` (or its `noMorePosts` member).
+    **If `cd app && npx tsc -b --noEmit` exits 0, this task is complete with NO file modification needed.**
 
-    Read the file first to determine which approach applies, then make the minimal edit that makes `cd app && npx tsc -b --noEmit` exit 0 with the MasonryFeed.tsx t() calls in place.
+    **If `tsc` reports a type error** (e.g., "Argument of type 'home.celebration.vineBloomTitle' is not assignable to parameter of type ..."), the i18n.d.ts shape may have changed since 2026-05-09 (e.g., refactored to hand-authored `interface CustomTypeOptions { resources: { home: { ... } } }`). In that case, manually add the `celebration` sub-object with its 13 keys to the `home` interface, and remove `toast` (or its `noMorePosts` member). Match the surrounding hand-authored style.
 
     **DO NOT TOUCH:** Any other type declaration in i18n.d.ts that's unrelated to the home namespace.
 
-    Atomic commit message: `chore(42): update i18n.d.ts module augmentation for home.celebration.* keys (and removed home.toast)`
+    Atomic commit message (only if file modified): `chore(42): update i18n.d.ts module augmentation for home.celebration.* keys (and removed home.toast)`
+    Otherwise: no commit (this task confirms the auto-derive works; no diff to commit).
   </action>
   <verify>
-    <automated>cd /Users/Code/EchoLearn/app &amp;&amp; npx tsc -b --noEmit</automated>
+    <automated>cd /Users/Code/EchoLearn/app &amp;&amp; npx tsc -b --noEmit &amp;&amp; grep -q "t('home.celebration.vineBloomTitle')" src/components/MasonryFeed.tsx</automated>
   </verify>
   <acceptance_criteria>
-    - `cd app && npx tsc -b --noEmit` exits 0 with MasonryFeed.tsx's t() calls in place
-    - If i18n.d.ts is hand-authored: contains the string `celebration` referencing the new 12-key object; does NOT contain `noMorePosts` references
-    - If i18n.d.ts uses `typeof import('./en.json')`: file is unchanged (auto-derived from en.json)
+    - `cd app && npx tsc -b --noEmit` exits 0 with MasonryFeed.tsx's t() calls in place (UNCONDITIONAL — proves keys type-check end-to-end)
+    - `grep -q "t('home.celebration.vineBloomTitle')" app/src/components/MasonryFeed.tsx` returns exit code 0 (positive counterweight — proves the new keys are actually consumed at a call site, not dead code)
+    - i18n.d.ts MAY remain unchanged if `typeof en` auto-derivation works (the verified 2026-05-09 shape) — file modification is conditional, type-check success is unconditional
   </acceptance_criteria>
-  <done>i18n.d.ts in sync with the bundle changes; tsc clean.</done>
+  <done>i18n.d.ts in sync with the bundle changes; tsc clean; MasonryFeed.tsx t() call sites confirm end-to-end key consumption.</done>
 </task>
 
 </tasks>
@@ -672,17 +718,21 @@ const dyingNodes = layout.nodes.filter((n) => n.leafState === 'dying' || n.leafS
 
 <success_criteria>
 - VineBloomCard fully implemented and replaces the placeholder from plan 42-01
-- 12 home.celebration.* keys present in all 4 locale bundles with parity
+- 13 home.celebration.* keys (incl. `anchorFallback` per Warning 6) present in all 4 locale bundles with parity
 - home.toast.noMorePosts removed from all 4 locale bundles
 - Zero new methods on trellisActionsService
+- Zero hardcoded English `'anchor'` literal fallback in MasonryFeed.tsx
 - tsc + bundle-parity tests green
 </success_criteria>
 
 <output>
 After completion, create `.planning/phases/42-masonry-feed-layout/42-04-SUMMARY.md` documenting:
 - VineBloomCard final LOC count
-- All 4 bundles' final key count delta (+11 net per bundle: +12 added − 1 deleted)
+- All 4 bundles' final key count delta (+12 net per bundle: +13 added incl. anchorFallback − 1 deleted)
 - Atomic commit hashes for the 4 tasks
 - Confirmation that trellisActionsService surface is unchanged (RESEARCH.md § 1 path b honored)
 - Bundle-parity test result snapshot
+- Confirmation that anchorFallback i18n key resolves the Warning 6 hardcoded-English fallback (revision iteration 1)
 </output>
+</content>
+</invoke>

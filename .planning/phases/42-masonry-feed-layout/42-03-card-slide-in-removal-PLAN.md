@@ -2,8 +2,8 @@
 phase: 42-masonry-feed-layout
 plan: 03
 type: execute
-wave: 1
-depends_on: []
+wave: 2
+depends_on: ["42-01"]
 files_modified:
   - app/src/index.css
   - app/src/components/InfoFlow.tsx
@@ -31,6 +31,8 @@ Rationale: Plan 42-01 introduced framer-motion entrance animations on leaf tiles
 Purpose: Close MASONRY-01's "framer-motion entrance animations apply to leaf <motion.div> cards only" invariant (SC-4) by eliminating the parallel CSS animation path. Required for the source-reading negative-grep test in plan 42-05 to pass.
 
 Output: 1 keyframe block deleted from index.css; 3 inline-style `animation:` properties deleted from InfoFlow.tsx.
+
+**Wave note:** This plan moved from Wave 1 to Wave 2 (depends_on: ["42-01"]) during revision iteration 1 to eliminate parallel-write race risk on `app/src/components/InfoFlow.tsx`. Plan 42-01 Task 1 adds 3 `export` keywords to InfoFlow.tsx (lines 573, 610, 700); this plan deletes 3 inline `animation:` properties on disjoint lines (197, 329, 858). The line ranges do not overlap, but serializing them eliminates any merge-conflict possibility and gives the executor a clean "Wave 1 done, then Wave 2" mental model.
 </objective>
 
 <execution_context>
@@ -73,6 +75,24 @@ animation: isActive ? 'card-slide-in 0.35s ease' : 'none',
 animation: shouldAnimate ? `card-slide-in 0.3s ease ${Math.min(index, 5) * 0.05}s both` : undefined,
 ```
 </interfaces>
+
+<dependencies>
+**Wave structure (revised 2026-05-09):**
+
+| Wave | Plans | Notes |
+|------|-------|-------|
+| 1 | 42-01, 42-06 | Foundation — MasonryFeed skeleton + ROADMAP/REQUIREMENTS wording correction |
+| 2 | 42-02, 42-03, 42-04 | All depend on 42-01 (MasonryFeed exports) |
+| 3 | 42-05 | Source-reading invariant tests — depends on 42-01..42-04 |
+| 4 | 42-07 | Phase close-out — depends on all prior |
+
+This plan (42-03) sits in Wave 2 alongside 42-02 (HomeScreen swap) and 42-04 (VineBloomCard + i18n). All three modify disjoint regions of `app/src/components/InfoFlow.tsx` OR different files entirely:
+- 42-02: edits HomeScreen.tsx (no InfoFlow.tsx edits)
+- 42-03: edits InfoFlow.tsx lines 197, 329, 858 (animation property deletions) AND index.css
+- 42-04: edits MasonryFeed.tsx + 4 locale bundles + i18n.d.ts (no InfoFlow.tsx edits)
+
+42-03 is the only Wave-2 plan touching InfoFlow.tsx → no parallel-write conflict possible.
+</dependencies>
 </context>
 
 <tasks>
@@ -141,6 +161,7 @@ animation: shouldAnimate ? `card-slide-in 0.3s ease ${Math.min(index, 5) * 0.05}
     - The 3 leaf card components themselves (`ConceptCard`, `ConnectionCard`, `MilestoneCard`)
     - Any other animation property in InfoFlow.tsx (e.g., transition properties on hover, scale animations on press — these are unrelated)
     - The `isActive` and `shouldAnimate` references that remain after the deletions
+    - The 3 `export` keywords added by Plan 42-01 Task 1 at lines 573, 610, 700 (Wave 1 — already landed before this plan runs)
 
     **POST-DELETE CHECK:**
     - `grep -c "card-slide-in" app/src/components/InfoFlow.tsx` returns `0`
@@ -182,3 +203,5 @@ After completion, create `.planning/phases/42-masonry-feed-layout/42-03-SUMMARY.
 - Atomic commit hashes for both tasks
 - Note that plan 42-05 will add the source-reading test that locks this invariant
 </output>
+</content>
+</invoke>
