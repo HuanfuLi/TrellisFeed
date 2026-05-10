@@ -3,69 +3,104 @@ status: partial
 phase: 42-masonry-feed-layout
 source: [42-VERIFICATION.md]
 started: 2026-05-09T02:00:00.000Z
-updated: 2026-05-09T02:30:00.000Z
+updated: 2026-05-10T00:30:00.000Z
 ---
 
 ## Current Test
 
-[awaiting operator retest of UAT-1..UAT-11 after `d9f2af55` (UAT-11 round 2 — removed missed borderRadius from FeedPostImage aspectPadding branch)]
+[testing complete — 1 issue captured (UAT-4 Heal flow), proceeding to diagnose]
 
 ## Tests
 
 ### 1. VineBloomCard end-to-end
 expected: After all anchors are explored (real CONCEPT_EXPLORED events fired by reading every post in the daily feed), the VineBloomCard renders at the bottom of the home feed with the vine illustration, suggested-tomorrow plan, and Heal/Re-plant/Open Planner CTAs visible.
-result: [pending — blocked by UAT-5]
+result: pass
+note: Operator confirmed end-to-end render works 2026-05-10 BUT flagged visual quality: "the vine is super ugly, need to fine tune its appearance." Logged as follow-up — see "Follow-up notes" section below. NOT a Phase 42 blocker (Phase 42 contract is layout/structure, not illustration polish).
 
 ### 2. Column stability under scroll
 expected: With real card heights (image posts, variable text-art lengths, video tiles, news tiles), cards never jump between columns when scrolling or when new tiles append. Each tile stays in the column it was first assigned to (height-accumulating split is append-only — confirmed by `tileColumnAssignmentsRef` immutability guard at MasonryFeed.tsx:382).
-result: [pending — blocked by UAT-5]
+result: pass
+evidence: Operator confirmed pass 2026-05-10 — tiles stable through scroll + swipe-for-more append. tileColumnAssignmentsRef immutability invariant holding.
 
 ### 3. Reduced Motion honored
 expected: With `System Preferences → Accessibility → Reduce Motion → ON`, reload `/home` and trigger swipe-for-more. New tiles appear instantly with no fade-up entrance animation. `<MotionConfig reducedMotion="user">` wrapper should propagate through framer-motion v12 (RESEARCH.md Pitfall 1).
-result: [pending — blocked by UAT-5]
+result: skipped
+reason: Operator cannot test now (no easy way to toggle Reduce Motion at retest time). Source-reading invariant test exists at `tests/components/MasonryFeed.reduced-motion.test.mjs` (asserts MotionConfig wrapper present). Behavioral verification deferred to next opportunity with OS settings access.
 
 ### 4. VineBloomCard navigation CTAs
 expected: With a real anchor dataset (mix of dying/dead leafStates), tapping Heal navigates to `/review` with anchorId/qaIds/title; tapping Re-plant navigates to `/posts/anchor-post-{id}`; tapping Open Planner navigates to `/planner`. ZERO new methods on `trellisActionsService` (Pitfall 3 — confirmed by source-reading test).
-result: [pending — blocked by UAT-5]
+result: issue
+reported: "I clicked Heal 'Feynman Technique' and I am navigated to review page correctly, but I see mock flashcards like 'What is dialectical materialism' and 'Quantum entanglement'"
+severity: major
+partial_coverage: Only Heal CTA tested. Navigation half passes (route lands on /review). Data half fails — wrong cards rendered instead of cards filtered to the Feynman Technique anchor. Re-plant and Open Planner CTAs were NOT tested due to this issue.
+suspected_paths:
+  - VineBloomCard not forwarding anchorId/qaIds/title in navigate() state payload
+  - ReviewScreen not reading the state payload to filter cards (falls back to whole library)
+  - Residual mock-flashcard seed not cleared by Phase 38-04 commit `8829a68c` (which removed hardcoded mock seeds for the fresh-install path — may not have covered Heal-flow seed source)
+  - Cards shown ("dialectical materialism", "quantum entanglement") look like prior seed/test data, not anchor's real QAs
 
 ### 5. Two columns side-by-side (MASONRY-01 happy path)
 expected: With ≥2 tiles in the feed, the masonry renders both columns with tiles distributed across them via the height-accumulating split. Right column should have content, not be empty.
-result: RESOLVED — fix committed at `1de44017` (advance heights in Pass 1 + move assignment to render body). Two regression locks added in MasonryFeed.layout.test.mjs (test count 39 → 42, all green; tsc clean).
-evidence: Operator screenshot at retest after Wave 4 close-out showed ALL tiles piled into the LEFT column; right column was completely empty all the way down. Diagnosis below stays in record for posterity.
+result: pass
+resolution_commit: 1de44017
+evidence: Operator screenshot at retest after Wave 4 close-out showed ALL tiles piled into the LEFT column; right column was completely empty all the way down. Operator confirmed pass 2026-05-10 after `1de44017` shipped (advance heights in Pass 1 + move assignment to render body). Two regression locks added in MasonryFeed.layout.test.mjs.
 
 ### 5b. Columns adapt to screen width (MASONRY-01 fit)
 expected: Both masonry columns fit inside HomeScreen's 448px maxWidth content area. Right column does NOT overflow off-screen on any device width.
-result: RESOLVED — fix committed at `5f8a77f9` (minWidth: 0 on BOTH column wrappers + width: 100% on outer flex container). Same root cause as CLAUDE.md ChatInput rule. 1 new regression lock added (layout test count 10 → 11, all green; tsc clean). Awaiting operator visual retest.
-evidence: Operator screenshot 2026-05-09 after `1de44017` shows 2 columns rendering but right column overflows off the right edge of the viewport. Cards inside have intrinsic content width that flex refuses to shrink without minWidth: 0.
+result: pass
+resolution_commit: 5f8a77f9
+evidence: Operator screenshot 2026-05-09 after `1de44017` showed 2 columns rendering but right column overflowed off the right edge. Operator confirmed pass 2026-05-10 after `5f8a77f9` shipped (minWidth: 0 on BOTH column wrappers + width: 100% outer flex container). Same root cause as CLAUDE.md ChatInput rule.
 
 ### 6. Card typography tuned for half-width
 expected: Existing card components (NewsCard, video card, text-art card) were designed for full-width InlineInfoFlow. At 50% width inside masonry columns, font sizes / paddings / line-heights need to shrink so headlines don't dominate the column or wrap to 1-2 words per line.
-result: RESOLVED across 3 commits. `f2471499` first-pass shrink (news headline 1.25 → 0.95rem; concept hook 1.2 → 0.95rem). `afe42922` (1A) chrome tightening: borderRadius 16 → 8, padding 14 → 10 across all variants, suggestion-card nested padding fix (TopicButton padding 0/16 → 6/10, ChevronRight removed). `df3a2553` (3B) text-art prompt+tightener at the source so cards never receive multi-sentence content. 47/47 Phase 42 tests + counterweights green; tsc clean.
-evidence: Operator screenshot 2026-05-09 after `5f8a77f9` showed news cards with massive serif headlines. Subsequent screenshot after `f2471499` showed text-art still wrapping ('Why the Smell of Safety Makes AI Unsafe' → 5 lines) and suggestion-card pills wrapping to 4 lines.
+result: pass
+resolution_commits: [f2471499, afe42922, df3a2553]
+evidence: Operator screenshot 2026-05-09 after `5f8a77f9` showed news cards with massive serif headlines; subsequent screenshot after `f2471499` showed text-art wrapping to 5 lines and suggestion-card pills wrapping to 4 lines. Operator confirmed pass 2026-05-10 after the 3-commit chain landed (first-pass shrink + chrome tightening + LLM prompt tightener for text-art at source).
 
 ### 7. Inline-play removed from feed video cards
 expected: Per operator: "Remove the inline play feature." Tapping a video card should navigate to PostDetailScreen (not start inline playback in the feed).
-result: RESOLVED — fix committed at `db864ffa`. Removed videoPlaying state, conditional iframe branch, transparent pointer-overlay, close button, thumbnail-tap CONCEPT_EXPLORED emit, AND the play-button overlay (gray-circle/white-triangle in card center). Also deleted the dead InlineInfoFlow + InfoFlowPreview functions (760 LOC removed). CLAUDE.md "Video post completion signals" section rewritten — Detector D (PostDetailScreen postMessage) is now the sole feed-level video signal; new rule #6 documents the 5:4 thumbnail aspect choice with the operator-rejected alternatives. Test contract flipped from positive (assert markExplored exactly once) to negative (assert ZERO markExplored / videoPlaying / inline iframe).
-evidence: Operator screenshot 2026-05-09 showed gray-circle play button overlay center-blocking the YouTube thumbnail.
+result: pass
+resolution_commit: db864ffa
+evidence: Operator screenshot 2026-05-09 showed gray-circle play button overlay center-blocking the YouTube thumbnail. Operator confirmed pass 2026-05-10 after removal: tap navigates to PostDetailScreen with no inline iframe, no play-icon overlay, no close button. Detector D (PostDetailScreen postMessage) is now the sole feed-level video signal.
 
 ### 8. Video thumbnail aspect — 5:4 landscape crop
 expected: Per operator after rejecting portrait + native + hide-thumbnail options: "G sounds a little better if crop 5:4 (landscape) for landscape thumbnails. Vertical crop WILL DEFINITELY cause poor visual."
-result: RESOLVED across 4 rounds. Round 2 `db864ffa` used `aspectRatio: '5/4'` CSS — produced LETTERBOX. Round 3 `3a02c45d` switched to `paddingTop: '80%'` hack with object-fit: cover — operator reported still seeing black bars. Round 4 `dec6241c` diagnosed the root cause: bars are BAKED INTO YouTube's hqdefault.jpg (4:3 image with 16:9 video letterboxed → ~12.5% black bars). object-fit: cover on a 4:3 source in a 5:4 container only crops ~3% L+R, leaving the vertical bars visible. Per operator instruction (do NOT swap to mqdefault.jpg / 16:9 variant), zoom into the existing thumbnail with `transform: scale(1.34)` — crops ~16.7% each top/bottom edge, past the 12.5% bars with safety margin. Outer container's overflow: hidden clips the overscan.
-evidence: Operator reports 2026-05-10 after rounds 2 + 3 both showed black bars top/bottom. Diagnosis at round 4: youtube.service.ts:210 selects `snippet.thumbnails.high.url` = hqdefault.jpg = 480×360 = 4:3 with baked-in bars. Operator explicit instruction in round 4 retest: "you should CROP the thumbnail, not using different thumbnail from youtube."
+result: pass
+resolution_commit: dec6241c
+evidence: Operator reports 2026-05-10 after rounds 2 + 3 both showed black bars top/bottom. Round 4 diagnosed the root cause: bars are BAKED INTO YouTube's hqdefault.jpg. Operator confirmed pass 2026-05-10 after `dec6241c` shipped (transform: scale(1.34) zooms past the 12.5% bars; outer overflow: hidden clips the overscan).
 
 ### 11. Image post borderRadius mismatch with new card chrome
 expected: AI-generated image posts (FeedPostImage) should have NO own corner crop — let the parent ConceptCard's overflow: hidden + 8px borderRadius clip the image to the card corners (same pattern as the video thumbnail).
-result: RESOLVED across 2 rounds. Round 1 `dec6241c` used `replace_all: true` on the borderRadius line — but only one of two AspectBox branches got the comment-replacement. The aspectPadding branch (line 52, used by image posts via `<FeedPostImage aspectPadding="100%" />`) still had `borderRadius: 'var(--radius-xl)'`. Operator round-2 retest 2026-05-10 confirmed mismatch unresolved. Round 2 `d9f2af55` removed borderRadius from the aspectPadding branch too. Both AspectBox branches keep overflow: hidden as defense-in-depth (prevents absolute-positioned img from escaping its layout box during measurement). New regression test `tests/components/FeedPostImage.no-self-radius.test.mjs` locks NO borderRadius anywhere + overflow: hidden present on both branches.
-evidence: Operator screenshot 2026-05-10 round 2 retest showed image (library scene) inside card with visible card-background gradient between the image's rounded corners and the card's tighter corners. Operator clarifying instruction: "we should not add this corner crop for images in post faces, just let the post face container crop it like the way thumbnail in video post is cropped."
+result: pass
+resolution_commit: d9f2af55
+evidence: Operator screenshot 2026-05-10 round 2 retest showed image (library scene) inside card with visible card-background gradient between the image's rounded corners and the card's tighter corners. Operator confirmed pass 2026-05-10 after `d9f2af55` shipped (caught the missed aspectPadding branch). New regression test `FeedPostImage.no-self-radius.test.mjs` locks NO borderRadius anywhere + overflow: hidden present on both branches.
 
 ### 10. Buffer queue + per-swipe pop bumped for masonry consumption
 expected: Per operator 2026-05-10: "Should enlarge buffer queue to 24 and each swipe for more should pop 8 posts." Masonry half-width tiles consume twice as fast as the prior single-column InlineInfoFlow.
-result: RESOLVED — fix committed at `3a02c45d`. REFILL_THRESHOLD 16 → 24 (post-queue.service.ts), walker batchSize 16 → 24 (concept-feed.service.ts:1275), generateMorePosts default count 4 → 8, loadNextBatch default limit 4 → 8, HomeScreen swipe call site passes 8 explicitly. MAX_QUEUE_SIZE held at 32 — increasing further risks longer initial load waits without proportional UX gain. CLAUDE.md "Concept Feed Generation Pipeline" numeric defaults updated with new constants + dated rationale.
+result: pass
+resolution_commit: 3a02c45d
+evidence: Operator confirmed pass 2026-05-10 — swipe-for-more pops 8 (was 4), refill threshold 24 (was 16), walker batchSize 24, MAX_QUEUE_SIZE held at 32. CLAUDE.md "Concept Feed Generation Pipeline" numeric defaults updated.
 
 ### 9. Suggestion-card nested padding
 expected: SuggestionCard topic pills (multi-line topic strings) wrapped to 4+ lines because of nested padding (16px outer card pad + 16px button pad = 32px lost per side at half-width). Should denest.
-result: RESOLVED in `afe42922`. Outer card padding 16 → 10, removed minHeight: 280px (let masonry compute), TopicButton padding 0/16 → 6/10, fontSize 14 → 13, removed ChevronRight icon (saves 20px), Sparkles 16 → 13, header gap/marginBottom 8/16 → 6/8.
-evidence: Operator screenshot 2026-05-09 showed "PLA vs PETG / thermal / resistance / comparison" wrapping to 4 lines per topic pill.
+result: pass
+resolution_commits: [afe42922, b2626cd4]
+evidence: Operator screenshot 2026-05-09 showed "PLA vs PETG / thermal / resistance / comparison" wrapping to 4 lines per topic pill. Operator confirmed pass 2026-05-10 after `afe42922` (denest) + `b2626cd4` (font shrink to 11px) shipped.
+
+### 12. Column balance with per-style height estimates
+expected: After per-style height estimates land (commit `32ec3d65`), the masonry columns visually balance — no more 4-tile-tall vs 1-tile-tall skew. STYLE_HEIGHT_ESTIMATES table (news 225 / image 280 / video 250 / text-art 290 / suggestion 180 / connection 280 / milestone 240 / default 260) feeds Pass 1's comparator instead of a flat 280 estimate, so 60-110px style differences are visible from the very first render.
+result: pass
+resolution_commit: 32ec3d65
+evidence: Operator screenshot 2026-05-10 (UAT-12 round 1) showed left column with 4 visible tiles vs right column with 1 visible tile. Operator confirmed pass 2026-05-10 after `32ec3d65` shipped (per-style estimates feed Pass 1 comparator). Solution C (ResizeObserver feedback cache) held in reserve if rebalancing still skews after a session of usage.
+
+## Follow-up notes (NOT Phase 42 blockers — separate visual-polish work)
+
+### F-1 — VineBloomCard vine illustration is ugly
+captured: 2026-05-10 during UAT-1 retest
+operator_quote: "the vine is super ugly, need to fine tune its appearance"
+status: open
+phase 42 surface: end-to-end render passes (vine appears + CTAs work) — UAT-1 contract met
+recommendation: Schedule a separate UI polish phase for VineBloomCard illustration. Likely path: replace SVG / commission proper vine illustration / use a richer animated SVG with bloom + leaves. Not in scope for Phase 42's layout deliverable.
 
 ### REGRESSION TRIAGE — text-art / image distribution skewed
 status: open (NOT a Phase 42 regression — separate investigation queued)
@@ -77,15 +112,33 @@ suggested next step: `/gsd:debug "feed dominated by news+video, text-art absent 
 
 ## Summary
 
-total: 11
-passed: 0
-issues: 7
-pending: 4
-skipped: 0
+total: 12
+passed: 10
+issues: 1
+pending: 0
+skipped: 1
 blocked: 0
-note: All 7 issues are RESOLVED with code commits awaiting operator visual retest. Once UAT-1..4 are confirmed (currently still pending behavioral verification independent of layout), phase verification can flip to `passed`.
+note: 10 passes, 1 skipped (UAT-3 Reduce Motion — operator unable to toggle OS setting at retest time; source-reading invariant test covers structural side), 1 issue (UAT-4 Heal CTA renders unfiltered/mock-looking cards). Follow-up F-1 logged: vine illustration polish (separate phase).
 
 ## Gaps
+
+### Gap 2 — Heal CTA renders unfiltered/mock-looking cards instead of anchor-specific QAs
+status: open
+test: UAT-4
+phase_origin: 42 (Wave 4, Plan 42-04 VineBloomCard) OR 38-04 (Bug B mock-seed removal — may be incomplete)
+operator_quote: "I clicked Heal 'Feynman Technique' and I am navigated to review page correctly, but I see mock flashcards like 'What is dialectical materialism' and 'Quantum entanglement'"
+severity: major
+artifacts: [app/src/components/VineBloomCard.tsx, app/src/screens/ReviewScreen.tsx, app/src/services/trellisActions.service.ts, app/src/services/flashcard.service.ts]
+missing: |
+  Anchor-aware filtering on the Heal flow. Either the navigate() state payload
+  is not constructed correctly in VineBloomCard, or ReviewScreen does not
+  consume it to filter the rendered card list. Possibly compounded by a
+  surviving mock-seed leak that 38-04 commit `8829a68c` didn't catch.
+investigation_paths:
+  - Trace VineBloomCard's onHeal handler — does it call navigate('/review', { state: { anchorId, qaIds, title } })?
+  - Trace ReviewScreen — does it read location.state and filter cards by anchorId/qaIds?
+  - Check flashcard.service.ts and any seed paths for residual hardcoded "dialectical materialism" / "quantum entanglement" content
+  - Check whether the cards shown are real cards from elsewhere in the user's graph (mock-looking but real) or actual mock seeds
 
 ### Gap 1 — Tiles all assigned to column 0 (MASONRY-01 broken at runtime)
 status: resolved
