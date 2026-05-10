@@ -62,8 +62,20 @@
       "podcastNotGenerated": "未生成",
       "podcastStatusPending": "保留中"
     },
-    "toast": {
-      "noMorePosts": "現在これ以上投稿を生成できません"
+    "celebration": {
+      "vineBloomTitle": "つるが満開",
+      "suggestionsHeader": "明日のつる手入れ",
+      "healAction": "「{{anchor}}」を癒す",
+      "replantAction": "「{{anchor}}」を植え直す",
+      "healBadge": "枯れかけ",
+      "replantBadge": "枯死",
+      "fallbackHealthy": "あなたのつるは健やかです。",
+      "fallbackReviewCount": "明日、{{count}} 個のアンカーが復習期限を迎えます。",
+      "fallbackReviewCount_other": "明日、{{count}} 個のアンカーが復習期限を迎えます。",
+      "fallbackReviewCountZero": "明日また新しい概念をチェックしてください。",
+      "openPlanner": "プランナーを開く",
+      "actionRowAria": "{{action}} {{anchor}} — 操作を開く",
+      "anchorFallback": "この概念"
     },
     "feed": {
       "creditToast": "+1 クレジット獲得!",

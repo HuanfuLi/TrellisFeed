@@ -62,8 +62,20 @@
       "podcastNotGenerated": "Aún no generado",
       "podcastStatusPending": "pendiente"
     },
-    "toast": {
-      "noMorePosts": "No hay más publicaciones por ahora"
+    "celebration": {
+      "vineBloomTitle": "Vid en flor",
+      "suggestionsHeader": "Cuidado de la vid de mañana",
+      "healAction": "Sanar '{{anchor}}'",
+      "replantAction": "Replantar '{{anchor}}'",
+      "healBadge": "marchitándose",
+      "replantBadge": "muerto",
+      "fallbackHealthy": "Tu vid está totalmente sana.",
+      "fallbackReviewCount": "{{count}} ancla estará lista para revisar mañana.",
+      "fallbackReviewCount_other": "{{count}} anclas estarán listas para revisar mañana.",
+      "fallbackReviewCountZero": "Vuelve mañana a por nuevos conceptos.",
+      "openPlanner": "Abrir Planner",
+      "actionRowAria": "{{action}} {{anchor}} — abre acción",
+      "anchorFallback": "este concepto"
     },
     "feed": {
       "creditToast": "+1 credito ganado!",

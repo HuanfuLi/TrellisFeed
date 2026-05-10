@@ -62,8 +62,20 @@
       "podcastNotGenerated": "尚未生成",
       "podcastStatusPending": "待定"
     },
-    "toast": {
-      "noMorePosts": "暂时无法生成更多内容"
+    "celebration": {
+      "vineBloomTitle": "藤蔓盛开",
+      "suggestionsHeader": "明日的藤蔓养护",
+      "healAction": "治愈「{{anchor}}」",
+      "replantAction": "重植「{{anchor}}」",
+      "healBadge": "枯萎中",
+      "replantBadge": "已枯",
+      "fallbackHealthy": "你的藤蔓十分健康。",
+      "fallbackReviewCount": "明天将有 {{count}} 个锚点到期复习。",
+      "fallbackReviewCount_other": "明天将有 {{count}} 个锚点到期复习。",
+      "fallbackReviewCountZero": "明天再回来探索新概念。",
+      "openPlanner": "打开 Planner",
+      "actionRowAria": "{{action}} {{anchor}} — 打开操作",
+      "anchorFallback": "这个概念"
     },
     "feed": {
       "creditToast": "+1 积分已获得!",
