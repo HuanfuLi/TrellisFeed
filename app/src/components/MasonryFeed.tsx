@@ -1,6 +1,8 @@
 import { useContext, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { MotionConfig, motion, type Variants } from 'framer-motion';
+import { Heart, Sprout } from 'lucide-react';
 import {
   MemoizedConceptCard,
   ConnectionCard,
@@ -13,16 +15,10 @@ import {
 // referenced './SwipeTabContainer' as the import source which is the consumer,
 // not the declarer; corrected here so tsc -b --noEmit stays green.
 import { SwipeTabContext } from '../lib/swipe-tab-context';
+import { useTrellisData } from '../state/useTrellisData';
+import { useQuestions } from '../state/useQuestions';
+import { trellisActionsService } from '../services/trellis-actions.service';
 import type { DailyPost } from '../types';
-
-// VineBloomCard placeholder — actual implementation lands in plan 42-04.
-// For 42-01, this stub renders nothing; Plan 42-04 replaces it with the real
-// celebration card so the celebration test can assert it appears at this position
-// when allExplored becomes true. The render gate (`{allExplored && <VineBloomCard />}`)
-// IS wired here so Plan 42-04 only swaps the function body.
-function VineBloomCard() {
-  return null; // placeholder — replaced in plan 42-04
-}
 
 // D-05 verbatim from UI-SPEC.md § Animation Contract.
 // Two states (hidden + visible) keep the entrance focused on opacity + small Y-offset
@@ -32,6 +28,226 @@ const tileEnterVariants: Variants = {
   hidden: { opacity: 0, y: 8 },
   visible: { opacity: 1, y: 0 },
 };
+
+// VineBloomCard animation variants (UI-SPEC § Animation Contract — verbatim)
+const celebrationVariants: Variants = {
+  hidden: { opacity: 0, y: 12 },
+  visible: { opacity: 1, y: 0 },
+};
+const bloomPathVariants: Variants = {
+  hidden: { pathLength: 0, opacity: 0 },
+  visible: { pathLength: 1, opacity: 1 },
+};
+
+// VineBloomCard — full implementation per Plan 42-04.
+// Renders the celebration affordance when HomeScreen detects allExplored=true.
+// Consumes useTrellisData() directly (RESEARCH.md § 1 path b — NO new
+// trellisActionsService.getCelebrationSuggestions() getter) and mirrors
+// PlannerScreen.tsx:46-47's leafState filter pattern. Uses
+// t('home.celebration.anchorFallback') as the i18n-safe nullish fallback for
+// node.anchor.title ?? node.anchor.content (Warning 6 — replaces hardcoded
+// English literal 'anchor' to preserve zh/es/ja parity).
+function VineBloomCard() {
+  const navigate = useNavigate();
+  const { t } = useTranslation();
+  const { layout } = useTrellisData();
+  const { questions } = useQuestions();
+
+  // Suggestion derivation — mirrors PlannerScreen.tsx:46-47 (RESEARCH.md § 1
+  // path b: hook-level reuse, no service surface change).
+  const deadNodes = layout.nodes.filter((n) => n.leafState === 'dead');
+  const dyingNodes = layout.nodes.filter(
+    (n) => n.leafState === 'dying' || n.leafState === 'falling',
+  );
+
+  // Take up to 2 (priority: 1 dead + 1 dying; fall back to 2 of either).
+  const suggestions: Array<{ kind: 'heal' | 'replant'; node: typeof deadNodes[number] }> = [];
+  if (deadNodes[0]) suggestions.push({ kind: 'replant', node: deadNodes[0] });
+  if (dyingNodes[0]) suggestions.push({ kind: 'heal', node: dyingNodes[0] });
+  if (suggestions.length < 2 && deadNodes[1]) suggestions.push({ kind: 'replant', node: deadNodes[1] });
+  if (suggestions.length < 2 && dyingNodes[1]) suggestions.push({ kind: 'heal', node: dyingNodes[1] });
+
+  // Fallback prose data.
+  // Note: A more precise "due tomorrow" filter would compare q.reviewSchedule.nextReviewDate
+  // to addDays(today(), 1). For v1, anchor count is a reasonable proxy that matches the
+  // "your vine is fully healthy" framing. Refine in a follow-up if UAT requests precision.
+  const dueTomorrowCount = questions.filter((q) => q.isAnchorNode).length;
+
+  const handleHeal = (node: typeof dyingNodes[number]) => {
+    // Warning 6 fix: use i18n key for nullish fallback (was hardcoded English
+    // 'anchor' — broke zh/es/ja parity).
+    const anchorName = node.anchor.title ?? node.anchor.content ?? t('home.celebration.anchorFallback');
+    const qaChildIds = node.qaChildren.map((q) => q.id);
+    const result = trellisActionsService.heal(node.anchor.id, anchorName, qaChildIds);
+    navigate(result.navigateTo, { state: result.state });
+  };
+
+  const handleReplant = (node: typeof deadNodes[number]) => {
+    const qaChildIds = node.qaChildren.map((q) => q.id);
+    const result = trellisActionsService.replant(node.anchor.id, node.anchor, qaChildIds);
+    navigate(result.navigateTo, { state: result.state });
+  };
+
+  return (
+    <motion.div
+      variants={celebrationVariants}
+      initial="hidden"
+      animate="visible"
+      transition={{ duration: 0.22, ease: [0.25, 0.1, 0.25, 1] }}
+      style={{
+        background: 'var(--card)',
+        borderRadius: 'var(--radius-xl)',
+        boxShadow: 'var(--shadow-2)',
+        padding: '24px 20px',
+      }}
+    >
+      {/* Vine SVG — verbatim from UI-SPEC § Vine SVG Specification */}
+      <svg
+        width="88"
+        height="88"
+        viewBox="0 0 88 88"
+        fill="none"
+        style={{ display: 'block', margin: '0 auto 16px' }}
+      >
+        <line x1="44" y1="76" x2="44" y2="32" stroke="var(--primary-40)" strokeWidth="2" strokeLinecap="round" />
+        <ellipse cx="32" cy="56" rx="10" ry="6" stroke="var(--primary-40)" strokeWidth="2" fill="none" transform="rotate(-25 32 56)" />
+        <ellipse cx="56" cy="56" rx="10" ry="6" stroke="var(--primary-40)" strokeWidth="2" fill="none" transform="rotate(25 56 56)" />
+        <ellipse cx="34" cy="42" rx="8" ry="5" stroke="var(--primary-40)" strokeWidth="2" fill="none" transform="rotate(-30 34 42)" />
+        <ellipse cx="54" cy="42" rx="8" ry="5" stroke="var(--primary-40)" strokeWidth="2" fill="none" transform="rotate(30 54 42)" />
+        <motion.circle
+          cx="44"
+          cy="22"
+          r="10"
+          fill="var(--node-peach)"
+          stroke="var(--primary-40)"
+          strokeWidth="2"
+          variants={bloomPathVariants}
+          initial="hidden"
+          animate="visible"
+          transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1], delay: 0.15 }}
+        />
+        <circle cx="44" cy="22" r="3" fill="var(--primary-40)" />
+      </svg>
+
+      {/* Title */}
+      <p
+        style={{
+          fontSize: '1.25rem',
+          fontWeight: 700,
+          color: 'var(--primary-40)',
+          textAlign: 'center',
+          marginBottom: 8,
+          lineHeight: 1.3,
+        }}
+      >
+        {t('home.celebration.vineBloomTitle')}
+      </p>
+
+      {/* Suggestions OR fallback prose */}
+      {suggestions.length > 0 ? (
+        <>
+          <p style={{ fontSize: '0.95rem', color: 'var(--foreground)', marginBottom: 12 }}>
+            {t('home.celebration.suggestionsHeader')}
+          </p>
+          {suggestions.map((s, idx) => {
+            const isLast = idx === suggestions.length - 1;
+            const Icon = s.kind === 'heal' ? Heart : Sprout;
+            const iconColor = s.kind === 'heal' ? '#66BB6A' : '#4CAF50'; // PlannerScreen convention
+            const labelKey = s.kind === 'heal' ? 'home.celebration.healAction' : 'home.celebration.replantAction';
+            const badgeKey = s.kind === 'heal' ? 'home.celebration.healBadge' : 'home.celebration.replantBadge';
+            // Warning 6 fix: i18n-safe nullish fallback (was hardcoded English 'anchor').
+            const anchorName = s.node.anchor.title ?? s.node.anchor.content ?? t('home.celebration.anchorFallback');
+            return (
+              <button
+                key={s.node.anchor.id}
+                className="active-squish"
+                onClick={() => (s.kind === 'heal' ? handleHeal(s.node) : handleReplant(s.node))}
+                aria-label={t('home.celebration.actionRowAria', {
+                  action: t(labelKey, { anchor: anchorName }),
+                  anchor: anchorName,
+                })}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  width: '100%',
+                  minHeight: 44,
+                  padding: '12px 0',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  borderBottom: isLast ? 'none' : '1px solid var(--border)',
+                }}
+              >
+                <Icon size={16} color={iconColor} />
+                <span
+                  style={{
+                    fontSize: '0.9rem',
+                    flex: 1,
+                    textAlign: 'left',
+                    color: 'var(--foreground)',
+                  }}
+                >
+                  {t(labelKey, { anchor: anchorName })}
+                </span>
+                <span style={{ fontSize: '0.8rem', color: 'var(--muted-foreground)' }}>
+                  {t(badgeKey)}
+                </span>
+              </button>
+            );
+          })}
+        </>
+      ) : (
+        <>
+          <p
+            style={{
+              fontSize: '0.95rem',
+              color: 'var(--foreground)',
+              textAlign: 'center',
+              marginBottom: 4,
+            }}
+          >
+            {t('home.celebration.fallbackHealthy')}
+          </p>
+          <p
+            style={{
+              fontSize: '0.95rem',
+              color: 'var(--muted-foreground)',
+              textAlign: 'center',
+              maxWidth: 280,
+              margin: '0 auto',
+            }}
+          >
+            {dueTomorrowCount > 0
+              ? t('home.celebration.fallbackReviewCount', { count: dueTomorrowCount })
+              : t('home.celebration.fallbackReviewCountZero')}
+          </p>
+        </>
+      )}
+
+      {/* Open Planner CTA */}
+      <button
+        onClick={() => navigate('/planner')}
+        className="active-squish"
+        style={{
+          display: 'block',
+          margin: '16px auto 0',
+          minHeight: 44,
+          padding: '12px 0',
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          fontSize: '0.9rem',
+          fontWeight: 700,
+          color: 'var(--primary-40)',
+          textDecoration: 'underline',
+        }}
+      >
+        {t('home.celebration.openPlanner')}
+      </button>
+    </motion.div>
+  );
+}
 
 interface MasonryFeedProps {
   items: InfoFlowItem[];
