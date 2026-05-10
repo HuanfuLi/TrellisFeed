@@ -296,7 +296,14 @@ export function ReviewScreen() {
 
   // Priority: anchor review > cluster review > move review > all items
   const filteredItems = anchorFilteredItems ?? clusterFilteredItems ?? moveFilteredItems;
-  const isFiltered = Boolean(filteredItems && filteredItems.length > 0);
+  // Phase 42 Gap 2 / UAT-4 fix: distinguish "no filter requested" (filteredItems === null)
+  // from "filter requested but zero matches" (filteredItems.length === 0). Previously this
+  // line gated isFiltered on a length-greater-than-zero check, which collapsed the
+  // zero-match case to "no filter" and dumped the user into today's full SM-2 due queue.
+  // The Heal CTA on VineBloomCard surfaced this because heal-from-celebration commonly
+  // targets anchors whose QAs have no LLM-extracted flashcards (no chat sessions
+  // referencing them). See .planning/debug/heal-review-shows-mock-cards.md.
+  const isFiltered = filteredItems !== null;
 
   const [reviewed, setReviewed] = useState(0);
   const [totalRatings, setTotalRatings] = useState(0);
@@ -511,6 +518,80 @@ export function ReviewScreen() {
     return (
       <div style={{ padding: '24px 16px', maxWidth: '448px', margin: '0 auto', textAlign: 'center' }}>
         <p style={{ color: 'var(--muted-foreground)' }}>{t('review.loading')}</p>
+      </div>
+    );
+  }
+
+  // ── Filter requested but zero matches ───────────────────────────────────────
+  // Phase 42 Gap 2 / UAT-4 — anchor-scoped empty state.
+  // When VineBloomCard's Heal CTA (or any other anchor/cluster/move filter
+  // caller) navigates to /review and the requested filter yields zero
+  // flashcards, render an explicit anchor-scoped empty state. This avoids the
+  // pre-fix fail-open behavior where the user landed on today's full SM-2
+  // queue and saw cards from unrelated anchors. Only fire when the user has
+  // not reviewed anything yet (reviewed === 0) — once they've completed at
+  // least one card, the standard "All Done" celebration view takes over.
+  if (isFiltered && reviewItems.length === 0 && reviewed === 0) {
+    const filterTitle = anchorReview?.title ?? clusterReview?.title ?? 'this concept';
+    return (
+      <div style={{ paddingTop: '24px', paddingLeft: '16px', paddingRight: '16px', paddingBottom: 'calc(24px + var(--safe-area-bottom))', maxWidth: '448px', margin: '0 auto' }}>
+        <button
+          onClick={() => navigate(-1)}
+          style={{ background: 'none', border: 'none', padding: '12px', marginLeft: '-12px', color: 'var(--primary-40)', display: 'flex', alignItems: 'center', marginBottom: '24px' }}
+        >
+          <ArrowLeft size={20} />
+        </button>
+        <div
+          style={{
+            textAlign: 'center',
+            padding: '48px 24px',
+            backgroundColor: 'var(--card)',
+            borderRadius: 'var(--radius-xl)',
+            boxShadow: 'var(--shadow-2)',
+            marginBottom: '16px',
+          }}
+        >
+          <p style={{ fontSize: '3rem', marginBottom: '16px' }}>🌱</p>
+          <h2 style={{ marginBottom: '8px' }}>{t('review.done.anchorEmptyHeading')}</h2>
+          <p style={{ color: 'var(--muted-foreground)', marginBottom: '24px' }}>
+            {t('review.done.anchorEmptyBody', { title: filterTitle })}
+          </p>
+        </div>
+        {allCards.length > 0 && (
+          <button
+            onClick={() => setShowLibrary(true)}
+            style={{
+              width: '100%',
+              padding: '16px',
+              borderRadius: 'var(--radius-xl)',
+              backgroundColor: 'var(--primary-40)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '10px',
+              color: 'white',
+              fontWeight: 600,
+              fontSize: '0.9375rem',
+              border: 'none',
+              cursor: 'pointer',
+            }}
+          >
+            <BookOpen size={18} />
+            {t('review.done.allFlashcardsCta')}
+            <span
+              style={{
+                padding: '2px 8px',
+                borderRadius: '999px',
+                backgroundColor: 'rgba(255, 255, 255, 0.25)',
+                color: 'white',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+              }}
+            >
+              {allCards.length}
+            </span>
+          </button>
+        )}
       </div>
     );
   }
