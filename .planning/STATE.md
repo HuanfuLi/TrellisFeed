@@ -3,29 +3,29 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: gap closure)
 status: executing
-stopped_at: "Phase 42 complete — ready for verification"
-last_updated: "2026-05-10T01:50:00.000Z"
+stopped_at: Completed 42-08-heal-review-empty-anchor-fix-PLAN.md
+last_updated: "2026-05-10T06:20:21.538Z"
 last_activity: 2026-05-10
 progress:
   total_phases: 21
   completed_phases: 0
-  total_plans: 7
-  completed_plans: 7
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # Project State: v1.5 ROADMAP CREATED — 2026-05-08
 
 ## Current Position
 
-Phase: 42 (masonry-feed-layout) — COMPLETE
-Plan: 7/7 complete
-Status: Phase complete — ready for verification
+Phase: 42 (masonry-feed-layout) — EXECUTING
+Plan: 8 of 8 (gap-closure 42-08 just landed)
+Status: Ready for verification
 Last activity: 2026-05-10
 
 ## Progress
 
-**Phases:** 2 / 9 complete (37 ✓; 38 ✓; 39 ready for verification; 40 ready for verification; 41 ready for verification; 42 ready for verification 7/7 plans; 43-45 pending)
-**Plans:** 7 / 7 complete in Phase 42 (42-01 masonry-feed-skeleton ✓; 42-02 homescreen-swap ✓; 42-03 card-slide-in-removal ✓; 42-04 vine-bloom-card-and-i18n ✓; 42-05 source-reading-invariant-tests ✓; 42-06 roadmap-requirements-wording-correction ✓; 42-07 phase-close-out ✓); 2 / 2 complete in Phase 41 (41-01 source-diversity-wiring ✓; 41-02 essay-depth-citation-rendering ✓); 1 / 1 complete in Phase 40 (40-01 source-diversity-service ✓); 1 / 1 complete in Phase 39 (39-01 engagement-service ✓)
+**Phases:** 2 / 9 complete (37 ✓; 38 ✓; 39 ready for verification; 40 ready for verification; 41 ready for verification; 42 ready for verification 8/8 plans; 43-45 pending)
+**Plans:** 8 / 8 complete in Phase 42 (42-01 masonry-feed-skeleton ✓; 42-02 homescreen-swap ✓; 42-03 card-slide-in-removal ✓; 42-04 vine-bloom-card-and-i18n ✓; 42-05 source-reading-invariant-tests ✓; 42-06 roadmap-requirements-wording-correction ✓; 42-07 phase-close-out ✓; 42-08 heal-review-empty-anchor-fix ✓ [gap-closure]); 2 / 2 complete in Phase 41 (41-01 source-diversity-wiring ✓; 41-02 essay-depth-citation-rendering ✓); 1 / 1 complete in Phase 40 (40-01 source-diversity-service ✓); 1 / 1 complete in Phase 39 (39-01 engagement-service ✓)
 
 ```
 [██████████████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 42%
@@ -107,6 +107,17 @@ All v1.4 blockers resolved at close. No open blockers.
 - **Strict file-staging discipline** (lesson from Plan 38-02 close decision on parallelism artifact): explicit `git add app/src/index.css` (Task 1) and `git add app/src/components/InfoFlow.tsx` (Task 2) only — never `git add -A` or `.`. Sibling-agent in-progress writes (MasonryFeed.tsx, HomeScreen.tsx, .DS_Store, Android resource files) NOT captured by either commit.
 - **Cross-tree negative grep is the load-bearing acceptance check.** `grep -rn "card-slide-in" app/src/` exits 1 (no matches) across the entire src tree (was 4 occurrences — 1 in index.css + 3 in InfoFlow.tsx). D-06 satisfied (one animation system, not two; framer-motion at the MasonryFeed wrapper now owns ALL feed-entrance animation). Plan 42-05 will add `tests/lib/no-card-slide-in.test.mjs` to lock this against future drift.
 - **Plan 42-03 close-out: 2 atomic per-task commits + close-out commit.** No new tests added (this plan is pure-deletion; Plan 42-05 will add the source-reading invariant test). Test baseline preserved exactly — `app/tests/` had zero references to `card-slide-in` pre-deletion (verified via `grep -rn "card-slide-in" app/tests/` returning empty), so no test updates were required. Total deviations: 1 auto-fixed (Rule 1 — TS6133 on now-unused destructured local).
+
+## Last decisions (Plan 42-08 close, 2026-05-10)
+
+- **Phase 42 UAT-4 ("Heal CTA shows mock flashcards") closed at the consumer/ReviewScreen boundary, NOT at any caller site.** Operator's verbatim report: "I clicked Heal 'Feynman Technique' and I am navigated to review page correctly, but I see mock flashcards like 'What is dialectical materialism' and 'Quantum entanglement'." Cards were never mock — they were real cards from other anchors that bled through the fail-open `isFiltered = Boolean(filteredItems && filteredItems.length > 0)` collapse at `ReviewScreen.tsx:299`. The Boolean form treated "filter requested with zero matches" identically to "no filter requested" and silently fell back to today's full SM-2 due queue.
+- **Two-state isFiltered semantics: `filteredItems !== null`.** New shape distinguishes "no filter requested" (`null`) from "filter requested but zero matches" (empty array). Same fix simultaneously closes the latent bug at PlannerScreen heal/replant call path WITHOUT touching PlannerScreen.tsx — both flows go through ReviewScreen so the consumer-side patch is the structural closure point. Per gap_summary scope-discipline, did NOT touch PlannerScreen, VineBloomCard, MasonryFeed, trellis-actions.service, or flashcard.service.
+- **New anchor-scoped empty-state branch placed BEFORE the existing `if (done || reviewItems.length === 0)` block**, gated by `isFiltered && reviewItems.length === 0 && reviewed === 0`. The reviewed === 0 sub-guard preserves the post-completion celebration view for users who finish a small filtered queue. Renders 🌱 (sprout, semantically distinct from existing 🎉) + `t('review.done.anchorEmptyHeading')` + `t('review.done.anchorEmptyBody', { title })` with the anchor name interpolated from nav state.
+- **Defensive `'this concept'` literal fallback for filterTitle kept as documented never-fires path.** By definition `isFiltered === true` requires at least one of anchor/cluster/move filter to be non-null, and anchor + cluster filters carry titles. Per plan instruction, NOT localized — adding a new i18n key for an unreachable fallback would inflate bundle size for no user-visible benefit.
+- **i18n: 2 new keys (anchorEmptyHeading + anchorEmptyBody with `{{title}}` interpolation) landed in all 4 bundles in the same PR per CLAUDE.md i18n workflow rule.** EN canonical: "No flashcards yet" / "No flashcards yet for {{title}} — start a chat about it to generate cards." Translations authored directly (not via Sonnet subagent) — 2-key delta is short enough that a subagent round-trip exceeds value; inline drafts vetted against i18n workflow rules (proper-noun preservation N/A; placeholder verbatim; no length padding for symmetry).
+- **Auto-fix Rule 1 in Task 2: comment de-collision against negative-grep test (proactive docstring discipline).** Initial Edit 1 explanatory comment block above line 299 quoted the pre-fix `Boolean(filteredItems && filteredItems.length > 0)` form verbatim, making Task 1's `!/Boolean\s*\(\s*filteredItems\s*&&\s*filteredItems\.length\s*>\s*0\s*\)/.test(source)` regex false-positive on the docstring. Rephrased to paraphrase the pre-fix form ("this line gated isFiltered on a length-greater-than-zero check"). Same lesson class as Plan 39-01 (engagement-service docstring) and Plan 40-01 (source-diversity docstring de-collision); pattern is now well-established as Phase 42+ recurring discipline.
+- **Plan 42-08 close: 3 atomic per-task commits + 1 metadata commit, all `--no-verify` per parallel-execution protocol.** RED test `ec5f8fe1` → fix `f86d273c` → i18n `406974f5`. Test baseline at close: +8 new passing tests (8/8 in `ReviewScreen.anchor-empty-state.test.mjs`); bundle-parity.test.mjs + missing-key.test.mjs + tsc -b --noEmit all green. MASONRY-02 was already marked complete by sibling plan 42-04 wire — Plan 42-08 ships the gap-closure structural fix only (no new requirement IDs added; existing requirement coverage preserved).
+- **Phase 42 progress: 8 / 8 plans complete.** Phase 42 (masonry-feed-layout) ready for re-verification with the UAT-4 gap closed.
 
 ## Last decisions (Plan 42-05 close, 2026-05-10)
 
@@ -230,7 +241,7 @@ All v1.4 blockers resolved at close. No open blockers.
 
 ## Session Continuity
 
-**Stopped at:** Completed 42-05-source-reading-invariant-tests-PLAN.md
+**Stopped at:** Completed 42-08-heal-review-empty-anchor-fix-PLAN.md
 **Next action:** `/gsd:verify-work 42 04` (verifier sweep over Plan 42-04 must-haves) → after Wave 2 verification, Plan 42-05 (source-reading invariant tests) → Plan 42-07 (phase close-out).
 
 **Files written this session (Plan 42-04 close):**

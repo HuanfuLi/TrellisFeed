@@ -1063,7 +1063,7 @@ _Updated: 2026-05-07 — Phase 36-12 EXECUTED: Promise-mutex refill closes round
 - [x] **Phase 39: Engagement Service + Walker Extension** — `engagement.service.ts` leaf module (save/dismiss/like, cross-day localStorage); `walkDerivedList` gains optional `dismissedIds` param; `ANCHOR_DISMISSED` event added to AppEvent union (completed 2026-05-09)
 - [x] **Phase 40: Source Diversity Leaf Module** — `source-diversity.ts` session-scoped leaf (filterForDiversity, recordServedDomain, scoreSource); bundled domain-tier allowlist (~200 entries); synchronous O(N) scan for mutex safety (completed 2026-05-09)
 - [x] **Phase 41: Pipeline Wiring + Essay Depth** — Wire engagement + diversity into refillQueue; add `EssayOptions.depth: 'standard' | 'deep'` to post-essay.service.ts (350-600w deep variant); raise body-slice cap 2000→4000; multi-snippet grounding + ReactMarkdown citation overrides _(Plan 41-01 + 41-02 complete; Phase 43 unblocked for Deep dive button)_
-- [ ] **Phase 42: Masonry Feed Layout** — `MasonryFeed.tsx` with height-accumulating 2-column split (Pinterest/Rednote-style; tiles never move between columns on append); framer-motion entrance animations on leaf cards; vine-bloom end-of-content celebration card
+- [x] **Phase 42: Masonry Feed Layout** — `MasonryFeed.tsx` with height-accumulating 2-column split (Pinterest/Rednote-style; tiles never move between columns on append); framer-motion entrance animations on leaf cards; vine-bloom end-of-content celebration card (completed 2026-05-10)
 - [ ] **Phase 43: Engagement UI** — Like/save/dismiss action row on tiles via long-press menu; HomeScreen `ANCHOR_DISMISSED` subscription + `[location.pathname]` engagement resync; "Deep dive" button on PostDetailScreen; "N connections" graph-derived social proof micro-label; Force-New-Day handler updated with `engagementService.reset()`
 - [ ] **Phase 44: Dependency Version Sweep** — Capacitor 8.1→8.3, i18next 26.0.5→26.0.10, react-router-dom 7.13→7.15, eslint / typescript-eslint minor bumps; React 19.x minor bump consolidated here
 - [ ] **Phase 45: Code Quality Sweep** — `tsc` strict-mode audit, dead-code sweep, perf profiling pass (first-paint / queue refill / masonry scroll), project-wide TODO/FIXME triage, operator-note bug sweep
@@ -1147,14 +1147,15 @@ _Updated: 2026-05-07 — Phase 36-12 EXECUTED: Promise-mutex refill closes round
   3. Scroll position survives `/home` → `/posts/:id` → back navigation (HomeScreen always-mounted slot preserves `scrollTop` automatically; verified by manual back-nav check + DOM ref assertion)
   4. framer-motion entrance animations apply to leaf `<motion.div>` cards only, not to the scroll container or InfoFlow root (source-reading test enforces this)
   5. When all anchors are explored, feed renders a vine-bloom celebration card with suggested-tomorrow plan in place of the prior empty toast
-**Plans**: 7 plans
+**Plans**: 8 plans
   - [x] 42-01-masonry-feed-skeleton-PLAN.md — MasonryFeed.tsx with height-accumulating split + framer-motion entrance + MotionConfig reduced-motion gate (MASONRY-01)
   - [x] 42-02-homescreen-swap-PLAN.md — InlineInfoFlow → MasonryFeed swap; noMorePosts toast deletion; allExplored locally computed (MASONRY-01 + MASONRY-02)
   - [x] 42-03-card-slide-in-removal-PLAN.md — Delete @keyframes card-slide-in + 3 callsites (D-06)
   - [x] 42-04-vine-bloom-card-and-i18n-PLAN.md — VineBloomCard with useTrellisData consumption + 12 home.celebration.* keys across 4 locales (MASONRY-02)
   - [x] 42-05-source-reading-invariant-tests-PLAN.md — 4 new test files locking 8 UI-SPEC + 1 Pitfall 1 invariants
   - [x] 42-06-roadmap-requirements-wording-correction-PLAN.md — 4 line edits aligning ROADMAP/REQUIREMENTS with D-02 height-accumulating split
-  - [x] 42-07-phase-close-out-PLAN.md — STATE/REQUIREMENTS/ROADMAP/VALIDATION updates + PHASE-SUMMARY (this plan)
+  - [x] 42-07-phase-close-out-PLAN.md — STATE/REQUIREMENTS/ROADMAP/VALIDATION updates + PHASE-SUMMARY
+  - [x] 42-08-heal-review-empty-anchor-fix-PLAN.md — Gap closure (UAT-4 / Gap 2): fix ReviewScreen isFiltered fail-open + anchor-scoped empty state + 4-locale i18n + source-reading regression test (MASONRY-02)
 **UI hint**: yes
 
 ### Phase 43: Engagement UI
@@ -1203,7 +1204,7 @@ _Updated: 2026-05-07 — Phase 36-12 EXECUTED: Promise-mutex refill closes round
 | 39. Engagement Service + Walker Extension | 1/1 | Complete    | 2026-05-09 |
 | 40. Source Diversity Leaf Module | 1/1 | Complete    | 2026-05-09 |
 | 41. Pipeline Wiring + Essay Depth | 2/2 | Complete    | 2026-05-09 |
-| 42. Masonry Feed Layout | 7/7 | Complete    | 2026-05-09 |
+| 42. Masonry Feed Layout | 9/8 | Complete   | 2026-05-10 |
 | 43. Engagement UI | 0/0 | Not started | - |
 | 44. Dependency Version Sweep | 0/0 | Not started | - |
 | 45. Code Quality Sweep | 0/0 | Not started | - |
