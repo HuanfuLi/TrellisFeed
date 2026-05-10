@@ -570,7 +570,7 @@ function conceptCardPropsEqual(
   );
 }
 
-const MemoizedConceptCard = React.memo(ConceptCard, conceptCardPropsEqual);
+export const MemoizedConceptCard = React.memo(ConceptCard, conceptCardPropsEqual);
 
 // Color palette for connection cards — vivid, high-contrast pairs.
 // Each entry: [bg, glowRgba]. No two adjacent colors in the pool are similar.
@@ -607,7 +607,7 @@ interface ConnectionCardProps {
   onOpenConnection: (idA: string, idB: string) => void;
 }
 
-function ConnectionCard({ conceptNounA, conceptNounB, bridgeInsight, questionA, questionB, onOpenConnection }: ConnectionCardProps) {
+export function ConnectionCard({ conceptNounA, conceptNounB, bridgeInsight, questionA, questionB, onOpenConnection }: ConnectionCardProps) {
   const { t } = useTranslation();
   const colors = pickConnectionColors(questionA.id, questionB.id);
 
@@ -697,7 +697,7 @@ const MILESTONE_TEXT: Record<BlindboxItem['type'], string> = {
   trivia: '#ffffff',
 };
 
-function MilestoneCard({ item, isActive }: { item: BlindboxItem; isActive: boolean }) {
+export function MilestoneCard({ item, isActive }: { item: BlindboxItem; isActive: boolean }) {
   return (
     <div
       style={{
