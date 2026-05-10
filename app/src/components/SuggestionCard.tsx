@@ -14,21 +14,21 @@ function TopicButton({ topic, onTap }: { topic: string; onTap: (t: string) => vo
       onPointerLeave={() => setPressed(false)}
       style={{
         width: '100%',
-        minHeight: '40px',
+        minHeight: '36px',
         background: pressed ? 'var(--surface)' : 'var(--surface-variant)',
         borderRadius: '6px',
         border: `1px solid ${pressed ? 'var(--primary-40)' : 'transparent'}`,
         cursor: 'pointer',
         display: 'flex',
         alignItems: 'center',
-        padding: '6px 10px',
+        padding: '5px 8px',
         textAlign: 'left',
         transition: 'background 150ms ease, border-color 150ms ease, transform 150ms ease',
         transform: pressed ? 'scale(0.98)' : 'scale(1)',
       }}
     >
       <span style={{
-        fontSize: '13px',
+        fontSize: '11px',
         fontWeight: 400,
         lineHeight: 1.3,
         color: 'var(--foreground)',
@@ -75,14 +75,16 @@ export function SuggestionCard({ topics }: SuggestionCardProps) {
       <div style={{
         display: 'flex',
         alignItems: 'center',
-        gap: '6px',
-        marginBottom: '8px',
+        gap: '5px',
+        marginBottom: '6px',
       }}>
-        <Sparkles size={13} style={{ color: 'var(--primary-40)' }} />
+        <Sparkles size={11} style={{ color: 'var(--primary-40)' }} />
         <span style={{
-          fontSize: '12px',
+          fontSize: '10px',
           fontWeight: 600,
-          color: 'var(--foreground)',
+          letterSpacing: '0.04em',
+          textTransform: 'uppercase',
+          color: 'var(--muted-foreground)',
         }}>
           {t('home.feed.suggestionTitle')}
         </span>
