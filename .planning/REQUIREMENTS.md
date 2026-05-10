@@ -8,7 +8,7 @@
 
 ### MASONRY — Pinterest-style 2-column feed layout
 
-- [ ] **MASONRY-01** Feed renders as a 2-column masonry layout via height-accumulating JS split (`MasonryFeed.tsx`); cards never split across columns by construction (each tile is rendered atomically inside one column)
+- [x] **MASONRY-01** Feed renders as a 2-column masonry layout via height-accumulating JS split (`MasonryFeed.tsx`); cards never split across columns by construction (each tile is rendered atomically inside one column)
 - [ ] **MASONRY-02** End-of-content state replaces "no more posts" toast with a vine-bloom celebration card and suggested-tomorrow plan when all anchors are explored
 
 ### ENGAGE — Local-first engagement signals
@@ -67,7 +67,7 @@
 
 | Requirement | Phase | Wave | Status |
 |-------------|-------|------|--------|
-| MASONRY-01  | Phase 42 | Wave 3 | Pending |
+| MASONRY-01  | Phase 42 | Wave 3 | ✓ Complete |
 | MASONRY-02  | Phase 42 | Wave 3 | Pending |
 | ENGAGE-01   | Phase 39 | Wave 1 | Pending |
 | ENGAGE-02   | Phase 39 | Wave 1 | Pending |
