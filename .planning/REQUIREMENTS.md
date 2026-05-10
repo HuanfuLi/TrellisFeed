@@ -68,7 +68,7 @@
 | Requirement | Phase | Wave | Status |
 |-------------|-------|------|--------|
 | MASONRY-01  | Phase 42 | Wave 3 | ✓ Complete |
-| MASONRY-02  | Phase 42 | Wave 3 | Pending |
+| MASONRY-02  | Phase 42 | Wave 3 | ✓ Complete |
 | ENGAGE-01   | Phase 39 | Wave 1 | Pending |
 | ENGAGE-02   | Phase 39 | Wave 1 | Pending |
 | ENGAGE-03   | Phase 39 | Wave 1 | Pending |

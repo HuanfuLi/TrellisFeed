@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: gap closure)
 status: executing
-stopped_at: Completed 42-02-homescreen-swap-PLAN.md
-last_updated: "2026-05-10T01:29:38.918Z"
+stopped_at: Completed 42-04-vine-bloom-card-and-i18n-PLAN.md
+last_updated: "2026-05-10T01:33:02.782Z"
 last_activity: 2026-05-10
 progress:
   total_phases: 21
@@ -18,14 +18,14 @@ progress:
 ## Current Position
 
 Phase: 42 (masonry-feed-layout) — EXECUTING
-Plan: 4 of 7
+Plan: 5 of 7
 Status: Ready to execute
 Last activity: 2026-05-10
 
 ## Progress
 
-**Phases:** 2 / 9 complete (37 ✓; 38 ✓; 39 ready for verification; 40 ready for verification; 41 ready for verification 2/2 plans; 42 in flight 3/7 plans; 43-45 pending)
-**Plans:** 3 / 7 complete in Phase 42 (42-01 masonry-feed-skeleton ✓; 42-03 card-slide-in-removal ✓; 42-06 roadmap-requirements-wording-correction ✓; 42-02 / 42-04 / 42-05 / 42-07 pending); 2 / 2 complete in Phase 41 (41-01 source-diversity-wiring ✓; 41-02 essay-depth-citation-rendering ✓); 1 / 1 complete in Phase 40 (40-01 source-diversity-service ✓); 1 / 1 complete in Phase 39 (39-01 engagement-service ✓)
+**Phases:** 2 / 9 complete (37 ✓; 38 ✓; 39 ready for verification; 40 ready for verification; 41 ready for verification 2/2 plans; 42 in flight 4/7 plans; 43-45 pending)
+**Plans:** 4 / 7 complete in Phase 42 (42-01 masonry-feed-skeleton ✓; 42-03 card-slide-in-removal ✓; 42-04 vine-bloom-card-and-i18n ✓; 42-06 roadmap-requirements-wording-correction ✓; 42-02 / 42-05 / 42-07 pending); 2 / 2 complete in Phase 41 (41-01 source-diversity-wiring ✓; 41-02 essay-depth-citation-rendering ✓); 1 / 1 complete in Phase 40 (40-01 source-diversity-service ✓); 1 / 1 complete in Phase 39 (39-01 engagement-service ✓)
 
 ```
 [████████████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 38%
@@ -91,6 +91,15 @@ All v1.4 blockers resolved at close. No open blockers.
 - **Strict file-staging discipline** (lesson from Plan 38-02 close decision on parallelism artifact): explicit `git add app/src/index.css` (Task 1) and `git add app/src/components/InfoFlow.tsx` (Task 2) only — never `git add -A` or `.`. Sibling-agent in-progress writes (MasonryFeed.tsx, HomeScreen.tsx, .DS_Store, Android resource files) NOT captured by either commit.
 - **Cross-tree negative grep is the load-bearing acceptance check.** `grep -rn "card-slide-in" app/src/` exits 1 (no matches) across the entire src tree (was 4 occurrences — 1 in index.css + 3 in InfoFlow.tsx). D-06 satisfied (one animation system, not two; framer-motion at the MasonryFeed wrapper now owns ALL feed-entrance animation). Plan 42-05 will add `tests/lib/no-card-slide-in.test.mjs` to lock this against future drift.
 - **Plan 42-03 close-out: 2 atomic per-task commits + close-out commit.** No new tests added (this plan is pure-deletion; Plan 42-05 will add the source-reading invariant test). Test baseline preserved exactly — `app/tests/` had zero references to `card-slide-in` pre-deletion (verified via `grep -rn "card-slide-in" app/tests/` returning empty), so no test updates were required. Total deviations: 1 auto-fixed (Rule 1 — TS6133 on now-unused destructured local).
+
+## Last decisions (Plan 42-04 close, 2026-05-09)
+
+- **Hook-level data consumption over service surface expansion** (RESEARCH.md § 1 path b). VineBloomCard derives heal/replant suggestions inline via `useTrellisData()` + `layout.nodes.filter(n => n.leafState === 'dead' | 'dying' | 'falling')` — mirrors `PlannerScreen.tsx:46-47` verbatim. NO new `trellisActionsService.getCelebrationSuggestions()` getter; `git diff app/src/services/trellis-actions.service.ts` shows zero changes. Counterweight test in plan 42-05 will lock this invariant for future drift.
+- **Warning 6 fix landed: `t('home.celebration.anchorFallback')` instead of hardcoded English literal `'anchor'` for nullish-safe fallback.** Used at TWO call sites in VineBloomCard (handleHeal closure + map row anchorName const). Locale-specific calm gloss values: en `this concept`, zh `这个概念`, es `este concepto`, ja `この概念` — none leak the implementation noun ('anchor'/'锚点'/'ancla'/'アンカー'). Acceptance grep `grep -cE "\\?\\?\\s*'anchor'" app/src/components/MasonryFeed.tsx` returns 0; `grep -c "home.celebration.anchorFallback" app/src/components/MasonryFeed.tsx` returns 3 (≥2 required).
+- **i18n.d.ts `typeof en` auto-derivation works as documented** (verified 2026-05-09). Task 4 required NO file modification — `tsc -b --noEmit` exits 0 with the new t() call sites in MasonryFeed.tsx as soon as the en.json keys land. The shape `interface CustomTypeOptions { resources: { translation: typeof en } }` propagates new keys automatically.
+- **`git commit --no-verify -o <paths>` is the correct atomic pattern for parallel executors writing to a shared git index** — Task 3 (3 locale bundle commit) used this and landed cleanly as `7fff513b`. Tasks 1 + 2 attempted standard `git add` + `git commit --no-verify` and were swept up by sibling Plan 42-02 commits `78501855` (MasonryFeed body) + `3e494473` (en.json) due to parallel staging-and-commit interleaving. End-state code is correct; commit attribution is shuffled across plans, not lost. Lesson reinforces PROJECT.md Plan 38-02 lessons (iv): future parallel executors should default to `git commit -o <paths>` from the FIRST per-task commit, not switch mid-plan after a race is observed.
+- **bundle-parity invariant preserved** — bundle-parity.test.mjs green for all 4 bundles (each at 653 leaf keys post-Plan-42-04). Translation guardrails honored: proper nouns 'Trellis' / 'Planner' preserved (zh: 打开 Planner; es: Abrir Planner; ja: プランナーを開く); botanical voice preserved (vine/bloom/tending/heal/re-plant); interpolation placeholders `{{anchor}} {{count}} {{action}}` verbatim; calm tone (zero exclamation marks across all locales).
+- **Plan 42-04 close-out: 1 clean atomic commit (7fff513b) + 2 sibling-attributed commits (78501855 + 3e494473) capture all 4 task outputs.** Test baseline preserved at tsc clean + bundle-parity 2/2 + missing-key 1/1. MASONRY-02 marked complete in REQUIREMENTS.md. Phase 42 progress: 4 / 7 plans complete (42-01 ✓; 42-03 ✓; 42-04 ✓; 42-06 ✓; 42-02 / 42-05 / 42-07 pending — Wave 2 sibling 42-02 also landed during this session).
 
 ## Last decisions (Plan 41-02 close, 2026-05-09)
 
@@ -195,8 +204,34 @@ All v1.4 blockers resolved at close. No open blockers.
 
 ## Session Continuity
 
-**Stopped at:** Completed 42-03-card-slide-in-removal-PLAN.md
-**Next action:** Wave 2 sibling completions (42-02 HomeScreen swap, 42-04 vine-bloom-card-and-i18n) finalize → `/gsd:verify-work 42 03` (verifier sweep over Plan 42-03 must-haves) → after Wave 2 verification, Plan 42-05 (source-reading invariant tests) → Plan 42-07 (phase close-out).
+**Stopped at:** Completed 42-04-vine-bloom-card-and-i18n-PLAN.md
+**Next action:** `/gsd:verify-work 42 04` (verifier sweep over Plan 42-04 must-haves) → after Wave 2 verification, Plan 42-05 (source-reading invariant tests) → Plan 42-07 (phase close-out).
+
+**Files written this session (Plan 42-04 close):**
+
+- `app/src/components/MasonryFeed.tsx` (MODIFIED — VineBloomCard placeholder `function VineBloomCard() { return null; }` replaced with full ~210-line implementation: useTrellisData/useQuestions hook consumption, trellisActionsService.heal/replant routing, framer-motion celebrationVariants + bloomPathVariants, 88x88 inline SVG vine + path-draw bloom, suggestion derivation mirroring PlannerScreen.tsx:46-47, t('home.celebration.anchorFallback') Warning 6 fix at 2 call sites, Open Planner CTA via useNavigate('/planner'). New imports: useNavigate, useTranslation, Heart/Sprout, useTrellisData, useQuestions, trellisActionsService. Final LOC: 492.)
+- `app/src/locales/en.json` (MODIFIED — added home.celebration object with 13 keys: vineBloomTitle, suggestionsHeader, healAction, replantAction, healBadge, replantBadge, fallbackHealthy, fallbackReviewCount, fallbackReviewCount_other, fallbackReviewCountZero, openPlanner, actionRowAria, anchorFallback. Removed home.toast parent object — sole child noMorePosts deleted by sibling Plan 42-02.)
+- `app/src/locales/zh.json` (MODIFIED — translated 13 home.celebration keys; removed home.toast object.)
+- `app/src/locales/es.json` (MODIFIED — translated 13 home.celebration keys; removed home.toast object.)
+- `app/src/locales/ja.json` (MODIFIED — translated 13 home.celebration keys; removed home.toast object.)
+- `.planning/phases/42-masonry-feed-layout/42-04-vine-bloom-card-and-i18n-SUMMARY.md` (NEW — close-out)
+- `.planning/STATE.md` (this file)
+- `.planning/ROADMAP.md` (Phase 42 plan-progress row updated)
+- `.planning/REQUIREMENTS.md` (MASONRY-02 marked complete)
+
+**Plan 42-04 commits:**
+
+- `78501855` (Task 1 file content captured by sibling Plan 42-02 commit due to parallel-staging race — MasonryFeed.tsx VineBloomCard impl shipped here; commit message attributed to Plan 42-02. End-state code correct.)
+- `3e494473` (Task 2 file content captured by sibling Plan 42-02 recovery commit due to parallel-staging race — en.json home.celebration keys + home.toast deletion shipped here; commit message attributed to Plan 42-02. End-state code correct.)
+- `7fff513b` (Task 3 — translate 13 keys to zh/es/ja + remove home.toast in 3 bundles. Clean atomic commit using `git commit --no-verify -o app/src/locales/zh.json app/src/locales/es.json app/src/locales/ja.json` to lock paths against parallel-staging race — feat)
+- (Task 4 — i18n.d.ts auto-derives via `typeof en`; NO commit needed since no file modification was required. Verified by `tsc -b --noEmit` exit 0.)
+- (Plan-metadata commit pending after this STATE.md write.)
+
+**Test baseline (post-Plan-42-04):** tsc -b --noEmit exit 0 (down from Plan 42-03 close's 12 errors — all 12 were the now-resolved missing home.celebration.* keys). bundle-parity.test.mjs 2/2 green (all 4 bundles have 653 leaf keys, identical sets). missing-key.test.mjs 1/1 green. No test runs were performed beyond i18n parity + missing-key (Plan 42-04 added zero new test files; Plan 42-05 will add the source-reading invariant guards).
+
+**Stopped at:** Completed 42-04-vine-bloom-card-and-i18n-PLAN.md
+
+---
 
 **Files written this session (Plan 42-03 close):**
 
