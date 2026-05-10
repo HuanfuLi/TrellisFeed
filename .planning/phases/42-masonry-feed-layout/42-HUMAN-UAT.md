@@ -1,14 +1,14 @@
 ---
-status: failed
+status: partial
 phase: 42-masonry-feed-layout
 source: [42-VERIFICATION.md]
 started: 2026-05-09T02:00:00.000Z
-updated: 2026-05-09T02:15:00.000Z
+updated: 2026-05-09T02:30:00.000Z
 ---
 
 ## Current Test
 
-[blocked by UAT-5 — feed not rendering as 2 columns]
+[awaiting operator retest of UAT-1..UAT-5 after fix commit `1de44017`]
 
 ## Tests
 
@@ -30,8 +30,8 @@ result: [pending — blocked by UAT-5]
 
 ### 5. Two columns side-by-side (MASONRY-01 happy path)
 expected: With ≥2 tiles in the feed, the masonry renders both columns with tiles distributed across them via the height-accumulating split. Right column should have content, not be empty.
-result: FAILED
-evidence: Operator screenshot at retest after Wave 4 close-out shows ALL tiles piled into the LEFT column; right column is completely empty all the way down. Cards also appear oversized due to typography not yet tuned for half-width tiles (separate concern, see UAT-6).
+result: RESOLVED — fix committed at `1de44017` (advance heights in Pass 1 + move assignment to render body). Two regression locks added in MasonryFeed.layout.test.mjs (test count 39 → 42, all green; tsc clean). Awaiting operator visual retest.
+evidence: Operator screenshot at retest after Wave 4 close-out showed ALL tiles piled into the LEFT column; right column was completely empty all the way down. Diagnosis below stays in record for posterity.
 
 ### 6. Card typography tuned for half-width (follow-up)
 expected: Existing card components (NewsCard, video card, etc.) were designed for full-width InlineInfoFlow. At 50% width inside masonry columns, font sizes / paddings / line-heights may need a half-width variant or shrink rule.
@@ -49,7 +49,8 @@ blocked: 0
 ## Gaps
 
 ### Gap 1 — Tiles all assigned to column 0 (MASONRY-01 broken at runtime)
-status: failed
+status: resolved
+resolution_commit: 1de44017
 test: UAT-5
 phase_origin: 42 (Wave 1, Plan 42-01)
 file: app/src/components/MasonryFeed.tsx
