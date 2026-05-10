@@ -49,7 +49,14 @@ function AspectBox({
           paddingBottom: aspectPadding,
           position: 'relative',
           overflow: 'hidden',
-          borderRadius: 'var(--radius-xl)',
+          // Phase 42 UAT-11 round 2 (2026-05-10): no own borderRadius. The parent
+          // ConceptCard's overflow: hidden + 8px borderRadius clips this for us
+          // — same pattern as the video thumbnail wrapper. A self-applied radius
+          // (was `var(--radius-xl)` ~16px) double-rounded inside the card's
+          // tighter 8px and left visible card-background gradient between the
+          // two curves. Operator: "we should not add this corner crop for images
+          // in post faces, just let the post face container crop it like the way
+          // thumbnail in video post is cropped."
           backgroundColor: 'var(--surface-variant)',
           ...style,
         }}
