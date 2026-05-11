@@ -983,6 +983,13 @@ export function PostDetailScreen() {
             {t('posts.detail.videoAiSummary')}
           </h3>
         )}
+        {/* Phase 43 DD-01 (placement updated 2026-05-11 per UAT Test 7 / 43-12):
+            deep-dive controls slot positioned ABOVE the essay body so users see
+            the depth-control affordance BEFORE reading. Renders DeepDiveButton OR
+            Restore Standard link OR Standard|Deep segmented control based on state.
+            Gated by !isStreamingOnEnter && (post.bodyMarkdown || streamingBody) so
+            it never shows during the initial essay-stream warm-up. */}
+        {!isStreamingOnEnter && (post.bodyMarkdown || streamingBody) && renderDeepDiveControls()}
         {/* Essay body — shell always rendered, content streams in */}
         <div style={{ minHeight: '200px', marginBottom: '20px' }}>
           {onEnterError ? (
@@ -1039,11 +1046,6 @@ export function PostDetailScreen() {
         </div>
         {/* Scroll 70% sentinel — placed between essay body and takeaway (D-04) */}
         <div ref={scrollSentinelRef} style={{ height: '1px' }} />
-        {/* Phase 43 DD-01 — deep-dive controls slot. Renders DeepDiveButton OR
-            Restore Standard link OR Standard|Deep segmented control based on state.
-            Gated by !isStreamingOnEnter && (post.bodyMarkdown || streamingBody) so it
-            never shows during the initial essay-stream warm-up. */}
-        {!isStreamingOnEnter && (post.bodyMarkdown || streamingBody) && renderDeepDiveControls()}
         {post.sourceType !== 'video' && (post.takeaway || onEnterMeta?.takeaway) && (
           <div
             style={{
