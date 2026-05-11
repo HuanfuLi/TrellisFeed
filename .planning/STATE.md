@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: gap closure)
-status: verifying
-stopped_at: "Phase 43 closed; 8/8 plans landed; ready for /gsd:verify-work 43"
-last_updated: "2026-05-11T08:37:35.536Z"
+status: executing
+stopped_at: Completed 43-09-bottomsheet-portal-and-nav-clearance-PLAN.md (parallel sub-wave 4A)
+last_updated: "2026-05-11T10:34:10.799Z"
 last_activity: 2026-05-11
 progress:
   total_phases: 21
@@ -17,16 +17,16 @@ progress:
 
 ## Current Position
 
-Phase: 43
-Plan: Not started
-Status: Phase complete — ready for verification
+Phase: 43 (engagement-ui) — EXECUTING
+Plan: 2 of 13
+Status: Ready to execute
 Last activity: 2026-05-11
 Phase summary: `.planning/phases/43-engagement-ui/43-PHASE-SUMMARY.md`
 
 ## Progress
 
 **Phases:** 2 / 9 complete (37 ✓; 38 ✓; 39 ready for verification; 40 ready for verification; 41 ready for verification; 42 ready for verification 8/8 plans; 43 ready for verification 8/8 plans; 44-45 pending)
-**Plans:** 8 / 8 complete in Phase 43 (43-01 shared-infra-and-locales ✓; 43-02 trim-presentation-style-tag ✓; 43-03 longpress-menu-and-masonry-integration ✓; 43-04 saved-screen-and-route ✓; 43-05 postdetail-deep-dive-trigger ✓; 43-06 homescreen-wiring ✓; 43-07 force-new-day-engagement-reset ✓; 43-08 phase-close-out ✓); 8 / 8 complete in Phase 42 (42-01 masonry-feed-skeleton ✓; 42-02 homescreen-swap ✓; 42-03 card-slide-in-removal ✓; 42-04 vine-bloom-card-and-i18n ✓; 42-05 source-reading-invariant-tests ✓; 42-06 roadmap-requirements-wording-correction ✓; 42-07 phase-close-out ✓; 42-08 heal-review-empty-anchor-fix ✓ [gap-closure]); 2 / 2 complete in Phase 41 (41-01 source-diversity-wiring ✓; 41-02 essay-depth-citation-rendering ✓); 1 / 1 complete in Phase 40 (40-01 source-diversity-service ✓); 1 / 1 complete in Phase 39 (39-01 engagement-service ✓)
+**Plans:** 9 / 13 complete in Phase 43 (43-01 shared-infra-and-locales ✓; 43-02 trim-presentation-style-tag ✓; 43-03 longpress-menu-and-masonry-integration ✓; 43-04 saved-screen-and-route ✓; 43-05 postdetail-deep-dive-trigger ✓; 43-06 homescreen-wiring ✓; 43-07 force-new-day-engagement-reset ✓; 43-08 phase-close-out ✓; 43-09 bottomsheet-portal-and-nav-clearance ✓ [gap-closure]); 8 / 8 complete in Phase 42 (42-01 masonry-feed-skeleton ✓; 42-02 homescreen-swap ✓; 42-03 card-slide-in-removal ✓; 42-04 vine-bloom-card-and-i18n ✓; 42-05 source-reading-invariant-tests ✓; 42-06 roadmap-requirements-wording-correction ✓; 42-07 phase-close-out ✓; 42-08 heal-review-empty-anchor-fix ✓ [gap-closure]); 2 / 2 complete in Phase 41 (41-01 source-diversity-wiring ✓; 41-02 essay-depth-citation-rendering ✓); 1 / 1 complete in Phase 40 (40-01 source-diversity-service ✓); 1 / 1 complete in Phase 39 (39-01 engagement-service ✓)
 
 ```
 [████████████████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 46%
@@ -46,7 +46,7 @@ See: `.planning/PROJECT.md` (updated 2026-05-08 — milestone v1.5 started)
 
 **Core value:** Enable learners to transform fragmented information into structured knowledge through AI-driven Q&A, visual mapping, and adaptive spaced repetition — all while maintaining complete local-first privacy.
 
-**Current focus:** Phase 43 closed; ready for /gsd:verify-work 43. Next: Phase 44 (deps sweep) + Phase 45 (code quality sweep) — Wave 4, parallel-safe with each other.
+**Current focus:** Phase 43 — engagement-ui
 
 ## Requirement Coverage
 
@@ -84,6 +84,16 @@ All v1.4 blockers resolved at close. No open blockers.
 - **HomeScreen dual-effect dismiss resync** — canonical Phase 36-14 sibling-effects shape: Effect A stable `ANCHOR_DISMISSED` listener (deps `[]`) handles fast-path in-the-moment dismiss; Effect B `[location.pathname]` re-read via `engagementService.getDismissedAnchorIds()` handles cross-screen dismiss return. Both filter `dailyPosts` in-place; NEITHER calls `conceptFeedService.getDailyPosts()`. `[location.pathname]` effect count grew 2 → 3 (matches existing exploredAnchors + warm-start-refallback siblings).
 - **9 new test scaffolds (Wave 0) + 8 filled-in source-reading tests** — deep-dive-trigger + segmented-toggle + abort-contract count as 3 distinct DD-* surfaces per VALIDATION.md line 53 (dedicated file per sub-decision for failure attribution). `nyquist_compliant: true` flipped in `.planning/phases/43-engagement-ui/43-VALIDATION.md` frontmatter; all 6 sign-off checkboxes filled with [x]; Approval flipped from pending to "validated 2026-05-11."
 - **8/8 plans complete in Phase 43.** Final per-task atomic commit count: 30 across 43-01..43-07; +4 from 43-08 close-out = ~34 phase total. Cadence held throughout (no squash, no amend). Plan-level retrospective: `.planning/phases/43-engagement-ui/43-PHASE-SUMMARY.md`.
+
+## Last decisions (Plan 43-09 close, 2026-05-11)
+
+- **BottomSheet now portals to `document.body`** via `createPortal(overlay, document.body)` — escapes SwipeTabContainer's per-slot `transform: translateZ(0)` containing block. Phase 32.1 Header portal-vs-in-tree pattern extended to BottomSheet (same bug class: `position: fixed` captured by ancestor transform on Android Chromium WebView). Closes Phase 43 UAT Test 2 (Dismiss row clipped behind BottomNavigation).
+- **Defense-in-depth nav clearance** — inner sheet bottom offset by `calc(80px + var(--safe-area-bottom))` so the sheet clears the fixed BottomNavigation footprint (~80px row + safe-area) geometrically too. Both portal AND clearance are kept: portal alone fixes the stacking-context capture, clearance alone fixes the overlap geometry; together they survive future ancestor mutations.
+- **SSR-safe guard** — `if (typeof document === 'undefined') return null` precedes `createPortal(..., document.body)`. Matches the previous in-tree zero-output behavior on the server.
+- **HomeScreen comment de-aspirationalized** — comment block at `HomeScreen.tsx:952-961` was previously aspirational ("BottomSheet inside LongPressMenu portals to document.body…") before 43-09 landed. Now matches implementation: explicitly references `createPortal(overlay, document.body)` + Phase 32.1 pattern + 43-09 UAT Test 2 fix + the `calc(80px + var(--safe-area-bottom))` clearance.
+- **6 source-reading assertions** at `app/tests/components/BottomSheet.portal.test.mjs` (92 LOC): createPortal import + document.body invocation + SSR guard + clearance offset + position-absolute preserved + negative `bottom: 0` invariant. 105/105 component-suite tests pass post-landing.
+- **3 atomic commits** in source → docs → test cadence: `d4d5b0f1` fix(portal+clearance) → `01c43791` docs(HomeScreen comment) → `eff0adba` test(regression). Plan-level commit count budget (2-3) hit at 3.
+- **Cross-plan TS6133 noise** from 43-12's partial `renderDeepDiveControls` extraction in PostDetailScreen.tsx logged to `.planning/phases/43-engagement-ui/deferred-items.md` per scope boundary; resolved naturally by 43-12's subsequent commit `0033073c`. Not a regression caused by 43-09.
 
 ## Last decisions (Plan 43-07 close, 2026-05-11)
 
@@ -320,7 +330,7 @@ All v1.4 blockers resolved at close. No open blockers.
 
 ## Session Continuity
 
-**Stopped at:** Phase 43 closed; 8/8 plans landed; ready for /gsd:verify-work 43
+**Stopped at:** Completed 43-09-bottomsheet-portal-and-nav-clearance-PLAN.md (parallel sub-wave 4A)
 **Next action:** `/gsd:verify-work 42 04` (verifier sweep over Plan 42-04 must-haves) → after Wave 2 verification, Plan 42-05 (source-reading invariant tests) → Plan 42-07 (phase close-out).
 
 **Files written this session (Plan 42-04 close):**
