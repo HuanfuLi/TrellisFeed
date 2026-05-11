@@ -1,8 +1,8 @@
 ---
-status: diagnosed
+status: resolved
 trigger: "bookmark-icon-viewport-fixed — HomeScreen Bookmark icon overlaps TrellisProgressBar"
 created: 2026-05-11T00:00:00Z
-updated: 2026-05-11T00:00:00Z
+updated: 2026-05-11T13:40:00Z
 ---
 
 ## Current Focus

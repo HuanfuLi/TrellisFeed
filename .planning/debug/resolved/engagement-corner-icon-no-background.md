@@ -1,8 +1,8 @@
 ---
-status: diagnosed
+status: resolved
 trigger: "engagement-corner-icon-no-background — saved/liked corner icons have no contrasting background and blend into image/thumbnail backgrounds"
 created: 2026-05-11T10:00:00Z
-updated: 2026-05-11T10:05:00Z
+updated: 2026-05-11T13:40:00Z
 ---
 
 ## Current Focus

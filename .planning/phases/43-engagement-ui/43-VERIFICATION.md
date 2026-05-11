@@ -1,16 +1,57 @@
 ---
 phase: 43-engagement-ui
-verified: 2026-05-11T12:00:00Z
+verified: 2026-05-11T13:30:00Z
 status: passed
-score: 6/6 must-haves verified
+score: 11/11 must-haves verified
+re_verification:
+  previous_status: passed
+  previous_score: 6/6
+  gaps_closed:
+    - "UAT Test 2 (major): BottomSheet Dismiss row clipped behind BottomNavigation"
+    - "UAT Test 3 (cosmetic): Saved/Liked corner icons blend into tile backgrounds"
+    - "UAT Test 5 (minor): Bookmark icon fixed to viewport, overlaps VineProgress on scroll"
+    - "UAT Test 7 (minor): Deep Dive controls positioned below essay body instead of above"
+    - "UAT Test 9 (major): Force-New-Day wiped Saved + Liked archives (should preserve them)"
+  gaps_remaining: []
+  regressions: []
+human_verification:
+  - test: "Long-press feel on Android WebView (all 4 tile types)"
+    expected: "Menu opens at 480ms, native text-selection menu does NOT appear"
+    why_human: "jsdom cannot simulate touch + native context menu interaction"
+  - test: "Bottom-sheet slide-in animation consistency"
+    expected: "Slide-in curve matches existing modal vocabulary"
+    why_human: "Motion quality not testable in headless"
+  - test: "Deep-dive stream replace-in-place is visually smooth"
+    expected: "No jarring content jump or scroll-position drift during chunk arrival"
+    why_human: "Scroll-position quality not testable in headless"
+  - test: "Spanish dismiss-toast width on narrow Android screens"
+    expected: "Toast fits ToastContainer without awkward line-wrapping"
+    why_human: "Physical device screen width required"
+  - test: "4-locale UI render after locale switch"
+    expected: "Long-press menu labels, /saved screen + empty states, deep-dive labels render natively in each locale"
+    why_human: "Visual confirmation; missing-key.test.mjs confirms key absence but not rendering quality"
 ---
 
 # Phase 43: Engagement UI Verification Report
 
-**Phase Goal:** Surface Wave-1 engagement service in the UI: action rows on tiles, deep-dive button on detail, social-proof micro-label, Force-New-Day reset.
-**Verified:** 2026-05-11
+**Phase Goal:** Surface the Phase 39 engagement service in the UI — long-press action rows on tiles, /saved archive view, deep-dive essay button on PostDetailScreen, ANCHOR_DISMISSED resync, and Force-New-Day engagement reset.
+**Verified:** 2026-05-11T13:30:00Z
 **Status:** passed
-**Re-verification:** No — initial verification
+**Re-verification:** Yes — after gap closure plans 43-09 through 43-13
+
+---
+
+## Gap-Closure Re-Verification Summary
+
+The initial Phase 43 verification (43-01..43-08) passed 6/6 truths. UAT revealed 5 gaps subsequently closed by gap-closure plans 43-09..43-13. This report is the re-verification that all 5 gaps are resolved.
+
+| Gap | UAT Test | Severity | Closed By | Status |
+| --- | -------- | -------- | --------- | ------ |
+| BottomSheet Dismiss row clipped by BottomNavigation | T2 | major | 43-09 | Closed |
+| Corner icons blend into tile backgrounds (no chip backdrop) | T3 | cosmetic | 43-10 | Closed |
+| Bookmark icon viewport-fixed, overlaps VineProgress on scroll | T5 | minor | 43-11 | Closed |
+| Deep Dive controls positioned below essay body (should be above) | T7 | minor | 43-12 | Closed |
+| Force-New-Day wiped Saved + Liked archives | T9 | major | 43-13 | Closed |
 
 ---
 
@@ -18,176 +59,158 @@ score: 6/6 must-haves verified
 
 ### Observable Truths
 
-| #   | Truth                                                                                                     | Status     | Evidence                                                                                                      |
-| --- | --------------------------------------------------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------- |
-| 1   | Long-press on a feed tile opens a contextual menu with Like / Save / Not interested; commits engagementService call | ✓ VERIFIED | `LongPressMenu.tsx` (141 LOC): 3 rows, handleSave/handleLike/handleDismiss wire to `engagementService.savePost/likePost/dismissAnchor`; test 36/36 pass |
-| 2   | Saved posts accessible via `/saved` route; lists posts persisted across days                              | ✓ VERIFIED | `SavedScreen.tsx` (308 LOC): Saved + Liked tabs, `getSavedPosts()`/`getLikedPosts()`; `/saved` route in `App.tsx:315`; tests 7/7 pass |
-| 3   | PostDetailScreen shows "Deep dive" button; tap streams `depth: 'deep'` 350-600w variant under AbortController contract | ✓ VERIFIED | `PostDetailScreen.tsx`: `handleStartDeepDive`, `deepAbortControllerRef`, `depth: 'deep'` signal pass, `patchPostEssayInCache` guard; 19/19 tests pass |
-| 4   | ENGAGE-04 cleanly descoped — no orphan `[ ]` checkboxes                                                  | ✓ VERIFIED | ROADMAP.md SC-4 italicized as descope marker; REQUIREMENTS.md ENGAGE-04 moved to Out of Scope; traceability row = "Out of Scope (DS-01, 2026-05-11)" |
-| 5   | HomeScreen Effect A (stable `[]`) subscribes `ANCHOR_DISMISSED` + Effect B `[location.pathname]` re-syncs via `getDismissedAnchorIds()`; neither calls `conceptFeedService.getDailyPosts()` | ✓ VERIFIED | `HomeScreen.tsx:567-591`: Effect A at lines 567-574 (deps `[]`), Effect B at lines 584-591 (deps `[location.pathname]`); test 11/11 pass |
-| 6   | `handleForceNewDay` calls `engagementService.reset()` after `dailyReadService.reset()` and before toast  | ✓ VERIFIED | `SettingsDataScreen.tsx:134-139`: exact ordering confirmed; 4/4 tests pass                                    |
+| #  | Truth | Status | Evidence |
+| -- | ----- | ------ | -------- |
+| 1  | Long-press on a feed tile opens a contextual menu with Like / Save / Not interested; the Dismiss row is fully visible above the BottomNavigation (not clipped) | ✓ VERIFIED | `BottomSheet.tsx` uses `createPortal(overlay, document.body)` + `bottom: calc(80px + var(--safe-area-bottom))`; 6/6 BottomSheet.portal tests pass |
+| 2  | Saved/Liked corner icons have a theme-aware chip backdrop, legible against busy thumbnails in both light and dark themes | ✓ VERIFIED | `MasonryFeed.tsx` cornerOverlay wraps each icon in 26x26 chip span with `var(--corner-chip-bg)`; index.css declares all three vars in both `:root` and `.dark`; 6/6 corner-chip tests pass |
+| 3  | HomeScreen Bookmark icon is inline with the greeting row and scrolls away naturally; no overlap with compact VineProgress bar slide-in | ✓ VERIFIED | Fixed-position block deleted from HomeScreen.tsx; greeting wrapped in flex row (`justifyContent: space-between`); `zIndex: 195` absent; 6/6 bookmark-inline-greeting tests pass |
+| 4  | PostDetailScreen Deep Dive button AND Standard/Deep segmented toggle are positioned ABOVE the essay body | ✓ VERIFIED | `renderDeepDiveControls()` invocation at char 42614 is before essay body container at char 42733 (`minHeight: '200px'`) and before takeaway at 47321; scroll-sentinel still at 46709; 19/19 PostDetailScreen deep-dive tests pass |
+| 5  | Force-New-Day resets ONLY the dismissed-anchors list; Saved and Liked archives are preserved | ✓ VERIFIED | `engagementService.resetDismissedOnly()` added (idempotent, mutates only `state.dismissed`, emits `ENGAGEMENT_CHANGED { kind: 'undismiss', id: '*' }`); `SettingsDataScreen.handleForceNewDay` calls `resetDismissedOnly()`; 5/5 SC-6 test + 6/6 engagement-service-reset-dismissed-only tests pass |
+| 6  | (Prior truths 1-6 from initial verification still satisfied — long-press menu wired, /saved route, deep-dive stream, ANCHOR_DISMISSED resync, original Force-New-Day engagement wiring) | ✓ VERIFIED | All prior source-reading tests still green (LongPressMenu 7/7, SavedScreen 7/7, HomeScreen engagement-resync 11/11, PostDetailScreen abort-contract 7/7, segmented-toggle 7/7, InfoFlow no-tag 4/4, bundle-parity 2/2) |
 
-**Score:** 6/6 truths verified
-
----
-
-### Required Artifacts
-
-| Artifact                                                         | Expected                                              | Status     | Details                                                                         |
-| ---------------------------------------------------------------- | ----------------------------------------------------- | ---------- | ------------------------------------------------------------------------------- |
-| `app/src/hooks/useLongPress.ts`                                  | 480ms timer hook with `{ didLongPress, bind }`        | ✓ VERIFIED | 61 LOC; pointer-event-only path; no `contextmenu` registration                  |
-| `app/src/components/LongPressMenu.tsx`                           | 3-row bottom-sheet contextual menu                    | ✓ VERIFIED | 141 LOC; anti-wire: 0 occurrences of `CONCEPT_EXPLORED`/`eventBus.emit`/`dailyReadService.markExplored` |
-| `app/src/components/MasonryFeed.tsx`                             | TileWrapper + AnimatePresence + corner-icon overlay   | ✓ VERIFIED | `onLongPress` + `engagementVersion` props; AnimatePresence per-column; Phase 42 invariants preserved (0 `column-count`, 0 `will-change`, 0 `CONCEPT_EXPLORED`) |
-| `app/src/screens/SavedScreen.tsx`                                | Two-tab archive view                                  | ✓ VERIFIED | 308 LOC; `Header backTo="/home"`; ENGAGEMENT_CHANGED subscription; `navigate(/posts/:id)` row tap |
-| `app/src/App.tsx` `/saved` route                                 | Route registered with PageTransition wrapper          | ✓ VERIFIED | Line 315: `{ path: 'saved', element: <PageTransition><SavedScreen /></PageTransition> }` |
-| `app/src/screens/PostDetailScreen.tsx` deep-dive extensions      | handleStartDeepDive + renderDeepDiveControls + segmented toggle | ✓ VERIFIED | `deepAbortControllerRef`, `handleStartDeepDive`, `handleRestoreStandard`, `renderDeepDiveControls`, `bodyMarkdownDeep`, `activeVariant` all present; cleanup cascade aborts both controllers |
-| `app/src/screens/HomeScreen.tsx` engagement wiring               | Bookmark icon + LongPressMenu host + 3 sibling effects | ✓ VERIFIED | Bookmark button at `position: fixed, zIndex 195`; `<LongPressMenu>` mounted at screen level; Effects A/B/C present |
-| `app/src/screens/settings/SettingsDataScreen.tsx`                | `engagementService.reset()` in `handleForceNewDay`    | ✓ VERIFIED | Line 138: `engagementService.reset()` — after `dailyReadService.reset()` (line 134), before toast (line 139) |
-| `app/src/components/ui/BottomSheet.tsx`                          | `compact` prop added                                  | ✓ VERIFIED | Used by `LongPressMenu` (`compact={true}`); additive prop, no migration burden  |
-| `app/src/locales/{en,zh,es,ja}.json`                             | 14 new i18n keys per locale                           | ✓ VERIFIED | `engagement.*`, `saved.*`, `posts.detail.deepDive.*`; bundle-parity test green  |
-| `.planning/ROADMAP.md` Phase 43 section                          | DS-01 descope reflected, all 8 plan checkboxes filled | ✓ VERIFIED | SC-4 italicized; ENGAGE-04 descoped note; 8 `[x]` checkboxes                   |
-| `.planning/REQUIREMENTS.md`                                      | ENGAGE-04 in Out of Scope with traceability row       | ✓ VERIFIED | ENGAGE-04 row = "Out of Scope (DS-01, 2026-05-11)"; active count = 21           |
+**Score:** 11/11 truths verified (6 original + 5 gap-closure)
 
 ---
 
-### Key Link Verification
+### Required Artifacts (Gap-Closure Plans)
 
-| From                    | To                                    | Via                                                | Status     | Details                                               |
-| ----------------------- | ------------------------------------- | -------------------------------------------------- | ---------- | ----------------------------------------------------- |
-| MasonryFeed TileWrapper | `onLongPress` callback                | `useLongPress` 480ms timer → `onLongPress(postId, anchorId)` | ✓ WIRED | Lines 355-357 in MasonryFeed; HomeScreen `handleLongPress` receives call |
-| HomeScreen              | LongPressMenu                         | `menuOpen/menuPostId/menuAnchorId` state props     | ✓ WIRED   | `<LongPressMenu open={menuOpen} .../>` at HomeScreen:958-963 |
-| LongPressMenu rows      | engagementService                     | `savePost/likePost/dismissAnchor` calls            | ✓ WIRED   | Lines 59-85 in LongPressMenu.tsx; `onClose()` called after each action |
-| HomeScreen Effect A     | dailyPosts filter                     | `ANCHOR_DISMISSED` → `setDailyPosts(prev.filter(...))` | ✓ WIRED | HomeScreen:568-573; also bumps `engagementVersion` |
-| HomeScreen Effect B     | engagementService.getDismissedAnchorIds | `[location.pathname]` → in-place filter           | ✓ WIRED   | HomeScreen:584-591; gates on `/home`; never calls `conceptFeedService.getDailyPosts()` |
-| HomeScreen Effect C     | engagementVersion bump                | `ENGAGEMENT_CHANGED` → `setEngagementVersion(v+1)` | ✓ WIRED  | HomeScreen:597-602; drives MasonryFeed corner-icon re-render |
-| HomeScreen Bookmark     | `/saved` navigation                   | `onClick → navigate('/saved')`                    | ✓ WIRED   | HomeScreen:660; `position: fixed, zIndex 195` |
-| SavedScreen             | engagementService                     | `getSavedPosts()` / `getLikedPosts()` + ENGAGEMENT_CHANGED | ✓ WIRED | Lines 225-243; `return unsub` cleanup |
-| PostDetailScreen        | deep-dive stream                      | `handleStartDeepDive` → `generatePostEssay(post, qs, { depth: 'deep', signal })` | ✓ WIRED | Lines 542-575; dedicated `deepAbortControllerRef` |
-| PostDetailScreen        | segmented toggle                      | `post.bodyMarkdownDeep` length > 0 gate → `setActiveVariant(variant)` | ✓ WIRED | renderDeepDiveControls; pure state, no re-stream |
-| handleForceNewDay       | engagementService.reset()             | After dailyReadService.reset(), before toast       | ✓ WIRED   | SettingsDataScreen.tsx:134-139 |
+| Artifact | Expected | Status | Details |
+| -------- | -------- | ------ | ------- |
+| `app/src/components/ui/BottomSheet.tsx` | `createPortal(overlay, document.body)` + SSR guard + bottom clearance | ✓ VERIFIED | 99 LOC; `import { createPortal } from 'react-dom'`; `typeof document === 'undefined'` guard; `bottom: 'calc(80px + var(--safe-area-bottom))'`; `position: 'absolute'` on inner sheet |
+| `app/tests/components/BottomSheet.portal.test.mjs` | Source-reading regression test (6 assertions) | ✓ VERIFIED | 92 LOC; 6/6 pass: createPortal import, invocation, SSR guard, bottom clearance, absolute position, no-regression-to-bottom-0 |
+| `app/src/index.css` | `--corner-chip-bg`, `--corner-chip-fg-saved`, `--corner-chip-fg-liked` in both `:root` and `.dark` | ✓ VERIFIED | Lines 85-87 (`:root`) and 248-250 (`.dark`) confirmed; each var appears exactly twice |
+| `app/src/components/MasonryFeed.tsx` cornerOverlay | 26x26 chip spans with `var(--corner-chip-bg)` backdrop; Heart uses `--corner-chip-fg-liked` not `--node-salmon` | ✓ VERIFIED | Lines 387-450; `var(--node-salmon)` absent from cornerOverlay region; `filter: drop-shadow` absent from cornerOverlay region |
+| `app/tests/components/MasonryFeed.corner-chip.test.mjs` | Source-reading regression test (6 assertions) | ✓ VERIFIED | 6/6 pass: chip backdrop, fg tokens, no node-salmon, 26x26 dimensions, CSS vars in both themes, no drop-shadow |
+| `app/src/screens/HomeScreen.tsx` (greeting row) | Inline Bookmark button in flex row; `zIndex: 195` absent; single `navigate('/saved')` | ✓ VERIFIED | Line 702: flex row with `justifyContent: 'space-between'`; line 716: `navigate('/saved')`; grep for `zIndex: 195` returns 0 hits |
+| `app/tests/screens/HomeScreen.bookmark-inline-greeting.test.mjs` | Source-reading regression test (6 assertions) | ✓ VERIFIED | 6/6 pass: no zIndex 195, no fixed-position anchor, flex greeting row, single navigate('/saved'), WCAG tap floor, compact bar at zIndex 190 preserved |
+| `app/src/screens/PostDetailScreen.tsx` (DD controls above essay) | `renderDeepDiveControls()` invocation before essay body container; scroll-sentinel untouched | ✓ VERIFIED | invocationIdx (42614) < essayBodyIdx (42733) < sentinelJsxIdx (46709) < takeawayIdx (47321); `ref={scrollSentinelRef}` JSX at line 1048 |
+| `.planning/phases/43-engagement-ui/43-CONTEXT.md` DS-02 entry | Documents operator placement update with UAT quote and cross-reference | ✓ VERIFIED | DS-02 at line 82; mentions "43-12", "above essay body", UAT Test 7 quote |
+| `app/src/services/engagement.service.ts` `resetDismissedOnly()` | Idempotent partial reset; mutates only `state.dismissed`; emits `ENGAGEMENT_CHANGED { kind: 'undismiss', id: '*' }`; `reset()` unchanged | ✓ VERIFIED | Lines 230-236; early-return when `dismissed.length === 0`; `state.saved` and `state.liked` untouched; `reset()` still at lines 207-209 |
+| `app/src/screens/settings/SettingsDataScreen.tsx` | `resetDismissedOnly()` at Force-New-Day call site; `reset()` absent from `handleForceNewDay` body | ✓ VERIFIED | Line 142: `engagementService.resetDismissedOnly()`; grep for `engagementService.reset()` in function body returns 0 hits |
+| `app/tests/screens/SettingsDataScreen.force-new-day-engagement-reset.test.mjs` | 5 assertions (incl. negative invariant against `reset()`) | ✓ VERIFIED | 5/5 pass: ordering, resetDismissedOnly present, negative guard against reset() |
+| `app/tests/services/engagement.service.reset-dismissed-only.test.mjs` | 6 service-level assertions | ✓ VERIFIED | 6/6 pass: method shape, dismissed-only mutation, archive-non-mutation, idempotence, ENGAGEMENT_CHANGED payload, reset() preservation |
 
 ---
 
-### Data-Flow Trace (Level 4)
+### Key Link Verification (Gap-Closure)
 
-| Artifact         | Data Variable   | Source                            | Produces Real Data | Status     |
-| ---------------- | --------------- | --------------------------------- | ------------------ | ---------- |
-| SavedScreen      | `savedPosts`    | `engagementService.getSavedPosts()` (localStorage `trellis_engagement_v1`) | Yes — reads persisted engagement store | ✓ FLOWING |
-| SavedScreen      | `likedPosts`    | `engagementService.getLikedPosts()` | Yes | ✓ FLOWING |
-| LongPressMenu    | `isSaved`/`isLiked` | `engagementService.isSaved(postId)` / `isLiked(postId)` at render time | Yes — synchronous read from store | ✓ FLOWING |
-| PostDetailScreen | `streamingDeep` | `generatePostEssay(post, qs, { depth: 'deep' })` async generator | Yes — LLM stream chunks | ✓ FLOWING |
-| HomeScreen       | `dailyPosts` (dismiss filter) | `engagementService.getDismissedAnchorIds()` on Effect B | Yes — reads persisted dismissed set | ✓ FLOWING |
+| From | To | Via | Status | Details |
+| ---- | -- | --- | ------ | ------- |
+| `BottomSheet.tsx` | `document.body` | `createPortal(overlay, document.body)` | ✓ WIRED | Escapes SwipeTabContainer per-slot `translateZ(0)` containing block; Phase 32.1 pattern applied |
+| `BottomSheet.tsx` inner sheet | viewport (above BottomNavigation) | `bottom: 'calc(80px + var(--safe-area-bottom))'` | ✓ WIRED | Defense-in-depth geometric clearance; 80px = BottomNavigation row footprint |
+| `MasonryFeed.tsx` cornerOverlay | theme-aware chip colors | `var(--corner-chip-bg)` / `var(--corner-chip-fg-saved)` / `var(--corner-chip-fg-liked)` | ✓ WIRED | CSS vars declared in both `:root` and `.dark` in index.css |
+| `HomeScreen.tsx` greeting row | `/saved` navigation | `onClick={() => navigate('/saved')}` in inline Bookmark button | ✓ WIRED | Single occurrence; zIndex 195 removed |
+| `PostDetailScreen.tsx` JSX | `renderDeepDiveControls()` above essay body | Invocation placed before `<div style={{ minHeight: '200px' }}>` | ✓ WIRED | char 42614 < char 42733; `scrollSentinelRef` (Detector A) undisturbed at char 46709 |
+| `handleForceNewDay` | `engagementService.resetDismissedOnly()` | Direct call at SettingsDataScreen.tsx:142 | ✓ WIRED | `reset()` (wholesale) no longer in force-new-day path |
+| `resetDismissedOnly()` | `ENGAGEMENT_CHANGED` event | `eventBus.emit({ type: 'ENGAGEMENT_CHANGED', payload: { kind: 'undismiss', id: '*' } })` | ✓ WIRED | Sentinel id `'*'` signals bulk reset; HomeScreen Effect B re-reads `getDismissedAnchorIds()` |
 
 ---
 
 ### Behavioral Spot-Checks
 
-| Behavior                                          | Command                                                                                                          | Result          | Status  |
-| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | --------------- | ------- |
-| LongPressMenu anti-wire: 0 CONCEPT_EXPLORED tokens | `grep -c CONCEPT_EXPLORED app/src/components/LongPressMenu.tsx`                                                  | 0               | ✓ PASS  |
-| MasonryFeed anti-wire: 0 CONCEPT_EXPLORED tokens  | `grep -c CONCEPT_EXPLORED app/src/components/MasonryFeed.tsx`                                                    | 0               | ✓ PASS  |
-| `/saved` route registered                         | `grep saved app/src/App.tsx`                                                                                     | line 315 found  | ✓ PASS  |
-| engagementService.reset() in handleForceNewDay    | `grep -n "engagementService.reset" app/src/screens/settings/SettingsDataScreen.tsx`                              | line 138 found  | ✓ PASS  |
-| Effect A deps=[] (stable listener)                | Source read lines 567-574: `useEffect(() => { ... }, [])`                                                        | confirmed       | ✓ PASS  |
-| Effect B deps=[location.pathname]                 | Source read lines 584-591: `useEffect(() => { ... }, [location.pathname])`                                       | confirmed       | ✓ PASS  |
-| tsc -b --noEmit                                   | `npx tsc -b --noEmit`                                                                                            | exit 0          | ✓ PASS  |
-| LongPressMenu test suite                          | `node --test tests/components/LongPressMenu.test.mjs`                                                            | 7/7 pass        | ✓ PASS  |
-| MasonryFeed dismiss-fade tests                   | `node --test tests/components/MasonryFeed.dismiss-fade-all.test.mjs`                                             | 7/7 pass        | ✓ PASS  |
-| SavedScreen tests                                 | `node --test tests/screens/SavedScreen.test.mjs`                                                                 | 7/7 pass        | ✓ PASS  |
-| HomeScreen engagement-resync tests                | `node --test tests/screens/HomeScreen.engagement-resync.test.mjs`                                                | 11/11 pass      | ✓ PASS  |
-| SettingsDataScreen force-new-day tests            | `node --test tests/screens/SettingsDataScreen.force-new-day-engagement-reset.test.mjs`                           | 4/4 pass        | ✓ PASS  |
-| PostDetailScreen deep-dive tests (3 files)        | `node --test tests/screens/PostDetailScreen.deep-dive-trigger.test.mjs PostDetailScreen.segmented-toggle.test.mjs PostDetailScreen.abort-contract.test.mjs` | 19/19 pass | ✓ PASS |
-| InfoFlow no-presentation-style-tag tests          | `node --test tests/components/InfoFlow.no-presentation-style-tag.test.mjs`                                       | 4/4 pass        | ✓ PASS  |
-| Bundle parity                                     | `node --test tests/locales/bundle-parity.test.mjs`                                                               | 2/2 pass        | ✓ PASS  |
+| Behavior | Command | Result | Status |
+| -------- | ------- | ------ | ------ |
+| BottomSheet portal tests (6 assertions) | `node --test tests/components/BottomSheet.portal.test.mjs` | 6/6 pass | ✓ PASS |
+| MasonryFeed corner-chip tests (6 assertions) | `node --test tests/components/MasonryFeed.corner-chip.test.mjs` | 6/6 pass | ✓ PASS |
+| HomeScreen bookmark-inline-greeting tests (6 assertions) | `node --test tests/screens/HomeScreen.bookmark-inline-greeting.test.mjs` | 6/6 pass | ✓ PASS |
+| PostDetailScreen deep-dive tests (all 3 files, 19 assertions) | `node --test tests/screens/PostDetailScreen.deep-dive-trigger.test.mjs tests/screens/PostDetailScreen.segmented-toggle.test.mjs tests/screens/PostDetailScreen.abort-contract.test.mjs` | 19/19 pass | ✓ PASS |
+| Engagement reset-dismissed-only service tests (6 assertions) | `node --test tests/services/engagement.service.reset-dismissed-only.test.mjs` | 6/6 pass | ✓ PASS |
+| SettingsDataScreen force-new-day test (5 assertions) | `node --test tests/screens/SettingsDataScreen.force-new-day-engagement-reset.test.mjs` | 5/5 pass | ✓ PASS |
+| `renderDeepDiveControls()` char position < essay body container | `node -e` index probe | 42614 < 42733 | ✓ PASS |
+| `scrollSentinelRef` JSX still present (Detector A) | `grep -n "ref={scrollSentinelRef}"` | line 1048 found | ✓ PASS |
+| `zIndex: 195` absent from HomeScreen.tsx | `grep "zIndex: 195" HomeScreen.tsx` | 0 hits | ✓ PASS |
+| `engagementService.reset()` absent from `handleForceNewDay` body | negative grep on SettingsDataScreen.tsx | 0 hits in function body | ✓ PASS |
+| `createPortal` in BottomSheet.tsx | `grep -c "createPortal" BottomSheet.tsx` | 4 (import + invocation + 2 doc refs) | ✓ PASS |
+| `var(--node-salmon)` absent from cornerOverlay region | region-scoped grep | 0 hits in cornerOverlay JSX | ✓ PASS |
+| `filter: drop-shadow` absent from cornerOverlay region | region-scoped grep | 0 hits in cornerOverlay JSX | ✓ PASS |
+| Walker `maxSteps = Math.max(count * 2, len)` intact | `grep "Math.max(count \* 2" post-queue.service.ts` | line 383 found | ✓ PASS |
+| Header portal-vs-in-tree pattern intact | `grep "createPortal" Header.tsx` | import + conditional createPortal at line 155 | ✓ PASS |
+| `enablejsapi=1` in YouTubeEmbed.tsx | `grep -c "enablejsapi=1" YouTubeEmbed.tsx` | 2 | ✓ PASS |
+| Ask-chat byte-stable system prompt | `node --test tests/state/useQuestions-system-prompt-stability.test.mjs` | 6/6 pass | ✓ PASS |
+| All 48 gap-closure tests combined | combined run | 48/48 pass | ✓ PASS |
 
 ---
 
-### Requirements Coverage
+### Pre-Existing Test Failures (NOT Phase 43 Gaps)
 
-| Requirement | Source Plan | Description                                                                                  | Status      | Evidence                                                                                    |
-| ----------- | ----------- | -------------------------------------------------------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------- |
-| ENGAGE-01   | 43-03, 43-04, 43-06 | User can save / bookmark a post; saved posts persist; accessible view                 | ✓ SATISFIED | `LongPressMenu` save row → `engagementService.savePost`; `SavedScreen` at `/saved`          |
-| ENGAGE-02   | 43-03, 43-06, 43-07 | User can dismiss / mark "not interested"; dismissed anchors skip in walker             | ✓ SATISFIED | `LongPressMenu` dismiss row → `engagementService.dismissAnchor`; HomeScreen dual-effect + `engagementService.reset()` in Force-New-Day |
-| ENGAGE-03   | 43-03, 43-04 | User can like / heart a post; likes persist locally                                   | ✓ SATISFIED | `LongPressMenu` like row → `engagementService.likePost`; Liked tab in `SavedScreen`         |
-| ENGAGE-04   | N/A (DS-01)  | N connections micro-label                                                              | Descoped    | ROADMAP SC-4 italicized descope marker; REQUIREMENTS.md Out of Scope section; no `[ ]` orphan |
-| CONTENT-01  | 43-05        | "Deep dive" essay variant (350-600w) from PostDetailScreen; standard default           | ✓ SATISFIED | `handleStartDeepDive` → `generatePostEssay({ depth: 'deep' })`; segmented toggle; 19 tests |
+The following 5 test failures exist in `npm run test:main` and are confirmed pre-existing from prior phases. They are NOT introduced or worsened by Phase 43 gap-closure plans 43-09..43-13. Confirmed via `git stash` + re-run by the 43-10 executor.
 
----
+| Test | File | Failure Reason | Phase Origin |
+| ---- | ---- | -------------- | ------------ |
+| `concept-feed.service.ts contains walkDerivedList(16, exploredIds, dismissedIds)` | `tests/concept-feed.test.mjs` | Assertion expects OLD `16` walker batch size; CLAUDE.md documents canonical value as **24** post-2026-05-10 | Phase 37/42 numeric drift |
+| `needsRefill returns true when size < 16, false when >= 16 (Phase 36-12)` | `tests/services/post-queue.test.mjs` | Assertion expects OLD `16` refill threshold; CLAUDE.md documents **24** post-2026-05-10 | Phase 37/42 numeric drift |
+| `counterweight: Phase 39 walker wire untouched at concept-feed.service.ts:~1212` | `tests/concept-feed.test.mjs` | Stale line number | Phase 39 carry-over |
+| `concept-feed.service hasImageGenKey gate` | `tests/concept-feed.test.mjs` | Stale assertion | Pre-Phase-43 |
+| `getVineColor returns one of the 5 --node-* variables` | `tests/concept-feed.test.mjs` | Date-dependent test | Pre-Phase-43 |
 
-### Anti-Patterns Found
-
-| File | Line | Pattern | Severity | Impact |
-| ---- | ---- | ------- | -------- | ------ |
-| None found | — | — | — | All phase-43-added files are substantive; no TODOs, no placeholder returns, no empty handlers |
-
-Notable confirmed-clean items:
-- `LongPressMenu.tsx`: 0 `TODO`, 0 `FIXME`, no `return null` or `return <></>` in main render path
-- `SavedScreen.tsx`: real data from `engagementService.getSavedPosts()`/`getLikedPosts()`; empty states are intentional UI
-- `SettingsDataScreen.tsx`: `engagementService.reset()` is a real call with ordering constraint
-- `PostDetailScreen.tsx`: `handleStartDeepDive` is a fully implemented async streaming handler; `setDeepError` is captured but not yet surfaced to UI (documented as intentional deferral in SUMMARY)
-
-One intentional deferral (not a stub):
-- `deepError` state is captured in `handleStartDeepDive` but not rendered. The PHASE-SUMMARY documents this as "out of Phase 43 scope" — `deepError` state slot exists, error is logged but no inline retry UI. This is a planned follow-up, not a blocking gap.
+These are candidates for a future hygiene phase. They do not affect any Phase 43 deliverable.
 
 ---
 
-### CLAUDE.md Load-Bearing Pattern Preservation
+### CLAUDE.md Load-Bearing Invariant Preservation
 
 | Pattern | Rule | Status |
 | ------- | ---- | ------ |
+| Header portal-vs-in-tree pattern (Phase 32.1) | `Header.tsx` unchanged; no `transform`/`will-change` on Header ancestors | ✓ Confirmed — `createPortal` in Header.tsx line 155; portal-vs-in-tree logic intact |
+| BottomSheet now follows same portal pattern | Overlays inside SwipeTabContext must escape per-slot `translateZ(0)` | ✓ New: `BottomSheet.tsx` uses `createPortal(overlay, document.body)` (43-09) |
+| Phase 36 walker `maxSteps = Math.max(count * 2, len)` | Do not regress to `len * 2` | ✓ `post-queue.service.ts` line 383 unchanged |
+| Phase 35 ask-chat byte-stable system prompt | `formatCandidateContextPack` in assistant role, not system | ✓ `useQuestions.ts` unchanged; 6/6 system-prompt-stability tests pass |
+| Detector D `enablejsapi=1` on YouTube iframes | `YouTubeEmbed.tsx` must have ≥1 occurrence | ✓ 2 occurrences confirmed |
+| Phase 43 Detector A scroll-70% sentinel (`scrollSentinelRef`) | Must stay in place; only `renderDeepDiveControls()` invocation moved | ✓ Sentinel still at char 46709, AFTER new invocation at 42614 |
+| AbortController contract: 16 pre-call guards, 6 signal-arg passes, cache-write guard | DD-05; Phase 41-02 D-08 | ✓ `grep -c "signal.aborted.*return"` returns 16; cache-write guard `if (ctrl.signal.aborted) return` before `patchPostEssayInCache` |
+| `reset()` preserved for Clear-All-Data paths | D-08 wholesale wipe intact | ✓ `engagement.service.ts:207-209` unchanged; existing `reset() clears all three collections AND emits NOTHING (D-08)` test still passes |
+| `ENGAGEMENT_CHANGED` (not a new event type) for resetDismissedOnly emit | Phase 39 D-06 one-signal-per-semantic-event | ✓ Sentinel `id: '*'` on existing `ENGAGEMENT_CHANGED` event shape |
 | `html, body { overflow: hidden }` (Phase 33 UAT-4) | Do not remove | ✓ Confirmed at index.css:293 |
-| YouTubeEmbed `enablejsapi=1` | Must appear ≥1 time | ✓ Found 2 occurrences |
-| `CONCEPT_EXPLORED` NOT in LongPressMenu or MasonryFeed | Anti-wire invariant | ✓ 0 occurrences in both files |
-| Header portal-vs-in-tree pattern (Phase 32.1) | SavedScreen Header must use `backTo` for portal | ✓ `Header backTo="/home"` at SavedScreen:251 |
-| Phase 36-14 dual-effect shape (sibling effects) | Effect A stable `[]` + Effect B `[location.pathname]` coexist | ✓ Lines 567-574 and 584-591; [location.pathname] effect count went from 2 → 3 |
-| Always-mounted screens re-read service state on navigation | HomeScreen must explicitly re-read on navigate | ✓ Effect B re-reads `getDismissedAnchorIds()` on `[location.pathname]` |
-| No getDailyPosts call in dismiss effects | LP-05 operator decision | ✓ Effects A and B use in-place `setDailyPosts(prev => prev.filter(...))` only |
-| Dedicated AbortController per logical stream (Pitfall 3) | `deepAbortControllerRef` separate from `abortController` | ✓ `deepAbortControllerRef = useRef<AbortController | null>(null)` |
-| Cache-write guard: `patchPostEssayInCache` only when `!signal.aborted` | DD-05 | ✓ Line 563: `if (ctrl.signal.aborted) return` before `patchPostEssayInCache` |
-| Cleanup cascade aborts BOTH controllers | Multi-controller pattern | ✓ Lines 405+410: `abortController.abort()` then `deepAbortControllerRef.current?.abort()` |
 
 ---
 
 ### Human Verification Required
 
-The following behaviors are device-only (not blockable for automated gates):
+1. **Long-press feel on Android WebView (all 4 tile types)**
+   - **Test:** On Android device, long-press each feed tile type (image, text-art, video, news) for ~480ms
+   - **Expected:** Bottom-sheet opens at ~480ms; all 3 rows (Like, Save, Not interested) are visible above the BottomNavigation; native text-selection menu does NOT appear
+   - **Why human:** jsdom cannot simulate touch + native context menu interaction; this UAT test was the root of gap T2
 
-1. **Long-press feel on Android WebView**
-   - **Test:** On Android device: 480ms hold on feed tile (all 4 types — image, text-art, video, news)
-   - **Expected:** Bottom-sheet opens at 480ms; native text-selection menu does NOT appear; no contextmenu interference
-   - **Why human:** jsdom cannot simulate touch + native context menu interaction
+2. **UAT Test 4 re-test (Dismiss fades ALL same-anchor tiles)**
+   - **Test:** Find an anchor with multiple tiles in the feed; long-press any one → Not interested
+   - **Expected:** All tiles sharing that anchor fade out simultaneously; masonry reflows without visible gap
+   - **Why human:** Blocked during initial UAT by gap T2; now unblocked after 43-09 fix; requires live device with multiple same-anchor tiles visible
 
-2. **Bottom-sheet slide-in animation consistency**
-   - **Test:** Open long-press menu; compare animation curve with other BottomSheet usages in the app
+3. **Bottom-sheet slide-in animation consistency**
+   - **Test:** Open long-press menu; compare animation curve with other BottomSheet usages
    - **Expected:** Slide-in curve matches existing modal vocabulary
    - **Why human:** Motion quality not testable in headless
 
-3. **Deep-dive stream replace-in-place is visually smooth**
-   - **Test:** Open PostDetailScreen → tap "Deep dive" → watch body slot during streaming
-   - **Expected:** No jarring content jump or scroll-position drift during chunk arrival
-   - **Why human:** Scroll-position quality not testable in headless
+4. **HomeScreen Bookmark inline scroll behavior**
+   - **Test:** Open HomeScreen → scroll down → observe that Bookmark icon scrolls away with the greeting; compact VineProgress bar slides in at top WITHOUT Bookmark overlap
+   - **Expected:** No overlap; Bookmark participates in normal scroll flow
+   - **Why human:** Layout + scroll behavior not verifiable in headless
 
-4. **Spanish dismiss-toast width on narrow Android screens**
-   - **Test:** Long-press → dismiss in Spanish locale; verify toast "Entendido — no volverás a ver esto" fits ToastContainer without awkward wrapping
-   - **Expected:** Toast renders within viewport width; no line-wrap overflow
-   - **Why human:** Physical device screen width required; jsdom has no layout engine
+5. **Force-New-Day saves/liked persistence (manual re-test of UAT T9)**
+   - **Test:** Save and Like several posts; Force New Day; navigate to /saved
+   - **Expected:** Saved and Liked tabs still list the previously-saved/liked posts; dismissed anchors reappear in feed
+   - **Why human:** End-to-end UX confirmation; automated tests verify source-level invariants only
 
-5. **4-locale UI render after locale switch**
-   - **Test:** Cycle through en/zh/es/ja; verify long-press menu labels, /saved screen + empty states, deep-dive button + segmented control render natively
-   - **Expected:** No missing-key fallbacks visible; all labels in native language
+6. **Deep Dive controls above essay — visual confirmation (UAT T7)**
+   - **Test:** Open a post detail screen; verify Deep Dive button / Standard|Deep toggle appears ABOVE the essay body text
+   - **Expected:** User sees depth-control affordance before reading the essay
+   - **Why human:** Visual position relative to rendered essay body not verifiable in headless
+
+7. **4-locale UI render after locale switch**
+   - **Test:** Cycle through en/zh/es/ja; verify long-press menu labels, /saved screen, deep-dive button + segmented control labels render natively
+   - **Expected:** No missing-key fallbacks visible in any locale
    - **Why human:** Visual confirmation; `missing-key.test.mjs` confirms key absence but not rendering quality
 
 ---
 
 ### Gaps Summary
 
-No gaps found. All 6 observable truths are verified, all artifacts pass all three levels (exists, substantive, wired), data flows are real (not hardcoded), and all key links are confirmed wired in the actual source code.
+No gaps found. All 5 UAT gaps from the initial Phase 43 verification have been closed by plans 43-09 through 43-13. Every gap-closure artifact exists, is substantive, is wired, and has passing source-reading regression tests. Load-bearing invariants from CLAUDE.md are preserved. Pre-existing test failures are confirmed pre-existing and not attributable to Phase 43.
 
-The one intentional deferral (`deepError` not surfaced in UI) is documented as out-of-scope in the PHASE-SUMMARY and does not block the phase goal.
-
-ENGAGE-04 descope is cleanly reflected in both ROADMAP.md (SC-4 italicized with descope date) and REQUIREMENTS.md (Out of Scope section with traceability row "Out of Scope (DS-01, 2026-05-11)"). No orphan `[ ]` checkboxes.
+Phase 43 is structurally complete. Remaining items are device-only UAT re-tests and human verification listed above.
 
 ---
 
-_Verified: 2026-05-11_
-_Verifier: Claude (gsd-verifier)_
+*Verified: 2026-05-11T13:30:00Z*
+*Verifier: Claude (gsd-verifier)*
+*Re-verification: Yes — after gap-closure plans 43-09..43-13*

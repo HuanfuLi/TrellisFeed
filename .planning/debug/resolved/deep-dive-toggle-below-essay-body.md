@@ -1,8 +1,8 @@
 ---
-status: diagnosed
+status: resolved
 trigger: "deep-dive-toggle-below-essay-body — operator wants Deep Dive button + Standard|Deep segmented toggle ABOVE essay body (not between body and takeaway)"
 created: 2026-05-11T00:00:00Z
-updated: 2026-05-11T00:00:00Z
+updated: 2026-05-11T13:40:00Z
 ---
 
 ## Current Focus

@@ -1,8 +1,8 @@
 ---
-status: investigating
+status: resolved
 trigger: "Long-press menu third row (Not interested / Dismiss) invisible; operator suspects BottomNavigation bar clipping the bottom-sheet menu"
 created: 2026-05-11T10:00:00Z
-updated: 2026-05-11T10:05:00Z
+updated: 2026-05-11T13:40:00Z
 ---
 
 ## Current Focus

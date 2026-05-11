@@ -1,9 +1,9 @@
 ---
-status: diagnosed
+status: resolved
 phase: 43-engagement-ui
 source: [43-01-shared-infra-and-locales-SUMMARY.md, 43-02-trim-presentation-style-tag-SUMMARY.md, 43-03-longpress-menu-and-masonry-integration-SUMMARY.md, 43-04-saved-screen-and-route-SUMMARY.md, 43-05-postdetail-deep-dive-trigger-SUMMARY.md, 43-06-homescreen-wiring-SUMMARY.md, 43-07-force-new-day-engagement-reset-SUMMARY.md]
 started: 2026-05-11T09:35:43Z
-updated: 2026-05-11T10:15:00Z
+updated: 2026-05-11T13:35:00Z
 ---
 
 ## Current Test
@@ -75,7 +75,7 @@ blocked: 1
 ## Gaps
 
 - truth: "Long-press menu shows 3 rows: Like, Save, Not interested (the third Dismiss row is visible and tappable, not clipped by the bottom navigation bar)"
-  status: failed
+  status: resolved
   reason: "User reported: Only showed Like and Save, did not show \"Not interested\". Possibly blocked by bottom navigation bar"
   severity: major
   test: 2
@@ -93,7 +93,7 @@ blocked: 1
   debug_session: ".planning/debug/dismiss-row-clipped-by-bottom-nav.md"
 
 - truth: "Saved/liked corner icons on feed tiles have sufficient contrast against image/thumbnail backgrounds in both light and dark themes"
-  status: failed
+  status: resolved
   reason: "User reported (alongside Test 3 pass): the liked/saved signs have no background and blends with image/thumbnail behind. Can add a small round shaped background (remember to match light/dark theme)"
   severity: cosmetic
   test: 3
@@ -111,7 +111,7 @@ blocked: 1
   debug_session: ".planning/debug/engagement-corner-icon-no-background.md"
 
 - truth: "HomeScreen Bookmark icon is anchored to the page header (inline with the 'Good Morning' greeting row) and scrolls with the page like a normal element — does not overlap or interfere with the TrellisProgressBar on scroll"
-  status: failed
+  status: resolved
   reason: "User reported (alongside Test 5 pass): the bookmark icon is wrongly fixed on screen position (canvas?) instead of page, and it does not move when user scroll just like a normal element (like post tiles). When user scroll down and trellis progress bar show up, the bookmark icon overlaps and interferes with progress bar. Should fix the bookmark icon in the same line of 'Good Morning'"
   severity: minor
   test: 5
@@ -129,7 +129,7 @@ blocked: 1
   debug_session: ".planning/debug/bookmark-icon-viewport-fixed.md"
 
 - truth: "PostDetailScreen Deep Dive button AND Standard | Deep segmented toggle are positioned ABOVE the essay body (so users see the depth-control affordance BEFORE reading), not between essay body and takeaway"
-  status: failed
+  status: resolved
   reason: "User reported (alongside Test 7 issue): the toggle appeared below essay instead of above essay. It appeared between essay body and takeaway section. You are right to design it above essay, I guess the prior decision was confusing. -- This is an operator-decision update: original Phase 43-05 CONTEXT placement was 'below body / above takeaway'; updated preference is 'above essay body'. Applies to BOTH the Deep Dive button (pre-stream) and the segmented Standard | Deep toggle (post-stream / cached state)."
   severity: minor
   test: 7
@@ -148,7 +148,7 @@ blocked: 1
   debug_session: ".planning/debug/deep-dive-toggle-below-essay-body.md"
 
 - truth: "Force-New-Day resets ONLY the dismissed-anchors list (so previously hidden tiles return tomorrow); it does NOT wipe the user's Saved or Liked archives, which are persistent across days"
-  status: failed
+  status: resolved
   reason: "User flagged a design mistake: Saved/Liked should be persistent so that user can look back at their saved/liked posts. The current Phase 43-07 implementation calls engagementService.reset() inside SettingsDataScreen.handleForceNewDay, which wipes ALL three lists (saved + liked + dismissed). Phase 43 SUMMARY already lists 'resetDismissedOnly() partial-reset API' under 'Deferred Polish' — that polish is now load-bearing for correct UX. Fix: add engagementService.resetDismissedOnly() method (only wipes the dismissed array; leaves saved + liked intact) and update SettingsDataScreen.handleForceNewDay to call it instead of reset(). Update the SC-6 test (tests/screens/SettingsDataScreen.force-new-day-engagement-reset.test.mjs) to assert resetDismissedOnly() call + non-wipe of saved/liked."
   severity: major
   test: 9
