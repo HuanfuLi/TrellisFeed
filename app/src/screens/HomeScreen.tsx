@@ -1,11 +1,12 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { BookOpen, CheckSquare, Headphones, Sparkles, AlertCircle } from 'lucide-react';
+import { Bookmark, BookOpen, CheckSquare, Headphones, Sparkles, AlertCircle } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { type InfoFlowItem } from '../components/InfoFlow';
 import { MasonryFeed } from '../components/MasonryFeed';
+import { LongPressMenu } from '../components/LongPressMenu';
 import { VineProgress } from '../components/VineProgress';
 import { Confetti } from '../components/Confetti';
 import { ScrollToTopFAB } from '../components/ScrollToTopFAB';
@@ -22,6 +23,7 @@ import { plannerAutoGenService } from '../services/plannerAutoGen.service';
 import { settingsService } from '../services/settings.service';
 import { conceptFeedService } from '../services/concept-feed.service';
 import { dailyReadService, getConceptQuota } from '../services/daily-read.service';
+import { engagementService } from '../services/engagement.service';
 import { trellisCreditsService } from '../services/trellis-credits.service';
 import { eventBus } from '../lib/event-bus';
 import { today, getGreeting } from '../lib/date';
@@ -68,6 +70,26 @@ export function HomeScreen() {
   const [pullDistance, setPullDistance] = useState(0);
   const isLoadingMoreRef = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Phase 43-06: LongPressMenu host state (LP-01..LP-04). HomeScreen owns the
+  // sheet's open + post/anchor context state; MasonryFeed long-press emits
+  // `onLongPress(postId, anchorId)` (43-03 contract) which hydrates these and
+  // opens the bottom-sheet. engagementVersion bumps on ANCHOR_DISMISSED /
+  // ENGAGEMENT_CHANGED so MasonryFeed's per-tile corner-icon useMemo
+  // dep arrays re-run (Phase 42 leaf-discipline D-04).
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuPostId, setMenuPostId] = useState<string | null>(null);
+  const [menuAnchorId, setMenuAnchorId] = useState<string | null>(null);
+  const [engagementVersion, setEngagementVersion] = useState(0);
+
+  const handleLongPress = useCallback((postId: string, anchorId: string) => {
+    setMenuPostId(postId);
+    setMenuAnchorId(anchorId);
+    setMenuOpen(true);
+  }, []);
+  const closeMenu = useCallback(() => {
+    setMenuOpen(false);
+  }, []);
 
   // D-22b (Phase 33 Plan 06): snapshot settings reads to avoid re-evaluating
   // settingsService.getSync() on every render. /home is always-mounted (Phase 22
@@ -536,6 +558,49 @@ export function HomeScreen() {
     return unsub;
   }, []);
 
+  // Phase 43-06 Effect A — LP-05 fast path: when engagementService.dismissAnchor
+  // fires from ANYWHERE (LongPressMenu on /home, future surfaces), remove ALL
+  // same-anchor tiles from dailyPosts immediately so the user sees the
+  // AnimatePresence fade-out (200ms, from 43-03) without waiting for a
+  // navigation event. Do NOT refetch conceptFeedService.getDailyPosts() —
+  // operator decision LP-05 (CONTEXT.md). Stable listener; empty deps.
+  useEffect(() => {
+    const unsub = eventBus.subscribe('ANCHOR_DISMISSED', (event) => {
+      const { anchorId } = event.payload;
+      setDailyPosts(prev => prev.filter(p => p.sourceQuestionIds?.[0] !== anchorId));
+      setEngagementVersion(v => v + 1);
+    });
+    return unsub;
+  }, []);
+
+  // Phase 43-06 Effect B — canonical [location.pathname] resync (Phase 36-14
+  // sibling-effects pattern). When the user navigates back to /home after
+  // dismissing an anchor from another surface (PostDetail, SavedScreen, future
+  // dev surfaces), re-read engagementService and filter dailyPosts in place by
+  // the current dismissed-anchor set. ALSO bumps engagementVersion so
+  // MasonryFeed corner icons refresh after navigation. Satisfies CLAUDE.md
+  // "Always-mounted screens must explicitly re-read service state on
+  // navigation". In-place filter only; never refetches getDailyPosts.
+  useEffect(() => {
+    if (location.pathname !== '/home') return;
+    const dismissed = engagementService.getDismissedAnchorIds();
+    if (dismissed.length > 0) {
+      setDailyPosts(prev => prev.filter(p => !dismissed.includes(p.sourceQuestionIds?.[0] ?? '')));
+    }
+    setEngagementVersion(v => v + 1);
+  }, [location.pathname]);
+
+  // Phase 43-06 Effect C — LP-03 corner-icon bump: when engagement state mutates
+  // anywhere (LongPressMenu save/like, SavedScreen un-save/un-like, future dev
+  // surfaces), bump engagementVersion so MasonryFeed's per-tile useMemo
+  // dep arrays re-run isSaved/isLiked queries. Stable listener; empty deps.
+  useEffect(() => {
+    const unsub = eventBus.subscribe('ENGAGEMENT_CHANGED', () => {
+      setEngagementVersion(v => v + 1);
+    });
+    return unsub;
+  }, []);
+
   // Track when the inline card scrolls behind the Header
   const [cardHidden, setCardHidden] = useState(false);
 
@@ -583,6 +648,35 @@ export function HomeScreen() {
   return (
     <>
       <Confetti active={showConfetti} />
+      {/* Phase 43-06 SV-02: Bookmark icon entry to /saved. Position fixed scoped
+          to the HomeScreen swipe slot via SwipeTabContainer's translateZ(0)
+          containing block (CLAUDE.md "Header positioning"). Placed BEFORE the
+          scroll container so overflow:auto cannot clip it. zIndex 195 sits
+          above the compact VineProgress bar (zIndex 190) and below any modal
+          surface. WCAG 44×44 floor enforced via minWidth/minHeight. */}
+      <button
+        type="button"
+        aria-label={t('saved.title')}
+        onClick={() => navigate('/saved')}
+        style={{
+          position: 'fixed',
+          top: 'calc(var(--safe-area-top) + 8px)',
+          right: '16px',
+          zIndex: 195,
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          padding: '8px',
+          minWidth: '44px',
+          minHeight: '44px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'var(--muted-foreground)',
+        }}
+      >
+        <Bookmark size={22} />
+      </button>
       {/* Compact progress bar — slides in as header when inline card scrolls away */}
       <div
         aria-hidden={!showCompactBar}
@@ -842,6 +936,8 @@ export function HomeScreen() {
             navigate(`/posts/${postId}`, { state: { post } });
           }}
           allExplored={allExplored}
+          onLongPress={handleLongPress}
+          engagementVersion={engagementVersion}
         />
 
         {/* Pull-up affordance — always reserves 80px, shows hint when at bottom */}
@@ -852,6 +948,19 @@ export function HomeScreen() {
 
       {/* Scroll-to-top FAB (D-40) */}
       <ScrollToTopFAB scrollRef={containerRef} />
+
+      {/* Phase 43-06 LP-01..LP-04: bottom-sheet contextual menu hosted at the
+          HomeScreen level (NOT per-tile). MasonryFeed's onLongPress callback
+          hydrates { menuPostId, menuAnchorId } and flips menuOpen on. The
+          BottomSheet inside LongPressMenu portals to document.body via
+          position:fixed at zIndex 500, so the JSX placement is purely
+          lifecycle-scoped (mounts/unmounts with HomeScreen). */}
+      <LongPressMenu
+        open={menuOpen}
+        onClose={closeMenu}
+        postId={menuPostId}
+        anchorId={menuAnchorId}
+      />
 
       {/* Botanical loading pulse animation */}
       <style>{`
