@@ -614,7 +614,14 @@
       "connectionGenerating": "Generando conexión…",
       "connectionLabel": "Conexión",
       "discoverContextLabel": "Descubrir concepto",
-      "discoverHookPreview": "Explorando {{concept}}…"
+      "discoverHookPreview": "Explorando {{concept}}…",
+      "deepDive": {
+        "cta": "Profundiza en este concepto",
+        "restoreStandard": "Restaurar estándar",
+        "toggleStandard": "Estándar",
+        "toggleDeep": "Profundo",
+        "streamingLabel": "Generando versión más profunda…"
+      }
     },
     "qa": {
       "heading": "Pregunta sobre esta publicación",
@@ -644,6 +651,35 @@
       "qaSubmit": "Preguntar",
       "qaAskFailed": "No se pudo preguntar sobre esta publicación.",
       "qaGenericError": "Algo salió mal. Inténtalo de nuevo."
+    }
+  },
+  "engagement": {
+    "menu": {
+      "like": "Me gusta",
+      "unlike": "Quitar me gusta",
+      "save": "Guardar",
+      "unsave": "Quitar de guardados",
+      "dismiss": "No me interesa"
+    },
+    "toast": {
+      "saved": "Guardado",
+      "unsaved": "Quitado de guardados",
+      "liked": "Te gusta",
+      "unliked": "Me gusta quitado",
+      "dismissed": "Entendido — no volverás a ver esto"
+    }
+  },
+  "saved": {
+    "title": "Guardados",
+    "tabs": {
+      "saved": "Guardados",
+      "liked": "Te gusta"
+    },
+    "empty": {
+      "savedTitle": "Aún no hay guardados",
+      "savedBody": "Mantén pulsada una tarjeta para guardar una publicación",
+      "likedTitle": "Aún no hay publicaciones que te gusten",
+      "likedBody": "Mantén pulsada una tarjeta para indicar que te gusta"
     }
   },
   "onboarding": {

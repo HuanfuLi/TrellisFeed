@@ -614,7 +614,14 @@
       "connectionGenerating": "正在生成关联…",
       "connectionLabel": "关联",
       "discoverContextLabel": "概念发现",
-      "discoverHookPreview": "探索 {{concept}}…"
+      "discoverHookPreview": "探索 {{concept}}…",
+      "deepDive": {
+        "cta": "深入了解这个概念",
+        "restoreStandard": "恢复标准版",
+        "toggleStandard": "标准",
+        "toggleDeep": "深入",
+        "streamingLabel": "正在生成更深入的版本…"
+      }
     },
     "qa": {
       "heading": "就此帖提问",
@@ -644,6 +651,35 @@
       "qaSubmit": "提问",
       "qaAskFailed": "关于此帖的提问失败。",
       "qaGenericError": "出现问题，请重试。"
+    }
+  },
+  "engagement": {
+    "menu": {
+      "like": "喜欢",
+      "unlike": "取消喜欢",
+      "save": "收藏",
+      "unsave": "取消收藏",
+      "dismiss": "不感兴趣"
+    },
+    "toast": {
+      "saved": "已收藏",
+      "unsaved": "已从收藏中移除",
+      "liked": "已喜欢",
+      "unliked": "已取消喜欢",
+      "dismissed": "知道了 — 不再向你推送这条"
+    }
+  },
+  "saved": {
+    "title": "已收藏",
+    "tabs": {
+      "saved": "已收藏",
+      "liked": "已喜欢"
+    },
+    "empty": {
+      "savedTitle": "还没有收藏",
+      "savedBody": "长按任意卡片即可收藏帖子",
+      "likedTitle": "还没有喜欢的帖子",
+      "likedBody": "长按任意卡片即可喜欢帖子"
     }
   },
   "onboarding": {

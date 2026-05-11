@@ -614,7 +614,14 @@
       "connectionGenerating": "つながりを生成中…",
       "connectionLabel": "つながり",
       "discoverContextLabel": "概念の発見",
-      "discoverHookPreview": "{{concept}} を探索中…"
+      "discoverHookPreview": "{{concept}} を探索中…",
+      "deepDive": {
+        "cta": "この概念を深く掘り下げる",
+        "restoreStandard": "標準に戻す",
+        "toggleStandard": "標準",
+        "toggleDeep": "深掘り",
+        "streamingLabel": "深掘り版を生成中…"
+      }
     },
     "qa": {
       "heading": "この投稿に質問",
@@ -644,6 +651,35 @@
       "qaSubmit": "質問する",
       "qaAskFailed": "この投稿への質問に失敗しました。",
       "qaGenericError": "問題が発生しました。もう一度お試しください。"
+    }
+  },
+  "engagement": {
+    "menu": {
+      "like": "いいね",
+      "unlike": "いいねを取り消す",
+      "save": "保存",
+      "unsave": "保存を解除",
+      "dismiss": "興味なし"
+    },
+    "toast": {
+      "saved": "保存しました",
+      "unsaved": "保存から削除しました",
+      "liked": "いいねしました",
+      "unliked": "いいねを取り消しました",
+      "dismissed": "わかりました — このような投稿はもう表示しません"
+    }
+  },
+  "saved": {
+    "title": "保存済み",
+    "tabs": {
+      "saved": "保存済み",
+      "liked": "いいね"
+    },
+    "empty": {
+      "savedTitle": "まだ保存していません",
+      "savedBody": "タイルを長押しして投稿を保存",
+      "likedTitle": "まだいいねした投稿はありません",
+      "likedBody": "タイルを長押しして投稿にいいね"
     }
   },
   "onboarding": {

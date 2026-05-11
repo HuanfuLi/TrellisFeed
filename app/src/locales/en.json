@@ -614,7 +614,14 @@
       "connectionGenerating": "Generating connection...",
       "connectionLabel": "Connection",
       "discoverContextLabel": "Concept Discovery",
-      "discoverHookPreview": "Exploring {{concept}}..."
+      "discoverHookPreview": "Exploring {{concept}}...",
+      "deepDive": {
+        "cta": "Deep dive into this concept",
+        "restoreStandard": "Restore standard",
+        "toggleStandard": "Standard",
+        "toggleDeep": "Deep",
+        "streamingLabel": "Streaming deeper version…"
+      }
     },
     "qa": {
       "heading": "Ask this post",
@@ -644,6 +651,35 @@
       "qaSubmit": "Ask",
       "qaAskFailed": "Failed to ask about this post.",
       "qaGenericError": "Something went wrong. Please try again."
+    }
+  },
+  "engagement": {
+    "menu": {
+      "like": "Like",
+      "unlike": "Unlike",
+      "save": "Save",
+      "unsave": "Unsave",
+      "dismiss": "Not interested"
+    },
+    "toast": {
+      "saved": "Saved",
+      "unsaved": "Removed from saved",
+      "liked": "Liked",
+      "unliked": "Like removed",
+      "dismissed": "Got it — you won't see this again"
+    }
+  },
+  "saved": {
+    "title": "Saved",
+    "tabs": {
+      "saved": "Saved",
+      "liked": "Liked"
+    },
+    "empty": {
+      "savedTitle": "Nothing saved yet",
+      "savedBody": "Long-press any tile to save a post",
+      "likedTitle": "No liked posts yet",
+      "likedBody": "Long-press any tile to like a post"
     }
   },
   "onboarding": {
