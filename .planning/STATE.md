@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: gap closure)
 status: executing
-stopped_at: Completed 43-09-bottomsheet-portal-and-nav-clearance-PLAN.md (parallel sub-wave 4A)
-last_updated: "2026-05-11T10:34:10.799Z"
+stopped_at: Completed 43-12-deep-dive-controls-above-essay-body-PLAN.md
+last_updated: "2026-05-11T10:35:39.925Z"
 last_activity: 2026-05-11
 progress:
   total_phases: 21
@@ -18,7 +18,7 @@ progress:
 ## Current Position
 
 Phase: 43 (engagement-ui) — EXECUTING
-Plan: 2 of 13
+Plan: 3 of 13
 Status: Ready to execute
 Last activity: 2026-05-11
 Phase summary: `.planning/phases/43-engagement-ui/43-PHASE-SUMMARY.md`
@@ -330,7 +330,7 @@ All v1.4 blockers resolved at close. No open blockers.
 
 ## Session Continuity
 
-**Stopped at:** Completed 43-09-bottomsheet-portal-and-nav-clearance-PLAN.md (parallel sub-wave 4A)
+**Stopped at:** Completed 43-12-deep-dive-controls-above-essay-body-PLAN.md
 **Next action:** `/gsd:verify-work 42 04` (verifier sweep over Plan 42-04 must-haves) → after Wave 2 verification, Plan 42-05 (source-reading invariant tests) → Plan 42-07 (phase close-out).
 
 **Files written this session (Plan 42-04 close):**
