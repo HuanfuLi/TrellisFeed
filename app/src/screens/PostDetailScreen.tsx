@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Loader2, MessageSquare, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Loader2, MessageSquare, RefreshCw, Sparkles } from 'lucide-react';
 import i18n from '../locales';
 import { DetailMenu } from '../components/DetailMenu';
 import { Header, HEADER_HEIGHT } from '../components/ui/Header';
@@ -82,6 +82,18 @@ export function PostDetailScreen() {
   const [isStreamingOnEnter, setIsStreamingOnEnter] = useState(false);
   const [onEnterError, setOnEnterError] = useState<string | null>(null);
   const [onEnterMeta, setOnEnterMeta] = useState<Omit<EssayContent, 'bodyMarkdown'> | null>(null);
+
+  // Phase 43 DD-01..DD-05 — Deep-dive streaming state.
+  // Separate state slot from on-enter so the standard bodyMarkdown is NEVER
+  // overwritten by a deep stream. Dedicated AbortController (deepAbortControllerRef)
+  // so cancel-on-Restore-Standard doesn't kill the on-enter cleanup.
+  const [streamingDeep, setStreamingDeep] = useState('');
+  const [isStreamingDeep, setIsStreamingDeep] = useState(false);
+  // deepError reserved for future error-toast surfacing (set in handleStartDeepDive
+  // catch block; not yet rendered — UI parity with onEnterError comes in a follow-up).
+  const [, setDeepError] = useState<string | null>(null);
+  const [activeVariant, setActiveVariant] = useState<'standard' | 'deep'>('standard');
+  const deepAbortControllerRef = useRef<AbortController | null>(null);
 
   // Q&A streaming state
   const [qaStreaming, setQaStreaming] = useState('');
@@ -391,6 +403,11 @@ export function PostDetailScreen() {
 
     return () => {
       abortController.abort(); // unmount trigger (D-06)
+      // Phase 43 DD-05 — also cancel any in-flight deep stream on unmount or
+      // postId change. Without this the deep stream could keep accumulating
+      // chunks after the user has navigated away, eventually patching the cache
+      // for a post the user is no longer viewing.
+      deepAbortControllerRef.current?.abort();
     };
   }, [post?.id, post?.bodyMarkdown]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -514,6 +531,174 @@ export function PostDetailScreen() {
     } finally {
       setIsRetryingImage(false);
     }
+  };
+
+  // Phase 43 DD-03 — Kick off the deep-dive stream against a NEW dedicated
+  // AbortController. RESEARCH Pitfall 3: reusing the on-enter controller would
+  // immediately bail because it was aborted on unmount/postId change.
+  // DD-05: this introduces a 4th pre-call guard (`if (ctrl.signal.aborted) return`),
+  // a 5th signal-arg pass (`{ depth: 'deep', signal: ctrl.signal }`), and a
+  // cache-write guard (`if (ctrl.signal.aborted) return` before patchPostEssayInCache).
+  const handleStartDeepDive = useCallback(async () => {
+    if (!post) return;
+    const ctrl = new AbortController();
+    deepAbortControllerRef.current = ctrl;
+    setIsStreamingDeep(true);
+    setActiveVariant('deep');
+    setStreamingDeep('');
+    setDeepError(null);
+
+    let accumulated = '';
+    try {
+      // DD-05 pre-call guard (4th in this file) — bail if Restore Standard or
+      // unmount fired between handler invocation and the for-await opener.
+      if (ctrl.signal.aborted) return;
+      for await (const chunk of generatePostEssay(post, questionsRef.current, { depth: 'deep', signal: ctrl.signal })) {
+        if (ctrl.signal.aborted) return;
+        accumulated += chunk;
+        setStreamingDeep(accumulated);
+      }
+      // DD-05 cache-write guard — bodyMarkdownDeep is NEVER persisted from a
+      // partial / aborted stream.
+      if (ctrl.signal.aborted) return;
+      patchPostEssayInCache(post.id, { bodyMarkdownDeep: accumulated } as EssayContent);
+      // Refresh local post state so renderDeepDiveControls flips from the
+      // DeepDiveButton to the Standard | Deep segmented control on the next render.
+      setPost((prev) => prev ? { ...prev, bodyMarkdownDeep: accumulated } : prev);
+    } catch (err) {
+      if (ctrl.signal.aborted) return; // clean cancel
+      setDeepError(err instanceof Error ? err.message : String(err));
+    } finally {
+      // Only flip the streaming flag off if THIS controller is still the
+      // current one (guards against rapid re-clicks superseding the in-flight call).
+      if (deepAbortControllerRef.current === ctrl) {
+        setIsStreamingDeep(false);
+      }
+    }
+  }, [post]);
+
+  // Phase 43 DD-03 — Restore Standard: abort the deep stream + revert UI to
+  // the standard variant. Standard bodyMarkdown is untouched because the deep
+  // stream accumulated into a separate state slot (streamingDeep).
+  const handleRestoreStandard = useCallback(() => {
+    deepAbortControllerRef.current?.abort();
+    setIsStreamingDeep(false);
+    setActiveVariant('standard');
+    setStreamingDeep('');
+  }, []);
+
+  // Phase 43 DD-01..DD-04 — Deep-dive controls slot. Renders one of three
+  // surfaces based on current state:
+  //   1. isStreamingDeep        → Restore Standard link (DD-03)
+  //   2. post.bodyMarkdownDeep  → Standard | Deep segmented toggle (DD-04)
+  //   3. otherwise              → DeepDiveButton CTA (DD-02)
+  const renderDeepDiveControls = () => {
+    if (!post) return null;
+    if (isStreamingDeep) {
+      return (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px', marginBottom: '8px' }}>
+          <button
+            type="button"
+            onClick={handleRestoreStandard}
+            style={{
+              padding: '6px 12px',
+              minHeight: '44px',
+              background: 'none',
+              border: 'none',
+              color: 'var(--primary-40)',
+              fontSize: '12px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              fontFamily: 'system-ui, -apple-system, sans-serif',
+            }}
+          >
+            {t('posts.detail.deepDive.restoreStandard')}
+          </button>
+        </div>
+      );
+    }
+    const deepCached = typeof post.bodyMarkdownDeep === 'string' && post.bodyMarkdownDeep.length > 0;
+    if (deepCached) {
+      // DD-04 — Standard | Deep segmented control. Pure client-side toggle;
+      // no re-stream on tap. UI-SPEC §9: active = var(--primary-40) bg + #FFFFFF text.
+      return (
+        <div
+          role="tablist"
+          style={{
+            display: 'inline-flex',
+            width: '100%',
+            padding: '4px',
+            gap: '4px',
+            backgroundColor: 'var(--surface-variant)',
+            borderRadius: 'var(--radius-pill, 9999px)',
+            border: '1px solid var(--border)',
+            marginTop: '20px',
+            marginBottom: '16px',
+            boxSizing: 'border-box',
+          }}
+        >
+          {(['standard', 'deep'] as const).map((variant) => {
+            const isActive = activeVariant === variant;
+            return (
+              <button
+                key={variant}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                onClick={() => setActiveVariant(variant)}
+                style={{
+                  flex: 1,
+                  padding: '10px 16px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  borderRadius: 9999,
+                  minHeight: '44px',
+                  backgroundColor: isActive ? 'var(--primary-40)' : 'transparent',
+                  color: isActive ? '#FFFFFF' : 'var(--muted-foreground)',
+                  fontSize: '14px',
+                  fontWeight: isActive ? 700 : 500,
+                  transition: 'background-color 150ms ease, color 150ms ease',
+                  fontFamily: 'system-ui, -apple-system, sans-serif',
+                }}
+              >
+                {variant === 'standard'
+                  ? t('posts.detail.deepDive.toggleStandard')
+                  : t('posts.detail.deepDive.toggleDeep')}
+              </button>
+            );
+          })}
+        </div>
+      );
+    }
+    // DD-02 default — DeepDiveButton CTA (full-width subtle button).
+    return (
+      <button
+        type="button"
+        onClick={handleStartDeepDive}
+        style={{
+          width: '100%',
+          padding: '14px 16px',
+          minHeight: '48px',
+          marginTop: '20px',
+          marginBottom: '16px',
+          backgroundColor: 'var(--surface-variant)',
+          border: '1px solid var(--border)',
+          borderRadius: 'var(--radius)',
+          color: 'var(--primary-40)',
+          fontSize: '15px',
+          fontWeight: 700,
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '8px',
+          cursor: 'pointer',
+          fontFamily: 'system-ui, -apple-system, sans-serif',
+        }}
+      >
+        <Sparkles size={16} color="var(--primary-40)" />
+        {t('posts.detail.deepDive.cta')}
+      </button>
+    );
   };
 
   if (loadingPost) {
@@ -829,6 +1014,23 @@ export function PostDetailScreen() {
                 </div>
               )}
             </>
+          ) : isStreamingDeep ? (
+            // Phase 43 DD-03 — deep stream replaces the body slot in-place.
+            // streamingDeep accumulates separately so post.bodyMarkdown stays intact.
+            <div style={isNews ? { fontFamily: "Georgia, 'Times New Roman', serif" } : undefined}>
+              {streamingDeep ? <Markdown>{streamingDeep}</Markdown> : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '20px 0' }}>
+                  <div style={{ height: '14px', width: '90%', borderRadius: '4px', backgroundColor: 'var(--surface-variant)', animation: 'pulse 1.5s ease-in-out infinite' }} />
+                  <div style={{ height: '14px', width: '75%', borderRadius: '4px', backgroundColor: 'var(--surface-variant)', animation: 'pulse 1.5s ease-in-out infinite', animationDelay: '0.2s' }} />
+                  <div style={{ height: '14px', width: '85%', borderRadius: '4px', backgroundColor: 'var(--surface-variant)', animation: 'pulse 1.5s ease-in-out infinite', animationDelay: '0.4s' }} />
+                </div>
+              )}
+            </div>
+          ) : activeVariant === 'deep' && post.bodyMarkdownDeep ? (
+            // Phase 43 DD-04 — cached-deep render branch (segmented toggle active).
+            <div style={isNews ? { fontFamily: "Georgia, 'Times New Roman', serif" } : undefined}>
+              <Markdown>{post.bodyMarkdownDeep}</Markdown>
+            </div>
           ) : post.bodyMarkdown ? (
             <div style={isNews ? { fontFamily: "Georgia, 'Times New Roman', serif" } : undefined}>
               <Markdown>{post.bodyMarkdown}</Markdown>
@@ -837,6 +1039,11 @@ export function PostDetailScreen() {
         </div>
         {/* Scroll 70% sentinel — placed between essay body and takeaway (D-04) */}
         <div ref={scrollSentinelRef} style={{ height: '1px' }} />
+        {/* Phase 43 DD-01 — deep-dive controls slot. Renders DeepDiveButton OR
+            Restore Standard link OR Standard|Deep segmented control based on state.
+            Gated by !isStreamingOnEnter && (post.bodyMarkdown || streamingBody) so it
+            never shows during the initial essay-stream warm-up. */}
+        {!isStreamingOnEnter && (post.bodyMarkdown || streamingBody) && renderDeepDiveControls()}
         {post.sourceType !== 'video' && (post.takeaway || onEnterMeta?.takeaway) && (
           <div
             style={{
