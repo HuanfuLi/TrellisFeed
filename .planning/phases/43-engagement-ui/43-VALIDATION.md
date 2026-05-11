@@ -1,10 +1,11 @@
 ---
 phase: 43
 slug: engagement-ui
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: validated
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-05-11
+validated: 2026-05-11
 ---
 
 # Phase 43 — Validation Strategy
@@ -40,7 +41,32 @@ created: 2026-05-11
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| TBD | — | — | ENGAGE-01..03 | unit + integration | `cd app && node --test tests/...` | — | ⬜ pending |
+| 43-01-T1 | 43-01 | 0 | infrastructure | source-reading | `cd app && node --test tests/hooks/useLongPress.test.mjs` | yes | ✅ green |
+| 43-01-T2 | 43-01 | 0 | infrastructure | grep | `cd app && grep "compact" src/components/ui/BottomSheet.tsx` | yes | ✅ green |
+| 43-01-T3 | 43-01 | 0 | i18n parity | structural | `cd app && node --test tests/locales/bundle-parity.test.mjs` | yes | ✅ green |
+| 43-01-T4 | 43-01 | 0 | scaffold | skipped | `cd app && node --test tests/components/LongPressMenu.test.mjs tests/components/MasonryFeed.dismiss-fade-all.test.mjs tests/components/InfoFlow.no-presentation-style-tag.test.mjs tests/screens/SavedScreen.test.mjs tests/screens/PostDetailScreen.deep-dive-trigger.test.mjs tests/screens/PostDetailScreen.segmented-toggle.test.mjs tests/screens/PostDetailScreen.abort-contract.test.mjs tests/screens/HomeScreen.engagement-resync.test.mjs tests/screens/SettingsDataScreen.force-new-day-engagement-reset.test.mjs` | yes | ✅ scaffold→filled |
+| 43-01-T5 | 43-01 | 0 | DS-01 doc | grep | `grep "ENGAGE-04 descoped 2026-05-11 (DS-01)" .planning/ROADMAP.md` | yes | ✅ green |
+| 43-02-T1 | 43-02 | 1 | TS-01 (CONTENT-01 / ENGAGEMENT tile simplify) | source-reading neg | `cd app && node --test tests/components/InfoFlow.no-presentation-style-tag.test.mjs` | yes | ✅ green |
+| 43-02-T2 | 43-02 | 1 | TS-01 | source-reading | `cd app && node --test tests/components/InfoFlow.no-presentation-style-tag.test.mjs` | yes | ✅ green |
+| 43-03-T1 | 43-03 | 1 | ENGAGE-01/02/03 | source-reading | `cd app && node --test tests/components/LongPressMenu.test.mjs` | yes | ✅ green |
+| 43-03-T2 | 43-03 | 1 | anti-wire | source-reading | `cd app && node --test tests/components/LongPressMenu.test.mjs` | yes | ✅ green |
+| 43-03-T3 | 43-03 | 1 | LP-03/05 | source-reading | `cd app && node --test tests/components/MasonryFeed.dismiss-fade-all.test.mjs` | yes | ✅ green |
+| 43-03-T4 | 43-03 | 1 | LP-03/05 | source-reading | `cd app && node --test tests/components/MasonryFeed.dismiss-fade-all.test.mjs` | yes | ✅ green |
+| 43-04-T1 | 43-04 | 1 | ENGAGE-01/03 | source-reading | `cd app && node --test tests/screens/SavedScreen.test.mjs` | yes | ✅ green |
+| 43-04-T2 | 43-04 | 1 | SV-01 | build | `cd app && npm run build` | yes | ✅ green |
+| 43-04-T3 | 43-04 | 1 | SV-* | source-reading | `cd app && node --test tests/screens/SavedScreen.test.mjs` | yes | ✅ green |
+| 43-05-T1 | 43-05 | 1 | CONTENT-01 | source-reading | `cd app && node --test tests/screens/PostDetailScreen.deep-dive-trigger.test.mjs` | yes | ✅ green |
+| 43-05-T2 | 43-05 | 1 | DD-01..03 | source-reading | `cd app && node --test tests/screens/PostDetailScreen.deep-dive-trigger.test.mjs` | yes | ✅ green |
+| 43-05-T3 | 43-05 | 1 | DD-05 | source-reading | `cd app && node --test tests/screens/PostDetailScreen.abort-contract.test.mjs` | yes | ✅ green |
+| 43-05-T4 | 43-05 | 1 | DD-04 | source-reading | `cd app && node --test tests/screens/PostDetailScreen.segmented-toggle.test.mjs` | yes | ✅ green |
+| 43-06-T1 | 43-06 | 2 | SV-02 + LP-03/05 | source-reading | `cd app && node --test tests/screens/HomeScreen.engagement-resync.test.mjs` | yes | ✅ green |
+| 43-06-T2 | 43-06 | 2 | Phase 32.1 + 36-14 | source-reading | `cd app && node --test tests/screens/HomeScreen.engagement-resync.test.mjs` | yes | ✅ green |
+| 43-07-T1 | 43-07 | 2 | SC-6 | grep | `cd app && grep "engagementService.reset" src/screens/settings/SettingsDataScreen.tsx` | yes | ✅ green |
+| 43-07-T2 | 43-07 | 2 | SC-6 | source-reading | `cd app && node --test tests/screens/SettingsDataScreen.force-new-day-engagement-reset.test.mjs` | yes | ✅ green |
+| 43-08-T1 | 43-08 | 3 | docs | grep | `grep "Phase 43" .planning/phases/43-engagement-ui/43-PHASE-SUMMARY.md` | yes | ✅ green |
+| 43-08-T2 | 43-08 | 3 | docs | grep | `grep "Phase 43 closed" .planning/STATE.md` | yes | ✅ green |
+| 43-08-T3 | 43-08 | 3 | docs | grep | `grep "43-08-phase-close-out-PLAN.md" .planning/ROADMAP.md` | yes | ✅ green |
+| 43-08-T4 | 43-08 | 3 | docs | grep | `grep "nyquist_compliant: true" .planning/phases/43-engagement-ui/43-VALIDATION.md` | yes | ✅ green |
 
 **Expected test surfaces (planner to assign Task IDs):**
 - `tests/hooks/useLongPress.test.mjs` — 480ms timer, cancel-on-move, cleanup
@@ -65,13 +91,16 @@ created: 2026-05-11
 
 > Wave 0 = test scaffolds + shared fixtures landed FIRST so subsequent plans can sample feedback.
 
-- [ ] `tests/hooks/useLongPress.test.mjs` — stubs covering 480ms timer behavior (extracted from ChatMessage.tsx:119-140)
-- [ ] `tests/components/LongPressMenu.test.mjs` — stubs covering bottom-sheet flow (LP-01..LP-04)
-- [ ] `tests/components/MasonryFeed.dismiss-fade-all.test.mjs` — stub covering LP-05 (all same-anchor tiles fade)
-- [ ] `tests/screens/SavedScreen.test.mjs` — stubs covering SV-01..SV-04 (route, tabs, empty)
-- [ ] `tests/screens/PostDetailScreen.deep-dive-trigger.test.mjs` — stubs covering DD-01..DD-04
-- [ ] `tests/screens/PostDetailScreen.abort-contract.test.mjs` — stubs PRESERVING DD-05 invariants
-- [ ] `tests/components/InfoFlow.no-presentation-style-tag.test.mjs` — stub covering TS-01
+- [x] `tests/hooks/useLongPress.test.mjs` — 7 source-reading assertions; landed in 43-01 Task 1 (TDD RED+GREEN)
+- [x] `tests/components/LongPressMenu.test.mjs` — scaffold landed in 43-01 Task 4; filled in 43-03 with 7 source-reading + anti-wire assertions
+- [x] `tests/components/MasonryFeed.dismiss-fade-all.test.mjs` — scaffold landed in 43-01 Task 4; filled in 43-03 with 7 LP-03/05 + Phase 42 invariant assertions
+- [x] `tests/screens/SavedScreen.test.mjs` — scaffold landed in 43-01 Task 4; filled in 43-04 with 7 SV-01..SV-04 + Phase 32.1 negative assertions
+- [x] `tests/screens/PostDetailScreen.deep-dive-trigger.test.mjs` — scaffold landed in 43-01 Task 4; filled in 43-05 with 5 DD-01..DD-03 assertions
+- [x] `tests/screens/PostDetailScreen.segmented-toggle.test.mjs` — scaffold landed in 43-01 Task 4 (dedicated per VALIDATION line 53); filled in 43-05 with 7 DD-04 assertions
+- [x] `tests/screens/PostDetailScreen.abort-contract.test.mjs` — scaffold landed in 43-01 Task 4; filled in 43-05 with 7 DD-05 assertions
+- [x] `tests/screens/HomeScreen.engagement-resync.test.mjs` — scaffold landed in 43-01 Task 4; filled in 43-06 with 11 dual-effect + Phase 32.1/36-14 assertions
+- [x] `tests/screens/SettingsDataScreen.force-new-day-engagement-reset.test.mjs` — scaffold landed in 43-01 Task 4; filled in 43-07 with 4 ordering + ENGAGE-02 assertions
+- [x] `tests/components/InfoFlow.no-presentation-style-tag.test.mjs` — scaffold landed in 43-01 Task 4; filled in 43-02 with 4 paired negative + positive assertions (TS-01)
 
 *Existing infrastructure: `tests/locales/bundle-parity.test.mjs` and `tests/locales/missing-key.test.mjs` already exist — i18n parity is auto-enforced once new keys land in all 4 bundles.*
 
@@ -92,11 +121,11 @@ created: 2026-05-11
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 45s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 45s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** validated 2026-05-11
