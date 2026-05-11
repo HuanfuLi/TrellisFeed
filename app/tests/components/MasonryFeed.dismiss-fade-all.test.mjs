@@ -40,8 +40,12 @@ test('LP-03: corner icon overlay reads engagement state per tile', () => {
   assert.match(src, /engagementService\.isLiked/);
   assert.match(src, /\bBookmark\b/);
   assert.match(src, /\bHeart\b/);
-  // Drop-shadow filter on corner icons (UI-SPEC §2 — keeps icon visible over light/dark thumbnails)
-  assert.match(src, /drop-shadow\(0 1px 2px rgba\(0,0,0,0\.25\)\)/);
+  // Phase 43-10 (gap closure): corner icons now wrapped in a circular chip
+  // (--corner-chip-bg backdrop + --shadow-1 lift) instead of a per-icon
+  // drop-shadow filter. Same spirit (visibility on busy thumbnails), better
+  // execution. See MasonryFeed.corner-chip.test.mjs for the full chip
+  // invariant set.
+  assert.match(src, /var\(--corner-chip-bg\)/);
 });
 
 test('LP-05: each column tile list is wrapped in AnimatePresence', () => {

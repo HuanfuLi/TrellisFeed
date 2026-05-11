@@ -384,6 +384,13 @@ function TileWrapper({
     }
   };
 
+  // Phase 43 (gap closure 43-10): wrap each engagement-state icon in a
+  // circular chip so saved/liked signals stay legible against busy image,
+  // video, and news-thumbnail tile backgrounds. Heart's fill/color migrates
+  // off the node-salmon token (which inverts to near-black in dark mode)
+  // onto --corner-chip-fg-liked. Chip box-shadow replaces the previous
+  // per-icon drop-shadow filter. See
+  // .planning/debug/engagement-corner-icon-no-background.md.
   const cornerOverlay =
     isConcept && (isSaved || isLiked) ? (
       <div
@@ -395,25 +402,49 @@ function TileWrapper({
           zIndex: 10,
           display: 'flex',
           flexDirection: 'column',
-          gap: '4px',
+          gap: '6px',
           pointerEvents: 'none',
         }}
       >
         {isSaved && (
-          <Bookmark
-            size={14}
-            fill="var(--primary-40)"
-            color="var(--primary-40)"
-            style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.25))' }}
-          />
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '26px',
+              height: '26px',
+              borderRadius: '999px',
+              backgroundColor: 'var(--corner-chip-bg)',
+              boxShadow: 'var(--shadow-1)',
+            }}
+          >
+            <Bookmark
+              size={14}
+              fill="var(--corner-chip-fg-saved)"
+              color="var(--corner-chip-fg-saved)"
+            />
+          </span>
         )}
         {isLiked && (
-          <Heart
-            size={14}
-            fill="var(--node-salmon)"
-            color="var(--node-salmon)"
-            style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.25))' }}
-          />
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '26px',
+              height: '26px',
+              borderRadius: '999px',
+              backgroundColor: 'var(--corner-chip-bg)',
+              boxShadow: 'var(--shadow-1)',
+            }}
+          >
+            <Heart
+              size={14}
+              fill="var(--corner-chip-fg-liked)"
+              color="var(--corner-chip-fg-liked)"
+            />
+          </span>
         )}
       </div>
     ) : null;
