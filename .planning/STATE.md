@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: gap closure)
 status: executing
-stopped_at: Completed 43-07-force-new-day-engagement-reset-PLAN.md
-last_updated: "2026-05-11T08:19:54.300Z"
+stopped_at: Phase 43 closed; 8/8 plans landed; ready for /gsd:verify-work 43
+last_updated: "2026-05-11T08:22:25.000Z"
 last_activity: 2026-05-11
 progress:
   total_phases: 21
@@ -17,15 +17,16 @@ progress:
 
 ## Current Position
 
-Phase: 43 (engagement-ui) — EXECUTING
-Plan: 8 of 8
-Status: Ready to execute
+Phase: 43 (engagement-ui) — CLOSED (ready for /gsd:verify-work)
+Plan: 8 of 8 complete
+Status: Ready for verification
 Last activity: 2026-05-11
+Phase summary: `.planning/phases/43-engagement-ui/43-PHASE-SUMMARY.md`
 
 ## Progress
 
-**Phases:** 2 / 9 complete (37 ✓; 38 ✓; 39 ready for verification; 40 ready for verification; 41 ready for verification; 42 ready for verification 8/8 plans; 43-45 pending)
-**Plans:** 7 / 8 complete in Phase 43 (43-01 shared-infra-and-locales ✓; 43-02 trim-presentation-style-tag ✓; 43-03 longpress-menu-and-masonry-integration ✓; 43-04 saved-screen-and-route ✓; 43-05 postdetail-deep-dive-trigger ✓; 43-06 homescreen-wiring ✓; 43-07 force-new-day-engagement-reset ✓); 8 / 8 complete in Phase 42 (42-01 masonry-feed-skeleton ✓; 42-02 homescreen-swap ✓; 42-03 card-slide-in-removal ✓; 42-04 vine-bloom-card-and-i18n ✓; 42-05 source-reading-invariant-tests ✓; 42-06 roadmap-requirements-wording-correction ✓; 42-07 phase-close-out ✓; 42-08 heal-review-empty-anchor-fix ✓ [gap-closure]); 2 / 2 complete in Phase 41 (41-01 source-diversity-wiring ✓; 41-02 essay-depth-citation-rendering ✓); 1 / 1 complete in Phase 40 (40-01 source-diversity-service ✓); 1 / 1 complete in Phase 39 (39-01 engagement-service ✓)
+**Phases:** 2 / 9 complete (37 ✓; 38 ✓; 39 ready for verification; 40 ready for verification; 41 ready for verification; 42 ready for verification 8/8 plans; 43 ready for verification 8/8 plans; 44-45 pending)
+**Plans:** 8 / 8 complete in Phase 43 (43-01 shared-infra-and-locales ✓; 43-02 trim-presentation-style-tag ✓; 43-03 longpress-menu-and-masonry-integration ✓; 43-04 saved-screen-and-route ✓; 43-05 postdetail-deep-dive-trigger ✓; 43-06 homescreen-wiring ✓; 43-07 force-new-day-engagement-reset ✓; 43-08 phase-close-out ✓); 8 / 8 complete in Phase 42 (42-01 masonry-feed-skeleton ✓; 42-02 homescreen-swap ✓; 42-03 card-slide-in-removal ✓; 42-04 vine-bloom-card-and-i18n ✓; 42-05 source-reading-invariant-tests ✓; 42-06 roadmap-requirements-wording-correction ✓; 42-07 phase-close-out ✓; 42-08 heal-review-empty-anchor-fix ✓ [gap-closure]); 2 / 2 complete in Phase 41 (41-01 source-diversity-wiring ✓; 41-02 essay-depth-citation-rendering ✓); 1 / 1 complete in Phase 40 (40-01 source-diversity-service ✓); 1 / 1 complete in Phase 39 (39-01 engagement-service ✓)
 
 ```
 [████████████████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 46%
@@ -45,7 +46,7 @@ See: `.planning/PROJECT.md` (updated 2026-05-08 — milestone v1.5 started)
 
 **Core value:** Enable learners to transform fragmented information into structured knowledge through AI-driven Q&A, visual mapping, and adaptive spaced repetition — all while maintaining complete local-first privacy.
 
-**Current focus:** Phase 43 — engagement-ui
+**Current focus:** Phase 43 closed; ready for /gsd:verify-work 43. Next: Phase 44 (deps sweep) + Phase 45 (code quality sweep) — Wave 4, parallel-safe with each other.
 
 ## Requirement Coverage
 
@@ -72,6 +73,17 @@ All carry-overs are scheduled into Wave 0:
 ## Resolved blockers
 
 All v1.4 blockers resolved at close. No open blockers.
+
+## Last decisions (Phase 43 close, 2026-05-11)
+
+- **Phase 43 closed** — ENGAGE-01 / ENGAGE-02 / ENGAGE-03 + CONTENT-01 user-facing UI surfaces shipped on top of Phase 39 engagement service; ENGAGE-04 descoped 2026-05-11 (DS-01) with operator framing "tiles already too rich; we should try to simplify instead." DS-01 doc edits to ROADMAP + REQUIREMENTS were folded forward into 43-01 Task 5 (Wave 0) per the plan-checker revision 2026-05-11, so all Wave-1 executors read consistent descope state during execution.
+- **Operator preference signal honored** — only TS-01 (the bounded NEWS-chip trim + 4-locale newsTag key removal) was greenlit for tile-density reduction in Phase 43. Broader tile-metadata audit (news source attribution, video channel byline, news date) deferred to a future polish phase. Resist re-opening in Phase 44/45.
+- **Three operator divergences from research recommendation, all toward more-interactive UX:** SV-04 Saved | Liked tabs (over private-only Like model), DD-03 replace-in-place deep-stream (over append-both), DD-04 Standard | Deep segmented toggle (over append-both). Pattern signal for future feed/detail work: prefer interactive controls + toggleable views where there's a genuine choice point.
+- **LongPressMenu anti-wire invariant locked** — 0 occurrences of `CONCEPT_EXPLORED`, `eventBus.emit`, or `dailyReadService.markExplored` in `LongPressMenu.tsx`. Defense-in-depth anti-wire matches Phase 39/40 patterns. Enforced by `tests/components/LongPressMenu.test.mjs`.
+- **AbortController contract extended without regression** — Phase 41-02 D-08 grew from 3 pre-call guards / 4 signal-arg passes to 16 / 6 after Deep Dive added; `patchPostEssayInCache` cache-write fires only when `!signal.aborted` so `bodyMarkdownDeep` is NEVER written from a partial / aborted stream. Cleanup cascade aborts BOTH on-enter + deep controllers on unmount + postId change. Dedicated `deepAbortControllerRef` over reuse — Pitfall 3 (reusing on-enter controller would immediately bail after the on-enter cleanup aborts it).
+- **HomeScreen dual-effect dismiss resync** — canonical Phase 36-14 sibling-effects shape: Effect A stable `ANCHOR_DISMISSED` listener (deps `[]`) handles fast-path in-the-moment dismiss; Effect B `[location.pathname]` re-read via `engagementService.getDismissedAnchorIds()` handles cross-screen dismiss return. Both filter `dailyPosts` in-place; NEITHER calls `conceptFeedService.getDailyPosts()`. `[location.pathname]` effect count grew 2 → 3 (matches existing exploredAnchors + warm-start-refallback siblings).
+- **9 new test scaffolds (Wave 0) + 8 filled-in source-reading tests** — deep-dive-trigger + segmented-toggle + abort-contract count as 3 distinct DD-* surfaces per VALIDATION.md line 53 (dedicated file per sub-decision for failure attribution). `nyquist_compliant: true` flipped in `.planning/phases/43-engagement-ui/43-VALIDATION.md` frontmatter; all 6 sign-off checkboxes filled with [x]; Approval flipped from pending to "validated 2026-05-11."
+- **8/8 plans complete in Phase 43.** Final per-task atomic commit count: 30 across 43-01..43-07; +4 from 43-08 close-out = ~34 phase total. Cadence held throughout (no squash, no amend). Plan-level retrospective: `.planning/phases/43-engagement-ui/43-PHASE-SUMMARY.md`.
 
 ## Last decisions (Plan 43-07 close, 2026-05-11)
 
