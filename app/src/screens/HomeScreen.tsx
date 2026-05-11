@@ -949,11 +949,15 @@ export function HomeScreen() {
       {/* Scroll-to-top FAB (D-40) */}
       <ScrollToTopFAB scrollRef={containerRef} />
 
-      {/* Phase 43-06 LP-01..LP-04: bottom-sheet contextual menu hosted at the
-          HomeScreen level (NOT per-tile). MasonryFeed's onLongPress callback
-          hydrates { menuPostId, menuAnchorId } and flips menuOpen on. The
-          BottomSheet inside LongPressMenu portals to document.body via
-          position:fixed at zIndex 500, so the JSX placement is purely
+      {/* Phase 43-06 LP-01..LP-04 + 43-09 (gap closure): bottom-sheet contextual
+          menu hosted at the HomeScreen level (NOT per-tile). MasonryFeed's
+          onLongPress callback hydrates { menuPostId, menuAnchorId } and flips
+          menuOpen on. The inner BottomSheet wraps its overlay in
+          createPortal(overlay, document.body) (Phase 32.1 portal pattern + 43-09
+          UAT Test 2 fix), escaping SwipeTabContainer's per-slot translateZ(0)
+          containing block. Inner sheet bottom is offset by
+          calc(80px + var(--safe-area-bottom)) so it clears the fixed
+          BottomNavigation (~80px row + safe-area). JSX placement here remains
           lifecycle-scoped (mounts/unmounts with HomeScreen). */}
       <LongPressMenu
         open={menuOpen}
