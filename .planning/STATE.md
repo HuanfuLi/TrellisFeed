@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: gap closure)
 status: executing
-stopped_at: Completed 43-05-postdetail-deep-dive-trigger-PLAN.md
-last_updated: "2026-05-11T08:03:17.454Z"
+stopped_at: Completed 43-06-homescreen-wiring-PLAN.md
+last_updated: "2026-05-11T08:15:53.554Z"
 last_activity: 2026-05-11
 progress:
   total_phases: 21
@@ -18,14 +18,14 @@ progress:
 ## Current Position
 
 Phase: 43 (engagement-ui) — EXECUTING
-Plan: 6 of 8
+Plan: 7 of 8
 Status: Ready to execute
 Last activity: 2026-05-11
 
 ## Progress
 
 **Phases:** 2 / 9 complete (37 ✓; 38 ✓; 39 ready for verification; 40 ready for verification; 41 ready for verification; 42 ready for verification 8/8 plans; 43-45 pending)
-**Plans:** 5 / 8 complete in Phase 43 (43-01 shared-infra-and-locales ✓; 43-02 trim-presentation-style-tag ✓; 43-03 longpress-menu-and-masonry-integration ✓; 43-04 saved-screen-and-route ✓; 43-05 postdetail-deep-dive-trigger ✓); 8 / 8 complete in Phase 42 (42-01 masonry-feed-skeleton ✓; 42-02 homescreen-swap ✓; 42-03 card-slide-in-removal ✓; 42-04 vine-bloom-card-and-i18n ✓; 42-05 source-reading-invariant-tests ✓; 42-06 roadmap-requirements-wording-correction ✓; 42-07 phase-close-out ✓; 42-08 heal-review-empty-anchor-fix ✓ [gap-closure]); 2 / 2 complete in Phase 41 (41-01 source-diversity-wiring ✓; 41-02 essay-depth-citation-rendering ✓); 1 / 1 complete in Phase 40 (40-01 source-diversity-service ✓); 1 / 1 complete in Phase 39 (39-01 engagement-service ✓)
+**Plans:** 6 / 8 complete in Phase 43 (43-01 shared-infra-and-locales ✓; 43-02 trim-presentation-style-tag ✓; 43-03 longpress-menu-and-masonry-integration ✓; 43-04 saved-screen-and-route ✓; 43-05 postdetail-deep-dive-trigger ✓; 43-06 homescreen-wiring ✓); 8 / 8 complete in Phase 42 (42-01 masonry-feed-skeleton ✓; 42-02 homescreen-swap ✓; 42-03 card-slide-in-removal ✓; 42-04 vine-bloom-card-and-i18n ✓; 42-05 source-reading-invariant-tests ✓; 42-06 roadmap-requirements-wording-correction ✓; 42-07 phase-close-out ✓; 42-08 heal-review-empty-anchor-fix ✓ [gap-closure]); 2 / 2 complete in Phase 41 (41-01 source-diversity-wiring ✓; 41-02 essay-depth-citation-rendering ✓); 1 / 1 complete in Phase 40 (40-01 source-diversity-service ✓); 1 / 1 complete in Phase 39 (39-01 engagement-service ✓)
 
 ```
 [████████████████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 46%
@@ -72,6 +72,16 @@ All carry-overs are scheduled into Wave 0:
 ## Resolved blockers
 
 All v1.4 blockers resolved at close. No open blockers.
+
+## Last decisions (Plan 43-06 close, 2026-05-11)
+
+- **HomeScreen.tsx ships at 974 LOC** (+110 from 43-06). Adds 4 new state slots (`menuOpen`, `menuPostId`, `menuAnchorId`, `engagementVersion`), 2 useCallback handlers (`handleLongPress`, `closeMenu`), 3 sibling useEffect blocks (Effect A stable `ANCHOR_DISMISSED` `[]` + Effect B `[location.pathname]` resync + Effect C stable `ENGAGEMENT_CHANGED` `[]`), 1 fixed-position Bookmark icon (top-right, zIndex 195, navigates to `/saved`), 1 `<LongPressMenu>` mount, and 2 new props on `<MasonryFeed>` (`onLongPress`, `engagementVersion`).
+- **Plan referenced wrong service method name** — Rule 1 deviation. Plan body, action snippets, acceptance criteria, AND test assertions all called `engagementService.getDismissedAnchors()`. The actual Phase 39 service surface (engagement.service.ts:182) is `getDismissedAnchorIds()`. Used the correct name in `HomeScreen.tsx` and updated all 4 test assertions in `HomeScreen.engagement-resync.test.mjs` that grep'd for the wrong name. Behaviorally equivalent (returns `string[]`); fix is local to this plan's two files; no service contract changed. Documented in 43-06 SUMMARY.md.
+- **Dual-effect canonical sibling pattern preserved.** Effect A (deps `[]`) handles the in-the-moment dismiss for fast UX while user is on `/home`. Effect B (deps `[location.pathname]`) handles the cross-screen dismiss case (user dismisses from PostDetail/SavedScreen → navigates back to `/home`). Both effects mutate the SAME `dailyPosts` state via in-place `setDailyPosts(prev => prev.filter(...))`. NEITHER calls `conceptFeedService.getDailyPosts()` — LP-05 operator decision. The `[location.pathname]` count in `HomeScreen.tsx` now sits at 3 (Phase 36-14 cache + Phase 36-14 explored-anchors + Phase 43 engagement) — matches the canonical Phase 36-14 sibling-effects shape.
+- **Bookmark icon ordering tweak for the literal grep gate** — moved `Bookmark` to first position in the `import { ... } from 'lucide-react'` line so `grep -q "import { Bookmark"` passes. Cosmetic; preserves all functionality. Source-reading test contracts depend on literal-string greps (per Phase 37 D-03 / Phase 39/40/41/42 pattern).
+- **2 atomic commits in source→test cadence:** `f433df94` feat(HomeScreen wiring) → `793a5657` test(engagement-resync fill-in). `tsc -b --noEmit` exits 0; `npm run build` exits 0 (1.73s, 1.29 MB bundle). 11/11 new tests pass; 7/7 Phase 36-14 counterweights (`HomeScreen.exploredAnchors-resync` + `HomeScreen.warm-start-refallback`) still green; full `npm test` shows 766/772 pass — 5 pre-existing failures (concept-feed walker / refill mutex / vine color / postQueueService — out of 43-06 scope) unchanged from baseline.
+- **ENGAGE-01/02/03 reachable end-to-end.** Save / Like / Dismiss from any feed tile via long-press → engagementService → `ANCHOR_DISMISSED` or `ENGAGEMENT_CHANGED` event → HomeScreen's three new sibling effects → in-place dailyPosts filter + engagementVersion bump → MasonryFeed corner-icon refresh + AnimatePresence fade-out (200ms). Bookmark icon at top-right navigates to `/saved` (route + screen shipped 43-04). Requirements were already marked complete by Phase 39's service-level closure; this plan ships the user-facing UI surface.
+- **Wave 1 of Phase 43 advancing.** 43-06 ships the HomeScreen wiring entry point. 43-07 (handleForceNewDay engagement reset — wire `engagementService.reset()` into SettingsDataScreen) and 43-08 (phase close-out) remain. 43-07 is mechanically simple; 43-08 closes out the phase.
 
 ## Last decisions (Plan 43-05 close, 2026-05-11)
 
@@ -290,7 +300,7 @@ All v1.4 blockers resolved at close. No open blockers.
 
 ## Session Continuity
 
-**Stopped at:** Completed 43-04-saved-screen-and-route-PLAN.md
+**Stopped at:** Completed 43-06-homescreen-wiring-PLAN.md
 **Next action:** `/gsd:verify-work 42 04` (verifier sweep over Plan 42-04 must-haves) → after Wave 2 verification, Plan 42-05 (source-reading invariant tests) → Plan 42-07 (phase close-out).
 
 **Files written this session (Plan 42-04 close):**
