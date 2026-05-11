@@ -1161,12 +1161,13 @@ _Updated: 2026-05-07 — Phase 36-12 EXECUTED: Promise-mutex refill closes round
 ### Phase 43: Engagement UI
 **Goal**: Surface Wave-1 engagement service in the UI: action rows on tiles, deep-dive button on detail, social-proof micro-label, Force-New-Day reset.
 **Depends on**: Phase 42 (masonry card layout exists; engagement row sits on the rendered card)
-**Requirements**: ENGAGE-04
+**Requirements**: ENGAGE-01, ENGAGE-02, ENGAGE-03, CONTENT-01 (UI wiring); ENGAGE-04 descoped 2026-05-11 (DS-01)
+<!-- ENGAGE-04 descoped 2026-05-11; see .planning/phases/43-engagement-ui/43-CONTEXT.md DS-01 -->
 **Success Criteria** (what must be TRUE):
   1. Long-press on a feed tile opens a contextual menu with Like / Save / Not interested options; tap commits the corresponding `engagementService` call and dismisses the menu
   2. Saved posts are accessible via a saved-posts view (route or screen surface); the view lists posts persisted across days
   3. PostDetailScreen shows a "Deep dive" button below the standard essay; tap triggers `EssayOptions.depth: 'deep'` re-render that streams the 350-600w expansion under the same AbortController contract
-  4. Each tile shows a "N connections in your graph" micro-label computed from `candidatePack` at queue-fill time (no per-render graph traversal)
+  4. _(Descoped 2026-05-11 per DS-01: "N connections in your graph" micro-label dropped — operator framing "tiles already too rich". See `.planning/phases/43-engagement-ui/43-CONTEXT.md` DS-01.)_
   5. HomeScreen subscribes to `ANCHOR_DISMISSED` and re-syncs engagement state on `[location.pathname]` effect (Phase 36-14 canonical pattern)
   6. `handleForceNewDay` in `SettingsDataScreen` calls `engagementService.reset()` alongside existing post-queue + cache + dailyRead resets; dismissed anchors do not carry over after Force-New-Day
 **Plans**: TBD

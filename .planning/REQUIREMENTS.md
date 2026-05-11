@@ -16,7 +16,6 @@
 - [x] **ENGAGE-01** User can save / bookmark a post; saved posts persist across days; saved-posts view accessible
 - [x] **ENGAGE-02** User can dismiss / mark "not interested" a concept via long-press contextual menu; dismissed anchors skip in subsequent walker calls
 - [x] **ENGAGE-03** User can like / heart a post; likes persist locally
-- [ ] **ENGAGE-04** Tile shows graph-derived social proof: "N connections in your graph" micro-label computed from `candidatePack` at queue-fill time
 
 ### CONTENT — Source diversity + richer essays
 
@@ -60,10 +59,11 @@
 - **CSS Grid Masonry (`grid-template-rows: masonry`)** — Capacitor 8 Android WebView lags Chrome stable; not production-ready in 2026
 - **Vite 8 / TypeScript 6.0 / lucide-react 1.x / framer-motion → motion** — major version bumps deferred to v1.6 (Vite 8 is Rolldown rewrite; TS 6.0 strictInference needs dedicated audit; lucide 1.x removes brand icons; framer→motion is mechanical but broad)
 - **React 19.x minor bump mid-feature** — held to Wave 4 (avoid StrictMode timing surprises during feature work)
+- **ENGAGE-04 (N connections in your graph micro-label)** — descoped 2026-05-11 by operator framing "tiles already too rich; should simplify instead." Phase 43 ships TS-01 trim (presentation-style tag removal) instead. The `candidatePack`-derived connection count remains computable via `canonical-knowledge.service.ts:222` if a future cycle reverses this decision; reopen by adding a `connectionCount?: number` field to `DailyPost` and a populate site in `refillQueue`.
 
 ## Traceability
 
-22 / 22 requirements mapped — 100% coverage, no orphans.
+21 / 21 active requirements mapped to phases (ENGAGE-04 descoped 2026-05-11 per DS-01 — see Out of Scope section).
 
 | Requirement | Phase | Wave | Status |
 |-------------|-------|------|--------|
@@ -72,7 +72,7 @@
 | ENGAGE-01   | Phase 39 | Wave 1 | Pending |
 | ENGAGE-02   | Phase 39 | Wave 1 | Pending |
 | ENGAGE-03   | Phase 39 | Wave 1 | Pending |
-| ENGAGE-04   | Phase 43 | Wave 3 | Pending |
+| ENGAGE-04   | Phase 43 | Wave 3 | Out of Scope (DS-01, 2026-05-11) |
 | CONTENT-01  | Phase 41 | Wave 2 | ✓ Complete (Phase 41-02 ships API + bodyMarkdownDeep field + tests; Phase 43 ships button) |
 | CONTENT-02  | Phase 40+41 | Wave 1+2 | ✓ Complete (Phase 40 leaf + Phase 41-01 wire) |
 | CONTENT-03  | Phase 41 | Wave 2 | ✓ Complete (Phase 41-01 multi-snippet shape + Phase 41-02 sources.slice(0, 3) consumption) |
@@ -98,7 +98,7 @@
 - **Phase 40** (Wave 1): CONTENT-02 (1 req)
 - **Phase 41** (Wave 2): CONTENT-01, CONTENT-03, CONTENT-04 (3 reqs)
 - **Phase 42** (Wave 3): MASONRY-01, MASONRY-02 (2 reqs)
-- **Phase 43** (Wave 3): ENGAGE-04 (1 req)
+- **Phase 43** (Wave 3): 0 active reqs (engagement UI wiring; ENGAGE-04 descoped per DS-01)
 - **Phase 44** (Wave 4): TECHDEBT-08 (1 req)
 - **Phase 45** (Wave 4): TECHDEBT-07, TECHDEBT-09, TECHDEBT-10, TECHDEBT-11, TECHDEBT-12 (5 reqs)
 
