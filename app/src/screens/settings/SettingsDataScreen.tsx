@@ -14,6 +14,7 @@ import { conceptFeedService } from '../../services/concept-feed.service';
 import { clearAllTables } from '../../services/db.service';
 import { dailyReadService } from '../../services/daily-read.service';
 import { postQueueService } from '../../services/post-queue.service';
+import { engagementService } from '../../services/engagement.service';
 import { SectionHeader, SettingRow, MaterialSwitch, SelectInput, TextInput, SUB_SCREEN_STYLE } from './SettingsShared';
 
 export function SettingsDataScreen() {
@@ -131,6 +132,10 @@ export function SettingsDataScreen() {
       // resets. Manually mimic the midnight reset here. See round-3
       // sub-issue (a) and daily-read.service.ts:36.
       dailyReadService.reset();
+      // Phase 43 SC-6: also wipe engagement state (saves + likes + dismisses) so
+      // Force-New-Day produces a fully cold-start cohort. Granularity per Phase 39 D-08
+      // is full-reset — saves + likes + dismisses all clear in one call.
+      engagementService.reset();
       toast('Queue + daily-posts cache rolled back; vine progress reset. Navigating to /home.', 'success');
       navigate('/home');
     } catch (err) {
