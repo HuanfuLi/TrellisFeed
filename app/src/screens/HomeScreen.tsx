@@ -648,35 +648,6 @@ export function HomeScreen() {
   return (
     <>
       <Confetti active={showConfetti} />
-      {/* Phase 43-06 SV-02: Bookmark icon entry to /saved. Position fixed scoped
-          to the HomeScreen swipe slot via SwipeTabContainer's translateZ(0)
-          containing block (CLAUDE.md "Header positioning"). Placed BEFORE the
-          scroll container so overflow:auto cannot clip it. zIndex 195 sits
-          above the compact VineProgress bar (zIndex 190) and below any modal
-          surface. WCAG 44×44 floor enforced via minWidth/minHeight. */}
-      <button
-        type="button"
-        aria-label={t('saved.title')}
-        onClick={() => navigate('/saved')}
-        style={{
-          position: 'fixed',
-          top: 'calc(var(--safe-area-top) + 8px)',
-          right: '16px',
-          zIndex: 195,
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-          padding: '8px',
-          minWidth: '44px',
-          minHeight: '44px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'var(--muted-foreground)',
-        }}
-      >
-        <Bookmark size={22} />
-      </button>
       {/* Compact progress bar — slides in as header when inline card scrolls away */}
       <div
         aria-hidden={!showCompactBar}
@@ -723,10 +694,43 @@ export function HomeScreen() {
         transition: pullDistance === 0 ? 'transform 0.3s ease' : 'none',
       }}>
 
-        {/* Inline greeting — scrolls away naturally */}
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--foreground)' }}>
-          {getGreeting()}
-        </h1>
+        {/* Inline greeting row — scrolls away naturally. Bookmark
+            relocated here from a fixed-position viewport-anchored button
+            per 43-11 gap closure (UAT Test 5). The icon now participates
+            in normal scroll flow and disappears when scrolled past, so it
+            no longer overlaps the compact VineProgress bar slide-in. */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '12px',
+          }}
+        >
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--foreground)', margin: 0 }}>
+            {getGreeting()}
+          </h1>
+          <button
+            type="button"
+            aria-label={t('saved.title')}
+            onClick={() => navigate('/saved')}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: '8px',
+              marginRight: '-8px',
+              minWidth: '44px',
+              minHeight: '44px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--muted-foreground)',
+            }}
+          >
+            <Bookmark size={22} />
+          </button>
+        </div>
 
         {/* Bento Grid */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>

@@ -111,13 +111,22 @@ test('SV-02: Bookmark icon entry button navigates to /saved', () => {
   assert.match(src, /minHeight:\s*['"]44px['"]/);
 });
 
-test('SV-02 layering: fixed position + zIndex 195 (above compact VineProgress bar at 190)', () => {
-  // Bookmark button block should have position: fixed and zIndex: 195
+test('SV-02 layering (43-11 update): Bookmark is INLINE in the greeting row, NOT fixed-position', () => {
+  // Phase 43-11 (Rule 1 deviation, 2026-05-11) — UAT Test 5 moved the
+  // Bookmark from a fixed-position viewport-anchored button to an inline
+  // element in the greeting flex row. The original SV-02 layering
+  // assertion (position: fixed + zIndex: 195) is now stale.
+  //
+  // Spirit preserved: the Bookmark button must still exist, must still
+  // navigate to /saved with the WCAG tap floor, AND must not regress
+  // back to the fixed-position shape that overlapped the compact
+  // VineProgress bar slide-in. Full inline-flex-row invariants are
+  // owned by HomeScreen.bookmark-inline-greeting.test.mjs.
   const bookmarkBlock = src.indexOf("aria-label={t('saved.title')}");
-  assert.ok(bookmarkBlock > 0);
+  assert.ok(bookmarkBlock > 0, 'Bookmark button must still exist in HomeScreen');
   const region = src.slice(bookmarkBlock - 500, bookmarkBlock + 300);
-  assert.match(region, /position:\s*['"]fixed['"]/);
-  assert.match(region, /zIndex:\s*195/);
+  assert.doesNotMatch(region, /position:\s*['"]fixed['"]/, 'Bookmark must NOT be position:fixed after 43-11');
+  assert.doesNotMatch(region, /zIndex:\s*195/, 'Bookmark must NOT carry zIndex 195 after 43-11');
 });
 
 test('Phase 32.1 invariant preserved: no new transform/will-change/filter/contain/perspective on HomeScreen ancestors', () => {
