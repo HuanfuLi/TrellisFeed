@@ -132,10 +132,14 @@ export function SettingsDataScreen() {
       // resets. Manually mimic the midnight reset here. See round-3
       // sub-issue (a) and daily-read.service.ts:36.
       dailyReadService.reset();
-      // Phase 43 SC-6: also wipe engagement state (saves + likes + dismisses) so
-      // Force-New-Day produces a fully cold-start cohort. Granularity per Phase 39 D-08
-      // is full-reset — saves + likes + dismisses all clear in one call.
-      engagementService.reset();
+      // Phase 43 gap-closure (43-13 / UAT Test 9): reset ONLY the dismissed-
+      // anchor list so previously-hidden tiles reappear in tomorrow's feed.
+      // Saved + liked are persistent user archives — they MUST survive
+      // Force-New-Day per operator intent confirmed during UAT. The wholesale
+      // reset method (engagementService dot reset) is reserved for
+      // Clear-All-Data / settingsService.reset() paths. See
+      // .planning/debug/force-new-day-wipes-saved-liked.md.
+      engagementService.resetDismissedOnly();
       toast('Queue + daily-posts cache rolled back; vine progress reset. Navigating to /home.', 'success');
       navigate('/home');
     } catch (err) {
