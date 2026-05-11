@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: gap closure)
 status: executing
-stopped_at: Completed 43-13 gap-closure plan (engagement-reset-dismissed-only)
-last_updated: "2026-05-11T10:39:14.697Z"
+stopped_at: Completed 43-11 gap-closure plan (homescreen-bookmark-inline-with-greeting)
+last_updated: "2026-05-11T10:43:46.527Z"
 last_activity: 2026-05-11
 progress:
   total_phases: 21
@@ -18,7 +18,7 @@ progress:
 ## Current Position
 
 Phase: 43 (engagement-ui) — EXECUTING
-Plan: 3 of 13
+Plan: 4 of 13
 Status: Ready to execute
 Last activity: 2026-05-11
 Phase summary: `.planning/phases/43-engagement-ui/43-PHASE-SUMMARY.md`
@@ -26,7 +26,7 @@ Phase summary: `.planning/phases/43-engagement-ui/43-PHASE-SUMMARY.md`
 ## Progress
 
 **Phases:** 2 / 9 complete (37 ✓; 38 ✓; 39 ready for verification; 40 ready for verification; 41 ready for verification; 42 ready for verification 8/8 plans; 43 ready for verification 8/8 plans; 44-45 pending)
-**Plans:** 10 / 13 complete in Phase 43 (43-01 shared-infra-and-locales ✓; 43-02 trim-presentation-style-tag ✓; 43-03 longpress-menu-and-masonry-integration ✓; 43-04 saved-screen-and-route ✓; 43-05 postdetail-deep-dive-trigger ✓; 43-06 homescreen-wiring ✓; 43-07 force-new-day-engagement-reset ✓; 43-08 phase-close-out ✓; 43-09 bottomsheet-portal-and-nav-clearance ✓ [gap-closure]; 43-13 engagement-reset-dismissed-only ✓ [gap-closure]); 8 / 8 complete in Phase 42 (42-01 masonry-feed-skeleton ✓; 42-02 homescreen-swap ✓; 42-03 card-slide-in-removal ✓; 42-04 vine-bloom-card-and-i18n ✓; 42-05 source-reading-invariant-tests ✓; 42-06 roadmap-requirements-wording-correction ✓; 42-07 phase-close-out ✓; 42-08 heal-review-empty-anchor-fix ✓ [gap-closure]); 2 / 2 complete in Phase 41 (41-01 source-diversity-wiring ✓; 41-02 essay-depth-citation-rendering ✓); 1 / 1 complete in Phase 40 (40-01 source-diversity-service ✓); 1 / 1 complete in Phase 39 (39-01 engagement-service ✓)
+**Plans:** 13 / 13 complete in Phase 43 (43-01 shared-infra-and-locales ✓; 43-02 trim-presentation-style-tag ✓; 43-03 longpress-menu-and-masonry-integration ✓; 43-04 saved-screen-and-route ✓; 43-05 postdetail-deep-dive-trigger ✓; 43-06 homescreen-wiring ✓; 43-07 force-new-day-engagement-reset ✓; 43-08 phase-close-out ✓; 43-09 bottomsheet-portal-and-nav-clearance ✓ [gap-closure]; 43-10 engagement-corner-icon-chip-backdrop ✓ [gap-closure]; 43-11 homescreen-bookmark-inline-with-greeting ✓ [gap-closure]; 43-12 deep-dive-controls-above-essay-body ✓ [gap-closure]; 43-13 engagement-reset-dismissed-only ✓ [gap-closure]); 8 / 8 complete in Phase 42 (42-01 masonry-feed-skeleton ✓; 42-02 homescreen-swap ✓; 42-03 card-slide-in-removal ✓; 42-04 vine-bloom-card-and-i18n ✓; 42-05 source-reading-invariant-tests ✓; 42-06 roadmap-requirements-wording-correction ✓; 42-07 phase-close-out ✓; 42-08 heal-review-empty-anchor-fix ✓ [gap-closure]); 2 / 2 complete in Phase 41 (41-01 source-diversity-wiring ✓; 41-02 essay-depth-citation-rendering ✓); 1 / 1 complete in Phase 40 (40-01 source-diversity-service ✓); 1 / 1 complete in Phase 39 (39-01 engagement-service ✓)
 
 ```
 [████████████████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 46%
@@ -104,6 +104,15 @@ All v1.4 blockers resolved at close. No open blockers.
 - **Plan-checker-flagged TS annotation dropped** — new `.mjs` test file's `cornerOverlayRegion()` helper ships WITHOUT a `: string` return-type annotation; `node --test` parses plain `.mjs` without a TS loader, so the annotation would have been a syntax error.
 - **3 atomic commits** in source → fix → test cadence: `9723f020` feat(--corner-chip-* vars in :root + .dark) → `9a42322b` fix(cornerOverlay chip rewrite + Rule-1 test deviation) → `38e320c7` test(corner-chip source-reading regression). Plan-level commit count budget (2-3) hit at 3 (slightly over because Task 2 batched the source rewrite with the dependent test-update deviation — clean single-purpose commits in spirit).
 - **Pre-existing test failures observed and logged** — broader `npm run test:main` sweep shows pre-existing failures in `tests/concept-feed.test.mjs` + `tests/services/post-queue.test.mjs` referencing stale `16`-vs-`24` walker/refill thresholds (contradicts CLAUDE.md's post-2026-05-10 canonical values). Confirmed via `git stash` + re-run to be pre-existing (not caused by 43-10). Out of scope per the scope boundary rule; logged to `.planning/phases/43-engagement-ui/deferred-items.md` for a future hygiene plan or verifier sweep.
+
+## Last decisions (Plan 43-11 close, 2026-05-11)
+
+- **HomeScreen Bookmark moved from fixed-position to inline greeting row** — `HomeScreen.tsx:651-679` fixed-position block (zIndex 195, top `calc(var(--safe-area-top) + 8px)`, right 16px) DELETED outright (button + 6-line preceding intent comment, no stub). `HomeScreen.tsx:727-729` greeting `<h1>` WRAPPED in a flex row (`justifyContent: 'space-between'`, gap 12px) that now contains both the greeting AND a new inline Bookmark `<button>`. Icon participates in normal scroll flow — scrolls away with page header, no longer overlaps the compact VineProgress bar slide-in (zIndex 190 preserved). Closes Phase 43 UAT Test 5 (minor).
+- **`marginRight: -8px` optical alignment preserved** on the new inline button — same trick Header.tsx back button uses (`marginLeft: -8px` against 16px container padding-left). WCAG 44x44 tap floor via `minWidth: 44px` + `minHeight: 44px`. `Bookmark size={22}`, `aria-label={t('saved.title')}`, `onClick={() => navigate('/saved')}` all preserved. The plan's note on adding `margin: 0` to the wrapped `<h1>` was honored to prevent UA-default vertical margin from jittering the flex row height.
+- **Rule 1 deviation** — `tests/screens/HomeScreen.engagement-resync.test.mjs` "SV-02 layering: fixed position + zIndex 195" assertion guarded the deleted shape. Rewired to its inverse (must NOT be `position: fixed`, must NOT carry `zIndex: 195`) so the spirit (no regression to overlap shape) is preserved while positive inline-flex-row invariants are owned by the new `HomeScreen.bookmark-inline-greeting.test.mjs`. Same pattern 43-10 used for `MasonryFeed.dismiss-fade-all.test.mjs:44`. The deviation + Task 1 source change land in the same commit (one semantic change).
+- **6 source-reading invariants** at `app/tests/screens/HomeScreen.bookmark-inline-greeting.test.mjs` (97 LOC): (1) no `zIndex: 195`, (2) no `safe-area-top + 8px` offset, (3) flex row with `space-between` in the ~600-char pre-window of `{getGreeting()}`, (4) exactly one `navigate('/saved')` call, (5) WCAG `minWidth/minHeight: 44px` in the ~1200-char post-window of `{getGreeting()}`, (6) compact VineProgress bar at `zIndex: 190` preserved. 6/6 pass; 11/11 engagement-resync still pass; 130/130 screens suite green; `tsc -b --noEmit` exit 0.
+- **2 atomic commits** in source+stale-test → new-test cadence: `1513d883` fix(43-11): move HomeScreen Bookmark from fixed-position to inline greeting row → `9c8e5641` test(43-11): source-reading regression. Plan-level commit count budget (2-3) hit at 2 (clean lower bound).
+- **Phase 43 gap-closure track complete.** All 5 gap-closure plans (43-09 BottomSheet portal, 43-10 corner-icon chip, 43-11 bookmark inline, 43-12 deep-dive controls, 43-13 engagement reset dismissed-only) landed across waves 4A + 4B. Phase 43 plan count: 13/13 complete.
 
 ## Last decisions (Plan 43-07 close, 2026-05-11)
 
@@ -340,7 +349,7 @@ All v1.4 blockers resolved at close. No open blockers.
 
 ## Session Continuity
 
-**Stopped at:** Completed 43-13 gap-closure plan (engagement-reset-dismissed-only)
+**Stopped at:** Completed 43-11 gap-closure plan (homescreen-bookmark-inline-with-greeting)
 **Next action:** `/gsd:verify-work 42 04` (verifier sweep over Plan 42-04 must-haves) → after Wave 2 verification, Plan 42-05 (source-reading invariant tests) → Plan 42-07 (phase close-out).
 
 **Files written this session (Plan 42-04 close):**
