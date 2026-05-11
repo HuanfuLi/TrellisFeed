@@ -9,9 +9,10 @@ interface BottomSheetProps {
   onClose: () => void;
   title?: string;
   children: ReactNode;
+  compact?: boolean;  // when true, overrides minHeight to 'auto' and maxHeight to '50vh' (per Phase 43 LP-01 — 3-row engagement menu should not show 45vh empty space)
 }
 
-export function BottomSheet({ open, onClose, title, children }: BottomSheetProps) {
+export function BottomSheet({ open, onClose, title, children, compact }: BottomSheetProps) {
   const stop = (e: MouseEvent) => e.stopPropagation();
 
   return (
@@ -37,8 +38,8 @@ export function BottomSheet({ open, onClose, title, children }: BottomSheetProps
           borderRadius: '20px 20px 0 0',
           padding: '20px 16px 40px',
           boxShadow: 'var(--shadow-3)',
-          minHeight: '45vh',
-          maxHeight: '75vh',
+          minHeight: compact ? 'auto' : '45vh',
+          maxHeight: compact ? '50vh' : '75vh',
           overflowY: 'auto',
           transform: open ? 'translateY(0)' : 'translateY(100%)',
           transition: 'transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)',
