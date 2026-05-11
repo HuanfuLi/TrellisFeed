@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: gap closure)
 status: executing
-stopped_at: Completed 43-03-longpress-menu-and-masonry-integration-PLAN.md
-last_updated: "2026-05-11T07:46:00.000Z"
+stopped_at: Completed 43-04-saved-screen-and-route-PLAN.md
+last_updated: "2026-05-11T07:54:19.820Z"
 last_activity: 2026-05-11
 progress:
   total_phases: 21
@@ -18,14 +18,14 @@ progress:
 ## Current Position
 
 Phase: 43 (engagement-ui) — EXECUTING
-Plan: 4 of 8
+Plan: 5 of 8
 Status: Ready to execute
 Last activity: 2026-05-11
 
 ## Progress
 
 **Phases:** 2 / 9 complete (37 ✓; 38 ✓; 39 ready for verification; 40 ready for verification; 41 ready for verification; 42 ready for verification 8/8 plans; 43-45 pending)
-**Plans:** 3 / 8 complete in Phase 43 (43-01 shared-infra-and-locales ✓; 43-02 trim-presentation-style-tag ✓; 43-03 longpress-menu-and-masonry-integration ✓); 8 / 8 complete in Phase 42 (42-01 masonry-feed-skeleton ✓; 42-02 homescreen-swap ✓; 42-03 card-slide-in-removal ✓; 42-04 vine-bloom-card-and-i18n ✓; 42-05 source-reading-invariant-tests ✓; 42-06 roadmap-requirements-wording-correction ✓; 42-07 phase-close-out ✓; 42-08 heal-review-empty-anchor-fix ✓ [gap-closure]); 2 / 2 complete in Phase 41 (41-01 source-diversity-wiring ✓; 41-02 essay-depth-citation-rendering ✓); 1 / 1 complete in Phase 40 (40-01 source-diversity-service ✓); 1 / 1 complete in Phase 39 (39-01 engagement-service ✓)
+**Plans:** 4 / 8 complete in Phase 43 (43-01 shared-infra-and-locales ✓; 43-02 trim-presentation-style-tag ✓; 43-03 longpress-menu-and-masonry-integration ✓; 43-04 saved-screen-and-route ✓); 8 / 8 complete in Phase 42 (42-01 masonry-feed-skeleton ✓; 42-02 homescreen-swap ✓; 42-03 card-slide-in-removal ✓; 42-04 vine-bloom-card-and-i18n ✓; 42-05 source-reading-invariant-tests ✓; 42-06 roadmap-requirements-wording-correction ✓; 42-07 phase-close-out ✓; 42-08 heal-review-empty-anchor-fix ✓ [gap-closure]); 2 / 2 complete in Phase 41 (41-01 source-diversity-wiring ✓; 41-02 essay-depth-citation-rendering ✓); 1 / 1 complete in Phase 40 (40-01 source-diversity-service ✓); 1 / 1 complete in Phase 39 (39-01 engagement-service ✓)
 
 ```
 [████████████████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 46%
@@ -72,6 +72,19 @@ All carry-overs are scheduled into Wave 0:
 ## Resolved blockers
 
 All v1.4 blockers resolved at close. No open blockers.
+
+## Last decisions (Plan 43-04 close, 2026-05-11)
+
+- **SavedScreen.tsx ships at 308 LOC** mirroring `PostHistoryScreen.tsx` HistoryPostCard verbatim per SV-03 — 52×52 thumbnail + emoji fallback + `lineClamp(2)` title + `contextLabel` meta + `scale(0.98)` press state + entrance keyframes inlined locally as `saved-card-in` (peer to `history-card-in`). Two-tab archive backed by `engagementService.getSavedPosts()` (Saved) and `engagementService.getLikedPosts()` (Liked). Per-tab empty state renders `<Bookmark size={40}>` or `<Heart size={40}>` plus i18n heading + body via the 4 `saved.empty.*` keys 43-01 already shipped.
+- **Tab state owned by local `useState<Tab>('saved')`** per SV-04 operator-lock over private-only Like model. Plumbing tabs through the router would force `/saved/saved` and `/saved/liked` URLs that violate the verb-aligned single-route semantic ("Save" → `/saved`); tap-toggle in component-state matches ReviewScreen's existing `showLibrary` precedent.
+- **ENGAGEMENT_CHANGED subscription returns the unsubscribe disposer directly** (`return unsub`) rather than wrapping in an arrow `return () => unsub()`. Phase 39's eventBus.subscribe returns the unsubscribe function natively; direct return is one fewer indirection, and SavedScreen.test.mjs asserts both shapes as acceptable (`/return unsub|return\s*\(\)\s*=>/`). Sub-screen lifecycle handles cleanup automatically on unmount (Pitfall 7).
+- **Header `backTo='/home'` is load-bearing for Phase 32.1 portal split.** Critical because SavedScreen renders through `<Outlet>` outside SwipeTabContext — Header.tsx's `insideSwipeTab` detector returns false and the header DOM portals to `document.body`. Without backTo, the back-arrow would not appear and the in-tree render would risk Phase 32.1 flicker class.
+- **Component-local `TabButton` + `SavedRow` + `EmptyState` helpers** rather than inlining everything inside SavedScreen function body. Mirrors PostHistoryScreen's HistoryPostCard extraction; the row press-state `useState` lives inside SavedRow so each row owns its pressed state without prop-drilling. EmptyState takes `t` as a prop (rather than calling `useTranslation()` itself) to keep the icon + key selection co-located with the parent's tab state — single source of truth.
+- **Test file omits a `filter:` negative grep.** Phase 32.1 invariant covers transform/will-change/perspective at the React-tree ancestors of Header; filter is exempted because (a) lucide-react drop-shadow filters live inside leaf-icon SVG nodes, not Header ancestors, and (b) UI-SPEC §2 explicitly permits `filter: drop-shadow` on the future corner-icon overlay (Phase 43-06 wires that). Same exemption pattern used in the existing Wave-0 scaffold header comment — pattern-preserve.
+- **Route inserted between `/review` and `/podcast` in App.tsx** (`{ path: 'saved', element: <PageTransition><SavedScreen /></PageTransition> }`). Plan suggested alphabetical-or-engagement-adjacent positioning; alphabetical `s` between `r` (review) and `p` (podcast) is mechanically off but semantically reasonable (engagement-adjacent). `npm run build` succeeds; route reachable in production bundle. NOT added to `BottomNavigation` — CONTEXT SV-02 locks `SwipeTabContainer` to 5 slots.
+- **3 atomic per-task commits:** `fc5515ff` feat(SavedScreen) → `a7a3afa2` feat(App.tsx route) → `974066d5` test(SavedScreen.test.mjs). 7/7 SV tests green (`node --test tests/screens/SavedScreen.test.mjs` exits 0); `tsc -b --noEmit` clean throughout; `npm run build` exits 0 after Task 2; bundle-parity unchanged (43-01 already shipped all 14 `saved.*` + `engagement.*` keys).
+- **ENGAGE-01 + ENGAGE-03 already marked `[x]` in REQUIREMENTS.md** by Phase 39 (service-level closure). `gsd-tools requirements mark-complete` is a no-op for both — the user-facing surfaces (`/saved` view + persistence) now exist, so the requirement is materially closed across BOTH service AND UI layers as of 43-04. Phase 39's traceability matrix row still says "Pending" for ENGAGE-01..03 — that's a stale matrix from when the service shipped without the UI; phase close-out (43-08) is the natural place to flip those to "✓ Complete (Phase 39 service + Phase 43 UI)".
+- **Wave 1 of Phase 43 continues.** 43-04 ships the navigation TARGET (`/saved` route + screen). HomeScreen Bookmark header icon ENTRY POINT (SV-02) lives in 43-06 (file-touch separation; HomeScreen.tsx is shared with the dismissed-anchor re-sync + warm-start re-fallback effects). Until 43-06 lands, users reach `/saved` only via address-bar nav. 43-05 / 43-07 parallel-safe with 43-04.
 
 ## Last decisions (Plan 43-03 close, 2026-05-11)
 
@@ -264,7 +277,7 @@ All v1.4 blockers resolved at close. No open blockers.
 
 ## Session Continuity
 
-**Stopped at:** Completed 43-02-trim-presentation-style-tag-PLAN.md
+**Stopped at:** Completed 43-04-saved-screen-and-route-PLAN.md
 **Next action:** `/gsd:verify-work 42 04` (verifier sweep over Plan 42-04 must-haves) → after Wave 2 verification, Plan 42-05 (source-reading invariant tests) → Plan 42-07 (phase close-out).
 
 **Files written this session (Plan 42-04 close):**
