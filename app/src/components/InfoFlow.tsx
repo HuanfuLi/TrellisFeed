@@ -8,6 +8,17 @@ import { normalizePlainText } from '../lib/text-normalization';
 import { settingsService } from '../services/settings.service';
 import { SuggestionCard } from './SuggestionCard';
 
+// Defensive chip-title filter (2026-05-12). The concept-tag chip renders
+// post.sourceQuestionTitles[0]; upstream paths in concept-feed.service.ts have
+// occasionally leaked internal anchor/post IDs into this field when byId
+// lookups failed and the fallback collapsed to a.conceptId. Strip any value
+// that looks like an internal ID so the chip never shows raw `anchor-...` or
+// `post-...` strings — better an empty chip than a leaked ID.
+function isLikelyInternalId(title: string | undefined): boolean {
+  if (!title) return true;
+  return /^(anchor|post|concept|question)-/i.test(title.trim());
+}
+
 // ── Text-art theme pool (random selection per render) ──────────────────────────
 
 const TEXT_ART_THEMES_LIGHT = [
@@ -252,7 +263,7 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive: _isActive, onO
               Operator-bounded simplification — "tiles already too rich; simplify".
               See .planning/phases/43-engagement-ui/43-CONTEXT.md §"Tile simplification (TS-*)". */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-            {post.sourceQuestionTitles?.slice(0, 1).map((title, idx) => (
+            {post.sourceQuestionTitles?.slice(0, 1).filter(t => !isLikelyInternalId(t)).map((title, idx) => (
               <span
                 key={idx}
                 style={{
@@ -429,7 +440,7 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive: _isActive, onO
           )}
           {/* Bottom tags: source concepts + narrative mode */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '12px' }}>
-            {post.sourceQuestionTitles?.slice(0, 2).map((title, idx) => (
+            {post.sourceQuestionTitles?.slice(0, 2).filter(t => !isLikelyInternalId(t)).map((title, idx) => (
               <span
                 key={idx}
                 style={{

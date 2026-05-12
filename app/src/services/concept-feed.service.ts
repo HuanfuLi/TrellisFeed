@@ -1082,7 +1082,14 @@ Return ONLY a JSON array of 4 strings, nothing else. Example: ["What is X?", "Ho
   for (const a of videoAssignments) {
     try {
       const concept = byId.get(a.conceptId);
-      const conceptName = concept?.title ?? concept?.content?.slice(0, 50) ?? a.conceptId;
+      // 2026-05-12 — skip when the anchor is unresolvable. Previously fell back
+      // to a.conceptId, which leaked internal IDs like
+      // `anchor-1776786217111-4-v9ty0` into the YouTube search query AND the
+      // user-visible sourceQuestionTitles chip. Anchors can vanish from byId
+      // when pre-fetched assignments outlive a prune/delete.
+      if (!concept) continue;
+      const conceptName = concept.title ?? concept.content?.slice(0, 50);
+      if (!conceptName) continue;
       // Phase 33 quota-burn fix (2026-04-20): prefer cached pre-fetch result so
       // the same YouTube search isn't issued twice per cycle (pre-validation + here).
       const cacheKey = `${a.conceptId}:video`;
@@ -1131,7 +1138,14 @@ Return ONLY a JSON array of 4 strings, nothing else. Example: ["What is X?", "Ho
   for (const a of newsAssignments) {
     try {
       const concept = byId.get(a.conceptId);
-      const conceptName = concept?.title ?? concept?.content?.slice(0, 50) ?? a.conceptId;
+      // 2026-05-12 — symmetric with the video loop above: skip on unresolvable
+      // concept rather than fall back to a.conceptId. The bare-ID fallback
+      // shipped a "NIH-Funded ANCHOR Study" news tile chipped with the literal
+      // anchor ID — Tavily soft-matched on the "anchor-" prefix, and the chip
+      // rendered the raw ID verbatim.
+      if (!concept) continue;
+      const conceptName = concept.title ?? concept.content?.slice(0, 50);
+      if (!conceptName) continue;
       // Phase 33 quota-burn fix (2026-04-20): prefer cached pre-fetch result.
       const cached = preFetched?.news.get(a.conceptId);
       let result: WebSearchResult | undefined;
