@@ -1573,6 +1573,16 @@ export const conceptFeedService = {
         if (newsPost) return newsPost;
       }
     } catch { /* ignore */ }
+    // 2026-05-12 — final fallback to postHistoryService, the only persistent
+    // store of full post content. Without this, the daily-cache stale-rejection
+    // at midnight (Phase 36-11) makes EVERY past post unreachable from
+    // PostHistory + /saved + /liked click-throughs, even though their bodies
+    // are still in trellis_post_history. Generated posts are costly assets
+    // (LLM tokens, image gen, Tavily, YouTube quota) — they must stay openable.
+    try {
+      const fromHistory = postHistoryService.getPosts().find((p) => p.id === id);
+      if (fromHistory) return fromHistory;
+    } catch { /* ignore */ }
     // (Phase 38 / TECHDEBT-06) — trellis_short_posts cache read deleted. The short
     // post type was removed entirely; reading stale data into the live posts array
     // would type-error against the new union. Stale localStorage data is harmless

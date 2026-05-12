@@ -248,7 +248,14 @@ async function* generateTextArtEssay(post: DailyPost, questions: Question[], opt
  * (empty array is meaningful, replace it).
  */
 export function patchPostEssayInCache(postId: string, essay: EssayContent): void {
-  const cacheKeys = ['trellis_daily_posts', 'trellis_video_cache', 'trellis_news_posts'];
+  // 2026-05-12 — `trellis_post_history` added as a write target so the streamed
+  // body persists across the midnight stale-cache rejection (Phase 36-11). The
+  // early `return` after first match was also removed: a post can live in BOTH
+  // the daily cache and post-history simultaneously, and both need the patch
+  // for the body to survive the daily cache rollover. Generated post bodies
+  // are costly assets — LLM tokens + image gen + Tavily + YouTube quota — and
+  // must remain openable from /post-history + /saved + /liked indefinitely.
+  const cacheKeys = ['trellis_daily_posts', 'trellis_video_cache', 'trellis_news_posts', 'trellis_post_history'];
   for (const key of cacheKeys) {
     try {
       const raw = localStorage.getItem(key);
@@ -270,7 +277,7 @@ export function patchPostEssayInCache(postId: string, essay: EssayContent): void
         } else {
           localStorage.setItem(key, JSON.stringify(posts));
         }
-        return;
+        // Continue scanning — patch every cache that has this post, not just the first.
       }
     } catch { /* ignore */ }
   }
