@@ -41,7 +41,10 @@ Mechanical hygiene pass for v1.5: TypeScript strictness audit, dead-code sweep, 
 - **D-15:** Treat `.planning/notes/*` and relevant `.planning/debug/*` as triage inputs. Do not rediscover diagnosed root causes; planning should read these files first and either close, fold into Phase 45, or defer each with rationale.
 - **D-16:** `.planning/notes/2026-05-08-fix-youtube-landscape-video.md` appears already addressed by Phase 38's YouTube short/video removal. Phase 45 should mark it reviewed/closed unless code inspection shows a remaining bug.
 - **D-17:** `.planning/notes/2026-05-09-graphscreen-drag-lag-android.md` belongs under the performance audit. Diagnose and document it; fix only if the cause is localized.
-- **D-18:** The diagnosed Force-New-Day / feed issues in `.planning/debug/` are candidate in-scope bug closures because they are concrete runtime defects with root-cause notes. Planning should check whether existing Phase 43 follow-up plans already cover them before creating duplicate work.
+- **D-18:** The diagnosed Force-New-Day / feed issues in `.planning/debug/` are triage inputs, but several now appear superseded by late Phase 43 gap-closure plans. Planning must first map each note to Phase 43 plan/test coverage, then either mark reviewed/closed, fold the remaining bug into Phase 45, or defer with rationale.
+- **D-19:** `.planning/debug/dismiss-not-propagating-to-same-anchor-tiles.md` appears addressed by Phase 43 Plan 43-14's `applyDismissedFilter` read-boundary fix and source-reading tests. Phase 45 should verify and close the note before creating any new dismiss-filter work.
+- **D-20:** `.planning/debug/duplicate-post-keys-after-force-new-day.md` appears addressed by Phase 43 Plan 43-15's `postQueueService.removeByIds`, `infiniteScrollService.seedSeen`, and warm-start re-sync tests. Phase 45 should verify and close the note before creating duplicate-key work.
+- **D-21:** Current known failing-test baselines from late Phase 43 are Phase 45 audit targets, especially stale Phase 42 constants, `concept-feed.test.mjs` Node import behavior, `image-gen-key-gate` source-reading drift, and `trellis-layout` date-dependent assertion. Fix tests by restoring the live contract or updating stale assertions to the documented canonical values.
 
 ### the agent's Discretion
 - Exact names and split of audit artifacts beyond the required content.
@@ -73,10 +76,15 @@ Mechanical hygiene pass for v1.5: TypeScript strictness audit, dead-code sweep, 
 ### Operator Notes And Diagnoses
 - `.planning/notes/2026-05-08-fix-youtube-landscape-video.md` — review as likely already closed by Phase 38.
 - `.planning/notes/2026-05-09-graphscreen-drag-lag-android.md` — Android GraphScreen drag-lag performance note.
-- `.planning/debug/dismiss-not-propagating-to-same-anchor-tiles.md` — diagnosed dismiss-filter cache overwrite issue.
-- `.planning/debug/duplicate-post-keys-after-force-new-day.md` — diagnosed duplicate key issue after Force-New-Day.
+- `.planning/debug/dismiss-not-propagating-to-same-anchor-tiles.md` — diagnosed dismiss-filter cache overwrite issue; likely closed by 43-14, verify before acting.
+- `.planning/debug/duplicate-post-keys-after-force-new-day.md` — diagnosed duplicate key issue after Force-New-Day; likely closed by 43-15, verify before acting.
 - `.planning/debug/feed-not-auto-populating-after-force-new-day.md` — older Force-New-Day auto-population diagnosis; check supersession before acting.
 - `.planning/debug/vine-chip-not-clearing-after-force-new-day.md` — older vine-chip stale state diagnosis; check supersession before acting.
+
+### Late Phase 43 References
+- `.planning/phases/43-engagement-ui/43-UAT.md` — Phase 43 UAT failures and root-cause writeups for dismiss filtering and Force-New-Day duplicate keys.
+- `.planning/phases/43-engagement-ui/43-15-force-new-day-dedup-PLAN.md` — duplicate-key closure plan and invariants for `removeByIds`, `seedSeen`, and warm-start re-sync.
+- `.planning/phases/43-engagement-ui/deferred-items.md` — reproduced pre-existing test failures queued for hygiene.
 
 </canonical_refs>
 
@@ -87,6 +95,8 @@ Mechanical hygiene pass for v1.5: TypeScript strictness audit, dead-code sweep, 
 - `app/package.json` — scripts: `npm run build`, `npm run lint`, `npm test`, `npm run test:main`, `npm run test:actions`.
 - `app/tests/**` — extensive source-reading and behavioral test pattern; use targeted `.test.mjs` files with `node:test` and `assert/strict`.
 - `app/src/services/refill-mutex.ts`, `app/src/services/feed-spread.ts`, `app/src/lib/i18n-leaf.ts` — existing pure leaf-module extraction precedents for making logic testable under Node.
+- `app/src/services/concept-feed.service.ts` now contains `applyDismissedFilter`, which centralizes dismissed-anchor filtering at cache-read boundaries. Treat this as a Phase 43 contract when auditing dismiss-related debug notes.
+- `app/src/services/post-queue.service.ts` and `app/src/services/infiniteScroll.service.ts` now expose `removeByIds` and `seedSeen` respectively. Treat these as Phase 43 duplicate-key closure contracts when auditing Force-New-Day behavior.
 - `.planning/codebase/*.md` — existing maps for conventions, testing, concerns, stack, structure, and integrations.
 
 ### Established Patterns
@@ -97,9 +107,10 @@ Mechanical hygiene pass for v1.5: TypeScript strictness audit, dead-code sweep, 
 
 ### Integration Points
 - TypeScript audit: `app/tsconfig*.json`, `app/src/**/*.ts`, `app/src/**/*.tsx`, and current `tsc -b --noEmit` behavior.
-- Dead-code sweep: `app/src/`, `app/tests/`, locale bundles, and removed-feature residue from YouTube shorts / old feed components.
+- Dead-code sweep: `app/src/`, `app/tests/`, locale bundles, source-reading tests, and removed-feature residue from YouTube shorts / old feed components.
 - Performance audit: `app/src/screens/HomeScreen.tsx`, `app/src/components/MasonryFeed.tsx`, `app/src/services/concept-feed.service.ts`, `app/src/services/post-queue.service.ts`, `app/src/screens/GraphScreen.tsx`, and trellis graph components/services.
 - TODO/FIXME audit: `app/src`, `app/tests`, `.planning/notes`, `.planning/debug`, and suppression comments.
+- Known baseline audit: `.planning/STATE.md` currently records `npm run test:main` at 839/844 passing after Plan 43-15, with failures in `concept-feed.test.mjs`, `concept-feed-source-diversity-wiring.test.mjs`, `image-gen-key-gate.test.mjs`, `post-queue.test.mjs`, and `trellis-layout.test.mjs`.
 
 </code_context>
 
@@ -108,7 +119,7 @@ Mechanical hygiene pass for v1.5: TypeScript strictness audit, dead-code sweep, 
 
 - Operator preference from Phase 43 remains load-bearing: feed tiles are already visually rich, so Phase 45 must not reopen broad tile-metadata additions. Hygiene can remove clutter; it should not add new tile signals.
 - GraphScreen Android drag lag has a warm-up pattern. Treat it as a profiling target, not a guaranteed rewrite.
-- Force-New-Day and dismiss bugs have root-cause writeups. Use those notes to plan precise fixes instead of starting fresh.
+- Force-New-Day and dismiss bugs have root-cause writeups, but late Phase 43 also landed fixes for the two newest UAT failures. Use those notes to verify closure first, then only plan remaining precise fixes.
 
 </specifics>
 
