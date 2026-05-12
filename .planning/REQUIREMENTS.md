@@ -33,7 +33,7 @@
 - [x] **TECHDEBT-05** CLAUDE.md `echolearn_*` localStorage references cleaned up (bulk rename or annotated brand-history note)
 - [x] **TECHDEBT-06** YouTube landscape-listed-as-short bug fixed: feed correctly classifies landscape video posts vs portrait shorts
 - [ ] **TECHDEBT-07** TypeScript strictness audit: `tsc` 5.9.x strict-mode gaps documented; remediation plan or in-scope fixes
-- [ ] **TECHDEBT-08** Dependency-version sweep: Capacitor 8.1→8.3, i18next 26.0.5→26.0.10, react-router-dom 7.13→7.15, eslint / typescript-eslint minor bumps
+- [x] **TECHDEBT-08** Dependency-version sweep: Capacitor 8.1→8.3, i18next 26.0.5→26.0.10, react-router-dom 7.13→7.15, eslint / typescript-eslint minor bumps
 - [ ] **TECHDEBT-09** Dead-code sweep: orphan exports, unused imports, removed-feature residue across `src/`
 - [ ] **TECHDEBT-10** Performance profiling pass: identify and document hot paths (first-paint, queue refill, masonry scroll); fix any P0/P1 finding
 - [ ] **TECHDEBT-11** Project-wide TODO/FIXME triage: catalogue, decide each (close, defer, or in-scope), close the ones in scope
