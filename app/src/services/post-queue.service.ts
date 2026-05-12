@@ -238,6 +238,45 @@ export const postQueueService = {
     return items;
   },
 
+  /**
+   * Remove specific posts from the in-memory queue by id. Persists the
+   * mutated state to STORAGE_KEY (the LIVE key — STORAGE_KEY_YESTERDAY
+   * snapshot is read-only and untouched).
+   *
+   * Phase 43 gap-closure 43-15 — `removeByIds` is invoked by HomeScreen's
+   * warm-start tier-2 fallback after Force-New-Day. The fallback seeds
+   * dailyPosts from postQueueService.getYesterdayQueue() (the durable
+   * snapshot at STORAGE_KEY_YESTERDAY); without this helper, those same posts also
+   * remain in _state.posts (rehydrated from the same parsed.posts payload
+   * by load() at lines 107-114) and would be re-popped via dequeue(8) on
+   * the next swipe-for-more, producing duplicate React keys (UAT Test 12
+   * blocker — see .planning/debug/duplicate-post-keys-after-force-new-day.md).
+   *
+   * Idempotent: ids not present in _state.posts are silently ignored.
+   * Empty input is a no-op (no save). Returns the number of posts actually
+   * removed for caller assertions / tests.
+   *
+   * Does NOT decrement totalServed — these posts have NOT been served to
+   * the user via dequeue; they have been seeded as the user's "yesterday's
+   * leftover" feed via the warm-start fallback, which is a DIFFERENT
+   * delivery path. (totalServed tracks queue-served count, which is a
+   * separate metric.)
+   *
+   * Does NOT mutate the STORAGE_KEY_YESTERDAY snapshot — that snapshot
+   * is the durable cross-cold-start record (Plan 36-09); getYesterdayQueue()
+   * MUST continue to return the unmodified yesterday payload regardless
+   * of how many warm-start mounts have run.
+   */
+  removeByIds(ids: string[]): number {
+    if (ids.length === 0) return 0;
+    const removeSet = new Set(ids);
+    const before = _state.posts.length;
+    _state.posts = _state.posts.filter(p => !removeSet.has(p.id));
+    const removed = before - _state.posts.length;
+    if (removed > 0) save(_state);
+    return removed;
+  },
+
   /** Current queue length. */
   size(): number {
     return _state.posts.length;
