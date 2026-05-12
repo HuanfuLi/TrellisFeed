@@ -33,6 +33,30 @@ export const infiniteScrollService = {
   },
 
   /**
+   * Seed the dedup set with externally-known post ids. Used by HomeScreen's
+   * warm-start tier-2 fallback (Phase 43 gap-closure 43-15) so the
+   * yesterday-queue posts surfaced via dailyPosts are also caught by the
+   * loadNextBatch dedup at line ~50 — defense-in-depth against any future
+   * code path that bypasses postQueueService.removeByIds().
+   *
+   * Idempotent: ids already in the set are silently ignored. Respects the
+   * 500-id eviction policy from loadNextBatch (large seeds are bounded).
+   *
+   * Pair with postQueueService.removeByIds(ids) at the same call site —
+   * removeByIds is the structural fix (mutually exclusive stores);
+   * seedSeen is the render-boundary guard.
+   */
+  seedSeen(ids: string[]): void {
+    for (const id of ids) {
+      seenPostIds.add(id);
+      if (seenPostIds.size > 500) {
+        const oldest = seenPostIds.values().next().value;
+        if (oldest) seenPostIds.delete(oldest);
+      }
+    }
+  },
+
+  /**
    * Load the next batch of posts.
    *
    * Phase 31: Serves from postQueueService via conceptFeedService.generateMorePosts().
