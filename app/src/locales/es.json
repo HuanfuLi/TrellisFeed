@@ -673,7 +673,8 @@
     "title": "Guardados",
     "tabs": {
       "saved": "Guardados",
-      "liked": "Te gusta"
+      "liked": "Te gusta",
+      "history": "Historial"
     },
     "empty": {
       "savedTitle": "Aún no hay guardados",

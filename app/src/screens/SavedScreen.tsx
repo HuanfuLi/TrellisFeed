@@ -1,39 +1,51 @@
-// SavedScreen — Phase 43 plan 43-04 (SV-01..SV-04).
+// SavedScreen — Archive (Saved | Liked | History).
+//
+// Phase 43 plan 43-04 shipped Saved | Liked. 2026-05-12 consolidation added a
+// third "History" tab and absorbed the standalone PostHistoryScreen — operator
+// preferred a single archive entry point from HomeScreen (the bookmark icon
+// in the greeting row) instead of two parallel affordances (Clock icon in
+// VineProgress + bookmark icon in greeting row both pointing at near-duplicate
+// archives). History tab uses day-grouping (Today / Yesterday / Mmm d) to
+// preserve the chronological-log value the old screen offered; Saved + Liked
+// stay flat (curation is the value there, not chronology).
 //
 // Sub-screen rendered via <Outlet> overlay at zIndex 50 in App.tsx. NOT mounted
 // inside SwipeTabContainer; the Header portals to document.body (Phase 32.1
 // pattern — see Header.tsx insideSwipeTab discrimination).
 //
-// Two-tab archive of engagement state:
+// Data sources:
 //   - Saved tab → engagementService.getSavedPosts()
 //   - Liked tab → engagementService.getLikedPosts()
+//   - History tab → postHistoryService.getPostsByDay() — day-grouped Map
 //
-// Tab state is local useState (operator-locked at SV-04 — Saved | Liked tabs
-// owned by the screen, NOT a route param). Tap toggle, no swipe gesture in v1.
+// Tab state is local useState (operator-locked at SV-04 — owned by the screen,
+// NOT a route param). Tap toggle, no swipe gesture.
 //
 // Re-sync: subscribes to ENGAGEMENT_CHANGED so when the user un-saves / un-likes
-// from a parallel surface (LongPressMenu in MasonryFeed, PostDetailScreen heart),
-// the visible list refreshes in-place. SavedScreen is NOT always-mounted so the
+// from a parallel surface (LongPressMenu, PostDetailScreen heart) the visible
+// list refreshes in-place. History is reloaded on the same event for symmetry
+// (cheap, and Force-New-Day's dismissed-only reset doesn't affect history, but
+// keeps the read path uniform). SavedScreen is NOT always-mounted so the
 // useEffect cleanup unsubscribes automatically on unmount (Pitfall 7).
 //
-// List layout mirrors PostHistoryScreen.tsx HistoryPostCard verbatim per SV-03:
+// Row layout mirrors the legacy PostHistoryScreen.tsx HistoryPostCard verbatim:
 // 52×52 thumbnail + title (lineClamp 2) + contextLabel meta line + tap-to-/posts/:id.
-// Entrance keyframes inlined via <style> tag (saved-card-in) — same shape as
-// PostHistoryScreen's history-card-in.
 //
 // Phase 32.1 invariant: no transform / will-change / filter / contain / perspective
 // on Header ancestors. Outer container uses minHeight: '100%' + flex column ONLY.
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Bookmark, Heart } from 'lucide-react';
+import { Bookmark, Heart, Clock, AlertCircle } from 'lucide-react';
 import { Header, HEADER_HEIGHT } from '../components/ui/Header';
 import { engagementService } from '../services/engagement.service';
+import { postHistoryService } from '../services/post-history.service';
 import { eventBus } from '../lib/event-bus';
+import { today } from '../lib/date';
 import type { DailyPost } from '../types';
 
-type Tab = 'saved' | 'liked';
+type Tab = 'saved' | 'liked' | 'history';
 
 function SavedRow({
   post,
@@ -142,9 +154,15 @@ function EmptyState({
   tab: Tab;
   t: ReturnType<typeof useTranslation>['t'];
 }) {
-  const Icon = tab === 'saved' ? Bookmark : Heart;
-  const titleKey = tab === 'saved' ? 'saved.empty.savedTitle' : 'saved.empty.likedTitle';
-  const bodyKey = tab === 'saved' ? 'saved.empty.savedBody' : 'saved.empty.likedBody';
+  const Icon = tab === 'saved' ? Bookmark : tab === 'liked' ? Heart : Clock;
+  const titleKey =
+    tab === 'saved' ? 'saved.empty.savedTitle'
+    : tab === 'liked' ? 'saved.empty.likedTitle'
+    : 'home.history.emptyTitle';
+  const bodyKey =
+    tab === 'saved' ? 'saved.empty.savedBody'
+    : tab === 'liked' ? 'saved.empty.likedBody'
+    : 'home.history.emptyBody';
   return (
     <div
       style={{
@@ -228,10 +246,20 @@ export default function SavedScreen() {
   const [likedPosts, setLikedPosts] = useState<DailyPost[]>(() =>
     engagementService.getLikedPosts(),
   );
+  const [historyGroups, setHistoryGroups] = useState<Map<string, DailyPost[]>>(() => {
+    try { return postHistoryService.getPostsByDay(); } catch { return new Map(); }
+  });
+  const [historyError, setHistoryError] = useState(false);
 
   const refresh = useCallback(() => {
     setSavedPosts(engagementService.getSavedPosts());
     setLikedPosts(engagementService.getLikedPosts());
+    try {
+      setHistoryGroups(postHistoryService.getPostsByDay());
+      setHistoryError(false);
+    } catch {
+      setHistoryError(true);
+    }
   }, []);
 
   // ENGAGEMENT_CHANGED subscription — keeps list in-sync when user un-saves /
@@ -243,8 +271,34 @@ export default function SavedScreen() {
     return unsub;
   }, [refresh]);
 
-  const list = activeTab === 'saved' ? savedPosts : likedPosts;
-  const isEmpty = list.length === 0;
+  // Day-heading formatter for the History tab. Mirrors the legacy
+  // PostHistoryScreen.tsx formatDayHeading — Today / Yesterday / Mmm d.
+  const formatDayHeading = useCallback((dateStr: string): string => {
+    const todayStr = today();
+    if (dateStr === todayStr) return t('home.history.today');
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
+    if (dateStr === yStr) return t('home.history.yesterday');
+    const d = new Date(dateStr);
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  }, [t]);
+
+  // History flat-index — drives the per-row entrance animation stagger so the
+  // delay continues monotonically across day groups (visually nicer than each
+  // group restarting its stagger from 0).
+  const historyFlatIndex = useMemo(() => {
+    const map = new Map<string, number>();
+    let idx = 0;
+    for (const posts of historyGroups.values()) for (const p of posts) map.set(p.id, idx++);
+    return map;
+  }, [historyGroups]);
+
+  const flatList = activeTab === 'saved' ? savedPosts : activeTab === 'liked' ? likedPosts : [];
+  const isFlatTab = activeTab !== 'history';
+  const isEmpty = isFlatTab
+    ? flatList.length === 0
+    : historyGroups.size === 0 && !historyError;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
@@ -270,7 +324,7 @@ export default function SavedScreen() {
           boxSizing: 'border-box',
         }}
       >
-        {/* Tab bar (Saved | Liked) — SV-04 */}
+        {/* Tab bar (Saved | Liked | History) — consolidation 2026-05-12 */}
         <div
           role="tablist"
           style={{
@@ -285,14 +339,50 @@ export default function SavedScreen() {
           <TabButton active={activeTab === 'liked'} onClick={() => setActiveTab('liked')}>
             {t('saved.tabs.liked')}
           </TabButton>
+          <TabButton active={activeTab === 'history'} onClick={() => setActiveTab('history')}>
+            {t('saved.tabs.history')}
+          </TabButton>
         </div>
 
-        {/* List or empty state */}
-        {isEmpty ? (
+        {/* History tab error state — separate from empty, mirrors the legacy
+            PostHistoryScreen retry affordance. */}
+        {activeTab === 'history' && historyError ? (
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '200px',
+              gap: '8px',
+            }}
+          >
+            <AlertCircle size={32} style={{ color: 'var(--muted-foreground)' }} />
+            <span style={{ fontSize: '14px', color: 'var(--muted-foreground)' }}>
+              {t('home.history.errorTitle')}
+            </span>
+            <button
+              onClick={refresh}
+              style={{
+                fontSize: '14px',
+                fontWeight: 600,
+                color: 'var(--primary-40)',
+                background: 'var(--surface-variant)',
+                border: 'none',
+                cursor: 'pointer',
+                marginTop: '8px',
+                padding: '10px 24px',
+                borderRadius: 'var(--radius)',
+              }}
+            >
+              {t('home.history.errorRetry')}
+            </button>
+          </div>
+        ) : isEmpty ? (
           <EmptyState tab={activeTab} t={t} />
-        ) : (
+        ) : isFlatTab ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {list.map((post, idx) => (
+            {flatList.map((post, idx) => (
               <SavedRow
                 key={post.id}
                 post={post}
@@ -301,6 +391,38 @@ export default function SavedScreen() {
               />
             ))}
           </div>
+        ) : (
+          /* History tab — day-grouped layout with sticky date headings. */
+          Array.from(historyGroups.entries()).map(([day, posts]) => (
+            <div key={day} style={{ marginBottom: '24px' }}>
+              <div
+                style={{
+                  position: 'sticky',
+                  top: 0,
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  color: 'var(--muted-foreground)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
+                  background: 'var(--background)',
+                  padding: '8px 0',
+                  zIndex: 1,
+                }}
+              >
+                {formatDayHeading(day)}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {posts.map((post) => (
+                  <SavedRow
+                    key={post.id}
+                    post={post}
+                    indexInList={historyFlatIndex.get(post.id) ?? 0}
+                    onOpen={() => navigate(`/posts/${post.id}`)}
+                  />
+                ))}
+              </div>
+            </div>
+          ))
         )}
       </div>
     </div>

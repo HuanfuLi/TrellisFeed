@@ -20,7 +20,6 @@ import { SettingsDataScreen } from './screens/settings/SettingsDataScreen';
 import { GraphScreen } from './screens/GraphScreen';
 import { SwipeTabContainer } from './components/SwipeTabContainer';
 import { PostDetailScreen } from './screens/PostDetailScreen';
-import PostHistoryScreen from './screens/PostHistoryScreen';
 import SavedScreen from './screens/SavedScreen';
 import { AnchorDetailScreen } from './screens/AnchorDetailScreen';
 import { ClusterDetailScreen } from './screens/ClusterDetailScreen';
@@ -310,7 +309,6 @@ const router = createBrowserRouter([
       { path: 'cluster/:id', element: <PageTransition><ClusterDetailScreen /></PageTransition> },
       { path: 'graph', element: null },
       { path: 'planner', element: null },
-      { path: 'history', element: <PageTransition><PostHistoryScreen /></PageTransition> },
       { path: 'review', element: <PageTransition><ReviewScreen /></PageTransition> },
       { path: 'saved', element: <PageTransition><SavedScreen /></PageTransition> },
       { path: 'podcast', element: <PageTransition><PodcastScreen /></PageTransition> },

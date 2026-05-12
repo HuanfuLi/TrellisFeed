@@ -673,7 +673,8 @@
     "title": "已收藏",
     "tabs": {
       "saved": "已收藏",
-      "liked": "已喜欢"
+      "liked": "已喜欢",
+      "history": "历史"
     },
     "empty": {
       "savedTitle": "还没有收藏",

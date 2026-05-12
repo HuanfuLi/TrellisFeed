@@ -830,7 +830,6 @@ export function HomeScreen() {
               mode="inline"
               concepts={conceptList}
               onConceptTap={handleConceptTap}
-              onHistoryTap={() => navigate('/history')}
             />
           </div>
         )}

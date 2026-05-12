@@ -673,7 +673,8 @@
     "title": "保存済み",
     "tabs": {
       "saved": "保存済み",
-      "liked": "いいね"
+      "liked": "いいね",
+      "history": "履歴"
     },
     "empty": {
       "savedTitle": "まだ保存していません",

@@ -673,7 +673,8 @@
     "title": "Saved",
     "tabs": {
       "saved": "Saved",
-      "liked": "Liked"
+      "liked": "Liked",
+      "history": "History"
     },
     "empty": {
       "savedTitle": "Nothing saved yet",

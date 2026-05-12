@@ -1,12 +1,16 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown, Clock } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
+
+// 2026-05-12 — Clock icon (post-history entry point) removed. The /saved screen
+// (now Archive with Saved | Liked | History tabs) is the single archive entry
+// from HomeScreen — the bookmark icon in the greeting row navigates there.
+// The post-history tab inside that screen replaces this affordance.
 
 interface VineProgressProps {
   mode: 'inline' | 'compact';
   concepts: Array<{ id: string; name: string; explored: boolean }>;
   onConceptTap?: (conceptId: string) => void;
-  onHistoryTap?: () => void;
 }
 
 // Deterministic pseudo-random from seed
@@ -179,7 +183,6 @@ function VineProgressImpl({
   mode,
   concepts,
   onConceptTap,
-  onHistoryTap,
 }: VineProgressProps) {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
@@ -370,25 +373,8 @@ function VineProgressImpl({
         </svg>
         </div>
 
-        {/* Right-side icons */}
+        {/* Right-side icon (expand/collapse only — Clock removed 2026-05-12) */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-          {isInline && onHistoryTap && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onHistoryTap(); }}
-              aria-label={t('home.history.iconLabel')}
-              style={{
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                padding: '4px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Clock size={16} color="var(--muted-foreground)" />
-            </button>
-          )}
           <ChevronDown
             size={14}
             color="var(--muted-foreground)"
@@ -464,7 +450,6 @@ function VineProgressImpl({
 function vineProgressPropsEqual(prev: VineProgressProps, next: VineProgressProps): boolean {
   if (prev.mode !== next.mode) return false;
   if (prev.onConceptTap !== next.onConceptTap) return false;
-  if (prev.onHistoryTap !== next.onHistoryTap) return false;
   const prevKey = prev.concepts.map(c => c.id + (c.explored ? '1' : '0')).join('|');
   const nextKey = next.concepts.map(c => c.id + (c.explored ? '1' : '0')).join('|');
   return prevKey === nextKey;

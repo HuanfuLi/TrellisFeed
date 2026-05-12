@@ -1,13 +1,14 @@
 // Phase 43 plan 43-04 — source-reading invariants for SavedScreen (SV-01..SV-04).
+// 2026-05-12 — consolidation: SavedScreen absorbed the standalone post-history
+// surface and now serves three tabs (Saved | Liked | History) from a single
+// archive entry point. The legacy PostHistoryScreen.tsx + /history route were
+// deleted; their row layout was preserved verbatim in the new History tab.
 //
 // Filled in from the Wave-0 scaffold (Plan 43-01) per the established
 // Phase 39/40/41/42/43 anti-wire / structural-invariant test discipline:
 // no React rendering — pure source-reading assertions against the live code
 // path. Forbidden patterns are negative-grepped; required patterns are
 // positive-grepped with counterweight presence checks.
-//
-// Reference: CONTEXT.md SV-01..SV-04, UI-SPEC §6 /saved screen layout,
-// app/src/screens/PostHistoryScreen.tsx (verbatim row layout source).
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -47,12 +48,26 @@ test('SV-03/04: SavedScreen exports default + reads saved/liked from engagementS
   );
 });
 
+test('Archive consolidation 2026-05-12: History tab reads postHistoryService.getPostsByDay', () => {
+  const src = readSrc('src/screens/SavedScreen.tsx');
+  assert.match(
+    src,
+    /postHistoryService\.getPostsByDay\(\)/,
+    'History tab data source: postHistoryService.getPostsByDay() — day-grouped Map',
+  );
+  assert.match(
+    src,
+    /saved\.tabs\.history/,
+    'i18n key saved.tabs.history referenced (new third tab)',
+  );
+});
+
 test("SV-04: tabs use local useState (not route param) + 4 empty-state i18n keys", () => {
   const src = readSrc('src/screens/SavedScreen.tsx');
   assert.match(
     src,
-    /useState<['"]?(Tab|saved\s*\|\s*liked)['"]?>/,
-    'Tab state via useState<Tab> or equivalent local component state',
+    /useState<Tab>/,
+    'Tab state via useState<Tab> (local component state, not route param)',
   );
   assert.match(src, /saved\.tabs\.saved/, 'i18n key saved.tabs.saved referenced');
   assert.match(src, /saved\.tabs\.liked/, 'i18n key saved.tabs.liked referenced');
