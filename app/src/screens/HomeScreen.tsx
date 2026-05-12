@@ -38,15 +38,33 @@ export function HomeScreen() {
   const { questions, isLoading: questionsLoading } = useQuestions();
   const { reviewCount } = useReview();
   const { getPodcastForDate } = usePodcast();
+  // Phase 43 gap-closure 43-15 — warm-start tier metadata captured at
+  // useState construction time. Read by the mount-once useEffect below to
+  // (a) splice the seeded ids out of postQueueService._state.posts so
+  // loadNextBatch cannot re-pop them (the duplicate-key root cause from
+  // UAT Test 12); (b) seed infiniteScrollService.seenPostIds as
+  // defense-in-depth at the service-level dedup boundary. See
+  // .planning/debug/duplicate-post-keys-after-force-new-day.md.
+  const warmStartTierRef = useRef<{ tier: 'cache' | 'yesterday' | 'history' | 'empty'; seededIds: string[] }>({ tier: 'empty', seededIds: [] });
+
   const [dailyPosts, setDailyPosts] = useState<DailyPost[]>(() => {
     // Warm start (D-30): If today's cache is empty, show yesterday's remaining queue
     const cached = conceptFeedService.getCachedDailyPosts();
-    if (cached.length > 0) return cached;
+    if (cached.length > 0) {
+      warmStartTierRef.current = { tier: 'cache', seededIds: cached.map(p => p.id) };
+      return cached;
+    }
     postQueueService.loadQueue();
     const yesterday = postQueueService.getYesterdayQueue();
-    if (yesterday.length > 0) return yesterday.slice(0, 8);
+    if (yesterday.length > 0) {
+      const slice = yesterday.slice(0, 8);
+      warmStartTierRef.current = { tier: 'yesterday', seededIds: slice.map(p => p.id) };
+      return slice;
+    }
     // D-32 fallback: show last 4 from history
-    return postHistoryService.getPosts().slice(0, 4);
+    const history = postHistoryService.getPosts().slice(0, 4);
+    warmStartTierRef.current = { tier: 'history', seededIds: history.map(p => p.id) };
+    return history;
   });
   // Phase 36 GAP-A: Capture warm-start presence at mount BEFORE the async
   // getDailyPosts call. Used as the disambiguator inside the .then handler
@@ -89,6 +107,41 @@ export function HomeScreen() {
   }, []);
   const closeMenu = useCallback(() => {
     setMenuOpen(false);
+  }, []);
+
+  // Phase 43 gap-closure 43-15 — mount-once: if the warm-start initializer
+  // seeded dailyPosts from the yesterday-queue tier, remove those ids from
+  // postQueueService._state.posts AND seed infiniteScrollService.seenPostIds
+  // so the next loadNextBatch (swipe-for-more) cannot re-pop them.
+  //
+  // PRIMARY: removeByIds makes the two stores (warm-start dailyPosts +
+  // postQueueService._state.posts) mutually exclusive — the structural
+  // fix per UAT Test 12 root_cause approach (A).
+  //
+  // DEFENSE-IN-DEPTH: seedSeen primes infiniteScrollService.seenPostIds so
+  // the existing dedup at infiniteScroll.service.ts:50 also catches any
+  // future overlap — approach (B) from UAT root_cause.
+  //
+  // Cache tier (Plan 36-11 stale-cache rejection passed; today's served
+  // posts) does NOT need this cleanup — those posts came from the cache,
+  // not from _state.posts. History tier likewise. Only the yesterday-tier
+  // path needs the splice + seed.
+  //
+  // See .planning/debug/duplicate-post-keys-after-force-new-day.md.
+  useEffect(() => {
+    const { tier, seededIds } = warmStartTierRef.current;
+    if (tier === 'yesterday' && seededIds.length > 0) {
+      postQueueService.removeByIds(seededIds);
+      infiniteScrollService.seedSeen(seededIds);
+    } else if (tier === 'cache' || tier === 'history') {
+      // Seed the seenPostIds set even for cache + history tiers — if a
+      // future loadNextBatch ever returns one of these ids (e.g., a
+      // post-history fallback that ended up in trellis_post_queue),
+      // service-level dedup catches it.
+      if (seededIds.length > 0) {
+        infiniteScrollService.seedSeen(seededIds);
+      }
+    }
   }, []);
 
   // D-22b (Phase 33 Plan 06): snapshot settings reads to avoid re-evaluating
@@ -201,11 +254,18 @@ export function HomeScreen() {
   // rehydrated _state.posts (Plan 36-11 Task 2) sits unreachable until the
   // next async getDailyPosts run (which is mount-only, not navigation-fired).
   // Phase 36-14 — closes the runtime half of round-4 sub-issue (b).
+  //
+  // Phase 43 gap-closure 43-15 — when tier-2 (yesterday-queue) fires, also
+  // remove the seeded ids from _state.posts so loadNextBatch cannot re-pop
+  // them (the duplicate-key root cause from UAT Test 12). seedSeen is the
+  // defense-in-depth at the service-level dedup boundary.
   useEffect(() => {
     if (location.pathname !== '/home') return;
     const cached = conceptFeedService.getCachedDailyPosts();
     if (cached.length > 0) {
       setDailyPosts(cached);
+      // Seed seenPostIds for cache tier too (defense-in-depth)
+      infiniteScrollService.seedSeen(cached.map(p => p.id));
       return;
     }
     // Tier-2 fallback: yesterday's UNSERVED queue, rehydrated by
@@ -214,7 +274,16 @@ export function HomeScreen() {
     postQueueService.loadQueue();
     const yesterdayQueue = postQueueService.getYesterdayQueue();
     if (yesterdayQueue.length > 0) {
-      setDailyPosts(yesterdayQueue.slice(0, 8));
+      const slice = yesterdayQueue.slice(0, 8);
+      setDailyPosts(slice);
+      // Phase 43 gap-closure 43-15 — splice the seeded ids out of
+      // _state.posts so loadNextBatch cannot re-pop them on the next
+      // swipe-for-more. seedSeen primes the service-level dedup as
+      // defense-in-depth. See .planning/debug/duplicate-post-keys-after-
+      // force-new-day.md.
+      const seededIds = slice.map(p => p.id);
+      postQueueService.removeByIds(seededIds);
+      infiniteScrollService.seedSeen(seededIds);
       return;
     }
     // Both tiers empty — preserve current behavior (set to empty so the
@@ -260,7 +329,26 @@ export function HomeScreen() {
         // initializer hits the cache and renders instantly. No pop-time
         // image generation means no loading-state lag on swipe.
         conceptFeedService.appendToCache(newPosts);
-        setDailyPosts((prev) => [...prev, ...newPosts]);
+        // Phase 43 gap-closure 43-15 — id-based dedup at the render boundary.
+        // Defense-in-depth against any future code path that bypasses both
+        // postQueueService.removeByIds() (the structural fix) AND
+        // infiniteScrollService.seenPostIds dedup at the service-level
+        // boundary. If a duplicate id somehow reaches here, it must NOT
+        // produce a duplicate React key in MasonryFeed. See
+        // .planning/debug/duplicate-post-keys-after-force-new-day.md UAT Test 12.
+        setDailyPosts((prev) => {
+          const seen = new Set(prev.map(p => p.id));
+          const fresh = newPosts.filter(p => !seen.has(p.id));
+          if (fresh.length === newPosts.length) {
+            return [...prev, ...newPosts];
+          }
+          if (import.meta.env.DEV && fresh.length < newPosts.length) {
+            console.warn(
+              `[HomeScreen handleLoad] dropped ${newPosts.length - fresh.length} duplicate post(s) at concat boundary — should not happen with 43-15 fixes in place`,
+            );
+          }
+          return [...prev, ...fresh];
+        });
       } else {
         // Phase 42 D-11: Toast removed; vine-bloom celebration card (plan 42-04) handles the
         // "no more posts" state via allExplored prop passed to MasonryFeed.
