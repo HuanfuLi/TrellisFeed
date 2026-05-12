@@ -1170,7 +1170,7 @@ _Updated: 2026-05-07 — Phase 36-12 EXECUTED: Promise-mutex refill closes round
   4. _(Descoped 2026-05-11 per DS-01: "N connections in your graph" micro-label dropped — operator framing "tiles already too rich". See `.planning/phases/43-engagement-ui/43-CONTEXT.md` DS-01.)_
   5. HomeScreen subscribes to `ANCHOR_DISMISSED` and re-syncs engagement state on `[location.pathname]` effect (Phase 36-14 canonical pattern)
   6. `handleForceNewDay` in `SettingsDataScreen` calls `engagementService.reset()` alongside existing post-queue + cache + dailyRead resets; dismissed anchors do not carry over after Force-New-Day
-**Plans**: 8 plans (4 waves)
+**Plans**: 15 plans (5 waves — 8 base plans Waves 0-3 + 7 gap-closure plans Waves 4-5)
   - [x] 43-01-shared-infra-and-locales-PLAN.md — Wave 0: useLongPress hook + BottomSheet compact prop + 14 i18n keys × 4 locales + 9 test scaffolds + DS-01 doc edits (ROADMAP + REQUIREMENTS per revision 2026-05-11)
   - [x] 43-02-trim-presentation-style-tag-PLAN.md — Wave 1: TS-01 trim NEWS chip from InfoFlow.tsx + remove `infoFlow.newsTag` from 4 locale bundles
   - [x] 43-03-longpress-menu-and-masonry-integration-PLAN.md — Wave 1: LongPressMenu component (LP-01..LP-04) + MasonryFeed long-press wrapper + corner-icon overlay + AnimatePresence column wrapping (LP-05)
@@ -1179,6 +1179,13 @@ _Updated: 2026-05-07 — Phase 36-12 EXECUTED: Promise-mutex refill closes round
   - [x] 43-06-homescreen-wiring-PLAN.md — Wave 2: HomeScreen Bookmark icon + LongPressMenu host + dual-effect ANCHOR_DISMISSED (stable listener + `[location.pathname]` resync) + ENGAGEMENT_CHANGED subscription (SV-02 + LP-03/05)
   - [x] 43-07-force-new-day-engagement-reset-PLAN.md — Wave 2: SettingsDataScreen `engagementService.reset()` (DS-01 doc edits moved to 43-01 Wave 0 per revision 2026-05-11)
   - [x] 43-08-phase-close-out-PLAN.md — Wave 3: 43-PHASE-SUMMARY.md + STATE.md / ROADMAP.md / VALIDATION.md close-out edits
+  - [x] 43-09-bottomsheet-portal-and-nav-clearance-PLAN.md — Wave 4 gap-closure: BottomSheet portals to document.body + nav clearance offset (closes UAT Test 2)
+  - [x] 43-10-engagement-corner-icon-chip-backdrop-PLAN.md — Wave 4 gap-closure: corner icons inside chip backdrop + --corner-chip-* tokens (closes UAT Test 3)
+  - [x] 43-11-homescreen-bookmark-inline-with-greeting-PLAN.md — Wave 4 gap-closure: Bookmark icon moved from fixed-position to inline greeting row (closes UAT Test 5)
+  - [x] 43-12-deep-dive-controls-above-essay-body-PLAN.md — Wave 4 gap-closure: Deep Dive controls reflowed above essay body (closes UAT Test 8/9)
+  - [x] 43-13-engagement-reset-dismissed-only-PLAN.md — Wave 4 gap-closure: Force-New-Day resets ONLY dismissed (preserves saved + liked archives) (closes UAT Test 9)
+  - [x] 43-14-dismiss-filter-at-read-boundary-PLAN.md — Wave 5 gap-closure: centralize dismiss filter at concept-feed read boundary (closes UAT Test 4)
+  - [x] 43-15-force-new-day-dedup-PLAN.md — Wave 5 gap-closure: warm-start dailyPosts ⊥ queue _state.posts via removeByIds + seedSeen + concat dedup (closes UAT Test 12)
 **UI hint**: yes
 
 ### Phase 44: Dependency Version Sweep
@@ -1214,7 +1221,7 @@ _Updated: 2026-05-07 — Phase 36-12 EXECUTED: Promise-mutex refill closes round
 | 40. Source Diversity Leaf Module | 1/1 | Complete    | 2026-05-09 |
 | 41. Pipeline Wiring + Essay Depth | 2/2 | Complete    | 2026-05-09 |
 | 42. Masonry Feed Layout | 9/8 | Complete    | 2026-05-10 |
-| 43. Engagement UI | 16/15 | Complete   | 2026-05-12 |
+| 43. Engagement UI | 15/15 | Complete   | 2026-05-12 |
 | 44. Dependency Version Sweep | 0/0 | Not started | - |
 | 45. Code Quality Sweep | 0/0 | Not started | - |
 
