@@ -6,15 +6,19 @@
 //       the SwipeTabContainer slot's translateZ(0) containing block
 //       (Phase 32.1 portal pattern — same bug class as the Header fix)
 //   (c) has an SSR-safe `typeof document === 'undefined'` guard returning null
-//   (d) offsets the inner sheet by calc(80px + var(--safe-area-bottom)) so
-//       the third (Dismiss) row clears the fixed BottomNavigation
+//   (d) inner sheet anchors to bottom: 0 so transform: translateY(100%)
+//       fully hides it off-screen when closed (NOT bottom: calc(...) — that
+//       left a sheet-tail covering the BottomNavigation; see 2026-05-12 retest)
+//   (e) inner sheet has paddingBottom: calc(24px + 80px + safe-area-bottom)
+//       so the third (Dismiss) row clears the fixed BottomNavigation when open
 //
 // Pattern: pure regex + indexOf against the live source file — no React
 // render, no jsdom. Follows the Phase 39/40/41/42/43 source-reading test
 // discipline.
 //
-// See .planning/debug/dismiss-row-clipped-by-bottom-nav.md for the geometric
-// proof of why the Dismiss row was clipped and the multi-layer fix rationale.
+// See .planning/debug/resolved/dismiss-row-clipped-by-bottom-nav.md for the
+// original clipping diagnosis and 2026-05-12 follow-up rewrite (paddingBottom
+// vs bottom-offset).
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -58,11 +62,29 @@ test('43-09: BottomSheet has SSR-safe document-undefined guard returning null', 
   assert.match(after, /return\s+null/, 'document-undefined guard must `return null`');
 });
 
-test('43-09: inner sheet has nav-clearance offset above BottomNavigation', () => {
+test('43-09: inner sheet has nav-clearance paddingBottom above BottomNavigation', () => {
+  // Nav-clearance lives in paddingBottom (not bottom: calc(...)) so the
+  // translateY(100%) close animation fully hides the sheet off-screen.
+  // 24px = original sheet bottom padding; 80px = BottomNavigation row height.
   assert.match(
     src,
-    /bottom:\s*['"]calc\(80px\s*\+\s*var\(--safe-area-bottom\)\)['"]/,
-    'inner sheet bottom must be calc(80px + var(--safe-area-bottom)) to clear the BottomNavigation footprint',
+    /paddingBottom:\s*['"]calc\(24px\s*\+\s*80px\s*\+\s*var\(--safe-area-bottom\)\)['"]/,
+    'inner sheet paddingBottom must be calc(24px + 80px + var(--safe-area-bottom)) so the last row clears the BottomNavigation',
+  );
+});
+
+test('43-09: inner sheet anchors to bottom: 0 (so translateY(100%) fully hides it)', () => {
+  // Anchor the search on the segment between `position: 'absolute'` and
+  // `left: 0` to scope precisely to the inner-sheet style block.
+  const absIdx = src.indexOf("position: 'absolute'");
+  assert.ok(absIdx > 0, 'inner sheet must declare position: absolute');
+  const leftIdx = src.indexOf('left: 0', absIdx);
+  assert.ok(leftIdx > absIdx, 'inner sheet must declare left: 0 after position: absolute');
+  const region = src.slice(absIdx, leftIdx);
+  assert.match(
+    region,
+    /\bbottom:\s*0\s*,/,
+    'inner sheet must use bottom: 0 so transform: translateY(100%) translates the sheet fully off-screen when closed',
   );
 });
 
@@ -74,19 +96,13 @@ test('43-09: inner sheet position is still absolute (no layout regression)', () 
   );
 });
 
-test('43-09: inner sheet does NOT regress to bottom: 0 (the original clipped placement)', () => {
-  // Negative invariant: the original `bottom: 0,` line (note the trailing
-  // comma, not a hex color or rgba boundary) must not exist in the inner
-  // sheet block. We anchor the search on the segment between
-  // `position: 'absolute'` and `left: 0` to scope precisely.
-  const absIdx = src.indexOf("position: 'absolute'");
-  assert.ok(absIdx > 0, 'inner sheet must declare position: absolute');
-  const leftIdx = src.indexOf('left: 0', absIdx);
-  assert.ok(leftIdx > absIdx, 'inner sheet must declare left: 0 right after position: absolute');
-  const region = src.slice(absIdx, leftIdx);
+test('43-09: inner sheet does NOT regress to bottom: calc(80px + ...) — covers nav when closed', () => {
+  // Negative invariant: the 2026-05-11 first-pass fix used bottom: calc(...)
+  // which left a sheet-tail covering the BottomNavigation when closed.
+  // The 2026-05-12 rewrite moved nav-clearance to paddingBottom instead.
   assert.doesNotMatch(
-    region,
-    /\bbottom:\s*0\s*,/,
-    'inner sheet must NOT use bottom: 0 — that was the pre-fix placement clipped by BottomNavigation',
+    src,
+    /bottom:\s*['"]calc\(80px\s*\+\s*var\(--safe-area-bottom\)\)['"]/,
+    'inner sheet must NOT use bottom: calc(80px + safe-area-bottom) — that placement hides the nav when the sheet is closed',
   );
 });

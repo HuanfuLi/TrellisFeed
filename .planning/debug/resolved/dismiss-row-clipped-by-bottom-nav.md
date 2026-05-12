@@ -2,7 +2,16 @@
 status: resolved
 trigger: "Long-press menu third row (Not interested / Dismiss) invisible; operator suspects BottomNavigation bar clipping the bottom-sheet menu"
 created: 2026-05-11T10:00:00Z
-updated: 2026-05-11T13:40:00Z
+updated: 2026-05-12T00:00:00Z
+followup_2026-05-12: |
+  First-pass fix (commit d4d5b0f1, 2026-05-11) used `bottom: 'calc(80px + var(--safe-area-bottom))'`
+  on the inner sheet. Operator screenshot 2026-05-12 showed the closed sheet now covered the
+  BottomNavigation: with the bottom anchored 80px above viewport-bottom, transform: translateY(100%)
+  only moved the sheet down by its OWN height — leaving a sheet-tail of height ~80px visible
+  over the nav between (viewport-bottom - 80px) and viewport-bottom.
+  Re-fix: anchor sheet to bottom: 0 so translateY(100%) fully hides it; move nav-clearance into
+  paddingBottom: calc(24px + 80px + var(--safe-area-bottom)) on the inner sheet content. Test
+  rewritten with the new invariant + negative invariant against the old bottom: calc(...) placement.
 ---
 
 ## Current Focus

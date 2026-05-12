@@ -11,9 +11,14 @@ import { createPortal } from 'react-dom';
 // Without this, position:fixed anchors to the slot bottom rather than the viewport,
 // and the BottomNavigation (~80px row + safe-area-bottom) physically eclipses the
 // bottom row(s) of the sheet. Matches the Phase 32.1 Header portal-vs-in-tree
-// pattern documented in CLAUDE.md. Defense-in-depth: even with the portal escape,
-// the inner sheet's bottom is offset by calc(80px + var(--safe-area-bottom)) so
-// the sheet clears the BottomNavigation footprint geometrically too.
+// pattern documented in CLAUDE.md.
+//
+// Nav-clearance is applied as inner-sheet paddingBottom (NOT as a bottom: calc
+// offset on the sheet's position), because the slide-up animation uses
+// transform: translateY(100%). Anchoring `bottom` above zero means the closed
+// sheet only translates partway off-screen — its tail covers the BottomNavigation
+// even when the menu is dismissed. Keep `bottom: 0` so translateY(100%) fully
+// hides the sheet; push the LAST ROW above the nav via paddingBottom.
 
 interface BottomSheetProps {
   open: boolean;
@@ -47,17 +52,22 @@ export function BottomSheet({ open, onClose, title, children, compact }: BottomS
         onClick={stop}
         style={{
           position: 'absolute',
-          // Phase 43 gap-closure (UAT Test 2): anchor sheet ABOVE the fixed
-          // BottomNavigation (~80px row + safe-area-bottom). Combined with the
-          // createPortal escape to document.body, this guarantees the bottom
-          // row (Dismiss) is never clipped by the nav. See
-          // .planning/debug/dismiss-row-clipped-by-bottom-nav.md.
-          bottom: 'calc(80px + var(--safe-area-bottom))',
+          // Phase 43 gap-closure (UAT Test 2 re-fix): keep sheet anchored to
+          // viewport-bottom so translateY(100%) fully hides it off-screen.
+          // Nav-clearance lives in paddingBottom below — pushes the last row
+          // above the fixed BottomNavigation (~80px) + iOS safe-area-bottom.
+          // See .planning/debug/dismiss-row-clipped-by-bottom-nav.md (resolved)
+          // and the follow-up screenshot 2026-05-12 showing the prior
+          // bottom: calc(...) offset left a sheet-tail covering the nav.
+          bottom: 0,
           left: 0,
           right: 0,
           backgroundColor: 'var(--surface)',
           borderRadius: '20px 20px 0 0',
-          padding: '20px 16px 24px',
+          paddingTop: 20,
+          paddingLeft: 16,
+          paddingRight: 16,
+          paddingBottom: 'calc(24px + 80px + var(--safe-area-bottom))',
           boxShadow: 'var(--shadow-3)',
           minHeight: compact ? 'auto' : '45vh',
           maxHeight: compact ? '50vh' : '75vh',
