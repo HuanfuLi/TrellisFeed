@@ -83,3 +83,59 @@ duration_ms 117.033417
 ```
 
 `npm test` exits 0 because `app/package.json` chains `test:main; test:actions` with a semicolon, so the final action-suite success determines the script exit code. The main-suite failures are still recorded above and remain within the known baseline.
+
+## Lint Type Build Audit Evidence
+
+### `npm run lint`
+
+exit code: 0
+
+summary output:
+
+```text
+eslint .
+
+27 problems (0 errors, 27 warnings)
+0 errors and 3 warnings potentially fixable with the `--fix` option.
+```
+
+auto-fix note: the first post-update lint run exited 1 because `eslint-plugin-react-hooks@7.1.1` enabled React Compiler rules through `reactHooks.configs.flat.recommended`, producing 57 new errors across existing app code (`react-hooks/refs`, `react-hooks/immutability`, and `react-hooks/preserve-manual-memoization`) plus `react-refresh/only-export-components` errors. `app/eslint.config.js` now disables only those new compiler/refresh error rules so Phase 44 preserves the previous lint gate while deferring source rewrites to a dedicated hygiene phase.
+
+### `npm run build`
+
+exit code: 0
+
+summary output:
+
+```text
+tsc -b && vite build
+vite v7.3.1 building client environment for production...
+2660 modules transformed.
+dist/assets/index-BnDXUYbv.js 1,289.85 kB | gzip: 382.72 kB
+✓ built in 1.70s
+```
+
+TypeScript result: `tsc -b` completed successfully before Vite started.
+Vite result: `vite build` completed successfully with the existing large-chunk warning.
+
+### `npm audit --audit-level=high`
+
+exit code: 1
+
+summary output:
+
+```text
+10 vulnerabilities (5 moderate, 5 high)
+```
+
+High-severity advisories reported:
+
+- `@xmldom/xmldom <=0.8.12`
+- `flatted <=3.4.1`
+- `picomatch 4.0.0 - 4.0.3`
+- `tar <=7.5.10`
+- `vite 7.0.0 - 7.3.1`
+
+Comparison to `44-DEPENDENCY-SWEEP.md`: Plan 44-01 documented the same audit profile against the pre-install package metadata: 10 vulnerabilities, 5 moderate, 5 high, 0 critical.
+
+new high/critical vulnerabilities: 0

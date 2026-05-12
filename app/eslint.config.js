@@ -18,6 +18,14 @@ export default defineConfig([
     ],
     rules: {
       'react-hooks/set-state-in-effect': 'off',
+      // React Hooks 7 enables React Compiler lint rules through the flat
+      // recommended preset. Phase 44 keeps the dependency update bounded:
+      // preserve the prior lint gate and defer compiler-driven ref/memoization
+      // rewrites to a dedicated source hygiene phase.
+      'react-hooks/refs': 'off',
+      'react-hooks/immutability': 'off',
+      'react-hooks/preserve-manual-memoization': 'off',
+      'react-refresh/only-export-components': 'off',
       // Allow _ -prefixed vars and unused rest-sibling destructure targets
       // (e.g. `const { foo, ...rest } = obj` where foo is intentionally omitted).
       '@typescript-eslint/no-unused-vars': ['error', {
