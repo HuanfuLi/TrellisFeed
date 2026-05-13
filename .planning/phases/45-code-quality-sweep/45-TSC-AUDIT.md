@@ -65,6 +65,22 @@ Additional lint warnings are not suppressions: 24 warnings remain after unused-d
 |---|---|---|
 | `app/src/services/concept-feed.service.ts` / `app/tests/concept-feed.test.mjs` | Plan 45-02 Task 3 follow-up — after the extensionless import blocker was closed, `node --test tests/concept-feed.test.mjs` reaches module instantiation and fails because `concept-feed.service.ts` does not export `buildFallbackPosts`; the helper was intentionally removed by commit `72f4795c` ("Removed fallback posts"). | deferred |
 
+## Plan 45-03 Task 2 suppression disposition
+
+Final suppression dispositions are now tracked in
+`45-TODO-TRIAGE.md`. The key outcomes:
+
+- `main.tsx` i18n leaf cast is finalized as `justified-permanent-guard`
+  because it is an i18next t overload bridge.
+- `providers/llm/index.ts` SSE parse/extract `any` usage is finalized as
+  `justified-permanent-guard` because it is a provider JSON payload boundary.
+- `TrellisLeaf.tsx` `shakeControls` loose typing is finalized as
+  `justified-permanent-guard` because the framer-motion control shape accepts
+  variant objects and test spies share only the `start` contract.
+- `settings.service.ts` dynamic merge `any` remains a narrowable local typing
+  issue, but its Final Disposition is `deferred-v1.6` until merge-behavior
+  tests can cover a typed helper.
+
 ## In-Scope Fixes
 
 - Remove the three stale disable directives identified above.
