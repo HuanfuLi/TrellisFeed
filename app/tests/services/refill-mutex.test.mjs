@@ -138,7 +138,7 @@ describe('refillQueue + generateMorePosts wiring (Phase 36-12)', () => {
   it('imports createPromiseMutex from the leaf module', () => {
     assert.match(
       source,
-      /import\s*\{\s*createPromiseMutex\s*\}\s*from\s*['"]\.\/refill-mutex['"]/,
+      /import\s*\{\s*createPromiseMutex\s*\}\s*from\s*['"]\.\/refill-mutex(?:\.ts)?['"]/,
       'concept-feed.service.ts must import createPromiseMutex from refill-mutex.ts',
     );
   });
