@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: gap closure)
-status: executing
-stopped_at: Completed 44-03-manual-smoke-uat-PLAN.md
-last_updated: "2026-05-13T04:49:51.714Z"
+status: verifying
+stopped_at: Completed 44-04-phase-close-out-PLAN.md
+last_updated: "2026-05-13T04:58:00.175Z"
 last_activity: 2026-05-13
 progress:
   total_phases: 21
@@ -73,6 +73,13 @@ All carry-overs are scheduled into Wave 0:
 ## Resolved blockers
 
 All v1.4 blockers resolved at close. No open blockers.
+
+## Last decisions (Plan 44-04 close, 2026-05-13)
+
+- **Phase 44 closed TECHDEBT-08** — dependency metadata, automated verification, native sync, and all five manual smoke rows are complete; `44-VALIDATION.md` is signed off with `nyquist_compliant: true`.
+- **Phase summary created for future hygiene work** — `44-PHASE-SUMMARY.md` records package targets, held-back majors, verification evidence, manual smoke, the justified `@capacitor/ios@^8.3.3` addition, and changed files.
+- **Audit and test baselines remain documented, not remediated here** — `npm audit --audit-level=high` remains at the pre-existing 5 high / 0 critical-new baseline; `npm run test:main` retains known post-Phase-43 failures only. Phase 45 remains pending for broader hygiene.
+- **Task commits now complete for Plan 44-04:** `b46da775` docs(validation sign-off) → `d64cee32` docs(roadmap/state complete) → `c19cf90e` docs(phase summary).
 
 ## Last decisions (Plan 44-03 close, 2026-05-13)
 
@@ -393,8 +400,24 @@ All v1.4 blockers resolved at close. No open blockers.
 
 ## Session Continuity
 
-**Stopped at:** Completed 44-03-manual-smoke-uat-PLAN.md
-**Next action:** Execute `.planning/phases/44-dependency-version-sweep/44-04-phase-close-out-PLAN.md`.
+**Stopped at:** Completed 44-04-phase-close-out-PLAN.md
+**Next action:** Verify Phase 44 close-out or proceed to Phase 45 code-quality sweep.
+
+**Files written this session (Plan 44-04 close):**
+
+- `.planning/phases/44-dependency-version-sweep/44-VALIDATION.md` (NEW to git — final validation sign-off)
+- `.planning/phases/44-dependency-version-sweep/44-PHASE-SUMMARY.md` (NEW — phase close-out summary)
+- `.planning/phases/44-dependency-version-sweep/44-04-phase-close-out-SUMMARY.md` (NEW — plan close-out summary)
+- `.planning/ROADMAP.md` (Phase 44 row and plan list marked complete)
+- `.planning/STATE.md` (this file)
+
+**Plan 44-04 commits:**
+
+- `b46da775` (Task 1: validation sign-off — docs)
+- `d64cee32` (Task 2: Phase 44 complete state — docs)
+- `c19cf90e` (Task 3: phase summary — docs)
+
+**Verification baseline (post-Plan-44-04):** Three task `rg` checks and the final close-out `rg` check exit 0. `44-VALIDATION.md` has no `pending` occurrences. `REQUIREMENTS.md` already had TECHDEBT-08 active and traceability rows complete before Task 2 and remains complete.
 
 **Files written this session (Plan 44-03 close):**
 
