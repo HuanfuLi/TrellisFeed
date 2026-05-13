@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: gap closure)
 status: executing
-stopped_at: Completed 45-01-audit-inventory-PLAN.md
-last_updated: "2026-05-13T05:52:37.897Z"
+stopped_at: Completed 45-02-test-lint-strictness-PLAN.md
+last_updated: "2026-05-13T06:01:59.123Z"
 last_activity: 2026-05-13
 progress:
   total_phases: 21
@@ -18,7 +18,7 @@ progress:
 ## Current Position
 
 Phase: 45 (code-quality-sweep) — EXECUTING
-Plan: 2 of 5
+Plan: 3 of 5
 Status: Ready to execute
 Last activity: 2026-05-13
 Phase summary: `.planning/phases/44-dependency-version-sweep/44-PHASE-SUMMARY.md`
@@ -73,6 +73,13 @@ All carry-overs are scheduled into Wave 0:
 ## Resolved blockers
 
 All v1.4 blockers resolved at close. No open blockers.
+
+## Last decisions (Plan 45-02 close, 2026-05-13)
+
+- **Unused-disable lint gate is clean** — the three stale suppressions in `SwipeTabContainer.tsx`, `HomeScreen.tsx`, and `useTrellisData.ts` were removed without runtime logic changes; `npm run lint -- --report-unused-disable-directives` exits 0 with only the known 24 warnings.
+- **Canonical Phase 42 queue constants are now reflected in tests** — source-reading tests assert `walkDerivedList(24, exploredIds, dismissedIds)` and refill threshold `24` per CLAUDE.md and `post-queue.service.ts`.
+- **Concept-feed direct import blocker is narrowed** — same-directory imports in `concept-feed.service.ts` now use `.ts` suffixes; `tests/concept-feed.test.mjs` now fails later on the stale removed `buildFallbackPosts` contract, documented in `45-TSC-AUDIT.md` as a follow-up instead of reintroducing removed fallback-post behavior.
+- **Task commits now complete for Plan 45-02:** `ad4a3b22` fix(stale lint disables) -> `1e783b48` test(stale source-reading assertions) -> `d385cd76` fix(concept-feed import suffixes).
 
 ## Last decisions (Plan 45-01 close, 2026-05-13)
 
@@ -407,8 +414,8 @@ All v1.4 blockers resolved at close. No open blockers.
 
 ## Session Continuity
 
-**Stopped at:** Completed 45-01-audit-inventory-PLAN.md
-**Next action:** Execute `45-02-test-lint-strictness-PLAN.md`.
+**Stopped at:** Completed 45-02-test-lint-strictness-PLAN.md
+**Next action:** Execute `45-03-dead-code-operator-note-sweep-PLAN.md`.
 
 **Files written this session (Plan 45-01 audit inventory):**
 
