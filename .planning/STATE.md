@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: gap closure)
 status: executing
-stopped_at: Completed 45-02-test-lint-strictness-PLAN.md
-last_updated: "2026-05-13T06:01:59.123Z"
+stopped_at: Completed 45-03-dead-code-operator-note-sweep-PLAN.md
+last_updated: "2026-05-13T06:12:23.408Z"
 last_activity: 2026-05-13
 progress:
   total_phases: 21
@@ -18,7 +18,7 @@ progress:
 ## Current Position
 
 Phase: 45 (code-quality-sweep) — EXECUTING
-Plan: 3 of 5
+Plan: 4 of 5
 Status: Ready to execute
 Last activity: 2026-05-13
 Phase summary: `.planning/phases/44-dependency-version-sweep/44-PHASE-SUMMARY.md`
@@ -73,6 +73,13 @@ All carry-overs are scheduled into Wave 0:
 ## Resolved blockers
 
 All v1.4 blockers resolved at close. No open blockers.
+
+## Last decisions (Plan 45-03 close, 2026-05-13)
+
+- **Dead-code and removed-feature residue evidence complete** — `45-DEAD-CODE-SWEEP.md` records command outputs, exact-symbol checks, orphan-export candidates, helper/import evidence, stale-i18n triage, and compatibility residue preservation. No live code was deleted because declaration-only candidates touch domain behavior, native bridges, rollback safety, or Phase 42 compatibility.
+- **Suppression/TODO final dispositions complete** — `45-TODO-TRIAGE.md` now separates D-14 Classification from Final Disposition. `main.tsx`, `providers/llm/index.ts`, and `TrellisLeaf.tsx` explicit `any` sites are justified permanent guards; `settings.service.ts` dynamic merge typing is deferred to v1.6 pending focused merge tests.
+- **Operator notes finalized** — YouTube landscape/short note is closed by Phase 38 invariant tests, Force-New-Day debug notes are superseded by Phase 43 tests, missing debug files are documented as not present on disk, and GraphScreen Android drag lag is carried into `45-PERF-AUDIT.md`.
+- **Task commits now complete for Plan 45-03:** `1432a59a` docs(dead-code residue sweep) -> `160edc36` docs(suppression dispositions) -> `18c79f98` docs(operator note dispositions).
 
 ## Last decisions (Plan 45-02 close, 2026-05-13)
 
@@ -414,17 +421,18 @@ All v1.4 blockers resolved at close. No open blockers.
 
 ## Session Continuity
 
-**Stopped at:** Completed 45-02-test-lint-strictness-PLAN.md
-**Next action:** Execute `45-03-dead-code-operator-note-sweep-PLAN.md`.
+**Stopped at:** Completed 45-03-dead-code-operator-note-sweep-PLAN.md
+**Next action:** Execute `45-04-performance-profiling-PLAN.md`.
 
-**Files written this session (Plan 45-01 audit inventory):**
+**Files written this session (Plan 45-03 dead-code/operator-note sweep):**
 
+- `.planning/phases/45-code-quality-sweep/45-DEAD-CODE-SWEEP.md`
 - `.planning/phases/45-code-quality-sweep/45-TSC-AUDIT.md`
 - `.planning/phases/45-code-quality-sweep/45-TODO-TRIAGE.md`
 - `.planning/phases/45-code-quality-sweep/45-OPERATOR-NOTES.md`
-- `.planning/phases/45-code-quality-sweep/45-PERF-AUDIT.md`
-- `.planning/phases/45-code-quality-sweep/45-01-audit-inventory-SUMMARY.md`
-- `.planning/ROADMAP.md` (Phase 44 row and plan list marked complete)
+- `.planning/phases/45-code-quality-sweep/45-03-dead-code-operator-note-sweep-SUMMARY.md`
+- `.planning/ROADMAP.md` (Phase 45 plan progress updated)
+- `.planning/REQUIREMENTS.md` (TECHDEBT-09/11/12 traceability refined)
 - `.planning/STATE.md` (this file)
 
 **Plan 44-04 commits:**

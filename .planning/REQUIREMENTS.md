@@ -85,10 +85,10 @@
 | TECHDEBT-06 | Phase 38 | Wave 0 | ✓ Complete |
 | TECHDEBT-07 | Phase 45 | Wave 4 | ✓ Complete (Plan 45-01 audit inventory) |
 | TECHDEBT-08 | Phase 44 | Wave 4 | ✓ Complete |
-| TECHDEBT-09 | Phase 45 | Wave 4 | ✓ Complete (Plan 45-02 strictness/import cleanup) |
+| TECHDEBT-09 | Phase 45 | Wave 4 | ✓ Complete (Plan 45-03 dead-code sweep evidence) |
 | TECHDEBT-10 | Phase 45 | Wave 4 | ✓ Complete (Plan 45-01 audit inventory) |
-| TECHDEBT-11 | Phase 45 | Wave 4 | ✓ Complete (Plan 45-01 audit inventory) |
-| TECHDEBT-12 | Phase 45 | Wave 4 | ✓ Complete (Plan 45-01 audit inventory) |
+| TECHDEBT-11 | Phase 45 | Wave 4 | ✓ Complete (Plan 45-03 final TODO/suppression dispositions) |
+| TECHDEBT-12 | Phase 45 | Wave 4 | ✓ Complete (Plan 45-03 operator-note dispositions) |
 
 ### Phase ownership summary
 
