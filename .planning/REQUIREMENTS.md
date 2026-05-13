@@ -69,9 +69,9 @@
 |-------------|-------|------|--------|
 | MASONRY-01  | Phase 42 | Wave 3 | ✓ Complete |
 | MASONRY-02  | Phase 42 | Wave 3 | ✓ Complete |
-| ENGAGE-01   | Phase 39 | Wave 1 | Pending |
-| ENGAGE-02   | Phase 39 | Wave 1 | Pending |
-| ENGAGE-03   | Phase 39 | Wave 1 | Pending |
+| ENGAGE-01   | Phase 39+43 | Wave 1+3 | ✓ Complete (Phase 39 service + walker foundation; Phase 43 saved-posts view and UI wiring) |
+| ENGAGE-02   | Phase 39+43 | Wave 1+3 | ✓ Complete (Phase 39 dismissed-anchor service/walker support; Phase 43 long-press dismiss UI + read-boundary filter) |
+| ENGAGE-03   | Phase 39+43 | Wave 1+3 | ✓ Complete (Phase 39 like persistence; Phase 43 LongPressMenu + Liked tab UI) |
 | ENGAGE-04   | Phase 43 | Wave 3 | Out of Scope (DS-01, 2026-05-11) |
 | CONTENT-01  | Phase 41 | Wave 2 | ✓ Complete (Phase 41-02 ships API + bodyMarkdownDeep field + tests; Phase 43 ships button) |
 | CONTENT-02  | Phase 40+41 | Wave 1+2 | ✓ Complete (Phase 40 leaf + Phase 41-01 wire) |
@@ -104,4 +104,4 @@
 
 ---
 
-*Last updated: 2026-05-13 — Phase 45 close-out verified TECHDEBT-07, TECHDEBT-09, TECHDEBT-10, TECHDEBT-11, and TECHDEBT-12 against final evidence in `45-VERIFY.md`.*
+*Last updated: 2026-05-13 — v1.5 milestone audit reconciled ENGAGE-01/02/03 traceability to Phase 39 service evidence plus Phase 43 UI evidence; Phase 45 close-out verified TECHDEBT-07, TECHDEBT-09, TECHDEBT-10, TECHDEBT-11, and TECHDEBT-12 against final evidence in `45-VERIFY.md`.*
