@@ -51,3 +51,8 @@ Additional lint warnings are not suppressions: 24 warnings remain after unused-d
 - Do not enable `exactOptionalPropertyTypes` in this inventory task; the diff has not been proven small and D-04 requires audit-first treatment.
 - Do not enable `noUncheckedIndexedAccess` in this inventory task; array and map access semantics are broad across the feed, graph, and services.
 - Do not rewrite React hook dependencies from warnings alone; several always-mounted-screen effects are load-bearing and need source-specific tests before lifecycle changes.
+
+## Decision Coverage
+
+- D-01 is represented by this audit-first artifact before source-code cleanup.
+- D-04 is represented by the strict-adjacent flag audit-only classifications above.

@@ -64,3 +64,8 @@ Non-suppression `any` word matches in comments such as `feed-spread.ts` safety c
 
 - Hook dependency suppressions with load-bearing lifecycle behavior are deferred unless a later task adds targeted tests first.
 - Test-only `@ts-ignore` lines in `legacy-migration.test.mjs` are retained as justified permanent guard rows because they support global stub injection.
+
+## Decision Coverage
+
+- D-13 is represented by the TODO/FIXME/HACK/XXX inventory and closure/defer disposition sections.
+- D-14 is represented by the suppression classifications using exactly the required four-label vocabulary.

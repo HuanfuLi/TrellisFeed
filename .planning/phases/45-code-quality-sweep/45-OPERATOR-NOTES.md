@@ -34,3 +34,10 @@ Current `find .planning/debug -maxdepth 1 -type f -print` output:
 - `45-PERF-AUDIT.md` should carry the GraphScreen Android drag lag baseline and manual Android evidence.
 - `45-TODO-TRIAGE.md` carries suppression and TODO classifications for TECHDEBT-11.
 - Later Phase 45 code cleanup should verify the Force-New-Day issues against the current HomeScreen and queue code before making changes.
+
+## Decision Coverage
+
+- D-15 is represented by the reviewed notes/debug file table.
+- D-16 is represented by the `closed-by-phase-38` YouTube landscape-video note disposition.
+- D-17 is represented by the graph drag-lag note feeding `45-PERF-AUDIT.md`.
+- D-18 is represented by the Force-New-Day debug rows marked `check-supersession-before-code`.

@@ -41,3 +41,7 @@ Build warnings captured:
 ## Manual Android Evidence
 
 The operator note describes an Android-only graph mindmap drag symptom. The interaction remains usable, but lag is perceptible, is most noticeable at the start of dragging, and stabilizes after a brief warm-up period. This task records the baseline only; it intentionally does not implement a performance fix.
+
+## Decision Coverage
+
+- D-10 is represented by the four required performance targets and the build baseline.
