@@ -35,7 +35,7 @@
 - [x] **TECHDEBT-07** TypeScript strictness audit: `tsc` 5.9.x strict-mode gaps documented; remediation plan or in-scope fixes
 - [x] **TECHDEBT-08** Dependency-version sweep: Capacitor 8.1→8.3, i18next 26.0.5→26.0.10, react-router-dom 7.13→7.15, eslint / typescript-eslint minor bumps
 - [x] **TECHDEBT-09** Dead-code sweep: orphan exports, unused imports, removed-feature residue across `src/`
-- [x] **TECHDEBT-10** Performance profiling pass: identify and document hot paths (first-paint, queue refill, masonry scroll); fix any P0/P1 finding
+- [ ] **TECHDEBT-10** Performance profiling pass: identify and document hot paths (first-paint, queue refill, masonry scroll, GraphScreen Android drag lag); fix any P0/P1 finding _(pending attached Android device/emulator manual evidence for GraphScreen drag lag)_
 - [x] **TECHDEBT-11** Project-wide TODO/FIXME triage: catalogue, decide each (close, defer, or in-scope), close the ones in scope
 - [x] **TECHDEBT-12** Operator-note bug sweep: pull from `.planning/notes/*`, triage each note, close or defer
 
@@ -86,7 +86,7 @@
 | TECHDEBT-07 | Phase 45 | Wave 4 | ✓ Complete (Plan 45-01 audit inventory) |
 | TECHDEBT-08 | Phase 44 | Wave 4 | ✓ Complete |
 | TECHDEBT-09 | Phase 45 | Wave 4 | ✓ Complete (Plan 45-03 dead-code sweep evidence) |
-| TECHDEBT-10 | Phase 45 | Wave 4 | ✓ Complete (Plan 45-01 audit inventory) |
+| TECHDEBT-10 | Phase 45 | Wave 4 | Pending (Plan 45-04 blocked: GraphScreen Android manual evidence missing) |
 | TECHDEBT-11 | Phase 45 | Wave 4 | ✓ Complete (Plan 45-03 final TODO/suppression dispositions) |
 | TECHDEBT-12 | Phase 45 | Wave 4 | ✓ Complete (Plan 45-03 operator-note dispositions) |
 

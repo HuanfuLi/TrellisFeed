@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: gap closure)
-status: executing
-stopped_at: Completed 45-03-dead-code-operator-note-sweep-PLAN.md
-last_updated: "2026-05-13T06:12:23.408Z"
+status: blocked
+stopped_at: Blocked in 45-04-performance-profiling-PLAN.md at GraphScreen Android manual evidence gate
+last_updated: "2026-05-13T06:17:33.162Z"
 last_activity: 2026-05-13
 progress:
   total_phases: 21
@@ -19,7 +19,7 @@ progress:
 
 Phase: 45 (code-quality-sweep) — EXECUTING
 Plan: 4 of 5
-Status: Ready to execute
+Status: Blocked - Android device/emulator evidence required for TECHDEBT-10
 Last activity: 2026-05-13
 Phase summary: `.planning/phases/44-dependency-version-sweep/44-PHASE-SUMMARY.md`
 
@@ -69,6 +69,10 @@ All carry-overs are scheduled into Wave 0:
 - **33-HUMAN-UAT-1/2 device retest** (TECHDEBT-04) → Phase 38
 - **CLAUDE.md `echolearn_*` doc-drift** (TECHDEBT-05) → Phase 38
 - **YouTube landscape-listed-as-short bug** (TECHDEBT-06) → Phase 38
+
+## Open blockers
+
+- Plan 45-04 is blocked at the hard TECHDEBT-10 evidence gate: `adb devices` returned no attached Android device/emulator, so GraphScreen Android cold/warm drag manual evidence could not be collected. TECHDEBT-10 remains pending until attached-device/emulator evidence is recorded.
 
 ## Resolved blockers
 
@@ -421,10 +425,17 @@ All v1.4 blockers resolved at close. No open blockers.
 
 ## Session Continuity
 
-**Stopped at:** Completed 45-03-dead-code-operator-note-sweep-PLAN.md
-**Next action:** Execute `45-04-performance-profiling-PLAN.md`.
+**Stopped at:** Blocked in 45-04-performance-profiling-PLAN.md at GraphScreen Android manual evidence gate
+**Next action:** Attach an Android device/emulator, collect GraphScreen cold first-drag and warmed subsequent-drag evidence, then resume `45-04-performance-profiling-PLAN.md`.
 
-**Files written this session (Plan 45-03 dead-code/operator-note sweep):**
+**Files written this session (Plan 45-04 performance profiling blocked run):**
+
+- `app/tests/services/refill-mutex.test.mjs` (Rule 3 stale source-reading regex fix; committed)
+- `.planning/phases/45-code-quality-sweep/45-PERF-AUDIT.md` (automated evidence plus Android evidence blocker)
+- `.planning/REQUIREMENTS.md` (TECHDEBT-10 restored to pending)
+- `.planning/STATE.md` (blocked position recorded)
+
+**Files written previous session (Plan 45-03 dead-code/operator-note sweep):**
 
 - `.planning/phases/45-code-quality-sweep/45-DEAD-CODE-SWEEP.md`
 - `.planning/phases/45-code-quality-sweep/45-TSC-AUDIT.md`
