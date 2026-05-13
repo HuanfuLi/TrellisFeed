@@ -1213,7 +1213,7 @@ _Updated: 2026-05-07 — Phase 36-12 EXECUTED: Promise-mutex refill closes round
   3. Perf profiling pass identifies and documents hot paths (first-paint, queue refill, masonry scroll); any P0/P1 finding has a closure commit or a deferred-with-rationale entry
   4. Project-wide TODO/FIXME triage produces a catalogue (`45-TODO-TRIAGE.md`); each entry is closed, deferred to v1.6, or marked as in-scope-for-v1.5 (and closed inline)
   5. Operator-note bugs from `.planning/notes/*` are triaged; in-scope items closed; out-of-scope items moved to deferred / out-of-scope sections in REQUIREMENTS.md
-**Plans:** 5 plans
+**Plans:** 5/5 plans complete
   - [x] 45-01-audit-inventory-PLAN.md — create strictness, TODO/suppression, operator-note, and perf audit artifacts before code edits
   - [x] 45-02-test-lint-strictness-PLAN.md — close stale lint suppressions, stale source-reading tests, and direct concept-feed import failure
   - [x] 45-03-dead-code-operator-note-sweep-PLAN.md — finalize removed-feature residue, TODO/suppression, and operator-note dispositions
@@ -1232,7 +1232,7 @@ _Updated: 2026-05-07 — Phase 36-12 EXECUTED: Promise-mutex refill closes round
 | 42. Masonry Feed Layout | 9/8 | Complete    | 2026-05-10 |
 | 43. Engagement UI | 15/15 | Complete    | 2026-05-12 |
 | 44. Dependency Version Sweep | 4/4 | Complete    | 2026-05-13 |
-| 45. Code Quality Sweep | 5/5 | Complete | 2026-05-13 |
+| 45. Code Quality Sweep | 5/5 | Complete    | 2026-05-13 |
 
 ---
 
