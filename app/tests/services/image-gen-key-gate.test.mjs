@@ -25,16 +25,18 @@ describe('concept-feed.service hasImageGenKey gate', () => {
     assert.ok(refillIdx !== -1, 'concept-feed.service.ts should contain refillQueue');
 
     // Search forward for the first hasImageGenKey assignment after refillQueue start.
-    const window = source.slice(refillIdx, refillIdx + 6000);
+    const window = source.slice(refillIdx, refillIdx + 10000);
     assert.ok(
       /geminiImageKeyPresent|geminiApiKey/.test(window),
       'refillQueue availability block must reference the gemini image key so assignStyles sees hasImageGenKey: true when only gemini is configured',
     );
-    // After the 2026-04-21 enabled-toggle alignment, the RHS now has
-    // `imageGenEnabled && (…||…)`. Accept either form (bare OR / enabled-gated).
     assert.ok(
-      /hasImageGenKey:\s*(?:[^,\n]*imageGenEnabled[^,\n]*&&[^,\n]*)?(?:nanoBananaKeyPresent\s*\|\|\s*geminiImageKeyPresent|[^,\n]*nanoBananaApiKey[^,\n]*\|\|[^,\n]*geminiApiKey)/.test(window),
-      'refillQueue availability must set hasImageGenKey = (enabled &&) nanoBanana OR gemini',
+      window.includes('const imageGenEnabled = settings.imageGeneration?.enabled !== false;'),
+      'refillQueue availability must compute imageGenEnabled from the image-generation enabled toggle',
+    );
+    assert.ok(
+      window.includes('hasImageGenKey: imageGenEnabled && (nanoBananaKeyPresent || geminiImageKeyPresent)'),
+      'refillQueue availability must set hasImageGenKey to imageGenEnabled && (nanoBananaKeyPresent || geminiImageKeyPresent)',
     );
   });
 
@@ -50,8 +52,8 @@ describe('concept-feed.service hasImageGenKey gate', () => {
     // window slightly so the regex sees the full assignment.
     const preSession = source.slice(Math.max(0, sessionIdx - 1200), sessionIdx);
     assert.ok(
-      /hasImageGenKey[\s\S]*?geminiApiKey/.test(preSession),
-      'session-post availability must include geminiApiKey in the hasImageGenKey check',
+      /hasImageGenKey:\s*settings2\.imageGeneration\?\.enabled !== false\s*\n\s*&& \(\!\!\(settings2\.imageGeneration\?\.nanoBananaApiKey\) \|\| \!\!\(settings2\.imageGeneration\?\.geminiApiKey\)\)/.test(preSession),
+      'session-post availability must include enabled gating plus nanoBananaApiKey OR geminiApiKey, allowing a line break before &&',
     );
   });
 });

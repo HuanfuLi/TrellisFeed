@@ -48,6 +48,13 @@ Additional lint warnings are not suppressions: 24 warnings remain after unused-d
 | `app/src/screens/HomeScreen.tsx` | Plan 45-02 Task 1 closure — removed unused `react-hooks/exhaustive-deps` disable from the mount-only gesture listener effect; effect body unchanged. | closed |
 | `app/src/state/useTrellisData.ts` | Plan 45-02 Task 1 closure — removed stale `no-console` disable before allowed `console.warn('[useTrellisData] recompute failed', err)`. | closed |
 
+## Plan 45-02 Task 2 Closure
+
+- `app/tests/services/concept-feed-source-diversity-wiring.test.mjs` — Plan 45-02 Task 2 closure: source-reading counterweight now asserts canonical `walkDerivedList(24, exploredIds, dismissedIds)`.
+- `app/tests/services/post-queue.test.mjs` — Plan 45-02 Task 2 closure: `needsRefill` threshold expectation now uses canonical `24`.
+- `app/tests/services/image-gen-key-gate.test.mjs` — Plan 45-02 Task 2 closure: source-reading checks now pin `const imageGenEnabled = settings.imageGeneration?.enabled !== false;` and `imageGenEnabled && (nanoBananaKeyPresent || geminiImageKeyPresent)`.
+- `app/tests/services/trellis-layout.test.mjs` — Plan 45-02 Task 2 closure: `getVineColor` expectation now imports and asserts against `VINE_COLOR_VARS`.
+
 ## In-Scope Fixes
 
 - Remove the three stale disable directives identified above.

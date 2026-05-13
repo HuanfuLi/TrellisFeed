@@ -195,10 +195,10 @@ describe('SC-2(b): filterForDiversity prefers unseen domain in mixed input', () 
 // ─── Counterweight: Phase 39 walker wire intact ────────────────────────────────
 
 describe('counterweight: Phase 39 walker wire untouched at concept-feed.service.ts:~1212', () => {
-  it('concept-feed.service.ts contains walkDerivedList(16, exploredIds, dismissedIds)', () => {
+  it('concept-feed.service.ts contains walkDerivedList(24, exploredIds, dismissedIds)', () => {
     assert.match(
       SRC,
-      /walkDerivedList\(16, exploredIds, dismissedIds\)/,
+      /walkDerivedList\(24, exploredIds, dismissedIds\)/,
       'Phase 39 D-07 walker wire must be unchanged — load-bearing per CLAUDE.md',
     );
   });

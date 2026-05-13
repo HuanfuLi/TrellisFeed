@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   mulberry32, hashStr, generateVinePath, getLeafPosition, getVineColor,
-  TRELLIS_VIEWBOX_W, TRELLIS_VIEWBOX_H,
+  TRELLIS_VIEWBOX_W, TRELLIS_VIEWBOX_H, VINE_COLOR_VARS,
 } from '../../src/services/trellis-layout.service.ts';
 
 test('mulberry32 is deterministic for the same seed', () => {
@@ -61,10 +61,9 @@ test('Leaf positions fall within jitter-expanded viewBox bounds', () => {
   }
 });
 
-test('getVineColor returns one of the 5 --node-* variables', () => {
-  const valid = ['var(--node-mint)', 'var(--node-sky)', 'var(--node-lilac)', 'var(--node-peach)', 'var(--node-salmon)'];
+test('getVineColor returns one of VINE_COLOR_VARS', () => {
   for (let i = 0; i < 20; i++) {
     const color = getVineColor(`branch-${i}`);
-    assert.ok(valid.includes(color));
+    assert.ok(VINE_COLOR_VARS.includes(color));
   }
 });

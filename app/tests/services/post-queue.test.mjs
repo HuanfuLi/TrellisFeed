@@ -65,9 +65,9 @@ describe('postQueueService', () => {
     assert.equal(postQueueService.size(), 6);
   });
 
-  it('needsRefill returns true when size < 16, false when >= 16 (Phase 36-12)', () => {
+  it('needsRefill returns true when size < 24, false when >= 24 (Phase 42 masonry threshold)', () => {
     assert.equal(postQueueService.needsRefill(), true);
-    const posts = Array.from({ length: 16 }, (_, i) => makePost(`r${i}`));
+    const posts = Array.from({ length: 24 }, (_, i) => makePost(`r${i}`));
     postQueueService.enqueue(posts);
     assert.equal(postQueueService.needsRefill(), false);
   });
