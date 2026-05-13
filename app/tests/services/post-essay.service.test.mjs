@@ -102,6 +102,7 @@ describe('post-essay.service', () => {
   it('news branch in concept-feed.service.ts defers body to streaming (no eager LLM, no Tavily snippet stored)', async () => {
     const fs = await import('node:fs');
     const source = fs.readFileSync(new URL('../../src/services/concept-feed.service.ts', import.meta.url), 'utf-8');
+    const metadataSource = fs.readFileSync(new URL('../../src/services/news-source-metadata.ts', import.meta.url), 'utf-8');
 
     // Locate the news branch — `for (const a of newsAssignments)` block
     const fnStart = source.indexOf('for (const a of newsAssignments)');
@@ -134,10 +135,12 @@ describe('post-essay.service', () => {
       'news branch must not call chatCompletion/chatStream eagerly — LLM summary is deferred to on-enter via post-essay.service.ts',
     );
 
-    // newsMeta.sources must include `snippet:` so generateNewsEssay has article text
-    // to ground the LLM summary on (otherwise the LLM only sees title + URL).
+    // newsMeta.sources must include `snippet:` via the shared mapper so
+    // generateNewsEssay has article text to ground the LLM summary on
+    // (otherwise the LLM only sees title + URL).
     assert.ok(
-      fnBody.includes('snippet:'),
+      fnBody.includes('sources: mapNewsSourcesToNewsMeta(topSources)') &&
+        metadataSource.includes('snippet: r.content'),
       'news branch must populate sources[].snippet with article content so generateNewsEssay can ground the LLM summary',
     );
   });
