@@ -1226,7 +1226,7 @@ _Updated: 2026-05-07 — Phase 36-12 EXECUTED: Promise-mutex refill closes round
 | 41. Pipeline Wiring + Essay Depth | 2/2 | Complete    | 2026-05-09 |
 | 42. Masonry Feed Layout | 9/8 | Complete    | 2026-05-10 |
 | 43. Engagement UI | 15/15 | Complete    | 2026-05-12 |
-| 44. Dependency Version Sweep | 4/4 | Complete | 2026-05-12 |
+| 44. Dependency Version Sweep | 4/4 | Complete    | 2026-05-13 |
 | 45. Code Quality Sweep | 0/0 | Not started | - |
 
 ---
