@@ -37,6 +37,10 @@ const POST_ESSAY_SRC = readFileSync(
   new URL('../../src/services/post-essay.service.ts', import.meta.url),
   'utf8',
 );
+const NEWS_METADATA_SRC = readFileSync(
+  new URL('../../src/services/news-source-metadata.ts', import.meta.url),
+  'utf8',
+);
 
 // ─── SC-1 integration ──────────────────────────────────────────────────────────
 
@@ -113,16 +117,21 @@ describe('SC-2(a): source-reading — news call sites wire sourceDiversityServic
     );
   });
 
-  it('both news call sites call filterForDiversity on the results array', () => {
-    // Two real call-site invocations (one in creation loop on searchResult.data.results,
-    // one in pre-fetch loop on results.data.results). Comments may add extra matches.
-    const callSiteMatches = [
-      ...SRC.matchAll(/sourceDiversityService\.filterForDiversity\([a-zA-Z]/g),
-    ];
-    assert.equal(
-      callSiteMatches.length,
-      2,
-      'expected exactly 2 actual filterForDiversity invocations (excludes docstring mentions)',
+  it('news top-source helper applies source diversity and both news paths call it', () => {
+    assert.match(
+      NEWS_METADATA_SRC,
+      /sourceDiversityService\.filterForDiversity\(results, usedDomains\)\.slice\(0, 3\)/,
+      'news-source-metadata.ts must apply filterForDiversity(results, usedDomains).slice(0, 3)',
+    );
+    assert.match(
+      SRC,
+      /topSources = selectNewsTopSources\(searchResult\.data\.results, usedDomains\)/,
+      'direct no-prefetch news path must use selectNewsTopSources(searchResult.data.results, usedDomains)',
+    );
+    assert.match(
+      SRC,
+      /const topSources = selectNewsTopSources\(results\.data\.results, usedDomains\)/,
+      'queued-prefetch news path must use selectNewsTopSources(results.data.results, usedDomains)',
     );
   });
 });
@@ -142,10 +151,10 @@ describe('SC-2(a) counterweight: recordServedDomain after commit', () => {
   });
 
   it('recordServedDomain in pre-fetch loop appears AFTER preFetched.news.set', () => {
-    const preFetchSet = SRC.indexOf('preFetched.news.set(a.conceptId, chosen)');
+    const preFetchSet = SRC.indexOf('preFetched.news.set(a.conceptId, topSources)');
     assert.ok(
       preFetchSet >= 0,
-      'pre-fetch loop must store filtered[0] as `chosen` into preFetched.news',
+      'pre-fetch loop must store topSources into preFetched.news',
     );
     const preFetchRecord = SRC.indexOf('sourceDiversityService.recordServedDomain', preFetchSet);
     assert.ok(

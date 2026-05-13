@@ -12,6 +12,7 @@ import { postHistoryService } from './post-history.service.ts';
 import { dailyReadService } from './daily-read.service.ts';
 import { engagementService } from './engagement.service.ts';
 import { sourceDiversityService, extractDomain } from './source-diversity.service.ts';
+import { selectNewsTopSources, mapNewsSourcesToNewsMeta } from './news-source-metadata.ts';
 import { assignStyles, reassignFailures, type ApiAvailability } from './style-assignment.ts';
 import { computeLeafState } from './trellis-state.service.ts';
 import { hasSeenVideoId, addSeenVideoId } from './concept-feed-dedup.ts';
@@ -884,7 +885,7 @@ function buildYoutubeQuery(conceptName: string, cycleNumber: number): string {
  */
 interface PreFetchCache {
   youtube: Map<string, YouTubeSearchResult[]>;  // key: `${conceptId}:${style}`
-  news: Map<string, WebSearchResult>;           // key: conceptId
+  news: Map<string, WebSearchResult[]>;         // key: conceptId
 }
 
 /**
@@ -1180,9 +1181,9 @@ Return ONLY a JSON array of 4 strings, nothing else. Example: ["What is X?", "Ho
       const cached = preFetched?.news.get(a.conceptId);
       let result: WebSearchResult | undefined;
       let topSources: WebSearchResult[] = [];  // Phase 41 SC-4 — stored on newsMeta.sources for multi-snippet grounding
-      if (cached) {
-        result = cached;
-        topSources = [cached];  // pre-fetch loop already filtered + stored single chosen result
+      if (cached?.length) {
+        result = cached[0];
+        topSources = cached.slice(0, 3);  // pre-fetch loop stores the filtered top 2-3 results
       } else {
         // Phase 41 D-02 + Pattern 2 — getUsedDomains → exclude → filterForDiversity → recordServedDomain
         const usedDomains = sourceDiversityService.getUsedDomains(a.conceptId);
@@ -1191,9 +1192,8 @@ Return ONLY a JSON array of 4 strings, nothing else. Example: ["What is X?", "Ho
           { maxResults: 3, excludeDomains: [...usedDomains] },
         );
         if (searchResult.success && searchResult.data?.results.length) {
-          const filtered = sourceDiversityService.filterForDiversity(searchResult.data.results, usedDomains);
-          result = filtered[0];
-          topSources = filtered.slice(0, 3);  // Pitfall 2 — store full top-3 for SC-4 multi-snippet grounding
+          topSources = selectNewsTopSources(searchResult.data.results, usedDomains);
+          result = topSources[0];
         }
       }
       if (result) {
@@ -1221,10 +1221,9 @@ Return ONLY a JSON array of 4 strings, nothing else. Example: ["What is X?", "Ho
           origin: 'ai',
           presentationStyle: 'news',
           newsMeta: {
-            // Phase 41 SC-4 — multi-snippet grounding. topSources is filtered.slice(0, 3) from
-            // sourceDiversityService.filterForDiversity (re-ranked unseen-first per Phase 40 D-06).
-            // Old shape was a 1-element array; new shape is up to 3 entries indexed 1..N.
-            sources: topSources.map((r, i) => ({ index: i + 1, title: r.title, url: r.url, snippet: r.content })),
+            // Phase 46 CONTENT-03 — cached and direct news paths both map up
+            // to three selected Tavily entries into stable indexed sources.
+            sources: mapNewsSourcesToNewsMeta(topSources),
             fetchedAt: Date.now(),
           },
         });
@@ -1360,15 +1359,16 @@ export async function refillQueue(questions: Question[]): Promise<void> {
     // burn exhausted the user's 10,000-unit/day YouTube quota in ~10 cycles.
     //
     // Now: pre-validation fetches at full pool size (YOUTUBE_FETCH_POOL_SIZE for
-    // YouTube, maxResults:1 for Tavily since news loop picks results[0]) and
-    // stores the result in preFetched. Generation loops read from the cache.
+    // YouTube, maxResults:3 for Tavily so the news loop can map the filtered
+    // top 2-3 results into newsMeta.sources) and stores the result in preFetched.
+    // Generation loops read from the cache.
     // Halves YouTube calls per cycle; also halves Tavily calls.
     const videoAssigns = assignments.filter(a => a.style === 'video');
     const newsAssigns = assignments.filter(a => a.style === 'news');
     const failedIds = new Set<string>();
     const preFetched: PreFetchCache = {
       youtube: new Map<string, YouTubeSearchResult[]>(),
-      news: new Map<string, WebSearchResult>(),
+      news: new Map<string, WebSearchResult[]>(),
     };
 
     const getConceptName = (id: string) => {
@@ -1418,9 +1418,13 @@ export async function refillQueue(questions: Question[]): Promise<void> {
             }
             failedIds.add(a.conceptId);
           } else {
-            const filtered = sourceDiversityService.filterForDiversity(results.data.results, usedDomains);
-            const chosen = filtered[0];
-            preFetched.news.set(a.conceptId, chosen);
+            const topSources = selectNewsTopSources(results.data.results, usedDomains);
+            const chosen = topSources[0];
+            if (!chosen) {
+              failedIds.add(a.conceptId);
+              return;
+            }
+            preFetched.news.set(a.conceptId, topSources);
             // Phase 41 D-02 — record AFTER commit. extractDomain undefined-guard.
             const domain = extractDomain(chosen.url);
             if (domain) sourceDiversityService.recordServedDomain(a.conceptId, domain);
