@@ -40,6 +40,14 @@ Evidence source: `npm run lint -- --report-unused-disable-directives`.
 
 Additional lint warnings are not suppressions: 24 warnings remain after unused-disable errors are counted, mostly `no-console` diagnostics and React hook dependency warnings. Those belong to later scoped cleanup decisions, not Task 1 source edits.
 
+## Plan 45-02 Task 1 Closure
+
+| Location | Closure evidence | Status |
+|---|---|---|
+| `app/src/components/SwipeTabContainer.tsx` | Plan 45-02 Task 1 closure — removed stale `no-console` disable before allowed `console.warn('[SwipeTabContainer] stripX drift', ...)`. | closed |
+| `app/src/screens/HomeScreen.tsx` | Plan 45-02 Task 1 closure — removed unused `react-hooks/exhaustive-deps` disable from the mount-only gesture listener effect; effect body unchanged. | closed |
+| `app/src/state/useTrellisData.ts` | Plan 45-02 Task 1 closure — removed stale `no-console` disable before allowed `console.warn('[useTrellisData] recompute failed', err)`. | closed |
+
 ## In-Scope Fixes
 
 - Remove the three stale disable directives identified above.

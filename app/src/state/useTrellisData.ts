@@ -21,7 +21,6 @@ export function useTrellisData(): UseTrellisDataResult {
       const next = buildTrellisState(questions);
       if (mountedRef.current) setLayout(next);
     } catch (err) {
-      // eslint-disable-next-line no-console
       console.warn('[useTrellisData] recompute failed', err);
     }
   }, []);

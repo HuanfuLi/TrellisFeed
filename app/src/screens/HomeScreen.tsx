@@ -499,7 +499,7 @@ export function HomeScreen() {
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', onMouseUp);
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- containerRef and refs are stable after mount
+  }, []);
 
   // Build the Home curiosity feed from daily posts + connection cards (D-44: no fixed interleaving).
   const infoFlowItems = useMemo<InfoFlowItem[]>(() => {

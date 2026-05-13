@@ -166,7 +166,6 @@ export function SwipeTabContainer({ screens, routes, children }: SwipeTabContain
     if (import.meta.env.DEV && !animatingRef.current) {
       const expected = computeTargetX(activeIndexRef.current, screenWidthRef.current);
       if (Math.abs(stripX.get() - expected) > 2) {
-        // eslint-disable-next-line no-console
         console.warn('[SwipeTabContainer] stripX drift', { actual: stripX.get(), expected });
       }
     }
