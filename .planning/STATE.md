@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: gap closure)
 status: executing
-stopped_at: Completed 45-04-performance-profiling-PLAN.md
+stopped_at: Completed 45-05-phase-close-out-PLAN.md
 last_updated: "2026-05-13T06:33:29.627Z"
 last_activity: 2026-05-13
 progress:
@@ -17,15 +17,15 @@ progress:
 
 ## Current Position
 
-Phase: 45 (code-quality-sweep) — EXECUTING
+Phase: 45 (code-quality-sweep) — COMPLETE
 Plan: 5 of 5
-Status: Ready to execute
+Status: Phase 45 complete; milestone v1.5 ready for verification/close-out
 Last activity: 2026-05-13
-Phase summary: `.planning/phases/44-dependency-version-sweep/44-PHASE-SUMMARY.md`
+Phase summary: `.planning/phases/45-code-quality-sweep/45-PHASE-SUMMARY.md`
 
 ## Progress
 
-**Phases:** 3 / 9 complete (37 ✓; 38 ✓; 39 ready for verification; 40 ready for verification; 41 ready for verification; 42 ready for verification 8/8 plans; 43 ready for verification 15/15 plans; 44 complete; 45 pending)
+**Phases:** 4 / 9 complete (37 ✓; 38 ✓; 39 ready for verification; 40 ready for verification; 41 ready for verification; 42 ready for verification 8/8 plans; 43 ready for verification 15/15 plans; 44 complete; 45 complete)
 **Plans:** 15 / 15 complete in Phase 43 (43-01 shared-infra-and-locales ✓; 43-02 trim-presentation-style-tag ✓; 43-03 longpress-menu-and-masonry-integration ✓; 43-04 saved-screen-and-route ✓; 43-05 postdetail-deep-dive-trigger ✓; 43-06 homescreen-wiring ✓; 43-07 force-new-day-engagement-reset ✓; 43-08 phase-close-out ✓; 43-09 bottomsheet-portal-and-nav-clearance ✓ [gap-closure]; 43-10 engagement-corner-icon-chip-backdrop ✓ [gap-closure]; 43-11 homescreen-bookmark-inline-with-greeting ✓ [gap-closure]; 43-12 deep-dive-controls-above-essay-body ✓ [gap-closure]; 43-13 engagement-reset-dismissed-only ✓ [gap-closure]; 43-14 dismiss-filter-at-read-boundary ✓ [gap-closure]; 43-15 force-new-day-dedup ✓ [gap-closure]); 8 / 8 complete in Phase 42 (42-01 masonry-feed-skeleton ✓; 42-02 homescreen-swap ✓; 42-03 card-slide-in-removal ✓; 42-04 vine-bloom-card-and-i18n ✓; 42-05 source-reading-invariant-tests ✓; 42-06 roadmap-requirements-wording-correction ✓; 42-07 phase-close-out ✓; 42-08 heal-review-empty-anchor-fix ✓ [gap-closure]); 2 / 2 complete in Phase 41 (41-01 source-diversity-wiring ✓; 41-02 essay-depth-citation-rendering ✓); 1 / 1 complete in Phase 40 (40-01 source-diversity-service ✓); 1 / 1 complete in Phase 39 (39-01 engagement-service ✓)
 
 ```
@@ -77,6 +77,12 @@ None.
 ## Resolved blockers
 
 All v1.4 blockers resolved at close. Plan 45-04 Android evidence gate resolved on 2026-05-13 after `emulator-5554` became available and GraphScreen cold/warm drag evidence was recorded.
+
+## Last decisions (Plan 45-05 close, 2026-05-13)
+
+- **Phase 45 complete** — `.planning/phases/45-code-quality-sweep/45-PHASE-SUMMARY.md` rolls up final close-out evidence and marks TECHDEBT-07, TECHDEBT-09, TECHDEBT-10, TECHDEBT-11, and TECHDEBT-12 closed.
+- **Final verification recorded** — `45-VERIFY.md` captures `tsc`, lint, build, `npm run test:main`, and `npm run test:actions` evidence; the only remaining failure is the known deferred `tests/concept-feed.test.mjs` stale `buildFallbackPosts` contract.
+- **Validation and roadmap agree** — `45-VALIDATION.md` is `status: validated` / `nyquist_compliant: true`; ROADMAP lists Phase 45 as `5/5 | Complete | 2026-05-13`.
 
 ## Last decisions (Plan 45-04 close, 2026-05-13)
 
