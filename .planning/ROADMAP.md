@@ -1247,7 +1247,7 @@ _Updated: 2026-05-07 — Phase 36-12 EXECUTED: Promise-mutex refill closes round
 | 43. Engagement UI | 15/15 | Complete    | 2026-05-12 |
 | 44. Dependency Version Sweep | 4/4 | Complete    | 2026-05-13 |
 | 45. Code Quality Sweep | 5/5 | Complete    | 2026-05-13 |
-| 46. News Prefetch Multi-Source Gap Closure | 1/1 | Complete   | 2026-05-13 |
+| 46. News Prefetch Multi-Source Gap Closure | 1/1 | Complete    | 2026-05-13 |
 
 ---
 
