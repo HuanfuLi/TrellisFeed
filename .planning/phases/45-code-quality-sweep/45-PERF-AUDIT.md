@@ -189,6 +189,17 @@ Evidence artifacts collected locally:
 - `/tmp/trellis-graph-after-cold-drag.png`
 - `/tmp/trellis-graph-after-warm-drag.png`
 
+## Plan 45-04 Verification
+
+| Command | Working directory | Exit code | Result |
+|---|---|---:|---|
+| `npm run build` | `app/` | 0 | TypeScript build and Vite production build pass. Vite still reports the known large chunk/static-dynamic import warnings; main app bundle is `dist/assets/index-Co92EIVp.js` at 1,289.92 kB minified / 382.74 kB gzip. |
+| `npx tsc -b --noEmit --pretty false` | `app/` | 0 | Typecheck passes without emitting files. |
+| `npm run lint` | `app/` | 0 | ESLint exits 0 with 24 existing warnings and no errors. |
+| `node --test tests/screens/GraphScreen.performance-layer.test.mjs` | `app/` | 0 | GraphScreen layer guard passes 2/2 tests. |
+
+persistent telemetry added: no.
+
 ## Decision Coverage
 
 - D-10 is represented by the four required performance targets and their evidence rows.
