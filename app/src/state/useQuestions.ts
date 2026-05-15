@@ -6,7 +6,7 @@ import { chatStream } from '../providers/llm';
 import { today } from '../lib/date';
 import { buildCandidateContextPack, classifyAndAnchorIncremental, formatCandidateContextPack } from '../services/canonical-knowledge.service';
 import { getRateLimitStatus, incrementAskCount } from '../services/ask-rate-limiter.service';
-import { evaluateQuestion as filterQuestion, type QuestionFilterContext } from '../services/question-filter.service';
+import { evaluateQuestion as filterQuestion, type FilterResult, type QuestionFilterContext } from '../services/question-filter.service';
 import { eventBus } from '../lib/event-bus';
 import { webSearch } from '../services/web-search.service';
 import { toast } from '../lib/toast';
@@ -134,6 +134,59 @@ export function useQuestions(): UseQuestionsReturn {
       });
 
       try {
+        // ═══ Phase 47 D-18 — Pre-LLM filter gate (pipeline inversion) ═══
+        // Run the three-label classifier BEFORE chatStream so malicious
+        // prompts spend ZERO answer-LLM tokens and never persist a Question.
+        // Replaces the prior post-LLM-flag pattern (filterQuestion ran AFTER
+        // buildAndSave, then patchQuestion round-tripped the flag). The
+        // three-branch dispatch below decides whether the answer LLM runs.
+        //
+        // D-19: abortController.signal is threaded as the third arg so a
+        // LOCALE_CHANGED event fired mid-classification cancels the embedding
+        // call cleanly via the evaluator's AbortError path.
+        //
+        // D-12 graceful degradation: when filterQuestion throws a non-abort
+        // error (embedding provider outage, missing API key, parse failure),
+        // the pre-gate defaults to on-topic so the answer LLM still runs.
+        // Bracketing (Plan 03) keeps safety intact during outages.
+        let filterResult: FilterResult;
+        try {
+          filterResult = await filterQuestion(content, sessionContext, abortController.signal);
+        } catch (err: unknown) {
+          if (abortController.signal.aborted) {
+            toast(i18n.t('ask.localeChangedDiscarded'));
+            setIsAsking(false);
+            return null;
+          }
+          console.warn('[Trellis] filter pre-gate failed, defaulting to on-topic:', err instanceof Error ? err.message : err);
+          filterResult = { label: 'on-topic' };
+        }
+
+        // D-01 malicious branch — zero LLM tokens, no Question persisted.
+        // Constructs a SessionMessage shape with kind: 'malicious-block' so
+        // ChatMessage can render the inline rejection surface (no override
+        // button per D-02). The streamed content is the i18n string that the
+        // AskScreen placeholder will display while the (instant) flow returns.
+        if (filterResult.label === 'malicious') {
+          const blockedBody = i18n.t('chatMessage.maliciousBlocked.body');
+          // Documented SessionMessage shape — useQuestions does not own the
+          // session-message-append surface (AskScreen builds the persisted
+          // SessionMessage from the streamed placeholder content). Keeping
+          // the constructor here documents the kind discriminator at the
+          // exact site that produces it and gives downstream wiring a
+          // type-locked reference.
+          const _maliciousBlock: SessionMessage = {
+            id: '__pending__',
+            type: 'ai',
+            content: blockedBody,
+            kind: 'malicious-block',
+          };
+          void _maliciousBlock; // suppress unused-var lint (documentation shape)
+          onToken(blockedBody);
+          setIsAsking(false);
+          return null;
+        }
+
         const store = questionService.getAll();
         const candidatePack = buildCandidateContextPack(content, store);
 
@@ -297,30 +350,35 @@ export function useQuestions(): UseQuestionsReturn {
         const rawQuestion = questionService.buildAndSave(content, accumulated, store);
         incrementAskCount();
 
-        // Evaluate for off-topic/meta status (with session context for follow-up handling)
-        const question = await filterQuestion(rawQuestion, sessionContext);
-
-        // Persist the flagged status back to store if it changed
-        if (question.flagged !== rawQuestion.flagged) {
-          questionService.patchQuestion(question.id, { flagged: question.flagged });
-          // Re-broadcast with the correct flagged status so other useQuestions instances
-          // (e.g. HomeScreen) replace their copy before feed re-generation runs.
-          // buildAndSave already fired QUESTION_ASKED without flagged set, so any
-          // hook that received that event will still have the unflagged version.
-          eventBus.emit({ type: 'QUESTION_ASKED', payload: question });
-        }
-
-        // ── Second classification call (Phase 14) ──────────────────────────────
-        // Fire ONLY when Q&A enters the mindmap (not flagged).
-        if (question.flagged !== true) {
-          void classifyAndAnchorIncremental(question, questionService.getAll(), llmConfig, abortController.signal).catch((err: unknown) => {
+        // ═══ Phase 47 D-01 — Branch on pre-gate filterResult.label ═══
+        // The pre-gate above already decided whether this question is on-topic
+        // or off-topic; the malicious branch returned early before chatStream.
+        // Here we only choose between:
+        //   - off-topic → patchQuestion(flagged:true) + emit QUESTION_ASKED +
+        //                 SKIP classifyAndAnchorIncremental (flagged questions
+        //                 NEVER enter the mind map per D-01)
+        //   - on-topic  → fire-and-forget classifyAndAnchorIncremental
+        //                 (existing pattern verbatim)
+        if (filterResult.label === 'off-topic') {
+          questionService.patchQuestion(rawQuestion.id, { flagged: true });
+          rawQuestion.flagged = true;
+          // Re-broadcast with the correct flagged status so other useQuestions
+          // instances (e.g. HomeScreen) replace their copy before feed
+          // re-generation runs. buildAndSave already fired QUESTION_ASKED
+          // without flagged set, so any hook that received that event will
+          // still have the unflagged version.
+          eventBus.emit({ type: 'QUESTION_ASKED', payload: rawQuestion });
+        } else {
+          // on-topic — fire classification (existing pattern at the prior
+          // post-LLM site, verbatim except `rawQuestion` replaces `question`).
+          void classifyAndAnchorIncremental(rawQuestion, questionService.getAll(), llmConfig, abortController.signal).catch((err: unknown) => {
             console.warn('[Trellis] classifyAndAnchorIncremental failed:', err instanceof Error ? err.message : err);
           });
         }
 
-        setQuestions((prev) => [question, ...prev.filter((q) => q.id !== question.id)]);
+        setQuestions((prev) => [rawQuestion, ...prev.filter((q) => q.id !== rawQuestion.id)]);
         setIsAsking(false);
-        return question;
+        return rawQuestion;
       } catch (e) {
         // A LOCALE_CHANGED abort can surface here as an AbortError from fetch.
         // Treat it as a clean cancel, not an error toast.
