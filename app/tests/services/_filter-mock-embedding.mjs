@@ -37,10 +37,25 @@ export const embedSpy = {
   reset() {
     this.callCount = 0;
     this.calls = [];
+    _failNext = false;
   },
 };
 
+let _failNext = false;
+/**
+ * Tests can call `embedFailNext(true)` to make the next embedText invocation
+ * reject — used for D-12 graceful-degradation tests in
+ * filter-classifier.unit.test.mjs.
+ */
+export function embedFailNext(v = true) {
+  _failNext = v;
+}
+
 export async function embedText(text, config) {
+  if (_failNext) {
+    _failNext = false;
+    throw new Error('mock embedText failure (test forced)');
+  }
   embedSpy.callCount++;
   embedSpy.calls.push({ text, config });
   const vec = new Array(DIM);
