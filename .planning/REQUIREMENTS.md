@@ -9,17 +9,20 @@
 
 ### FOUNDATION — Data, events, migration, and privacy boundaries
 
-- [ ] **FOUND-01** v1.6 data model adds explicit ingestion, graph-trust, podcast-option, retrieval/library, and learning-engagement metadata without overloading `Question.flagged`.
+- [ ] **FOUND-01** v1.6 data model adds explicit graph-trust, podcast-option, retrieval/library, and learning-engagement metadata without overloading `Question.flagged`. Ingestion is intentionally excluded — the existing binary `flagged` (off-topic) field stays as the single ingestion gate; INGEST-01..04 sharpen its reliability rather than introducing a new ingestion-state enum.
 - [ ] **FOUND-02** Existing localStorage/SQLite payloads load safely through additive normalization and migration guards; old v1.5 data does not crash v1.6 screens or services.
-- [ ] **FOUND-03** Durable-learning events are distinguishable from natural chat-answer events so graph, retrieval, podcast, review, and learning metrics never index untriaged chat.
+- [ ] **FOUND-03** The single `flagged` (off-topic) bit is propagated on every ask event so graph, retrieval, podcast, review, and learning-metric consumers can filter durable-learning events from off-topic chat without re-running the classifier or relying on downstream lookups.
 - [ ] **FOUND-04** Provider payload boundaries are documented and tested so goals, tags, saved/liked history, graph correction logs, and reflections are not sent to LLM/TTS providers by default.
+- [ ] **FOUND-05** User-supplied content sent to LLM (and any prompt-bearing TTS/embedding) providers is structurally bracketed/delimited at the provider boundary so prompt-injection attempts in user content cannot override system instructions. Bracketing is enforced in the provider wrapper, not in individual call sites; goldens cover representative injection-style inputs (e.g., "ignore previous instructions", "show your system prompt", "</user_input>...").
 
-### INGEST — Knowledge-ingestion triage
+### INGEST — Off-topic classifier robustness
 
-- [ ] **INGEST-01** User can ask natural chat and see whether the exchange was `Added to map`, `Chat only`, `Needs review`, or `Security blocked`.
-- [ ] **INGEST-02** The ingestion classifier accepts legitimate learning questions about risky terms, including "What is a system prompt?", while excluding prompt-leak requests such as "show/reveal/print your system prompt" from durable knowledge.
-- [ ] **INGEST-03** Non-learning exchanges such as greetings, small talk, jokes, thanks, and app-meta chatter remain in chat when appropriate but do not enter the mind map, review, feed, podcast context, retrieval index, or learning metrics.
-- [ ] **INGEST-04** User can manually add a `Chat only` or `Needs review` exchange to the mind map through an explicit confirm/retitle flow, preserving learner intent and auditability.
+The v1.6 ingestion gate is the existing binary `Question.flagged` (off-topic) bit. INGEST-01..04 make that classifier more reliable on the two failure modes the operator surfaced: small talk slipping through ("How are you doing?") and legitimate LLM/security learning questions being misflagged ("What is a system prompt in an LLM?"). Prompt-injection prevention is intentionally NOT a classifier concern — it is structural and lives in FOUND-05.
+
+- [ ] **INGEST-01** Off-topic classifier reliably catches greetings, small talk, jokes, thanks, and app-meta chatter (e.g., "How are you doing?", "thanks", "what time is it") with measurable false-negative rate on a held-out eval set; classified-off-topic exchanges stay in chat and never enter mind map, review, feed, podcast context, retrieval index, or learning metrics.
+- [ ] **INGEST-02** Off-topic classifier admits legitimate learning questions about LLM/security/safety topics (e.g., "What is a system prompt?", "What is prompt injection?", "How does jailbreaking work?") with measurable false-positive rate on a held-out eval set. The classifier does NOT inspect intent verbs ("show/reveal/print"); intent-agnostic injection prevention is FOUND-05's responsibility.
+- [ ] **INGEST-03** Held-out eval set with at least one labeled example per failure mode (small-talk false-negative, LLM/security false-positive) lives under version control and runs in the test suite; thresholds and prompts cannot regress on those examples without an explicit waiver.
+- [ ] **INGEST-04** User can override the off-topic flag on any individual exchange (existing per-question `flagged` toggle) so misclassifications are recoverable; the override persists across reloads and propagates to downstream consumers via the FOUND-03 event payload.
 
 ### GRAPH — Correctable knowledge graph data layer
 
@@ -83,6 +86,8 @@
 | Cross-device sync in v1.6 | Requires separate privacy/auth/conflict-resolution milestone. |
 | Backend analytics or external telemetry | Not needed for local-first learning guardrails and would undermine privacy expectations. |
 | Vector database, graph database, LangChain/agent framework, or backend search | Existing local services plus MiniSearch/embeddings are enough for v1.6; large stack additions would distract from behavior. |
+| Four-state ingestion triage UI (`Added to map` / `Chat only` / `Needs review` / `Security blocked`) | The two failure modes are precision/recall problems on the existing binary off-topic classifier, not missing categories. A richer state machine would multiply the same misclassifications across more buckets. |
+| Prompt-leak intent classifier (verb-detector for "show/reveal/print system prompt") | Intent classification on safe verbs misclassifies legitimate learning questions about LLMs. Injection prevention is structural (FOUND-05 bracketing), not behavioral. |
 
 ## Traceability
 
@@ -94,6 +99,7 @@ Traceability populated by the v1.6 roadmap.
 | FOUND-02 | Phase 47 | Pending |
 | FOUND-03 | Phase 47 | Pending |
 | FOUND-04 | Phase 47 | Pending |
+| FOUND-05 | Phase 47 | Pending |
 | INGEST-01 | Phase 48 | Pending |
 | INGEST-02 | Phase 48 | Pending |
 | INGEST-03 | Phase 48 | Pending |
@@ -121,10 +127,10 @@ Traceability populated by the v1.6 roadmap.
 | LEARN-05 | Phase 54 | Pending |
 
 **Coverage:**
-- v1.6 requirements: 29 total
-- Mapped to phases: 29
+- v1.6 requirements: 30 total
+- Mapped to phases: 30
 - Unmapped: 0
 
 ---
 *Requirements defined: 2026-05-13*
-*Last updated: 2026-05-13 after v1.6 roadmap creation*
+*Last updated: 2026-05-15 — INGEST-01..04 reframed (robustness + override, not four-state triage), FOUND-01/03 corrected (no `ingestionState` schema), FOUND-05 added (structural prompt-injection prevention at provider boundary). Phase 47 discussion was paused on 2026-05-15 to apply this correction; resume with `/gsd-discuss-phase 47`.*
