@@ -651,7 +651,13 @@ export type ErrorCode =
   | 'PARSE_ERROR'
   | 'SEARCH_FAILED'
   | 'LLM_ERROR'
-  | 'COVERAGE_ERROR';
+  | 'COVERAGE_ERROR'
+  // Phase 47 — pre-LLM filter gate (D-01). Returned from question.service.ask
+  // when the filter classifies the input as malicious; no override path.
+  | 'BLOCKED_MALICIOUS'
+  // Phase 47 — pre-LLM filter gate (D-19). Returned from question.service.ask
+  // when the abort signal fires during the pre-gate (LOCALE_CHANGED, etc.).
+  | 'ABORTED';
 
 export interface AskResult {
   question: Question;

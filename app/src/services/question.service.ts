@@ -12,7 +12,7 @@ import {
   classifyAndAnchorIncremental,
   decideIngestionOutcome,
 } from './canonical-knowledge.service.ts';
-import { evaluateQuestion as filterQuestion, type QuestionFilterContext } from './question-filter.service.ts';
+import { evaluateQuestion as filterQuestion, type QuestionFilterContext, type FilterResult } from './question-filter.service.ts';
 
 const STORAGE_KEY = 'trellis_questions';
 
@@ -196,6 +196,52 @@ export const questionService = {
       };
     }
 
+    // ── Pre-LLM filter gate (Phase 47 D-18) ────────────────────────────────
+    // Three-label classifier runs BEFORE both the embedding precompute AND the
+    // chatCompletion JSON-mode call. Mirror of useQuestions.askStreaming.
+    //   - 'malicious'  → return ServiceResult error; zero LLM tokens, zero
+    //                    embedding tokens, no Question persisted (D-01).
+    //   - 'off-topic'  → proceed through chatCompletion + buildAndSave; persist
+    //                    with flagged:true; SKIP classifyAndAnchorIncremental (D-01).
+    //   - 'on-topic'   → existing flow unchanged.
+    // signal threading per D-19 — pre-gate honors the same AbortSignal as the
+    // downstream LLM call. On filter-internal failure (non-abort), gracefully
+    // degrade to on-topic so a transient embedding outage doesn't block legit
+    // questions (D-12).
+    let filterResult: FilterResult;
+    try {
+      filterResult = await filterQuestion(content, sessionContext, signal);
+    } catch (err) {
+      if (signal?.aborted || (err instanceof Error && err.name === 'AbortError')) {
+        return {
+          success: false,
+          error: {
+            code: 'ABORTED',
+            message: 'Request was cancelled.',
+            retryable: false,
+          },
+        };
+      }
+      console.warn(
+        '[Trellis] filterQuestion pre-gate failed, defaulting to on-topic:',
+        err instanceof Error ? err.message : err,
+      );
+      filterResult = { label: 'on-topic' };
+    }
+
+    if (filterResult.label === 'malicious') {
+      // No chatCompletion call. No embedText call. No buildAndSave. No
+      // classifyAndAnchorIncremental. No Question persisted. (D-01)
+      return {
+        success: false,
+        error: {
+          code: 'BLOCKED_MALICIOUS',
+          message: t('chatMessage.maliciousBlocked.body'),
+          retryable: false,
+        },
+      };
+    }
+
     const store = loadStore({ includeFlagged: true });
 
     // Pre-compute query embedding before the LLM call so context candidates can be
@@ -265,35 +311,44 @@ export const questionService = {
 
       const question = this.buildAndSave(content, answer, store, { summary, keywords, storyHook, shortSummary, preComputedEmbedding: queryEmbedding });
 
-      // Evaluate question for off-topic/meta status
-      const flagged = await filterQuestion(question, sessionContext);
-
-      // Persist the flagged status back to store and SQLite
-      const freshStore = loadStore({ includeFlagged: true });
-      const idx = freshStore.findIndex((q) => q.id === question.id);
-      if (idx !== -1) {
-        freshStore[idx] = flagged;
-        saveStore(freshStore);
-        persistToSQLite(flagged);
-      }
-
-      // ── Second classification call (Phase 14) ──────────────────────────────
-      // Fire ONLY when Q&A enters the mindmap (not flagged).
-      if (flagged.flagged !== true) {
-        // Fire-and-forget: classification + anchor attachment runs asynchronously.
-        // The Q&A is already saved; labels will be patched on once the call completes.
-        void classifyAndAnchorIncremental(flagged, loadStore({ includeFlagged: true }), llmConfig, signal).catch((err: unknown) => {
+      // ── Branch on the pre-gate filter label (D-18 / D-01) ────────────────
+      // Note: 'malicious' already returned above, so we only need to handle
+      // 'off-topic' (persist with flagged:true; skip classification) and
+      // 'on-topic' (existing flow with classifyAndAnchorIncremental).
+      let finalQuestion = question;
+      if (filterResult.label === 'off-topic') {
+        // Persist flagged:true. Read-modify-write against fresh localStorage —
+        // never mutate the caller's pre-LLM snapshot (mirrors buildAndSave's
+        // discipline at lines 348-355).
+        const freshStore = loadStore({ includeFlagged: true });
+        const idx = freshStore.findIndex((q) => q.id === question.id);
+        if (idx !== -1) {
+          const flaggedQuestion: Question = { ...freshStore[idx], flagged: true };
+          freshStore[idx] = flaggedQuestion;
+          saveStore(freshStore);
+          persistToSQLite(flaggedQuestion);
+          finalQuestion = flaggedQuestion;
+        }
+        // SKIP classifyAndAnchorIncremental — off-topic Q&A does not enter the
+        // mindmap (D-01). User can override via ChatMessage "Save anyway"; the
+        // override path (Plan 06) re-fires classification at that boundary.
+      } else {
+        // on-topic — fire-and-forget classification + anchor attachment.
+        // The Q&A is already saved; labels will be patched on once the call
+        // completes. Preserves existing behavior verbatim with `question`
+        // substituted for the deleted post-LLM `flagged` variable.
+        void classifyAndAnchorIncremental(question, loadStore({ includeFlagged: true }), llmConfig, signal).catch((err: unknown) => {
           console.warn('[Trellis] classifyAndAnchorIncremental failed:', err instanceof Error ? err.message : err);
         });
       }
 
-      const relatedQuestions = freshStore.filter((q) =>
-        flagged.relatedQuestionIds.includes(q.id),
+      const relatedQuestions = loadStore({ includeFlagged: true }).filter((q) =>
+        finalQuestion.relatedQuestionIds.includes(q.id),
       );
 
       return {
         success: true,
-        data: { question: flagged, relatedQuestions, newConnections: flagged.relatedQuestionIds.length },
+        data: { question: finalQuestion, relatedQuestions, newConnections: finalQuestion.relatedQuestionIds.length },
       };
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
