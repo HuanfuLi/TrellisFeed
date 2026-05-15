@@ -228,9 +228,14 @@ describe('evaluateQuestion Layer 2 (deterministic FNV-1a mock against real corpu
   });
 
   it('Test 17 — input with no corpus match above thresholds returns on-topic', async () => {
-    // A novel non-matching input — FNV-1a hashes diverge from every corpus
-    // entry so cosine values stay well below 0.75.
-    const novelInput = 'xkqjzm bvtnpwgrslcdhfy 9876543210';
+    // A novel input chosen empirically so its FNV-1a-projected vector stays
+    // below BOTH thresholds (off=0.64, mal=0.53 against every corpus entry).
+    // The deterministic mock has high baseline cosine variance because every
+    // 64-dim L2-normalized vector is on the unit sphere — most random pairs
+    // share substantial direction. This input was selected from a candidate
+    // sweep (see commit message) as one of the few that avoids spurious
+    // false-positives in the mock vector space.
+    const novelInput = 'my unique test input that should not match';
     const result = await evaluateQuestion(novelInput);
     assert.equal(
       result.label,
@@ -259,23 +264,25 @@ describe('evaluateQuestion context plumbing (D-11 — priorAnswer concatenation)
     const content = 'but why does this work?';
     await evaluateQuestion(content, { priorQuestion: 'What is spaced repetition?', priorAnswer });
 
-    // Find the embedText call for the QUERY (last call after corpus seeding).
-    // The corpus is embedded first (cold cache), then the query.
-    const queryCall = embedSpy.calls[embedSpy.calls.length - 1];
+    // The query is embedded FIRST in Layer 2, BEFORE the corpus loader runs
+    // (loadCorpusEmbeddings is called after embedText(queryText)). So on a
+    // cold cache the order is: [queryCall, ...corpus]. embedSpy.calls[0]
+    // is the query.
+    const queryCall = embedSpy.calls[0];
     assert.ok(
       queryCall.text.startsWith(priorAnswer.slice(0, 240)),
-      `Layer 2 query embedding must start with priorAnswer.slice(0, 240) — got "${queryCall.text.slice(0, 50)}..."`,
+      `Layer 2 query embedding must start with priorAnswer.slice(0, 240) — got "${queryCall.text.slice(0, 80)}..."`,
     );
     assert.ok(
-      queryCall.text.includes(content),
-      `Layer 2 query embedding must include the user content — got "${queryCall.text.slice(-60)}"`,
+      queryCall.text.endsWith(content),
+      `Layer 2 query embedding must end with the user content — got "${queryCall.text.slice(-80)}"`,
     );
   });
 
   it('Test 18b — bare content embed input when context is undefined', async () => {
-    const content = 'photosynthesis question novel input string';
+    const content = 'my unique test input that should not match';
     await evaluateQuestion(content);
-    const queryCall = embedSpy.calls[embedSpy.calls.length - 1];
+    const queryCall = embedSpy.calls[0];
     assert.equal(
       queryCall.text,
       content,
@@ -284,9 +291,9 @@ describe('evaluateQuestion context plumbing (D-11 — priorAnswer concatenation)
   });
 
   it('Test 18c — bare content embed input when context exists but priorAnswer is undefined', async () => {
-    const content = 'novel learning question without prior answer context';
+    const content = 'my unique test input that should not match';
     await evaluateQuestion(content, { priorQuestion: 'something' });
-    const queryCall = embedSpy.calls[embedSpy.calls.length - 1];
+    const queryCall = embedSpy.calls[0];
     assert.equal(
       queryCall.text,
       content,
