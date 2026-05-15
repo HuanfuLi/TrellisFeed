@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Control, Graph Trust, Retrieval, and Ethical Engagement
-status: phase_47_context_gathered
-stopped_at: Phase 47 context gathered — ready for /gsd:plan-phase 47
+status: phase_47_planned
+stopped_at: Phase 47 planned — 6 plans across 4 waves; ready for /gsd:execute-phase 47
 last_updated: "2026-05-15"
 last_activity: 2026-05-15
 progress:
   total_phases: 7
   completed_phases: 0
-  total_plans: 0
+  total_plans: 6
   completed_plans: 0
 ---
 
@@ -59,9 +59,9 @@ Plus the earlier 2026-05-15 corrections (during the same session, before the ful
 ## Current Position
 
 Phase: 47 of 53 (1 of 7 in v1.6) — Filter Redesign — Off-Topic + Malicious Prompt Prevention
-Plan: Not planned yet
-Status: Context gathered — ready for /gsd:plan-phase 47
-Last activity: 2026-05-15 — Phase 47 discuss-phase complete; CONTEXT.md + DISCUSSION-LOG.md committed
+Plan: 6 plans across 4 waves (47-01..47-06); plan-checker PASSED with 1 cosmetic warning
+Status: Ready to execute — /gsd:execute-phase 47
+Last activity: 2026-05-15 — Phase 47 plan-phase complete; RESEARCH.md + PATTERNS.md + VALIDATION.md + 6 PLAN.md files committed
 
 Progress: 0 / 7 phases complete
 
@@ -120,5 +120,12 @@ None.
 ## Session Continuity
 
 Last session: 2026-05-15
-Stopped at: Phase 47 discuss-phase complete. CONTEXT.md captures 19 implementation decisions across pre-LLM gate UX, override surface (already built), classifier strategy + corpus + failure mode, and eval-set seeds. DISCUSSION-LOG.md preserves alternatives.
-Resume file: `.planning/phases/47-filter-redesign-off-topic-malicious-prompt-prevention/47-CONTEXT.md`. Next action is `/gsd:plan-phase 47`.
+Stopped at: Phase 47 plan-phase complete. 6 plans across 4 waves cover FILTER-01..05 and all 19 CONTEXT.md decisions. RESEARCH.md (94 KB), PATTERNS.md (52 KB), VALIDATION.md, and 6 PLAN.md files (47-01..47-06) committed. Plan-checker verified PASSED with one cosmetic warning (RESEARCH.md Open Questions formatting — non-blocking, all recommendations already adopted in plans).
+
+Wave structure:
+- Wave 0 (47-01): corpus + i18n + test mock fixtures
+- Wave 1 (47-02 + 47-03 parallel): hybrid classifier + cache + eval runner; provider-wrapper bracketing
+- Wave 2 (47-04 + 47-05 parallel): pipeline inversion in askStreaming + question.service.ask
+- Wave 3 (47-06): AskScreen override re-fire (D-06) + UAT checkpoint
+
+Resume file: `.planning/phases/47-filter-redesign-off-topic-malicious-prompt-prevention/47-01-PLAN.md`. Next action is `/gsd:execute-phase 47`.

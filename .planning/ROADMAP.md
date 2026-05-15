@@ -41,7 +41,13 @@ There is **no foundation phase**. The prior agent's FOUND-01..05 scaffolding (cr
   5. User-supplied content reaching LLM (and prompt-bearing TTS/embedding) providers is structurally bracketed/delimited at the provider wrapper; goldens cover representative injection-style inputs and verify system instructions cannot be overridden.
   6. A held-out eval set with at least one labeled example per surfaced failure mode (small-talk false-negative such as "How are you doing?", legitimate-LLM-question false-positive such as "What is a system prompt?") lives under version control and runs in the test suite.
   7. User can override the off-topic flag on any individual exchange; the override persists across reloads and propagates to durable-knowledge consumers.
-**Plans**: TBD
+**Plans**: 6 plans
+- [ ] 47-01-PLAN.md — Wave 0: corpus JSON + held-out eval fixture + deterministic embedding mock + i18n bundles (en/zh/es/ja)
+- [ ] 47-02-PLAN.md — Wave 1: filter-corpus.service.ts cache + question-filter.service.ts hybrid Layer 1 + Layer 2 rewrite + eval-set runner (FILTER-01, FILTER-04)
+- [ ] 47-03-PLAN.md — Wave 1: provider-wrapper bracketing (user-content-bracketing.ts) + TTS/embedding exemption tests (FILTER-03)
+- [ ] 47-04-PLAN.md — Wave 2: useQuestions.askStreaming pre-gate inversion + ChatMessage malicious-block render + SessionMessage.kind discriminator (FILTER-01, FILTER-02)
+- [ ] 47-05-PLAN.md — Wave 2: question.service.ask mirror inversion (FILTER-01, FILTER-02)
+- [ ] 47-06-PLAN.md — Wave 3: AskScreen.handleQuestionOverride D-06 re-fire + final integration sign-off (FILTER-05)
 **Spike/research expected**: choosing the classifier strategy is a within-phase decision (research step), not a pre-locked choice in CONTEXT.md.
 
 ### Phase 48: Graph Command Service and Trust Invariants
@@ -157,7 +163,7 @@ Phases execute in numeric order: 47 → 48 → 49 → 50 → 51 → 52 → 53
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 47. Filter Redesign — Off-Topic + Malicious Prompt Prevention | TBD | Not started | - |
+| 47. Filter Redesign — Off-Topic + Malicious Prompt Prevention | 0/6 | Planned | - |
 | 48. Graph Command Service and Trust Invariants | TBD | Not started | - |
 | 49. Graph Correction UI | TBD | Not started | - |
 | 50. Retrieval and Library Foundation | TBD | Not started | - |
