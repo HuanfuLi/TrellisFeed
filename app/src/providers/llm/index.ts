@@ -2,10 +2,13 @@ import { Capacitor, CapacitorHttp } from '@capacitor/core';
 import type { LLMConfig } from '../../types';
 import { tokenUsageReporter, type UsageMetadata } from '../../services/token-usage.service.ts';
 import { applyLocaleDirective } from './locale-directive.ts';
+import { applyUserContentBracketing } from './user-content-bracketing.ts';
 
 // Re-export so downstream code (including tests that CAN import this file)
 // has a single documented entry point for the central locale-injection helper.
 export { applyLocaleDirective };
+// Re-export the D-13 bracketing helper for the same reason.
+export { applyUserContentBracketing };
 
 interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
@@ -60,20 +63,22 @@ export interface CompletionOptions {
 
 export async function chatCompletion(messages: ChatMessage[], config: LLMConfig, options?: CompletionOptions): Promise<string> {
   const msgs = applyLocaleDirective(messages); // D-12 — central locale injection
+  const bracketed = applyUserContentBracketing(msgs); // D-13 — structural injection bracketing
   const maxTokens = options?.maxTokens ?? 4096;
   switch (config.provider) {
-    case 'claude':   return claudeCompletion(msgs, config, maxTokens, options);
-    case 'gemini':   return geminiCompletion(msgs, config, maxTokens, options);
-    default:         return openAICompletion(msgs, config, maxTokens, options); // openai | local | lmstudio
+    case 'claude':   return claudeCompletion(bracketed, config, maxTokens, options);
+    case 'gemini':   return geminiCompletion(bracketed, config, maxTokens, options);
+    default:         return openAICompletion(bracketed, config, maxTokens, options); // openai | local | lmstudio
   }
 }
 
 export async function* chatStream(messages: ChatMessage[], config: LLMConfig, options?: CompletionOptions): AsyncGenerator<string> {
   const msgs = applyLocaleDirective(messages); // D-12 — central locale injection
+  const bracketed = applyUserContentBracketing(msgs); // D-13 — structural injection bracketing
   switch (config.provider) {
-    case 'claude':  yield* claudeStream(msgs, config, options);  break;
-    case 'gemini':  yield* geminiStream(msgs, config, options);  break;
-    default:        yield* openAIStream(msgs, config, options);  break; // openai | local | lmstudio
+    case 'claude':  yield* claudeStream(bracketed, config, options);  break;
+    case 'gemini':  yield* geminiStream(bracketed, config, options);  break;
+    default:        yield* openAIStream(bracketed, config, options);  break; // openai | local | lmstudio
   }
 }
 

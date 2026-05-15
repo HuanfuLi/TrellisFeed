@@ -1,6 +1,16 @@
 import { getCurrentLocale } from '../../lib/i18n-leaf.ts';
 import type { TTSConfig, SupportedLocale } from '../../types';
 
+// ─── FILTER-03 / D-13 bracketing exemption ──────────────────────────
+// TTS providers do not interpret the `text` field as instructions —
+// they vocalize it. Wrapping `text` in `<text_to_speak>...</text_to_speak>`
+// would either (a) be silently dropped by some providers OR
+// (b) be pronounced literally as "less-than text-to-speak greater-than".
+// Neither is desirable. TTS is therefore EXEMPT from D-13 bracketing.
+// See 47-RESEARCH.md §"TTS wrapper bracketing" (lines 845-851).
+// Negative-invariant test at app/tests/providers/tts-bracketing-exempt.test.mjs
+// asserts the bracketing helper from providers/llm is NOT imported here.
+
 // ─── Locale-aware TTS voice (D-13) ────────────────────────────────────────────
 // When the user has the default 'alloy' voice, pick a locale-appropriate
 // voice. If the user explicitly chose another voice in SettingsScreen, respect

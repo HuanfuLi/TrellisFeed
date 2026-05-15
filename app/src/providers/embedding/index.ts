@@ -1,5 +1,15 @@
 import type { EmbeddingConfig } from '../../types';
 
+// ─── FILTER-03 / D-13 bracketing exemption ──────────────────────────
+// Embedding endpoints project text to a vector space; they do not
+// interpret the `text` field as instructions. Wrapping in
+// `<user_content>...</user_content>` would corrupt cosine math
+// (vector for `<user_content>foo</user_content>` differs from
+// vector for `foo`). Embedding is therefore EXEMPT from D-13.
+// See 47-RESEARCH.md §"Embedding wrapper bracketing decision" (lines 853-859).
+// Negative-invariant test at app/tests/providers/tts-bracketing-exempt.test.mjs
+// asserts the bracketing helper from providers/llm is NOT imported here.
+
 // ─── Cosine similarity ────────────────────────────────────────────────────────
 
 export function cosine(a: number[], b: number[]): number {
