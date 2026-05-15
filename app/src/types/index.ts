@@ -320,6 +320,17 @@ export interface SessionMessage {
   relatedKnowledge?: string[];
   questionId?: string;
   // isStreaming is transient UI state only — never persisted
+  /**
+   * Discriminator for special-render AI messages. Phase 47 D-01 / D-02:
+   *   - undefined / 'normal' → existing markdown body render path.
+   *   - 'malicious-block'    → ChatMessage renders the inline rejection
+   *                            surface (NO override button, neutral copy
+   *                            from i18n key chatMessage.maliciousBlocked.body).
+   * useQuestions.askStreaming sets 'malicious-block' when filterResult.label
+   * === 'malicious' (pre-LLM gate per D-18). Zero LLM tokens are spent in
+   * this branch, no Question is persisted.
+   */
+  kind?: 'normal' | 'malicious-block';
 }
 
 export interface ChatSession {

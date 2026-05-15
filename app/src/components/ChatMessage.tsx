@@ -3,7 +3,7 @@ import { Pencil, RefreshCw, Trash2, Globe } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Markdown } from './Markdown';
 import { extractCitations } from '../services/web-search.service';
-import type { SourceCitation } from '../types';
+import type { SessionMessage, SourceCitation } from '../types';
 
 export type MessageType = 'user' | 'ai';
 
@@ -27,6 +27,13 @@ interface ChatMessageProps {
   questionId?: string;
   flagged?: boolean;
   onQuestionOverride?: (questionId: string, shouldSave: boolean) => void;
+  /**
+   * Phase 47 D-01 / D-02 — when set to 'malicious-block', short-circuits the
+   * markdown body render and shows the inline rejection surface (NO override
+   * button). The flagged-off-topic block (D-04 — already implemented) is
+   * unchanged; this is a SEPARATE peer surface.
+   */
+  kind?: SessionMessage['kind'];
 }
 
 /** Replace inline [N] citation tags with styled superscript spans. */
@@ -112,6 +119,7 @@ export const ChatMessage = memo(function ChatMessage({
   questionId,
   flagged,
   onQuestionOverride,
+  kind,
 }: ChatMessageProps) {
   const { t } = useTranslation();
   const [showActions, setShowActions] = useState(false);
@@ -283,16 +291,47 @@ export const ChatMessage = memo(function ChatMessage({
             wordBreak: 'break-word',
           }}
         >
-          {(() => {
-            const { body, sources } = extractCitations(content);
-            const styledBody = styleCitationTags(body, sources);
-            return (
-              <>
-                <Markdown>{styledBody}</Markdown>
-                <SourcesSection sources={sources} />
-              </>
-            );
-          })()}
+          {/*
+            Phase 47 D-01 / D-02 — malicious-block render branch.
+            When kind === 'malicious-block', short-circuit the normal markdown body
+            render and show the neutral inline rejection surface. Intentionally has
+            NO override button (D-02): bracketing handles legitimate-looking-scary
+            questions; the malicious classifier is narrow and override-free.
+            Peer to (NOT replacement for) the flagged-off-topic block below — D-04
+            preserves the off-topic UI unchanged.
+          */}
+          {type === 'ai' && kind === 'malicious-block' ? (
+            <div
+              role="status"
+              aria-live="polite"
+              style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '8px',
+                padding: '12px 14px',
+                borderRadius: '12px',
+                backgroundColor: 'var(--surface)',
+                border: '1px solid var(--border)',
+                color: 'var(--muted-foreground)',
+                fontSize: '0.85rem',
+                lineHeight: 1.5,
+              }}
+            >
+              <span aria-hidden="true">⚠️</span>
+              <span>{t('chatMessage.maliciousBlocked.body')}</span>
+            </div>
+          ) : (
+            (() => {
+              const { body, sources } = extractCitations(content);
+              const styledBody = styleCitationTags(body, sources);
+              return (
+                <>
+                  <Markdown>{styledBody}</Markdown>
+                  <SourcesSection sources={sources} />
+                </>
+              );
+            })()
+          )}
           {type === 'ai' && flagged && (
             <div style={{
               display: 'flex',
