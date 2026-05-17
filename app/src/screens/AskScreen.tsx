@@ -17,6 +17,7 @@ import { formatDate } from '../lib/date';
 // Session context is passed to askStreaming() for accurate follow-up filtering (see generateAiReply).
 import { questionService } from '../services/question.service';
 import { postContextQaService } from '../services/post-context-qa.service';
+import { classifyAndAnchorIncremental } from '../services/canonical-knowledge.service';
 import { chatCompletion } from '../providers/llm';
 import { settingsService } from '../services/settings.service';
 import { getRateLimitStatus, type RateLimitStatus } from '../services/ask-rate-limiter.service';
@@ -507,6 +508,38 @@ export function AskScreen() {
       // Remove the flag so the question becomes eligible for knowledge graph ingestion
       questionService.patchQuestion(questionId, { flagged: false });
       toast(i18n.t('ask.questionSaved'), 'success');
+
+      // Phase 47 D-06 — fire classification so the un-flagged question enters
+      // the mind map. patchQuestion only flips the flag; without this re-fire
+      // the question is "visible to consumers" but lacks anchorId / branchLabel
+      // / clusterLabel / embeddingVector so it doesn't appear in the right
+      // place. See 47-RESEARCH.md §"D-06 Gap Closure" + §"Pattern 4".
+      const question = questionService.getAll({ includeFlagged: true }).find(q => q.id === questionId);
+      if (!question) return;
+
+      const settings = settingsService.getSync();
+      if (!settings.llm.isConfigured) {
+        // RESEARCH Pitfall 4 — graceful skip on unconfigured LLM (no toast;
+        // user already saw the success toast for the override itself).
+        console.warn('[Trellis] override classifyAndAnchorIncremental skipped: llm not configured');
+        return;
+      }
+
+      // Fire-and-forget; mirrors useQuestions.ts:373-375 pattern. NO abort
+      // signal — user-initiated override is synchronous from the user's
+      // perspective; LOCALE_CHANGED cancellation isn't a concern
+      // (RESEARCH §"Pattern 4" line 510). commitClassificationResult inside
+      // canonical-knowledge.service.ts emits GRAPH_UPDATED at the end —
+      // subscribers (GraphScreen, PrunedSection, useTrellisData,
+      // useQuestions) re-read from store automatically. Do NOT emit
+      // eventBus.emit('GRAPH_UPDATED') here — would double-fire.
+      void classifyAndAnchorIncremental(
+        question,
+        questionService.getAll(),
+        settings.llm,
+      ).catch((err: unknown) => {
+        console.warn('[Trellis] override classifyAndAnchorIncremental failed:', err instanceof Error ? err.message : err);
+      });
     }
     // If not saving, keep as-is (flagged=true) — question won't ingest to knowledge graph
   }, []);
