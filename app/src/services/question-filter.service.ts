@@ -150,19 +150,38 @@ async function layer2Embedding(
   embConfig: EmbeddingConfig,
   signal: AbortSignal | undefined,
 ): Promise<FilterResult> {
-  // D-11 — embed input is `priorAnswer.slice(0, 240) + ' ' + content` when
-  // context has a priorAnswer; else `content` alone. Preserves follow-up
-  // handling so "but why?" stays on-topic when the prior answer was about
-  // a learning topic.
-  const queryText =
-    context?.priorAnswer && context.priorAnswer.length > 0
-      ? `${context.priorAnswer.slice(0, PRIOR_ANSWER_PREFIX_CHARS)} ${content}`
-      : content;
-
+  // Dual-vector scoring — Phase 47 UAT-5 multi-turn jailbreak fix.
+  //
+  // The malicious classifier ALWAYS scores against the raw content vector.
+  // The original D-11 design used a single contextualized vector
+  // (`priorAnswer.slice(0, 240) + ' ' + content`) so "but why?" follow-ups
+  // would stay on-topic. That dilution accidentally created an evasion vector:
+  // user asks a benign question, then sends a verbatim jailbreak as turn 2 —
+  // the 240-char benign prefix dominated the embedding direction, dropping
+  // cosine vs malicious exemplars below 0.82. Observed in UAT-5: cosine
+  // 0.977 (raw) → 0.755 (contextualized) for the same malicious payload.
+  //
+  // The off-topic + on-topic labels keep D-11 contextualized scoring so
+  // legit follow-ups ("but why?", "go deeper") still get the context benefit.
+  //
+  // Cost: when context.priorAnswer is present, +1 embedText call per
+  // follow-up turn (~50-100ms cloud-OpenAI). When no priorAnswer, contextVec
+  // aliases rawVec and we skip the duplicate call.
   if (signal?.aborted) {
     throw new DOMException('Aborted', 'AbortError');
   }
-  const queryVec = await embedText(queryText, embConfig);
+  const rawVec = await embedText(content, embConfig);
+  if (signal?.aborted) {
+    throw new DOMException('Aborted', 'AbortError');
+  }
+
+  const hasPriorAnswer = !!(context?.priorAnswer && context.priorAnswer.length > 0);
+  const contextVec = hasPriorAnswer
+    ? await embedText(
+        `${context!.priorAnswer!.slice(0, PRIOR_ANSWER_PREFIX_CHARS)} ${content}`,
+        embConfig,
+      )
+    : rawVec;
   if (signal?.aborted) {
     throw new DOMException('Aborted', 'AbortError');
   }
@@ -172,20 +191,21 @@ async function layer2Embedding(
     throw new DOMException('Aborted', 'AbortError');
   }
 
-  // Single pass — track per-label best score + exemplar. RESEARCH §"Pattern 2"
-  // pseudocode: keep max per label, compare to per-label threshold, malicious
-  // wins ties (D-12 conservative bias).
+  // Single pass — track per-label best score + exemplar. Malicious uses rawVec
+  // (multi-turn evasion fix); off-topic + on-topic use contextVec (D-11).
   let bestMalicious: { entry: FilterCorpusEntry; score: number } | null = null;
   let bestOffTopic: { entry: FilterCorpusEntry; score: number } | null = null;
   let bestOnTopic: { entry: FilterCorpusEntry; score: number } | null = null;
 
   for (const entry of corpus) {
-    const score = cosine(queryVec, entry.vector);
     if (entry.label === 'malicious') {
+      const score = cosine(rawVec, entry.vector);
       if (!bestMalicious || score > bestMalicious.score) bestMalicious = { entry, score };
     } else if (entry.label === 'off-topic') {
+      const score = cosine(contextVec, entry.vector);
       if (!bestOffTopic || score > bestOffTopic.score) bestOffTopic = { entry, score };
     } else {
+      const score = cosine(contextVec, entry.vector);
       if (!bestOnTopic || score > bestOnTopic.score) bestOnTopic = { entry, score };
     }
   }
