@@ -48,8 +48,8 @@ requirements-completed:
   - FILTER-05
 
 # Metrics
-duration: ~20min (autonomous tasks); checkpoint pending UAT before plan completion
-completed: PENDING (checkpoint:human-verify awaiting user UAT — see Task 3 below)
+duration: ~20min (autonomous tasks) + manual UAT + 1 inline fix (UAT-5 dual-vector)
+completed: 2026-05-17
 ---
 
 # Phase 47 Plan 06: D-06 Override Re-Fire Summary
@@ -58,7 +58,19 @@ completed: PENDING (checkpoint:human-verify awaiting user UAT — see Task 3 bel
 
 ## Status
 
-**PARTIAL — checkpoint pending.** Tasks 1 and 2 (autonomous) complete; Task 3 is a `checkpoint:human-verify` Phase-47 integration sign-off that requires the operator to manually exercise the malicious-block surface, the override re-fire end-to-end, and i18n parity in 4 locales. SUMMARY will be promoted to final after the checkpoint clears.
+**COMPLETE.** Tasks 1+2 landed at `42c7bc37` + `067cde0a`. Manual UAT cleared on 2026-05-17 after one inline fix: UAT-5 surfaced a multi-turn jailbreak evasion in the D-11 contextualized query vector — fixed at `122cda59` (dual-vector scoring in `layer2Embedding`; raw vector for malicious, contextualized vector for off-topic/on-topic). Regression test 18d in `filter-classifier.unit.test.mjs` pins the invariant.
+
+## Phase 47 UAT outcomes (2026-05-17)
+
+| # | Scenario | Result | Notes |
+|---|----------|--------|-------|
+| 1 | `npm test` full suite | PASS | 963/964 green; 1 pre-existing failure in `concept-feed.test.mjs` (file-level, not a Phase 47 regression). |
+| 2 | Phase 47 quick-run combo | PASS | All Phase 47 + Phase 35 source-shape tests green. |
+| 3 | False-negative anchor seed ("How are you doing?") | PASS | Layer 1 regex caught the greeting → off-topic badge rendered. D-06 override re-fire end-to-end verified (Save anyway → question entered mind map). |
+| 4 | False-positive anchor seed ("What is a system prompt?") | PASS | No badge. Substantive answer. Question entered mind map. |
+| 5 | Malicious-block surface (verbatim mal-en-001) | PASS (turn 1) → **FAIL → FIXED** (turn 2 multi-turn) | Turn 1 verbatim cosine = 0.977 → malicious block fired correctly. Multi-turn variant (benign turn 1 + jailbreak turn 2) silently passed because D-11 prior-answer prefix diluted cosine to 0.755. **Fixed inline at `122cda59`**: dual-vector scoring sends malicious through raw content vector; off-topic + on-topic keep D-11 contextualized vector. Re-tested and approved. |
+| 6 | Locale switching mid-stream | PASS | Stream cancelled cleanly via abort signal threading (D-19). |
+| 7 | i18n parity for malicious-block | PASS | `chatMessage.maliciousBlocked.body` renders in all 4 locales (en/zh/es/ja). |
 
 ## Performance (autonomous tasks)
 
@@ -118,19 +130,9 @@ None — plan executed exactly as written. The 4 load-bearing invariants in the 
 
 None during autonomous execution. One environment note: this worktree had no local `app/node_modules`; I symlinked `app/node_modules → /Users/Code/EchoLearn/app/node_modules` to run `node_modules/.bin/tsc -b --noEmit`. The symlink is git-ignored (`app/.gitignore:10:node_modules`). No source code or commits affected.
 
-## Checkpoint Pending (Task 3)
+## Checkpoint (Task 3 — CLEARED 2026-05-17)
 
-Task 3 is `checkpoint:human-verify gate="blocking"` — Phase 47 final integration sign-off. The operator must:
-
-1. Run `cd app && npm test` — full suite green
-2. Run the Phase 47 quick-run combo (`filter-classifier.unit`, `filter-classifier.eval`, `filter-cache`, `llm-bracketing`, `tts-bracketing-exempt`, `useQuestions-pre-gate`, `useQuestions-system-prompt-stability`, `question-service-pre-gate`, `AskScreen-override-refire`, `bundle-parity`) — combined runtime ~5-10 s
-3. Manual UAT — anchor seed 1: "How are you doing?" → answered conversationally; flagged badge appears; does NOT enter mind map; "Save anyway" → DOES enter mind map (D-06 closure verified end-to-end)
-4. Manual UAT — anchor seed 2: "What is a system prompt?" → answered substantively; NO badge; enters mind map directly
-5. Manual UAT — malicious surface: jailbreak template → inline malicious-block message; NO LLM call; NO question persists; NO override buttons (D-01 + D-02)
-6. Manual UAT — locale switching mid-flight cancels cleanly (Phase 35 D-22 + D-19)
-7. Manual UAT — malicious-block surface renders in zh, es, ja (Plan 01 bundle parity)
-
-Resume signal: operator types "approved" or describes the failing check.
+Task 3 `checkpoint:human-verify gate="blocking"` cleared. See "Phase 47 UAT outcomes" table above for per-item results. One inline fix landed during UAT (multi-turn jailbreak evasion at UAT-5 → `122cda59` dual-vector scoring + regression test 18d).
 
 ## D-01..D-19 + FILTER-01..05 coverage (full Phase 47)
 
@@ -172,4 +174,4 @@ Blockers / concerns: none from this plan. The operator's checkpoint UAT is the g
 
 ---
 *Phase: 47-filter-redesign-off-topic-malicious-prompt-prevention*
-*Completed: PENDING (Task 3 checkpoint:human-verify)*
+*Completed: 2026-05-17*
