@@ -23,6 +23,7 @@ import { PostDetailScreen } from './screens/PostDetailScreen';
 import SavedScreen from './screens/SavedScreen';
 import { AnchorDetailScreen } from './screens/AnchorDetailScreen';
 import { ClusterDetailScreen } from './screens/ClusterDetailScreen';
+import { CollectionDrillInScreen } from './screens/CollectionDrillInScreen';
 import { settingsService } from './services/settings.service';
 import { hydrateFromSQLite } from './services/question.service';
 import { hydratePlannerFromSQLite } from './services/planner.service';
@@ -307,6 +308,7 @@ const router = createBrowserRouter([
       { path: 'ask/:id', element: <PageTransition><QuestionDetailScreen /></PageTransition> },
       { path: 'anchor/:id', element: <PageTransition><AnchorDetailScreen /></PageTransition> },
       { path: 'cluster/:id', element: <PageTransition><ClusterDetailScreen /></PageTransition> },
+      { path: 'collections/:id', element: <PageTransition><CollectionDrillInScreen /></PageTransition> },
       { path: 'graph', element: null },
       { path: 'planner', element: null },
       { path: 'review', element: <PageTransition><ReviewScreen /></PageTransition> },
