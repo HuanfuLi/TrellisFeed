@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: milestone
 status: phase_49_uat_pending
-stopped_at: Phase 49 — all 5 plans implemented; PAUSED at operator UAT checkpoint (Plan 49-05 Task 4). Tasks 1-3 of 49-05 are done autonomously (zh/es/ja graph.correction.* translations + bundle-parity green; reload-survival regression 6/6 green for GRAPHUI-03; tsc clean modulo pre-existing SavedScreen.tsx errors). Task 4 awaits operator on real Capacitor Android (or iOS) build — full 27-item checklist in 49-05-SUMMARY.md § "Operator UAT Checklist". Resumption path after UAT passes: (a) flip nyquist_compliant false→true in 49-VALIDATION.md frontmatter, commit 'docs(49): flip nyquist_compliant after UAT sign-off'; (b) re-run /gsd:execute-phase 49 OR spawn gsd-verifier manually; (c) phase.complete marks STATE.md/ROADMAP.md final. Phase 49 commits 88fb509d..14c0a29e + 49-05 c26d9a95/f32474e2/e597c84e.
-last_updated: "2026-05-18"
-last_activity: "2026-05-18 — Phase 49 execute-phase ran sequentially through Plans 49-01 (gesture engine + DragOverlay + 14 Wave-0 scaffolds), 49-02 (CorrectionCard + per-node-type matrix + reorg gate + B-4 useLocation + B-6 QA-leaf gate), 49-03 (ConfirmDialog + MergeConfirmPreview + delete-cascade + extended Toast.action + B-3 derived-counts), 49-04 (UndoButton at right:56px + PickModeBanner + W-2 original-coord preserve + soft-prune snackbar + B-1 detach two-emit correlation + B-5 result.data.summary), 49-05 Tasks 1-3 (zh/es/ja i18n with all interpolation placeholders preserved + reload-survival GRAPHUI-03 green). Stopped at Plan 49-05 Task 4 operator UAT checkpoint per operator request — UAT items require real-device haptics + magnetic-snap touch hardware + MindElixir pan/zoom + Header positioning verification across tab swipes."
+stopped_at: Phase 50 planner partial — 9 plans on disk, awaiting Opus rate-limit reset for retry
+last_updated: "2026-05-18T08:11:05.099Z"
+last_activity: "2026-05-18 — Plan 49-04 shipped sequentially after Plans 49-01/02/03. UndoButton (36px circular at right:56px; GRAPH_UPDATED subscriber; B-5 result.data.summary; D-16 reorganizing disable) + PickModeBanner (in-tree below Header; Escape-key cancel; role=status + aria-live=polite) + GraphScreen pickMode state machine with W-2 originalAnchorX/Y preservation (no window-center fallback) + handlePrune soft-prune snackbar with [Undo] action (W-6 toast type 'info' acceptable; flag for operator UAT) + handleDetach B-1 Two-emit GRAPH_UPDATED correlation (captures originalParentId before detach call; subscribes to next emit; 5s timeout fallback; questionService.getAll({ includeFlagged: true }) re-read; detachedNewAnchor vs detachedSameAnchor variants). 9 new i18n keys × 4 locale bundles = 36 new entries. 50/50 plan-specific tests pass; 110/110 Phase 49 regression pass; tsc clean modulo pre-existing SavedScreen.tsx errors; npm test:main 1092 pass / 2 fail (date flake + Plan 49-05 harness scaffold — ZERO Plan 49-04 regressions; 7 Wave-0 scaffolds turned GREEN). All four B-1/B-5/W-2 enforcement greps pass. 4/5 Phase 49 plans complete; 1/5 remains (49-05 i18n + UAT)."
 progress:
   total_phases: 7
-  completed_phases: 2
-  total_plans: 15
-  completed_plans: 14
-  percent: 31
+  completed_phases: 3
+  total_plans: 24
+  completed_plans: 15
+  percent: 43
 ---
 
 # Project State: v1.6 ROADMAP OVERHAULED — 2026-05-15
@@ -121,8 +121,8 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-05-18T05:08:57.742Z
-Stopped at: Phase 50 UI-SPEC approved
+Last session: 2026-05-18T08:11:05.096Z
+Stopped at: Phase 50 planner partial — 9 plans on disk, awaiting Opus rate-limit reset for retry
 Earlier 2026-05-17 — Phase 49 plan-phase complete. 5 plans written across 3 waves. Plan-checker iterated 2 times: iter 1 flagged 8 blockers (B-1 detach D-12 needs new anchorId but Phase 48 service returns void; B-2 questionService.getAll() shape mismatch x5 sites; B-3 merge/delete signature mismatches; B-4 useLocation not imported; B-5 UndoButton reads undoneCmd instead of summary; B-6 getActionsForNode edge cases; B-7 Wave 1 plans concurrently edit GraphScreen.tsx; B-8 Wave-0 scaffolds use describe.skip instead of failing tests) + 6 warnings. Planner revision applied all fixes; iter 2 PASS.
 
 Key Phase 49 artifacts:
@@ -138,7 +138,7 @@ Critical resolution: detach D-12 (re-anchored vs no-op toast variants) implement
 
 Wave 1 ordering: 49-02 declares `depends_on: ["49-01"]` to serialize edits on GraphScreen.tsx within Wave 1. Executor sees Wave 1 = sequential [49-01 → 49-02].
 
-Resume file: .planning/phases/50-retrieval-and-library-foundation/50-UI-SPEC.md
+Resume file: .planning/phases/50-retrieval-and-library-foundation/50-01-PLAN.md
 
 Prior — Phase 48 (Graph Command Service) COMPLETE on 2026-05-17. Verifier 16/16 must-haves verified. Service signatures: rename(id, newTitle), move(id, newParentId), merge(loserId, survivorId) → ServiceResult<{ reparentedCount, newSurvivorQaCount }>, detach(qaId) → ServiceResult<void>, prune(id), delete(id) → ServiceResult<{ cascadedChildIds: string[] }>, undo() → ServiceResult<{ undoneCmd, targetIds, summary }>. questionService.getAll(opts?: { includeFlagged?: boolean }) returns Question[] directly. Critical inversion preserved: undo writes inverse journal entry with SAME cmd, swapped before/after.
 
