@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Control, Graph Trust, Retrieval, and Ethical Engagement
 status: phase_48_in_progress
-stopped_at: Phase 48 Waves 1+2 complete (Plan 48-01 foundation; Plan 48-02 rename/move/delete with Blocker #2/#4 + Warning #3/#4 fixes; 42/42 plan tests pass, full suite 1037/1041 modulo 4 pre-existing failures). Wave 3 next (Plan 48-03 merge/detach/prune → then Plan 48-04 undo+integration sequentially).
+stopped_at: Phase 48 Waves 1+2+3a complete (Plans 48-01 foundation + 48-02 rename/move/delete + 48-03 merge/detach/prune with Blocker #2/#4 + Warning #2/#4 fixes). 32 new Plan 48-03 tests pass; full suite 1078/1082 modulo the same 4 pre-existing failures. Wave 3b next (Plan 48-04 undo + integration).
 last_updated: "2026-05-17"
 last_activity: 2026-05-17
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 10
-  completed_plans: 8
+  completed_plans: 9
 ---
 
 # Project State: v1.6 ROADMAP OVERHAULED — 2026-05-15

@@ -67,7 +67,7 @@ There is **no foundation phase**. The prior agent's FOUND-01..05 scaffolding (cr
 - [x] 48-02-PLAN.md — Wave 2: graph-command.service skeleton + rename + move + delete (GRAPH-01, GRAPH-02, GRAPH-03) — 2026-05-17
 
 **Wave 3** *(blocked on Wave 2 completion; Plan 48-04 sequenced after 48-03 to avoid concurrent edits of `graph-command.service.ts`)*
-- [ ] 48-03-PLAN.md — Wave 3: merge + detach + prune (GRAPH-03)
+- [x] 48-03-PLAN.md — Wave 3: merge + detach + prune (GRAPH-03) — 2026-05-17
 - [ ] 48-04-PLAN.md — Wave 3: undo (inverse-verb with swapped snapshots) + integration + reload-survival + operator review (GRAPH-01, GRAPH-03, GRAPH-04)
 
 **Cross-cutting constraints** (every plan's `must_haves.truths` includes these):
