@@ -7,6 +7,7 @@ import { Badge } from '../components/ui/Badge';
 import { type InfoFlowItem } from '../components/InfoFlow';
 import { MasonryFeed } from '../components/MasonryFeed';
 import { LongPressMenu } from '../components/LongPressMenu';
+import { CollectionPickerSheet } from '../components/CollectionPickerSheet';
 import { VineProgress } from '../components/VineProgress';
 import { Confetti } from '../components/Confetti';
 import { ScrollToTopFAB } from '../components/ScrollToTopFAB';
@@ -99,6 +100,17 @@ export function HomeScreen() {
   const [menuPostId, setMenuPostId] = useState<string | null>(null);
   const [menuAnchorId, setMenuAnchorId] = useState<string | null>(null);
   const [engagementVersion, setEngagementVersion] = useState(0);
+
+  // Phase 50 D-04 / 50-09 — CollectionPickerSheet host state. The Save row in
+  // LongPressMenu now opens the picker (via onOpenCollectionPicker) instead
+  // of toggling engagement directly. Single-tap-save is preserved because the
+  // picker pre-checks the implicit Saved row and tapping Done commits it.
+  // Order matters per RESEARCH §Pitfall 4 — onOpenCollectionPicker(postId)
+  // MUST fire BEFORE onClose() so React 19 batches both state updates in one
+  // render cycle and the picker sheet mounts as the LongPressMenu unmounts
+  // (no blank frame between the two sheets).
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerPostId, setPickerPostId] = useState<string | null>(null);
 
   const handleLongPress = useCallback((postId: string, anchorId: string) => {
     setMenuPostId(postId);
@@ -1055,6 +1067,23 @@ export function HomeScreen() {
         onClose={closeMenu}
         postId={menuPostId}
         anchorId={menuAnchorId}
+        onOpenCollectionPicker={(pid) => {
+          setPickerPostId(pid);
+          setPickerOpen(true);
+        }}
+      />
+
+      {/* Phase 50 D-04 — CollectionPickerSheet hosted on HomeScreen so the
+          LongPressMenu Save row opens it. Picker is the YouTube-faithful
+          save sheet: implicit Saved row pre-checked + 0-N custom collections
+          + + New collection inline create + Done button. */}
+      <CollectionPickerSheet
+        open={pickerOpen}
+        onClose={() => {
+          setPickerOpen(false);
+          setPickerPostId(null);
+        }}
+        postId={pickerPostId}
       />
 
       {/* Botanical loading pulse animation */}
