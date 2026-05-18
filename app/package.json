@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "test": "npm run test:main; npm run test:actions",
     "test:main": "node --test $(find tests -name '*.test.mjs' -not -name 'trellis-heal.test.mjs' -not -name 'trellis-prune.test.mjs' -not -name 'trellis-replant.test.mjs' -not -name 'graph-command-service.*.test.mjs')",
-    "test:actions": "node --import ./tests/services/_actions-mock-loader.mjs --test tests/services/trellis-heal.test.mjs tests/services/trellis-prune.test.mjs tests/services/trellis-replant.test.mjs tests/services/graph-command-service.rename.test.mjs tests/services/graph-command-service.move.test.mjs tests/services/graph-command-service.delete.test.mjs",
+    "test:actions": "node --import ./tests/services/_actions-mock-loader.mjs --test tests/services/trellis-heal.test.mjs tests/services/trellis-prune.test.mjs tests/services/trellis-replant.test.mjs tests/services/graph-command-service.rename.test.mjs tests/services/graph-command-service.move.test.mjs tests/services/graph-command-service.delete.test.mjs tests/services/graph-command-service.merge.test.mjs tests/services/graph-command-service.detach.test.mjs tests/services/graph-command-service.prune.test.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
