@@ -303,7 +303,10 @@
         "rootNotEditable": "Root node — not editable",
         "branchNotEditable": "Branch label — not directly editable",
         "undone": "Undone: {{summary}}",
-        "nothingToUndo": "Nothing to undo"
+        "nothingToUndo": "Nothing to undo",
+        "pruned": "\"{{title}}\" pruned",
+        "detachedNewAnchor": "\"{{qaTitle}}\" re-anchored under \"{{newAnchorTitle}}\"",
+        "detachedSameAnchor": "\"{{qaTitle}}\" stayed under \"{{anchorTitle}}\" (best match)"
       }
     },
     "anchor": {

@@ -303,7 +303,10 @@
         "rootNotEditable": "Nodo raíz — no editable",
         "branchNotEditable": "Etiqueta de rama — no editable directamente",
         "undone": "Deshecho: {{summary}}",
-        "nothingToUndo": "Nada que deshacer"
+        "nothingToUndo": "Nada que deshacer",
+        "pruned": "«{{title}}» podado",
+        "detachedNewAnchor": "«{{qaTitle}}» reasignado a «{{newAnchorTitle}}»",
+        "detachedSameAnchor": "«{{qaTitle}}» permanece en «{{anchorTitle}}» (mejor coincidencia)"
       }
     },
     "anchor": {

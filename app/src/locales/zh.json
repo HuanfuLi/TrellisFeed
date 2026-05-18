@@ -303,7 +303,10 @@
         "rootNotEditable": "根节点 — 不可编辑",
         "branchNotEditable": "分支标签 — 不可直接编辑",
         "undone": "已撤销：{{summary}}",
-        "nothingToUndo": "没有可撤销的操作"
+        "nothingToUndo": "没有可撤销的操作",
+        "pruned": "已修剪 “{{title}}”",
+        "detachedNewAnchor": "已将 “{{qaTitle}}” 重新挂到 “{{newAnchorTitle}}”",
+        "detachedSameAnchor": "“{{qaTitle}}” 仍保留在 “{{anchorTitle}}”(最佳匹配)"
       }
     },
     "anchor": {

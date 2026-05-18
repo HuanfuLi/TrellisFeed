@@ -796,10 +796,139 @@ export function GraphScreen() {
     [t],
   );
 
+  // Phase 49-04 — soft-prune handler (D-10 / D-14 / W-6). No modal — commits
+  // immediately via graphCommandService.prune. The follow-up toast carries an
+  // inline [Undo] action button that re-invokes graphCommandService.undo.
+  //
+  // W-6: prune toast type stays 'info' (acceptable per codebase convention;
+  // flag for operator UAT review). Plan 49-PATTERNS notes this is the
+  // pragmatic call — destructive-colored toasts feel alarmist for a
+  // recoverable soft-delete that already shows a clear "Undo" affordance.
+  //
+  // B-5: the follow-up toast inside the Undo callback uses
+  // undoResult.data.summary — NEVER undoResult.data.undoneCmd (which is the
+  // verb literal intended for log telemetry only).
+  const handlePrune = useCallback(
+    async (node: Question) => {
+      const result = await graphCommandService.prune(node.id);
+      if (!result.success) {
+        toast(result.error?.message ?? t('graph.correction.toast.dropInvalid'), 'error');
+        return;
+      }
+      toast(
+        t('graph.correction.toast.pruned', { title: node.title ?? node.content }),
+        'info',
+        {
+          action: {
+            label: t('graph.correction.actions.undo'),
+            onAction: async () => {
+              const undoResult = await graphCommandService.undo();
+              if (undoResult.success) {
+                // B-5: summary, NOT undoneCmd.
+                toast(
+                  t('graph.correction.toast.undone', {
+                    summary: undoResult.data?.summary ?? '',
+                  }),
+                  'success',
+                );
+              } else {
+                toast(
+                  undoResult.error?.message ?? t('graph.correction.toast.nothingToUndo'),
+                  'error',
+                );
+              }
+            },
+          },
+        },
+      );
+    },
+    [t],
+  );
+
+  // Phase 49-04 — detach handler with B-1 Two-emit correlation pattern.
+  //
+  // Phase 48's graphCommandService.detach returns ServiceResult<void> (NOT
+  // { anchorId }). It emits a FIRST GRAPH_UPDATED for the detach commit, then
+  // fire-and-forget classifyAndAnchorIncremental emits a SECOND GRAPH_UPDATED
+  // when classify completes. We subscribe AFTER the await resolves and read
+  // the new parentId from questionService on the next GRAPH_UPDATED — that's
+  // the classify-completion signal. 5s timeout fallback silently exits.
+  //
+  // Two-emit correlation pattern (B-1 load-bearing — do not refactor away):
+  //   1. Capture originalParentId from node.parentId BEFORE detach call.
+  //   2. Await graphCommandService.detach (which emits its own GRAPH_UPDATED).
+  //   3. Subscribe to the NEXT GRAPH_UPDATED (the classify-completion emit).
+  //   4. On that emit OR after 5s timeout: re-read questionService and
+  //      determine newParentId. If different from originalParentId → toast
+  //      'detachedNewAnchor' (success). If same → toast 'detachedSameAnchor'
+  //      (info — best-match no-op).
+  //   5. Timeout fallback silently exits: the first GRAPH_UPDATED already
+  //      updated the visible graph; the user sees the result regardless.
+  const handleDetach = useCallback(
+    async (node: Question) => {
+      // B-1: capture original parent BEFORE detach.
+      const originalParentId = node.parentId;
+      const qaTitle = node.title ?? node.content;
+
+      // B-1: Phase 48 detach returns ServiceResult<void> — no data payload.
+      const result = await graphCommandService.detach(node.id);
+      if (!result.success) {
+        toast(result.error?.message ?? t('graph.correction.toast.dropInvalid'), 'error');
+        return;
+      }
+
+      // Two-emit correlation — set up the post-classify variant chooser.
+      let fired = false;
+      const fireVariantToast = () => {
+        if (fired) return;
+        fired = true;
+        // B-2: questionService.getAll returns Question[] directly.
+        const all = questionService.getAll({ includeFlagged: true });
+        const updatedQ = all.find((q) => q.id === node.id);
+        const newParentId = updatedQ?.parentId ?? originalParentId;
+        if (newParentId !== originalParentId) {
+          const newAnchor = all.find((q) => q.id === newParentId);
+          const newAnchorTitle = newAnchor?.title ?? newAnchor?.content ?? '?';
+          toast(
+            t('graph.correction.toast.detachedNewAnchor', { qaTitle, newAnchorTitle }),
+            'success',
+          );
+        } else {
+          const sameAnchor = all.find((q) => q.id === originalParentId);
+          const anchorTitle = sameAnchor?.title ?? sameAnchor?.content ?? '?';
+          toast(
+            t('graph.correction.toast.detachedSameAnchor', { qaTitle, anchorTitle }),
+            'info',
+          );
+        }
+      };
+
+      // The detach commit's GRAPH_UPDATED has already fired before we get
+      // here (it fires synchronously inside the mutex'd detach call before
+      // await resolves). Subscribe NOW; the first emit we observe is the
+      // classify-completion signal.
+      const unsub = eventBus.subscribe('GRAPH_UPDATED', () => {
+        unsub();
+        clearTimeout(timeoutHandle);
+        fireVariantToast();
+      });
+
+      // Timeout fallback: classify took >5s; toast already shown from detach
+      // commit. Skip the post-classify variant. This is the documented
+      // fallback per the B-1 resolution.
+      const timeoutHandle = setTimeout(() => {
+        unsub();
+        // Silent: don't re-toast. The first GRAPH_UPDATED already updated the
+        // visible graph; the user sees the result either way.
+      }, 5000);
+    },
+    [t],
+  );
+
   // Plan 49-02/03/04 — dispatch CorrectionCard action selections. Rename is
   // owned by the card itself (inline graphCommandService.rename). Plan 49-03
   // wired delete via ConfirmDialog. Plan 49-04 wires move/merge via pickMode,
-  // and prune/detach via handlers below.
+  // and prune/detach via handlers above.
   const handleCorrectionAction = useCallback(
     (action: CorrectionAction) => {
       if (!correctionNode) return;
@@ -830,15 +959,21 @@ export function GraphScreen() {
           setCorrectionNode(null);
           return;
         case 'prune':
+          // Phase 49-04 — soft-prune via graphCommandService.prune (D-10).
+          // No modal — immediate commit + Snackbar-with-Undo toast.
+          void handlePrune(node);
+          setCorrectionNode(null);
+          return;
         case 'detach':
-          // Phase 49-04 Task 3 wires graphCommandService.prune + detach with
-          // their respective toast variants. For now, dismiss the card.
-          console.warn(`[Phase 49-04 Task 2] correction action "${action.kind}" wired in Task 3`);
+          // Phase 49-04 — detach via graphCommandService.detach (D-12 / B-1).
+          // Two-emit GRAPH_UPDATED correlation determines re-anchored vs
+          // same-anchor toast variant. Handler defined above.
+          void handleDetach(node);
           setCorrectionNode(null);
           return;
       }
     },
-    [correctionNode],
+    [correctionNode, handlePrune, handleDetach],
   );
 
   // Plan 49-02 — B-4 + CLAUDE.md always-mounted-screen invariant.

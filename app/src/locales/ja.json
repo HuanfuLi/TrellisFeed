@@ -303,7 +303,10 @@
         "rootNotEditable": "ルートノード — 編集不可",
         "branchNotEditable": "ブランチラベル — 直接編集できません",
         "undone": "元に戻しました：{{summary}}",
-        "nothingToUndo": "元に戻す操作はありません"
+        "nothingToUndo": "元に戻す操作はありません",
+        "pruned": "「{{title}}」を剪定しました",
+        "detachedNewAnchor": "「{{qaTitle}}」を「{{newAnchorTitle}}」に再リンクしました",
+        "detachedSameAnchor": "「{{qaTitle}}」は「{{anchorTitle}}」に残ります(最適一致)"
       }
     },
     "anchor": {
