@@ -297,8 +297,8 @@ Build the Capacitor Android (or iOS) app and exercise this checklist on a real d
 
 ## Operator Decisions (filled in after UAT)
 
-- **Prune toast type (W-6):** pending — operator decides at UAT whether to keep `'info'` (current) or switch to `'success'`.
-- **Magnetic snap radius:** pending — current value is 32px; acceptable band 24-48px.
+- **Prune toast type (W-6):** `'info'` (accepted current default) — operator confirmed 2026-05-18 at UAT Test 9. Prune is a soft reversible action; neutral coloring is appropriate. No follow-up needed.
+- **Magnetic snap radius:** untested — UAT Test 1 found the long-press menu fires on finger-release instead of at the 480ms timer tick, AND the canvas pans with the dragged ghost (MindElixir pan/zoom not suppressed during long-press-drag). Snap-radius tuning is gated on fixing the upstream gesture engine + canvas-suppression issues; revisit after that gap-closure plan lands.
 
 ## User Setup Required
 
