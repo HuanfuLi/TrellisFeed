@@ -25,6 +25,7 @@
     "@tailwindcss/vite": "^4.3.0",
     "capacitor-voice-recorder": "^7.0.6",
     "framer-motion": "^12.38.0",
+    "fuse.js": "^7.3.0",
     "i18next": "^26.1.0",
     "katex": "^0.16.44",
     "lucide-react": "^0.575.0",
