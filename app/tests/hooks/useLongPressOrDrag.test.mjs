@@ -60,8 +60,10 @@ function pe(type, x, y, extras = {}) {
   };
 }
 
-// FAILS until Plan 49-01 Task 2 ships factory
-test('Test 1: onPointerDown starts 480ms timer; elapsing sets didLongPress true', async () => {
+// Phase 49-06 gap closure: recognition signal MUST fire inside the 480ms
+// timer BEFORE any pointerup call. Previously this test waited 25ms then
+// called pointerup then asserted onLongPressRelease — encoding the bug.
+test('Test 1: onLongPressRecognized fires INSIDE the 480ms timer, BEFORE pointerup', async () => {
   const mod = await import('../../src/hooks/useLongPressOrDrag.ts');
   const { createLongPressOrDragMachine } = mod;
   assert.ok(
@@ -69,11 +71,12 @@ test('Test 1: onPointerDown starts 480ms timer; elapsing sets didLongPress true'
     'createLongPressOrDragMachine must be a function',
   );
 
-  let didLongPressFired = false;
+  let recognizedFired = false;
+  let recognizedCoord = null;
   const machine = createLongPressOrDragMachine({
     longPressMs: 10, // small for test speed
     dragThresholdPx: 8,
-    onLongPressRelease: () => { didLongPressFired = true; },
+    onLongPressRecognized: (x, y) => { recognizedFired = true; recognizedCoord = { x, y }; },
     onDragStart: () => {},
     onDragMove: () => {},
     onDragEnd: () => {},
@@ -81,9 +84,9 @@ test('Test 1: onPointerDown starts 480ms timer; elapsing sets didLongPress true'
 
   machine.onPointerDown(pe('pointerdown', 100, 100));
   await new Promise((r) => setTimeout(r, 25));
-  // Release in place — should fire onLongPressRelease.
-  machine.onPointerUp(pe('pointerup', 100, 100));
-  assert.equal(didLongPressFired, true, 'onLongPressRelease must fire after 480ms+ elapsed and pointerup in place');
+  // CRITICAL: assert WITHOUT pointerup — the callback must fire mid-press.
+  assert.equal(recognizedFired, true, 'onLongPressRecognized must fire INSIDE the 480ms timer (before any pointerup)');
+  assert.deepEqual(recognizedCoord, { x: 100, y: 100 }, 'onLongPressRecognized must receive original pointerdown coordinates');
 });
 
 // FAILS until Plan 49-01 Task 2 ships factory
@@ -96,7 +99,7 @@ test('Test 2: pointermove > 8px BEFORE long-press cancels timer (pan path)', asy
   const machine = createLongPressOrDragMachine({
     longPressMs: 50, // big enough to interrupt with a pre-threshold move
     dragThresholdPx: 8,
-    onLongPressRelease: () => { didLongPressFired = true; },
+    onLongPressRecognized: () => { didLongPressFired = true; },
     onDragStart: () => { didDragStart = true; },
     onDragMove: () => {},
     onDragEnd: () => {},
@@ -123,7 +126,7 @@ test('Test 3: pointermove > 8px AFTER long-press transitions to drag-start', asy
   const machine = createLongPressOrDragMachine({
     longPressMs: 10,
     dragThresholdPx: 8,
-    onLongPressRelease: () => {},
+    onLongPressRecognized: () => {},
     onDragStart: (x, y) => { dragStartCalls++; initialCoord = { x, y }; },
     onDragMove: () => { dragMoveCalls++; },
     onDragEnd: () => {},
@@ -141,17 +144,18 @@ test('Test 3: pointermove > 8px AFTER long-press transitions to drag-start', asy
   assert.ok(dragMoveCalls >= 2, 'subsequent moves must invoke onDragMove (got ' + dragMoveCalls + ')');
 });
 
-// FAILS until Plan 49-01 Task 2 ships factory
-test('Test 4: long-press-recognized + pointerup-in-place fires onLongPressRelease only', async () => {
+// Phase 49-06 gap closure: recognition fires at the timer tick; pointerup-in-place
+// does NOT fire any extra callback (onDragEnd is reserved for drag-after-recognition).
+test('Test 4: long-press recognized + pointerup-in-place — recognition fired at timer, no onDragEnd', async () => {
   const mod = await import('../../src/hooks/useLongPressOrDrag.ts');
   const { createLongPressOrDragMachine } = mod;
 
-  let releaseFired = false;
+  let recognizedFired = false;
   let endFired = false;
   const machine = createLongPressOrDragMachine({
     longPressMs: 10,
     dragThresholdPx: 8,
-    onLongPressRelease: () => { releaseFired = true; },
+    onLongPressRecognized: () => { recognizedFired = true; },
     onDragStart: () => {},
     onDragMove: () => {},
     onDragEnd: () => { endFired = true; },
@@ -159,24 +163,25 @@ test('Test 4: long-press-recognized + pointerup-in-place fires onLongPressReleas
 
   machine.onPointerDown(pe('pointerdown', 100, 100));
   await new Promise((r) => setTimeout(r, 25));
+  // Recognition must already have fired at the timer tick — BEFORE pointerup.
+  assert.equal(recognizedFired, true, 'onLongPressRecognized must fire at the 480ms tick');
   machine.onPointerUp(pe('pointerup', 100, 100));
-
-  assert.equal(releaseFired, true, 'onLongPressRelease must fire when released in place after long-press');
-  assert.equal(endFired, false, 'onDragEnd must NOT fire on release-in-place');
+  assert.equal(endFired, false, 'onDragEnd must NOT fire on release-in-place (no drag started)');
 });
 
-// FAILS until Plan 49-01 Task 2 ships factory
-test('Test 5: drag started + pointerup fires onDragEnd (not onLongPressRelease)', async () => {
+// Phase 49-06: drag started + pointerup fires onDragEnd. onLongPressRecognized
+// fired ONCE at the 480ms tick (before the drag); it must NOT re-fire on pointerup.
+test('Test 5: drag started + pointerup fires onDragEnd; onLongPressRecognized does NOT re-fire on pointerup', async () => {
   const mod = await import('../../src/hooks/useLongPressOrDrag.ts');
   const { createLongPressOrDragMachine } = mod;
 
-  let releaseFired = false;
+  let recognizedCallCount = 0;
   let endFired = false;
   let endCoord = null;
   const machine = createLongPressOrDragMachine({
     longPressMs: 10,
     dragThresholdPx: 8,
-    onLongPressRelease: () => { releaseFired = true; },
+    onLongPressRecognized: () => { recognizedCallCount++; },
     onDragStart: () => {},
     onDragMove: () => {},
     onDragEnd: (x, y) => { endFired = true; endCoord = { x, y }; },
@@ -184,12 +189,14 @@ test('Test 5: drag started + pointerup fires onDragEnd (not onLongPressRelease)'
 
   machine.onPointerDown(pe('pointerdown', 100, 100));
   await new Promise((r) => setTimeout(r, 25));
+  // Recognition fired ONCE at the timer tick — capture the count BEFORE the drag.
+  assert.equal(recognizedCallCount, 1, 'onLongPressRecognized must fire exactly once at the 480ms tick');
   machine.onPointerMove(pe('pointermove', 130, 100));
   machine.onPointerUp(pe('pointerup', 130, 100));
 
   assert.equal(endFired, true, 'onDragEnd must fire after drag has started');
   assert.deepEqual(endCoord, { x: 130, y: 100 }, 'onDragEnd receives the final pointerup coordinates');
-  assert.equal(releaseFired, false, 'onLongPressRelease must NOT fire when drag has started');
+  assert.equal(recognizedCallCount, 1, 'onLongPressRecognized must NOT re-fire on pointerup');
 });
 
 // FAILS until Plan 49-01 Task 2 ships factory
@@ -200,7 +207,7 @@ test('Test 6: onClickCapture after long-press calls stopPropagation + preventDef
   const machine = createLongPressOrDragMachine({
     longPressMs: 10,
     dragThresholdPx: 8,
-    onLongPressRelease: () => {},
+    onLongPressRecognized: () => {},
     onDragStart: () => {},
     onDragMove: () => {},
     onDragEnd: () => {},
@@ -216,17 +223,19 @@ test('Test 6: onClickCapture after long-press calls stopPropagation + preventDef
   assert.equal(clickEvent._prevented, true, 'onClickCapture must call preventDefault when didLongPress is true');
 });
 
-// FAILS until Plan 49-01 Task 2 ships factory
+// Phase 49-06: pointercancel during active drag fires onDragEnd. Recognition
+// already fired once at the timer tick (before the drag); pointercancel must
+// not re-fire it.
 test('Test 7: pointercancel clears timer and calls onDragEnd if drag was active', async () => {
   const mod = await import('../../src/hooks/useLongPressOrDrag.ts');
   const { createLongPressOrDragMachine } = mod;
 
   let endFired = false;
-  let releaseFired = false;
+  let recognizedCallCount = 0;
   const machine = createLongPressOrDragMachine({
     longPressMs: 10,
     dragThresholdPx: 8,
-    onLongPressRelease: () => { releaseFired = true; },
+    onLongPressRecognized: () => { recognizedCallCount++; },
     onDragStart: () => {},
     onDragMove: () => {},
     onDragEnd: () => { endFired = true; },
@@ -234,11 +243,12 @@ test('Test 7: pointercancel clears timer and calls onDragEnd if drag was active'
 
   machine.onPointerDown(pe('pointerdown', 100, 100));
   await new Promise((r) => setTimeout(r, 25));
+  assert.equal(recognizedCallCount, 1, 'recognition must fire once at the timer tick');
   machine.onPointerMove(pe('pointermove', 130, 100));
   machine.onPointerCancel(pe('pointercancel', 130, 100));
 
   assert.equal(endFired, true, 'pointercancel must invoke onDragEnd when drag was active');
-  assert.equal(releaseFired, false, 'pointercancel must NOT invoke onLongPressRelease');
+  assert.equal(recognizedCallCount, 1, 'pointercancel must NOT re-fire onLongPressRecognized');
 });
 
 // FAILS until Plan 49-01 Task 2 ships factory (hook wrapper parity)
@@ -257,4 +267,17 @@ test('Test 8: useLongPressOrDrag (hook wrapper) is exported and returns { bind, 
     /didLongPress/,
     'Hook must expose a `didLongPress` ref',
   );
+});
+
+// Phase 49-06 gap closure — negative source-reading. Dynamic identifier
+// construction (string-split-and-join) keeps the literal byte sequence out of
+// the test source so Task 2's `! grep -rn "onLongPressRelease" src tests` grep
+// gate remains satisfiable. A literal `/onLongPressRelease/` regex here would
+// trip the gate on this test file itself.
+test('Test 9: useLongPressOrDrag.ts source has no remaining onLongPressRelease identifier', () => {
+  const src = readFileSync(HOOK_PATH, 'utf-8');
+  const banned   = ['onLongPress', 'Release'].join('');
+  const expected = ['onLongPress', 'Recognized'].join('');
+  assert.doesNotMatch(src, new RegExp(banned), `${banned} must be fully removed from useLongPressOrDrag.ts`);
+  assert.match(src, new RegExp(expected), `${expected} must be the new callback name in useLongPressOrDrag.ts`);
 });

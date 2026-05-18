@@ -7,12 +7,18 @@ import { hapticImpactLight } from '../lib/haptics.ts';
  * 480ms long-press recognizer + 8px Euclidean drag-threshold state machine.
  * Three exhaustive gesture outcomes (per CONTEXT D-01):
  *   1. Pointerdown released < 480ms with no drag      → tap (caller's click path)
- *   2. Pointerdown held ≥ 480ms then released in place → onLongPressRelease(x, y)
+ *   2. Pointerdown held ≥ 480ms                       → onLongPressRecognized(x, y) fires INSIDE the timer
+ *      (released in place → no extra callback; drag past threshold → continues to outcome 3)
  *   3. Pointerdown held ≥ 480ms then moved > 8px      → onDragStart + onDragMove* + onDragEnd
  *
  * Two-phase pointermove policy:
  *   - Movement > 8px BEFORE 480ms cancels the timer (pan path — caller's click handler handles tap).
  *   - Movement > 8px AFTER 480ms transitions to drag mode (no cancellation).
+ *
+ * Phase 49-06 gap closure: onLongPressRecognized fires INSIDE the 480ms timer
+ * (matching the feed-tile useLongPress.ts:42-45 convention). The previous
+ * pointerup-driven release callback was removed — the card/menu must appear
+ * while the finger is still down at the 480ms tick.
  *
  * Click suppression: didLongPress flag is preserved through onPointerUp so the
  * synthetic click that follows pointerup can be suppressed in onClickCapture
@@ -34,7 +40,14 @@ import { hapticImpactLight } from '../lib/haptics.ts';
 export interface UseLongPressOrDragOptions {
   longPressMs?: number;
   dragThresholdPx?: number;
-  onLongPressRelease: (x: number, y: number) => void;
+  /**
+   * Phase 49-06 — fires INSIDE the 480ms timer (alongside didLongPress=true +
+   * haptic) BEFORE any pointerup. Matches the feed-tile useLongPress.ts:42-45
+   * convention so the consumer-visible long-press signal is delivered while
+   * the finger is still down. Optional because some consumers may only care
+   * about drag transitions.
+   */
+  onLongPressRecognized?: (x: number, y: number) => void;
   onDragStart: (x: number, y: number) => void;
   onDragMove: (x: number, y: number) => void;
   onDragEnd: (x: number, y: number) => void;
@@ -105,6 +118,14 @@ export function createLongPressOrDragMachine(
       didLongPress = true;
       // Fire-and-forget haptic — wrapper no-ops on web.
       void hapticImpactLight();
+      // Phase 49-06 gap closure: fire the consumer-visible recognition signal
+      // INSIDE the timer (matches useLongPress.ts:42-45). The card/menu must
+      // appear while the finger is still down — operator UAT Test 1 verified
+      // this is the correct mid-press behavior on real touch hardware.
+      const sc = startCoord;
+      if (sc !== null) {
+        opts.onLongPressRecognized?.(sc.x, sc.y);
+      }
     }, longPressMs);
   }
 
@@ -144,10 +165,11 @@ export function createLongPressOrDragMachine(
 
     if (didLongPress && didDrag) {
       opts.onDragEnd(e.clientX, e.clientY);
-    } else if (didLongPress && !didDrag) {
-      opts.onLongPressRelease(e.clientX, e.clientY);
     }
-    // Tap path: do nothing — the caller's click handler already fires.
+    // Phase 49-06: release-in-place after recognition no longer fires an extra
+    // callback — onLongPressRecognized already fired inside the 480ms timer.
+    // Tap path (no recognition, no drag): do nothing — the caller's click
+    // handler already fires.
 
     // Preserve didLongPress through to onClickCapture (the synthetic click
     // that follows pointerup needs to read the flag before it clears).
@@ -230,7 +252,7 @@ export function useLongPressOrDrag(opts: UseLongPressOrDragOptions): {
     machineRef.current = createLongPressOrDragMachine({
       longPressMs: opts.longPressMs,
       dragThresholdPx: opts.dragThresholdPx,
-      onLongPressRelease: (x, y) => optsRef.current.onLongPressRelease(x, y),
+      onLongPressRecognized: (x, y) => optsRef.current.onLongPressRecognized?.(x, y),
       onDragStart: (x, y) => optsRef.current.onDragStart(x, y),
       onDragMove: (x, y) => optsRef.current.onDragMove(x, y),
       onDragEnd: (x, y) => optsRef.current.onDragEnd(x, y),
