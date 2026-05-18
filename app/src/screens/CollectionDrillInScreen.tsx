@@ -89,20 +89,20 @@ function SavedRow({ post, indexInList, onOpen, onLongPress }: SavedRowProps) {
   // Compose bind onto our own pointer handlers so the pressed-state visual
   // stays in sync AND the long-press timer participates per useLongPress
   // contract (RESEARCH §useLongPress + LongPressMenu.tsx host pattern).
-  const handlePointerDown = (e: React.PointerEvent) => {
+  const handlePointerDown = () => {
     setPressed(true);
-    bind.onPointerDown(e);
+    bind.onPointerDown();
   };
-  const handlePointerUp = (e: React.PointerEvent) => {
+  const handlePointerUp = () => {
     setPressed(false);
-    bind.onPointerUp(e);
+    bind.onPointerUp();
   };
-  const handlePointerLeave = (e: React.PointerEvent) => {
+  const handlePointerLeave = () => {
     setPressed(false);
-    bind.onPointerLeave(e);
+    bind.onPointerLeave();
   };
-  const handlePointerMove = (e: React.PointerEvent) => {
-    bind.onPointerMove(e);
+  const handlePointerMove = () => {
+    bind.onPointerMove();
   };
 
   const handleClick = () => {
@@ -201,6 +201,8 @@ function SavedRow({ post, indexInList, onOpen, onLongPress }: SavedRowProps) {
 // ─── Empty state block (UI-SPEC §Surface 6 + Copywriting table) ─────────────
 
 function DrillInEmptyState({ t }: { t: ReturnType<typeof useTranslation>['t'] }) {
+  // See SavedScreen.tsx — cast t to break TS2589 i18next type recursion.
+  const tt = t as (k: string) => string;
   return (
     <div
       style={{
@@ -221,7 +223,7 @@ function DrillInEmptyState({ t }: { t: ReturnType<typeof useTranslation>['t'] })
           margin: 0,
         }}
       >
-        {t('library.collections.drillInEmptyTitle')}
+        {tt('library.collections.drillInEmptyTitle')}
       </p>
       <p
         style={{
@@ -233,7 +235,7 @@ function DrillInEmptyState({ t }: { t: ReturnType<typeof useTranslation>['t'] })
           maxWidth: '280px',
         }}
       >
-        {t('library.collections.drillInEmptyBody')}
+        {tt('library.collections.drillInEmptyBody')}
       </p>
     </div>
   );

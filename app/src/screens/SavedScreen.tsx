@@ -243,6 +243,11 @@ function EmptyState({
   tab: Tab;
   t: ReturnType<typeof useTranslation>['t'];
 }) {
+  // Cast t to a plain key→string function to escape i18next's auto-derived
+  // type recursion (TS2589 — i18n.d.ts typeof en derivation hits the depth
+  // limit when t() is invoked across a conditional). Runtime behavior is
+  // identical. All keys below exist in en.json (bundle-parity test enforces).
+  const tt = t as (k: string) => string;
   const Icon =
     tab === 'saved'
       ? Bookmark
@@ -287,8 +292,7 @@ function EmptyState({
           margin: 0,
         }}
       >
-        {/* The cast is a typed-key narrowing — these keys all exist in en.json. */}
-        {t(titleKey as 'saved.empty.savedTitle')}
+        {tt(titleKey)}
       </p>
       <p
         style={{
@@ -300,7 +304,7 @@ function EmptyState({
           maxWidth: '280px',
         }}
       >
-        {t(bodyKey as 'saved.empty.savedBody')}
+        {tt(bodyKey)}
       </p>
     </div>
   );
@@ -1260,6 +1264,9 @@ function CollectionRow({
   onLongPress,
   t,
 }: CollectionRowProps) {
+  // Cast t to a plain key→string function to escape i18next's auto-derived
+  // type recursion (TS2589 — see EmptyState above for explanation).
+  const tt = t as (k: string, opts?: { count?: number }) => string;
   const [pressed, setPressed] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const didLongPressRef = useRef(false);
@@ -1342,7 +1349,7 @@ function CollectionRow({
           flexShrink: 0,
         }}
       >
-        {t('library.collections.postCount', { count: collection.postIds.length })}
+        {tt('library.collections.postCount', { count: collection.postIds.length })}
       </span>
       <ChevronRight size={18} color="var(--muted-foreground)" style={{ flexShrink: 0 }} />
     </button>

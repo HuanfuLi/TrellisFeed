@@ -5,6 +5,7 @@
     "save": "Guardar",
     "delete": "Eliminar",
     "undo": "Deshacer",
+    "back": "Atrás",
     "greeting": {
       "morning": "Buenos días",
       "afternoon": "Buenas tardes",

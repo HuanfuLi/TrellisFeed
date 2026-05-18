@@ -5,6 +5,7 @@
     "save": "保存",
     "delete": "删除",
     "undo": "撤销",
+    "back": "返回",
     "greeting": {
       "morning": "早上好",
       "afternoon": "下午好",

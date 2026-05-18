@@ -5,6 +5,7 @@
     "save": "保存",
     "delete": "削除",
     "undo": "元に戻す",
+    "back": "戻る",
     "greeting": {
       "morning": "おはようございます",
       "afternoon": "こんにちは",
