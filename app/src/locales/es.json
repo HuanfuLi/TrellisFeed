@@ -256,36 +256,12 @@
       "actions": {
         "rename": "Renombrar",
         "move": "Mover",
-        "merge": "Combinar",
-        "detach": "Separar",
+        "merge": "Combinar con…",
+        "detach": "Reclasificar",
         "prune": "Podar",
         "delete": "Eliminar",
-        "close": "Cerrar",
-        "undo": "Deshacer"
-      },
-      "rename": {
-        "placeholder": "Nuevo título",
-        "save": "Guardar",
-        "cancel": "Cancelar",
-        "empty": "El título no puede estar vacío",
-        "tooLong": "El título no puede superar los 100 caracteres"
-      },
-      "reorgPaused": "Reorganizando — correcciones manuales en pausa",
-      "merge": {
-        "title": "Combinar conceptos",
-        "willBeRemoved": "Se eliminará",
-        "willKeep": "Se conservará",
-        "body": "{{n}} Q&As se moverán de «{{loserTitle}}» a «{{survivorTitle}}». «{{loserTitle}}» se eliminará.",
-        "footer": "Puedes deshacerlo desde el botón de la esquina justo después.",
-        "cancel": "Cancelar",
-        "confirm": "Combinar"
-      },
-      "delete": {
-        "title": "¿Eliminar «{{title}}»?",
-        "bodyWithChildren": "Esto eliminará el ancla. Sus {{count}} Q&As se reasignarán a «{{parentCluster}}».",
-        "bodyEmpty": "Esto eliminará el ancla. Ningún Q&A hijo se ve afectado.",
-        "cancel": "Cancelar",
-        "confirm": "Eliminar"
+        "undo": "Deshacer",
+        "close": "Cerrar"
       },
       "pickMode": {
         "move": "Toca un clúster para mover «{{title}}» dentro",
@@ -293,21 +269,45 @@
         "cancel": "Cancelar",
         "invalidTarget": "Destino no válido"
       },
+      "rename": {
+        "placeholder": "Introduce un nuevo título…",
+        "save": "Guardar",
+        "tooLong": "El título debe tener 100 caracteres o menos",
+        "empty": "El título no puede estar vacío",
+        "cancel": "Cancelar"
+      },
+      "merge": {
+        "title": "¿Combinar anclas?",
+        "willBeRemoved": "Se eliminará",
+        "willKeep": "Se conservará",
+        "body": "Combinar moverá {{n}} Q&As bajo «{{survivorTitle}}» y eliminará el ancla «{{loserTitle}}».",
+        "footer": "Se conservan el título y el clúster del ancla superviviente. Esto se puede deshacer.",
+        "cancel": "Cancelar",
+        "confirm": "Combinar"
+      },
+      "delete": {
+        "title": "¿Eliminar «{{title}}» permanentemente?",
+        "bodyWithChildren": "{{count}} Q&As se reasignarán al clúster «{{parentCluster}}». Esto se puede deshacer dentro de las últimas 10 ediciones del grafo.",
+        "bodyEmpty": "Esta ancla no tiene Q&As. Al eliminarla se quita del mapa.",
+        "cancel": "Cancelar",
+        "confirm": "Eliminar"
+      },
       "toast": {
-        "dropInvalid": "No es un destino válido",
-        "moved": "«{{title}}» movido a «{{target}}»",
         "renamed": "Renombrado como «{{title}}»",
-        "merged": "«{{loserTitle}}» combinado en «{{survivorTitle}}» ({{reparentedCount}} Q&As movidos)",
+        "moved": "«{{title}}» movido a «{{target}}»",
+        "merged": "«{{loserTitle}}» combinado en «{{survivorTitle}}»",
+        "detachedNewAnchor": "«{{qaTitle}}» reasignado a «{{newAnchorTitle}}»",
+        "detachedSameAnchor": "«{{qaTitle}}» permanece en «{{anchorTitle}}» (mejor coincidencia)",
+        "pruned": "«{{title}}» podado",
         "deleted": "«{{title}}» eliminado",
-        "reorgInProgress": "Reorganización en curso — inténtalo de nuevo en un momento",
-        "rootNotEditable": "Nodo raíz — no editable",
-        "branchNotEditable": "Etiqueta de rama — no editable directamente",
         "undone": "Deshecho: {{summary}}",
         "nothingToUndo": "Nada que deshacer",
-        "pruned": "«{{title}}» podado",
-        "detachedNewAnchor": "«{{qaTitle}}» reasignado a «{{newAnchorTitle}}»",
-        "detachedSameAnchor": "«{{qaTitle}}» permanece en «{{anchorTitle}}» (mejor coincidencia)"
-      }
+        "dropInvalid": "No es un destino válido",
+        "reorgInProgress": "Reorganización en curso — inténtalo de nuevo en un momento",
+        "rootNotEditable": "Nodo raíz — no editable",
+        "branchNotEditable": "Renombrar ramas: próximamente"
+      },
+      "reorgPaused": "Reorganizando — correcciones manuales en pausa"
     },
     "anchor": {
       "title": "Ancla de concepto",

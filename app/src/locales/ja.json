@@ -256,36 +256,12 @@
       "actions": {
         "rename": "名前を変更",
         "move": "移動",
-        "merge": "統合",
-        "detach": "切り離す",
+        "merge": "次に統合…",
+        "detach": "再分類",
         "prune": "剪定",
         "delete": "削除",
-        "close": "閉じる",
-        "undo": "元に戻す"
-      },
-      "rename": {
-        "placeholder": "新しいタイトル",
-        "save": "保存",
-        "cancel": "キャンセル",
-        "empty": "タイトルを空にすることはできません",
-        "tooLong": "タイトルは 100 文字以下にしてください"
-      },
-      "reorgPaused": "再編成中 — 手動修正は一時停止中",
-      "merge": {
-        "title": "概念をマージ",
-        "willBeRemoved": "削除されます",
-        "willKeep": "保持されます",
-        "body": "{{n}} 件の Q&A が「{{loserTitle}}」から「{{survivorTitle}}」に移動します。「{{loserTitle}}」は削除されます。",
-        "footer": "直後に隅の「元に戻す」ボタンで取り消せます。",
-        "cancel": "キャンセル",
-        "confirm": "マージ"
-      },
-      "delete": {
-        "title": "「{{title}}」を削除しますか?",
-        "bodyWithChildren": "このアンカーは削除されます。配下の {{count}} 件の Q&A は「{{parentCluster}}」に再配置されます。",
-        "bodyEmpty": "このアンカーは削除されます。子の Q&A への影響はありません。",
-        "cancel": "キャンセル",
-        "confirm": "削除"
+        "undo": "元に戻す",
+        "close": "閉じる"
       },
       "pickMode": {
         "move": "「{{title}}」を移動するクラスターをタップ",
@@ -293,21 +269,45 @@
         "cancel": "キャンセル",
         "invalidTarget": "対象として無効です"
       },
+      "rename": {
+        "placeholder": "新しいタイトルを入力…",
+        "save": "保存",
+        "tooLong": "タイトルは 100 文字以下にしてください",
+        "empty": "タイトルを空にすることはできません",
+        "cancel": "キャンセル"
+      },
+      "merge": {
+        "title": "アンカーを統合しますか?",
+        "willBeRemoved": "削除されます",
+        "willKeep": "保持されます",
+        "body": "統合により {{n}} 件の Q&A が「{{survivorTitle}}」配下に移動し、「{{loserTitle}}」アンカーは削除されます。",
+        "footer": "残るアンカーのタイトルとクラスターは維持されます。この操作は元に戻せます。",
+        "cancel": "キャンセル",
+        "confirm": "統合"
+      },
+      "delete": {
+        "title": "「{{title}}」を完全に削除しますか?",
+        "bodyWithChildren": "{{count}} 件の Q&A はクラスター「{{parentCluster}}」に再配置されます。直近 10 件のグラフ編集内であれば元に戻せます。",
+        "bodyEmpty": "このアンカーには Q&A がありません。削除するとマップから除かれます。",
+        "cancel": "キャンセル",
+        "confirm": "削除"
+      },
       "toast": {
-        "dropInvalid": "ドロップ先として無効です",
-        "moved": "「{{title}}」を「{{target}}」に移動しました",
         "renamed": "「{{title}}」に名前を変更しました",
-        "merged": "「{{loserTitle}}」を「{{survivorTitle}}」にマージしました({{reparentedCount}} 件の Q&A を移動)",
+        "moved": "「{{title}}」を「{{target}}」に移動しました",
+        "merged": "「{{loserTitle}}」を「{{survivorTitle}}」に統合しました",
+        "detachedNewAnchor": "「{{qaTitle}}」を「{{newAnchorTitle}}」に再リンクしました",
+        "detachedSameAnchor": "「{{qaTitle}}」は「{{anchorTitle}}」に残ります(最適一致)",
+        "pruned": "「{{title}}」を剪定しました",
         "deleted": "「{{title}}」を削除しました",
+        "undone": "元に戻しました:{{summary}}",
+        "nothingToUndo": "元に戻す操作はありません",
+        "dropInvalid": "ドロップ先として無効です",
         "reorgInProgress": "再編成中です — 少し時間をおいてから再試行してください",
         "rootNotEditable": "ルートノード — 編集不可",
-        "branchNotEditable": "ブランチラベル — 直接編集できません",
-        "undone": "元に戻しました：{{summary}}",
-        "nothingToUndo": "元に戻す操作はありません",
-        "pruned": "「{{title}}」を剪定しました",
-        "detachedNewAnchor": "「{{qaTitle}}」を「{{newAnchorTitle}}」に再リンクしました",
-        "detachedSameAnchor": "「{{qaTitle}}」は「{{anchorTitle}}」に残ります(最適一致)"
-      }
+        "branchNotEditable": "ブランチの名前変更は近日対応予定"
+      },
+      "reorgPaused": "再編成中 — 手動修正は一時停止中"
     },
     "anchor": {
       "title": "概念アンカー",

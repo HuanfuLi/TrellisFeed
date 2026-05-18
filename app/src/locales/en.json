@@ -256,36 +256,12 @@
       "actions": {
         "rename": "Rename",
         "move": "Move",
-        "merge": "Merge",
-        "detach": "Detach",
+        "merge": "Merge with…",
+        "detach": "Re-classify",
         "prune": "Prune",
         "delete": "Delete",
-        "close": "Close",
-        "undo": "Undo"
-      },
-      "rename": {
-        "placeholder": "New title",
-        "save": "Save",
-        "cancel": "Cancel",
-        "empty": "Title cannot be empty",
-        "tooLong": "Title cannot exceed 100 characters"
-      },
-      "reorgPaused": "Reorganizing — manual corrections paused",
-      "merge": {
-        "title": "Merge concepts",
-        "willBeRemoved": "Will be removed",
-        "willKeep": "Will keep",
-        "body": "{{n}} Q&As will move from \"{{loserTitle}}\" into \"{{survivorTitle}}\". \"{{loserTitle}}\" will be removed.",
-        "footer": "You can undo this from the corner button right after.",
-        "cancel": "Cancel",
-        "confirm": "Merge"
-      },
-      "delete": {
-        "title": "Delete \"{{title}}\"?",
-        "bodyWithChildren": "This will remove the anchor. Its {{count}} Q&As will be re-parented to \"{{parentCluster}}\".",
-        "bodyEmpty": "This will remove the anchor. No child Q&As are affected.",
-        "cancel": "Cancel",
-        "confirm": "Delete"
+        "undo": "Undo",
+        "close": "Close"
       },
       "pickMode": {
         "move": "Tap a cluster to move \"{{title}}\" into it",
@@ -293,21 +269,45 @@
         "cancel": "Cancel",
         "invalidTarget": "Not a valid target"
       },
+      "rename": {
+        "placeholder": "Enter new title…",
+        "save": "Save",
+        "tooLong": "Title must be 100 characters or fewer",
+        "empty": "Title cannot be empty",
+        "cancel": "Cancel"
+      },
+      "merge": {
+        "title": "Merge anchors?",
+        "willBeRemoved": "Will be removed",
+        "willKeep": "Will keep",
+        "body": "Merging will move {{n}} Q&As under \"{{survivorTitle}}\" and remove the \"{{loserTitle}}\" anchor.",
+        "footer": "Survivor's title and cluster are preserved. This can be undone.",
+        "cancel": "Cancel",
+        "confirm": "Merge"
+      },
+      "delete": {
+        "title": "Delete \"{{title}}\" permanently?",
+        "bodyWithChildren": "{{count}} Q&As will be re-parented to the cluster \"{{parentCluster}}\". This can be undone within the last 10 graph edits.",
+        "bodyEmpty": "This anchor has no Q&As. Deleting removes it from the map.",
+        "cancel": "Cancel",
+        "confirm": "Delete"
+      },
       "toast": {
-        "dropInvalid": "Not a valid drop target",
-        "moved": "\"{{title}}\" moved to \"{{target}}\"",
         "renamed": "Renamed to \"{{title}}\"",
-        "merged": "Merged \"{{loserTitle}}\" into \"{{survivorTitle}}\" ({{reparentedCount}} Q&As moved)",
-        "deleted": "Deleted \"{{title}}\"",
-        "reorgInProgress": "Reorganize in progress — try again in a moment",
-        "rootNotEditable": "Root node — not editable",
-        "branchNotEditable": "Branch label — not directly editable",
+        "moved": "\"{{title}}\" moved to \"{{target}}\"",
+        "merged": "Merged \"{{loserTitle}}\" into \"{{survivorTitle}}\"",
+        "detachedNewAnchor": "\"{{qaTitle}}\" re-anchored under \"{{newAnchorTitle}}\"",
+        "detachedSameAnchor": "\"{{qaTitle}}\" stayed under \"{{anchorTitle}}\" (best match)",
+        "pruned": "\"{{title}}\" pruned",
+        "deleted": "\"{{title}}\" deleted",
         "undone": "Undone: {{summary}}",
         "nothingToUndo": "Nothing to undo",
-        "pruned": "\"{{title}}\" pruned",
-        "detachedNewAnchor": "\"{{qaTitle}}\" re-anchored under \"{{newAnchorTitle}}\"",
-        "detachedSameAnchor": "\"{{qaTitle}}\" stayed under \"{{anchorTitle}}\" (best match)"
-      }
+        "dropInvalid": "Not a valid drop target",
+        "reorgInProgress": "Reorganize in progress — try again in a moment",
+        "rootNotEditable": "Root node — not editable",
+        "branchNotEditable": "Branch rename coming soon"
+      },
+      "reorgPaused": "Reorganizing — manual corrections paused"
     },
     "anchor": {
       "title": "Concept Anchor",
