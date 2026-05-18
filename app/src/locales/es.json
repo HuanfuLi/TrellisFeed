@@ -252,6 +252,15 @@
       "reorganizeFailed": "Falló la reorganización",
       "reorganizing": "Reorganizando tu mapa de conocimiento…"
     },
+    "correction": {
+      "toast": {
+        "dropInvalid": "No es un destino válido",
+        "moved": "«{{title}}» movido a «{{target}}»",
+        "reorgInProgress": "Reorganización en curso — inténtalo de nuevo en un momento",
+        "rootNotEditable": "Nodo raíz — no editable",
+        "branchNotEditable": "Etiqueta de rama — no editable directamente"
+      }
+    },
     "anchor": {
       "title": "Ancla de concepto",
       "deleteLabel": "esta ancla y sus preguntas",

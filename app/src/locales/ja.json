@@ -252,6 +252,15 @@
       "reorganizeFailed": "再編成に失敗しました",
       "reorganizing": "知識マップを再編成中…"
     },
+    "correction": {
+      "toast": {
+        "dropInvalid": "ドロップ先として無効です",
+        "moved": "「{{title}}」を「{{target}}」に移動しました",
+        "reorgInProgress": "再編成中です — 少し時間をおいてから再試行してください",
+        "rootNotEditable": "ルートノード — 編集不可",
+        "branchNotEditable": "ブランチラベル — 直接編集できません"
+      }
+    },
     "anchor": {
       "title": "概念アンカー",
       "deleteLabel": "このアンカーとその Q&A",

@@ -8,11 +8,15 @@ import { RefreshCw, GitBranch, X, ChevronRight, FoldVertical, UnfoldVertical } f
 import i18n from '../locales';
 import type { Question } from '../types';
 import { graphService } from '../services/graph.service';
+import { graphCommandService } from '../services/graph-command.service';
 import { toast } from '../lib/toast';
 import { Header, HEADER_HEIGHT } from '../components/ui/Header';
 import { buildAnchorReflectionTree, reorganizeMindmap, isReorgInProgress } from '../services/canonical-knowledge.service';
 import { settingsService } from '../services/settings.service';
 import { eventBus } from '../lib/event-bus';
+import { createLongPressOrDragMachine } from '../hooks/useLongPressOrDrag';
+import { DragOverlay, type DragState, type DropTargetSnapshot } from '../components/graph/DragOverlay';
+import { hapticImpactMedium } from '../lib/haptics';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -196,6 +200,19 @@ interface MasterMapProps {
   nodes: Question[];
   edges: GraphEdge[];
   onNodeClick: (q: Question) => void;
+  // Phase 49-01 — gesture engine callbacks (W-3 LOCKED — factory-driven delegated listener).
+  onLongPressRelease: (
+    node: Question | { kind: 'root' } | { kind: 'branch'; id: string },
+    x: number,
+    y: number,
+  ) => void;
+  onDragStart: (state: DragState, targets: DropTargetSnapshot[]) => void;
+  onDragMove: (x: number, y: number) => void;
+  onDragEnd: (
+    snappedTarget: DropTargetSnapshot | null,
+    sourceNode: Question,
+    nodeMap: Record<string, Question>,
+  ) => void;
 }
 
 function setAllExpanded(node: NodeObj, expanded: boolean): void {
@@ -207,7 +224,16 @@ function setAllExpanded(node: NodeObj, expanded: boolean): void {
   }
 }
 
-function MasterMap({ nodes, edges, onNodeClick, isVisible }: MasterMapProps & { isVisible: boolean }) {
+function MasterMap({
+  nodes,
+  edges,
+  onNodeClick,
+  isVisible,
+  onLongPressRelease,
+  onDragStart,
+  onDragMove,
+  onDragEnd,
+}: MasterMapProps & { isVisible: boolean }) {
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const instanceRef = useRef<MindElixirInstance | null>(null);
@@ -217,6 +243,22 @@ function MasterMap({ nodes, edges, onNodeClick, isVisible }: MasterMapProps & { 
   // Keep a stable ref to the callback so the effect doesn't re-run when it changes
   const onNodeClickRef = useRef(onNodeClick);
   useEffect(() => { onNodeClickRef.current = onNodeClick; }, [onNodeClick]);
+
+  // Phase 49-01 — gesture callbacks captured via refs so the delegated
+  // listener closure always sees the latest GraphScreen state setters
+  // without forcing a heavy MindElixir re-init on callback identity change.
+  const onLongPressReleaseRef = useRef(onLongPressRelease);
+  const onDragStartRef = useRef(onDragStart);
+  const onDragMoveRef = useRef(onDragMove);
+  const onDragEndRef = useRef(onDragEnd);
+  useEffect(() => { onLongPressReleaseRef.current = onLongPressRelease; }, [onLongPressRelease]);
+  useEffect(() => { onDragStartRef.current = onDragStart; }, [onDragStart]);
+  useEffect(() => { onDragMoveRef.current = onDragMove; }, [onDragMove]);
+  useEffect(() => { onDragEndRef.current = onDragEnd; }, [onDragEnd]);
+  // `t` lives in a ref too — same reason. Locale changes shouldn't tear down
+  // MindElixir and rebuild the whole map.
+  const tRef = useRef(t);
+  useEffect(() => { tRef.current = t; }, [t]);
 
   // Node lookup ref — populated synchronously inside the main effect
   const nodeMapRef = useRef<Record<string, Question>>({});
@@ -301,6 +343,149 @@ function MasterMap({ nodes, edges, onNodeClick, isVisible }: MasterMapProps & { 
     };
     containerRef.current.addEventListener('click', handleClick);
 
+    // ─── Phase 49-01 — gesture engine: delegated pointerdown listener ──────────
+    //
+    // Sibling to handleClick. Uses createLongPressOrDragMachine (W-3 LOCKED —
+    // factory, not hook indirection) so the closure can see latest GraphScreen
+    // state via callback refs.
+    //
+    // Critical invariants (RESEARCH §R1):
+    //  - Do NOT stopPropagation() on raw pointerdown — MindElixir's pan still
+    //    needs the pointer until long-press is recognized.
+    //  - setPointerCapture only inside onDragStart (after long-press fires).
+    //  - touchAction: 'none' on the container (existing) + data-no-swipe-nav
+    //    must remain untouched.
+    let activeMachine: ReturnType<typeof createLongPressOrDragMachine> | null = null;
+    let activeSourceNode: Question | null = null;
+    let activeNode: Question | { kind: 'root' } | { kind: 'branch'; id: string } | null = null;
+    let activeSnapshot: DropTargetSnapshot[] = [];
+    let activePointerDownEvent: PointerEvent | null = null;
+
+    const findNodeFromTarget = (
+      target: EventTarget | null,
+    ): Question | { kind: 'root' } | { kind: 'branch'; id: string } | null => {
+      const tpc = (target as HTMLElement | null)?.closest('me-tpc') as
+        | (HTMLElement & { nodeObj?: NodeObj })
+        | null;
+      if (!tpc?.nodeObj) return null;
+      const id = tpc.nodeObj.id;
+      if (id === 'root-knowledge') return { kind: 'root' };
+      if (id.startsWith('branch-')) return { kind: 'branch', id };
+      return nodeMapRef.current[id] ?? null;
+    };
+
+    const handlePointerDown = (pointerdownEvent: PointerEvent) => {
+      // Reorg gate per D-16 — block gesture-start during reorganize.
+      if (isReorgInProgress()) {
+        toast(tRef.current('graph.correction.toast.reorgInProgress'), 'info');
+        return;
+      }
+
+      const node = findNodeFromTarget(pointerdownEvent.target);
+      if (!node) return;
+
+      activeNode = node;
+      activeSourceNode = ('kind' in node) ? null : node;
+      activePointerDownEvent = pointerdownEvent;
+
+      // Snapshot drop targets ONCE at gesture-start (T-49-02 mitigation —
+      // later DOM mutations cannot change the target set mid-drag).
+      const tpcs = Array.from(containerRef.current!.querySelectorAll('me-tpc'));
+      activeSnapshot = tpcs
+        .map((el) => {
+          const obj = (el as HTMLElement & { nodeObj?: NodeObj }).nodeObj;
+          if (!obj || obj.id === 'root-knowledge' || obj.id.startsWith('branch-')) return null;
+          const q = nodeMapRef.current[obj.id];
+          if (!q) return null;
+          const kind: 'cluster' | 'anchor' | 'qa' = q.isClusterNode
+            ? 'cluster'
+            : q.isAnchorNode
+              ? 'anchor'
+              : 'qa';
+          return { id: q.id, kind, rect: el.getBoundingClientRect() };
+        })
+        .filter((x): x is DropTargetSnapshot => x !== null);
+
+      activeMachine = createLongPressOrDragMachine({
+        longPressMs: 480,
+        dragThresholdPx: 8,
+        onLongPressRelease: (x, y) => {
+          if (activeNode === null) return;
+          onLongPressReleaseRef.current(activeNode, x, y);
+        },
+        onDragStart: (x, y) => {
+          if (!activeSourceNode) return; // root/branch can't drag
+          try {
+            (pointerdownEvent.target as Element).setPointerCapture?.(pointerdownEvent.pointerId);
+          } catch {
+            /* ignore — non-Pointer-capture browsers (e.g. tests) */
+          }
+          const originRect = (pointerdownEvent.target as HTMLElement).getBoundingClientRect();
+          const initialDragState: DragState = {
+            sourceNode: activeSourceNode,
+            originRect,
+            ghostRect: { width: 200, height: 44 },
+            pointerX: x,
+            pointerY: y,
+            snappedTargetId: null,
+          };
+          onDragStartRef.current(initialDragState, activeSnapshot);
+        },
+        onDragMove: (x, y) => {
+          onDragMoveRef.current(x, y);
+        },
+        onDragEnd: (x, y) => {
+          if (!activeSourceNode) return;
+          // Recompute snap target at drop-time using the snapshot taken at
+          // gesture-start. Mirrors DragOverlay's snap math (32px Euclidean).
+          const SNAP_PX = 32;
+          let snapped: DropTargetSnapshot | null = null;
+          let bestDist = Number.POSITIVE_INFINITY;
+          for (const tgt of activeSnapshot) {
+            const cx = tgt.rect.x + tgt.rect.width / 2;
+            const cy = tgt.rect.y + tgt.rect.height / 2;
+            const d = Math.hypot(cx - x, cy - y);
+            if (d <= SNAP_PX && d < bestDist) {
+              snapped = tgt;
+              bestDist = d;
+            }
+          }
+          onDragEndRef.current(snapped, activeSourceNode, nodeMapRef.current);
+        },
+      });
+      activeMachine.onPointerDown(pointerdownEvent);
+    };
+
+    const handlePointerMove = (e: PointerEvent) => activeMachine?.onPointerMove(e);
+    const handlePointerUp = (e: PointerEvent) => {
+      activeMachine?.onPointerUp(e);
+      activeMachine = null;
+      activeSourceNode = null;
+      activeNode = null;
+      activeSnapshot = [];
+      activePointerDownEvent = null;
+    };
+    const handlePointerCancel = (e: PointerEvent) => {
+      activeMachine?.onPointerCancel(e);
+      activeMachine = null;
+      activeSourceNode = null;
+      activeNode = null;
+      activeSnapshot = [];
+      activePointerDownEvent = null;
+    };
+    const handleClickCapture = (e: MouseEvent) => {
+      // Click suppression after long-press — see useLongPressOrDrag.onClickCapture.
+      activeMachine?.onClickCapture(e as unknown as PointerEvent);
+    };
+
+    containerRef.current.addEventListener('pointerdown', handlePointerDown);
+    containerRef.current.addEventListener('pointermove', handlePointerMove);
+    containerRef.current.addEventListener('pointerup', handlePointerUp);
+    containerRef.current.addEventListener('pointercancel', handlePointerCancel);
+    // Capture phase so suppression fires before MindElixir's bubbling handler.
+    containerRef.current.addEventListener('click', handleClickCapture, true);
+    void activePointerDownEvent; // referenced inside closures; tsc satisfied
+
     // Fix: On mobile, the library's drag detection sets `moved = true` on
     // ANY pointermove (even 1px), then the click handler bails early before
     // reaching the ME-EPD check. Touch screens nearly always produce micro-
@@ -347,6 +532,14 @@ function MasterMap({ nodes, edges, onNodeClick, isVisible }: MasterMapProps & { 
       container.removeEventListener('click', handleClick);
       container.removeEventListener('touchstart', handleTouchStart);
       container.removeEventListener('touchend', handleTouchEnd);
+      // Phase 49-01 — gesture engine teardown
+      container.removeEventListener('pointerdown', handlePointerDown);
+      container.removeEventListener('pointermove', handlePointerMove);
+      container.removeEventListener('pointerup', handlePointerUp);
+      container.removeEventListener('pointercancel', handlePointerCancel);
+      container.removeEventListener('click', handleClickCapture, true);
+      activeMachine?.reset();
+      activeMachine = null;
       instanceRef.current?.destroy();
       instanceRef.current = null;
       initCompletedRef.current = false;
@@ -465,6 +658,25 @@ export function GraphScreen() {
   const [reorganizing, setReorganizing] = useState(isReorgInProgress);
   const [showReorgConfirm, setShowReorgConfirm] = useState(false);
 
+  // Phase 49-01 — drag-overlay state.
+  const [dragState, setDragState] = useState<DragState | null>(null);
+  const [dropTargets, setDropTargets] = useState<DropTargetSnapshot[]>([]);
+  // Phase 49-01 — Plan 49-03 will read mergeConfirm to mount MergeConfirmPreview.
+  const [mergeConfirm, setMergeConfirm] = useState<{ loser: Question; survivor: Question } | null>(null);
+  // Phase 49-01 stub — Plan 49-02 reconciles to the canonical declaration plus
+  // the action-list card mount.
+  const [correctionNode, setCorrectionNode] = useState<{ node: Question; anchorX: number; anchorY: number } | null>(null);
+  // Silence "declared but never read" for the two Plan-49-02/03 stub states;
+  // these are referenced by downstream plans' tests but not yet rendered.
+  void mergeConfirm;
+  void correctionNode;
+
+  // Keep dragState accessible from the gesture handler closure (which lives
+  // in MasterMap's useEffect). The handler reads via this ref to decide
+  // whether a drop is still valid.
+  const dragStateRef = useRef<DragState | null>(null);
+  useEffect(() => { dragStateRef.current = dragState; }, [dragState]);
+
   const reload = useCallback(() => {
     void graphService.getGraph().then(({ nodes: n, edges: e }) => {
       cachedNodes = n;
@@ -507,6 +719,86 @@ export function GraphScreen() {
     // Fire-and-forget — events handle state updates across navigation
     void reorganizeMindmap(settings.llm);
   }, [t]);
+
+  // ─── Phase 49-01 — gesture callbacks fed to MasterMap ────────────────────────
+
+  const handleLongPressRelease = useCallback(
+    (
+      node: Question | { kind: 'root' } | { kind: 'branch'; id: string },
+      x: number,
+      y: number,
+    ) => {
+      // Root + Branch toast paths per D-15.
+      if ('kind' in node && node.kind === 'root') {
+        toast(t('graph.correction.toast.rootNotEditable'), 'info');
+        return;
+      }
+      if ('kind' in node && node.kind === 'branch') {
+        toast(t('graph.correction.toast.branchNotEditable'), 'info');
+        return;
+      }
+      // Anchor / Cluster / QA-leaf — Plan 49-02 replaces this stub with the
+      // full CorrectionCard mount. For now: dismiss inspector + capture the
+      // selected node so the consumer plan can render the card.
+      setSelectedNode(null);
+      setCorrectionNode({ node: node as Question, anchorX: x, anchorY: y });
+    },
+    [t],
+  );
+
+  const handleDragStart = useCallback(
+    (state: DragState, targets: DropTargetSnapshot[]) => {
+      setDropTargets(targets);
+      setDragState(state);
+    },
+    [],
+  );
+
+  const handleDragMove = useCallback((x: number, y: number) => {
+    setDragState((prev) => (prev ? { ...prev, pointerX: x, pointerY: y } : prev));
+  }, []);
+
+  const handleDragEnd = useCallback(
+    async (
+      snapped: DropTargetSnapshot | null,
+      sourceNode: Question,
+      nodeMap: Record<string, Question>,
+    ) => {
+      if (!snapped) {
+        toast(t('graph.correction.toast.dropInvalid'), 'info');
+        setDragState(null);
+        return;
+      }
+      if (snapped.kind === 'cluster' && sourceNode.isAnchorNode) {
+        void hapticImpactMedium();
+        const result = await graphCommandService.move(sourceNode.id, snapped.id);
+        if (result.success) {
+          toast(
+            t('graph.correction.toast.moved', {
+              title: sourceNode.title ?? sourceNode.content,
+              target: nodeMap[snapped.id]?.title ?? '?',
+            }),
+            'success',
+          );
+        } else {
+          toast(result.error?.message ?? t('graph.correction.toast.dropInvalid'), 'error');
+        }
+        setDragState(null);
+        return;
+      }
+      if (snapped.kind === 'anchor' && sourceNode.isAnchorNode) {
+        void hapticImpactMedium();
+        const survivor = nodeMap[snapped.id];
+        if (survivor) setMergeConfirm({ loser: sourceNode, survivor });
+        setDragState(null);
+        return;
+      }
+      // QA-target or other invalid combo.
+      toast(t('graph.correction.toast.dropInvalid'), 'info');
+      setDragState(null);
+    },
+    [t],
+  );
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -565,7 +857,19 @@ export function GraphScreen() {
         }
       />
 
-      <MasterMap nodes={nodes} edges={edges} onNodeClick={setSelectedNode} isVisible={isVisible} />
+      <MasterMap
+        nodes={nodes}
+        edges={edges}
+        onNodeClick={setSelectedNode}
+        isVisible={isVisible}
+        onLongPressRelease={handleLongPressRelease}
+        onDragStart={handleDragStart}
+        onDragMove={handleDragMove}
+        onDragEnd={handleDragEnd}
+      />
+
+      {/* Phase 49-01 — portaled drag overlay (ghost + origin-line + halo). */}
+      <DragOverlay dragState={dragState} targets={dropTargets} />
 
           {selectedNode && (
             <div
