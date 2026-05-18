@@ -38,8 +38,8 @@ The current `app/src/services/question-filter.service.ts` is a regex pattern lib
 
 ### GRAPHUI — Mind-map correction experience (Phase 49)
 
-- [ ] **GRAPHUI-01** Graph screen exposes local correction controls for selected graph nodes (rename, move, merge, detach, prune/delete) without making MindElixir's internal tree the source of truth.
-- [ ] **GRAPHUI-02** Graph correction UI provides clear preview/confirmation for high-impact actions such as merge, prune/delete, and undo.
+- [x] **GRAPHUI-01** Graph screen exposes local correction controls for selected graph nodes (rename, move, merge, detach, prune/delete) without making MindElixir's internal tree the source of truth.
+- [x] **GRAPHUI-02** Graph correction UI provides clear preview/confirmation for high-impact actions such as merge, prune/delete, and undo.
 - [ ] **GRAPHUI-03** User sees the corrected graph after navigation away, navigation back, or app reload.
 
 ### RETRIEVE — Search, tags, bookmarks, and concept dashboards (Phases 50–51)
@@ -120,8 +120,8 @@ Operator-managed memo for the professor; not tracked as requirements:
 | GRAPH-02 | Phase 48 | Validated (2026-05-17) |
 | GRAPH-03 | Phase 48 | Validated (2026-05-17) |
 | GRAPH-04 | Phase 48 | Validated (2026-05-17) |
-| GRAPHUI-01 | Phase 49 | Pending |
-| GRAPHUI-02 | Phase 49 | Pending |
+| GRAPHUI-01 | Phase 49 | Done (Plan 49-01/02) |
+| GRAPHUI-02 | Phase 49 | Done (Plan 49-03/04) |
 | GRAPHUI-03 | Phase 49 | Pending |
 | RETRIEVE-01 | Phase 50 | Pending |
 | RETRIEVE-02 | Phase 50 | Pending |

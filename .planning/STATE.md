@@ -4,14 +4,14 @@ milestone: v1.6
 milestone_name: milestone
 status: phase_49_in_progress
 stopped_at: Phase 50 UI-SPEC approved
-last_updated: "2026-05-18T05:08:57.745Z"
-last_activity: "2026-05-18 — Plan 49-03 shipped sequentially after Plans 49-01/02. ConfirmDialog reusable component + MergeConfirmPreview side-by-side preview (B-3 both-counts-as-props) + extended toast() with optional action button + GraphScreen wired with THREE ConfirmDialog mounts (migrated reorganize, drag-driven merge, destructive delete). B-2 fix applied at both merge + delete derivation sites (questionService.getAll({ includeFlagged: true }) BEFORE modal opens). B-3 fix applied at merge (uses result.data.reparentedCount), delete (no boolean param), and MergeConfirmPreview (counts as required props, no internal service call). W-1 honored — zero pickMode references in this plan's GraphScreen.tsx. 14 new i18n keys × 4 locale bundles. 19/19 tests pass; tsc clean modulo pre-existing SavedScreen.tsx errors (logged to deferred-items.md per Scope Boundary); npm test:main 1056 pass / 9 fail (all 9 are Plan 49-04/05 scaffolds + 1 pre-existing date flake — ZERO regression). 5/5 Phase 49 plans planned; 3/5 executed; 2/5 remain (49-04 + 49-05)."
+last_updated: "2026-05-18T05:02:42Z"
+last_activity: "2026-05-18 — Plan 49-04 shipped sequentially after Plans 49-01/02/03. UndoButton (36px circular at right:56px; GRAPH_UPDATED subscriber; B-5 result.data.summary; D-16 reorganizing disable) + PickModeBanner (in-tree below Header; Escape-key cancel; role=status + aria-live=polite) + GraphScreen pickMode state machine with W-2 originalAnchorX/Y preservation (no window-center fallback) + handlePrune soft-prune snackbar with [Undo] action (W-6 toast type 'info' acceptable; flag for operator UAT) + handleDetach B-1 Two-emit GRAPH_UPDATED correlation (captures originalParentId before detach call; subscribes to next emit; 5s timeout fallback; questionService.getAll({ includeFlagged: true }) re-read; detachedNewAnchor vs detachedSameAnchor variants). 9 new i18n keys × 4 locale bundles = 36 new entries. 50/50 plan-specific tests pass; 110/110 Phase 49 regression pass; tsc clean modulo pre-existing SavedScreen.tsx errors; npm test:main 1092 pass / 2 fail (date flake + Plan 49-05 harness scaffold — ZERO Plan 49-04 regressions; 7 Wave-0 scaffolds turned GREEN). All four B-1/B-5/W-2 enforcement greps pass. 4/5 Phase 49 plans complete; 1/5 remains (49-05 i18n + UAT)."
 progress:
   total_phases: 7
   completed_phases: 2
   total_plans: 15
-  completed_plans: 13
-  percent: 29
+  completed_plans: 14
+  percent: 31
 ---
 
 # Project State: v1.6 ROADMAP OVERHAULED — 2026-05-15
@@ -61,8 +61,8 @@ Plus the earlier 2026-05-15 corrections (during the same session, before the ful
 ## Current Position
 
 Phase: 49 of 53 — **EXECUTING** (2 of 7 phases complete + Phase 49 in progress) — Graph Correction UI
-Next: /gsd:execute-phase 49-04 (Wave 2 — UndoButton + PickModeBanner + soft-prune Snackbar + detach toast)
-Last activity: 2026-05-18 — Plan 49-03 shipped sequentially after Plans 49-01/02. ConfirmDialog reusable component + MergeConfirmPreview side-by-side preview (B-3 both-counts-as-props) + extended toast() with optional action button + GraphScreen wired with THREE ConfirmDialog mounts (migrated reorganize, drag-driven merge, destructive delete). B-2 fix applied at both merge + delete derivation sites (questionService.getAll({ includeFlagged: true }) BEFORE modal opens). B-3 fix applied at merge (uses result.data.reparentedCount), delete (no boolean param), and MergeConfirmPreview (counts as required props, no internal service call). W-1 honored — zero pickMode references in this plan's GraphScreen.tsx. 14 new i18n keys × 4 locale bundles. 19/19 tests pass; tsc clean modulo pre-existing SavedScreen.tsx errors (logged to deferred-items.md per Scope Boundary); npm test:main 1056 pass / 9 fail (all 9 are Plan 49-04/05 scaffolds + 1 pre-existing date flake — ZERO regression). 5/5 Phase 49 plans planned; 3/5 executed; 2/5 remain (49-04 + 49-05).
+Next: /gsd:execute-phase 49-05 (Wave 3 — i18n Sonnet reconciliation + reload-survival harness + Phase 49 UAT)
+Last activity: 2026-05-18 — Plan 49-04 shipped sequentially after Plans 49-01/02/03. UndoButton (36px circular at right:56px; GRAPH_UPDATED subscriber; B-5 result.data.summary; D-16 reorganizing disable) + PickModeBanner (in-tree below Header; Escape-key cancel; role=status + aria-live=polite) + GraphScreen pickMode state machine with W-2 originalAnchorX/Y preservation (no window-center fallback) + handlePrune soft-prune snackbar with [Undo] action (W-6 toast type 'info' acceptable; flag for operator UAT) + handleDetach B-1 Two-emit GRAPH_UPDATED correlation (captures originalParentId before detach call; subscribes to next emit; 5s timeout fallback; questionService.getAll({ includeFlagged: true }) re-read; detachedNewAnchor vs detachedSameAnchor variants). 9 new i18n keys × 4 locale bundles = 36 new entries. 50/50 plan-specific tests pass; 110/110 Phase 49 regression pass; tsc clean modulo pre-existing SavedScreen.tsx errors; npm test:main 1092 pass / 2 fail (date flake + Plan 49-05 harness scaffold — ZERO Plan 49-04 regressions; 7 Wave-0 scaffolds turned GREEN). All four B-1/B-5/W-2 enforcement greps pass. 4/5 Phase 49 plans complete; 1/5 remains (49-05 i18n + UAT).
 Prior: Phase 48 (Graph Command Service) COMPLETE. Verifier 16/16 must-haves verified. GRAPH-01..04 validated. Service surface committed contract for Phase 49.
 
 Progress: 2 / 7 phases complete (Phase 49 in progress)
