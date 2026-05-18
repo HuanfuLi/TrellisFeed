@@ -66,4 +66,13 @@ export const questionService = {
     eventBus.emit({ type: 'GRAPH_UPDATED' });
     return { success: true };
   },
+
+  // Plan 48-04 — single permitted exception used ONLY by
+  // graphCommandService.undo() to resurrect a hard-deleted record from the
+  // journal's full pre-image. Mirrors the real questionService.restoreDeleted
+  // shape (sync write-through via saveStore, no separate emit — undo's
+  // command-boundary emit covers the GRAPH_UPDATED).
+  restoreDeleted(question) {
+    _store = [..._store, question];
+  },
 };
