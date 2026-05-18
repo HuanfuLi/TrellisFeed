@@ -616,4 +616,31 @@ export const questionService = {
       persistToSQLite(store[idx]);
     }
   },
+
+  /**
+   * Used ONLY by graphCommandService.undo() to resurrect a hard-deleted
+   * record (from a `delete` or `merge` journal entry's full pre-image).
+   * Writes through the standard saveStore cycle (single localStorage path);
+   * fires the SQLite write-through.
+   *
+   * Do NOT call from any other path. The journal owns the pre-image; this
+   * is the single permitted exception to the "no direct writes outside
+   * questionService" rule, mirrored by undo()'s isValidPreImage gate which
+   * runs BEFORE this method is invoked.
+   *
+   * Idempotent w.r.t. duplicate inserts: if a record with the same id
+   * already exists, the existing entry is replaced (the resurrected record
+   * is the journal's pre-image, which is the canonical pre-delete state).
+   */
+  restoreDeleted(question: Question): void {
+    const store = loadStore({ includeFlagged: true });
+    const idx = store.findIndex((q) => q.id === question.id);
+    if (idx === -1) {
+      store.push(question);
+    } else {
+      store[idx] = question;
+    }
+    saveStore(store);
+    persistToSQLite(question);
+  },
 };

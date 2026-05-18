@@ -433,18 +433,7 @@ test('rename writes one journal entry with cmd="rename", targetIds=[id], before 
   assert.deepEqual(entry.before.embeddingVector, oldVec, 'before snapshot must include OLD vector for undo');
 });
 
-// ════════════════════════════════════════════════════════════════════════
-// Behavioral test — stubs return NOT_IMPLEMENTED (Plans 03/04 will fill in)
-// ════════════════════════════════════════════════════════════════════════
-
-test('stub: undo() returns NOT_IMPLEMENTED (Plan 04 will fill this in)', async () => {
-  await resetAll();
-  await freshImports();
-  const { graphCommandService } = await import('../../src/services/graph-command.service.ts');
-
-  // merge/detach/prune are no longer stubs after Plan 48-03 — only undo
-  // remains stubbed; Plan 48-04 implements it.
-  const u = await graphCommandService.undo();
-  assert.equal(u.success, false);
-  assert.equal(u.error.code, 'NOT_IMPLEMENTED');
-});
+// Note (Plan 48-04 trim): the previous "stubs: undo returns NOT_IMPLEMENTED"
+// test was removed when Plan 48-04 implemented undo. All seven verbs are
+// now live; their per-verb coverage lives in the sibling test files
+// (graph-command-service.{rename,move,merge,detach,prune,delete,undo}.test.mjs).

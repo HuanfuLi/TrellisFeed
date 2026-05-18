@@ -28,7 +28,8 @@
 
 import type { Question, ServiceResult } from '../types/index.ts';
 import { questionService } from './question.service.ts';
-import { graphEditJournal } from './graph-edit-journal.service.ts';
+import { graphEditJournal, isValidPreImage } from './graph-edit-journal.service.ts';
+import { phraseJournalEntry } from './graph-edit-journal-phrasing.ts';
 import { eventBus } from '../lib/event-bus.ts';
 import { settingsService } from './settings.service.ts';
 import { embedText } from '../providers/embedding/index.ts';
@@ -882,9 +883,347 @@ export const graphCommandService = {
     return result;
   },
 
-  // ─── Plan 48-04 stub ─────────────────────────────────────────────────────
+  // ─── Plan 48-04 — undo (inverse-verb-with-swapped-snapshots) ───────────
 
-  async undo(): Promise<ServiceResult<{ undoneCmd: string; targetIds: string[]; summary: string }>> {
-    return fail<{ undoneCmd: string; targetIds: string[]; summary: string }>('NOT_IMPLEMENTED', 'See Plan 48-04.', false);
+  /**
+   * Pop the newest journal entry and apply its inverse mutation. Then
+   * append a NEW journal entry with the SAME cmd as the popped entry and
+   * SWAPPED before/after — the inverse-verb-with-swapped-snapshots strategy
+   * (RESEARCH Summary point 6; Blocker #3 fix).
+   *
+   * Why no synthetic 'undo' cmd literal: the journal's cmd union is the
+   * six real verbs only. Repeated undo cycles the store between two
+   * states; each undo grows the journal by one entry of the same cmd as
+   * its predecessor. Example: rename A→B → undo → undo applies B→A then
+   * A→B; journal grows from [rename A→B] to [rename A→B, rename B→A] to
+   * [rename A→B, rename B→A, rename A→B]. The N=10 cap evicts oldest
+   * naturally; no special "undo of undo" branch exists or could exist
+   * (TypeScript exhaustive-check on the cmd union forbids it).
+   *
+   * Error paths:
+   *   - Empty journal → NOT_FOUND.
+   *   - Tampered pre-image (isValidPreImage(entry.before) === false) →
+   *     VALIDATION_ERROR (T-48-01 mitigation). The popped entry is NOT
+   *     re-pushed; corruption is fatal-to-that-entry.
+   *   - Popped entry references a node that no longer exists (e.g.,
+   *     reorg deleted the anchor between the original command and the
+   *     undo) → NOT_FOUND ("Original record no longer exists.") per
+   *     R10 risk 4. Popped entry is NOT re-pushed (acceptance — once
+   *     popped, gone).
+   *
+   * Event bus: emits ONE typed GRAPH_UPDATED with `payload.kind: 'undo'`
+   * from the command boundary. This is the Phase 49 toast discriminator —
+   * SEPARATE from the journal's cmd field. Plans 49 subscribers can
+   * dispatch on `payload.kind === 'undo'` to render "Undid X" without
+   * needing to inspect the journal's literal cmd.
+   *
+   * delete + merge undo resurrection uses `questionService.restoreDeleted`
+   * — the SECOND permitted exception to the "no direct writes outside
+   * questionService" rule (the FIRST being questionService.patchQuestion
+   * itself, which all other commands use). The journal owns the full
+   * pre-image, so restoring is a single round-trip that
+   * questionService.restoreDeleted brokers via the standard saveStore path.
+   */
+  async undo(): Promise<ServiceResult<{ undoneCmd: 'rename' | 'move' | 'merge' | 'detach' | 'prune' | 'delete'; targetIds: string[]; summary: string }>> {
+    type UndoData = { undoneCmd: 'rename' | 'move' | 'merge' | 'detach' | 'prune' | 'delete'; targetIds: string[]; summary: string };
+    let result: ServiceResult<UndoData> = fail<UndoData>('NOT_FOUND', 'Nothing to undo.', false);
+
+    await _mutex.run(async () => {
+      // Peek the newest entry via list() rather than popNewest() — the
+      // append-only invariant (D-06) requires the ORIGINAL entry to remain
+      // in the journal so the reorg-prompt projection sees the user's full
+      // edit history. The inverse-verb append below grows the journal by
+      // 1 per undo, not by 0 (consume) or by -1 (replace).
+      //
+      // popNewest() is used ONLY on failure paths below (tampered
+      // pre-image or vanished target) where the entry is fatal-to-keep
+      // and must be physically removed (R10 risk 4 acceptance — once
+      // popped, gone).
+      const entries = graphEditJournal.list();
+      if (entries.length === 0) {
+        result = fail<UndoData>('NOT_FOUND', 'Nothing to undo.', false);
+        return;
+      }
+      const entry = entries[entries.length - 1];
+
+      // T-48-01 mitigation — reject tampered pre-image. Pop the corrupted
+      // entry off the journal so subsequent undo() pops the next-newest.
+      if (!isValidPreImage(entry.before)) {
+        graphEditJournal.popNewest();
+        result = fail<UndoData>('VALIDATION_ERROR', 'Journal entry corrupted.', false);
+        return;
+      }
+
+      const store = questionService.getAll({ includeFlagged: true });
+      const before = entry.before as Record<string, unknown>;
+
+      switch (entry.cmd) {
+        case 'rename': {
+          const targetId = entry.targetIds[0];
+          const target = store.find((q) => q.id === targetId);
+          if (!target) {
+            // R10 risk 4 — original record gone (reorg, etc.). Pop the
+            // entry physically so it stays gone (the test "undo-after-reorg
+            // edge" asserts the next undo returns NOT_FOUND on an empty
+            // journal).
+            graphEditJournal.popNewest();
+            result = fail<UndoData>('NOT_FOUND', 'Original record no longer exists.', false);
+            return;
+          }
+          const patch: Partial<Question> = {
+            title: before.title as string | undefined,
+            content: before.content as string | undefined,
+            summary: before.summary as string | undefined,
+          };
+          if (before.embeddingVector !== undefined) {
+            patch.embeddingVector = before.embeddingVector as number[];
+          }
+          questionService.patchQuestion(targetId, patch);
+          break;
+        }
+
+        case 'move': {
+          const targetId = entry.targetIds[0];
+          const target = store.find((q) => q.id === targetId);
+          if (!target) {
+            // R10 risk 4 — pop the entry physically so it stays gone.
+            graphEditJournal.popNewest();
+            result = fail<UndoData>('NOT_FOUND', 'Original record no longer exists.', false);
+            return;
+          }
+          const oldParentId = before.parentId as string | undefined;
+          const newParentId = (entry.after as Record<string, unknown>).parentId as string | undefined;
+          // Restore the target's placement to the pre-move state.
+          questionService.patchQuestion(targetId, {
+            parentId: oldParentId,
+            clusterNodeId: before.clusterNodeId as string | undefined,
+            branchLabel: before.branchLabel as string | undefined,
+            clusterLabel: before.clusterLabel as string | undefined,
+            placementReason: before.placementReason as string | undefined,
+          });
+          // Recompute qaCount + nodeSummary on OLD and NEW parents (the
+          // forward move incremented new + decremented old; the inverse
+          // decrements new + increments old). Mirror move's side-effect
+          // logic but in reverse — these are deterministic recomputes per
+          // R2, not stored in the journal.
+          if (newParentId) {
+            const newParent = store.find((q) => q.id === newParentId);
+            if (newParent) {
+              const decrementedQa = Math.max(0, (newParent.qaCount ?? 1) - 1);
+              const newParentPatch: Partial<Question> = { qaCount: decrementedQa };
+              if (newParent.isAnchorNode && newParent.nodeSummary) {
+                const filtered = newParent.nodeSummary
+                  .split('\n')
+                  .filter((line) => !line.startsWith(`[${targetId}]`))
+                  .join('\n');
+                newParentPatch.nodeSummary = filtered;
+              }
+              questionService.patchQuestion(newParentId, newParentPatch);
+            }
+          }
+          if (oldParentId) {
+            const oldParent = store.find((q) => q.id === oldParentId);
+            if (oldParent) {
+              const incrementedQa = (oldParent.qaCount ?? 0) + 1;
+              const oldParentPatch: Partial<Question> = { qaCount: incrementedQa };
+              if (oldParent.isAnchorNode) {
+                const lineText = target.shortSummary ?? (target.content ? target.content.slice(0, 80) : '');
+                const line = `[${targetId}] ${lineText}`;
+                oldParentPatch.nodeSummary = oldParent.nodeSummary
+                  ? `${oldParent.nodeSummary}\n${line}`
+                  : line;
+              }
+              questionService.patchQuestion(oldParentId, oldParentPatch);
+            }
+          }
+          break;
+        }
+
+        case 'merge': {
+          // Resurrection — re-insert the loser with its ORIGINAL ID via
+          // restoreDeleted; reparent each child in before.reparentedChildren
+          // back to its OLD parent (the loser). Restore survivor's pre-merge
+          // qaCount + embeddingVector + nodeSummary.
+          //
+          // undo() is the SECOND permitted exception to the "no direct writes" rule; the journal owns the full pre-image, so restoring is a single round-trip that question.service.restoreDeleted brokers via the standard saveStore path.
+          const loser = before.loser as Question | undefined;
+          if (!loser) {
+            // Pre-image malformed — pop the entry physically (mirrors the
+            // tampered-pre-image VALIDATION_ERROR branch above).
+            graphEditJournal.popNewest();
+            result = fail<UndoData>('VALIDATION_ERROR', 'merge journal entry missing loser pre-image.', false);
+            return;
+          }
+          questionService.restoreDeleted(loser);
+
+          const reparented = (before.reparentedChildren as Array<{
+            id: string;
+            parentId?: string;
+            clusterNodeId?: string;
+            branchLabel?: string;
+            clusterLabel?: string;
+          }> | undefined) ?? [];
+          for (const child of reparented) {
+            questionService.patchQuestion(child.id, {
+              parentId: child.parentId,
+              clusterNodeId: child.clusterNodeId,
+              branchLabel: child.branchLabel,
+              clusterLabel: child.clusterLabel,
+            });
+          }
+
+          const survivorId = entry.targetIds[1];
+          const survivorBefore = before.survivor as {
+            qaCount?: number;
+            embeddingVector?: number[];
+            nodeSummary?: string;
+          } | undefined;
+          if (survivorId && survivorBefore) {
+            questionService.patchQuestion(survivorId, {
+              qaCount: survivorBefore.qaCount,
+              embeddingVector: survivorBefore.embeddingVector,
+              nodeSummary: survivorBefore.nodeSummary,
+            });
+          }
+          break;
+        }
+
+        case 'detach': {
+          const targetId = entry.targetIds[0];
+          const target = store.find((q) => q.id === targetId);
+          if (!target) {
+            // R10 risk 4 — pop the entry physically so it stays gone.
+            graphEditJournal.popNewest();
+            result = fail<UndoData>('NOT_FOUND', 'Original record no longer exists.', false);
+            return;
+          }
+          // D-13 inline note — undo restores placement AND SKIPS
+          // re-classification. The fire-and-forget classifyAndAnchorIncremental
+          // from the original detach already ran (or aborted); we do NOT
+          // re-fire it here.
+          const oldParentId = before.parentId as string | undefined;
+          questionService.patchQuestion(targetId, {
+            parentId: oldParentId,
+            branchLabel: before.branchLabel as string | undefined,
+            clusterLabel: before.clusterLabel as string | undefined,
+            clusterNodeId: before.clusterNodeId as string | undefined,
+            nodeSummary: before.nodeSummary as string | undefined,
+            placementReason: before.placementReason as string | undefined,
+          });
+          // Restore old parent's qaCount + nodeSummary line (mirror move's
+          // old-parent restoration). Forward detach decremented + stripped;
+          // inverse increments + re-appends.
+          if (oldParentId) {
+            const oldParent = store.find((q) => q.id === oldParentId);
+            if (oldParent) {
+              const incrementedQa = (oldParent.qaCount ?? 0) + 1;
+              const oldParentPatch: Partial<Question> = { qaCount: incrementedQa };
+              if (oldParent.isAnchorNode) {
+                const lineText = target.shortSummary ?? (target.content ? target.content.slice(0, 80) : '');
+                const line = `[${targetId}] ${lineText}`;
+                oldParentPatch.nodeSummary = oldParent.nodeSummary
+                  ? `${oldParent.nodeSummary}\n${line}`
+                  : line;
+              }
+              questionService.patchQuestion(oldParentId, oldParentPatch);
+            }
+          }
+          break;
+        }
+
+        case 'prune': {
+          // Delegate to trellisActionsService.unpruneQuestion (R6 — preserve
+          // the existing emit chain). It flips flagged + prunedFromTrellis
+          // back to false and emits GRAPH_UPDATED itself; our command-boundary
+          // emit below adds the typed payload.kind === 'undo'.
+          const targetId = entry.targetIds[0];
+          const target = store.find((q) => q.id === targetId);
+          if (!target) {
+            // R10 risk 4 — pop the entry physically so it stays gone.
+            graphEditJournal.popNewest();
+            result = fail<UndoData>('NOT_FOUND', 'Original record no longer exists.', false);
+            return;
+          }
+          trellisActionsService.unpruneQuestion(targetId);
+          break;
+        }
+
+        case 'delete': {
+          // Resurrection — re-insert the full deleted record + revert each
+          // child's placement to OLD values per the journal's reparentedChildren.
+          //
+          // undo() is the SECOND permitted exception to the "no direct writes" rule; the journal owns the full pre-image, so restoring is a single round-trip that question.service.restoreDeleted brokers via the standard saveStore path.
+          const deletedRecord = before.deletedRecord as Question | undefined;
+          if (!deletedRecord) {
+            // Pre-image malformed — pop the entry physically.
+            graphEditJournal.popNewest();
+            result = fail<UndoData>('VALIDATION_ERROR', 'delete journal entry missing deletedRecord pre-image.', false);
+            return;
+          }
+          questionService.restoreDeleted(deletedRecord);
+
+          const reparented = (before.reparentedChildren as Array<{
+            id: string;
+            parentId?: string;
+            clusterNodeId?: string;
+            branchLabel?: string;
+            clusterLabel?: string;
+          }> | undefined) ?? [];
+          for (const child of reparented) {
+            questionService.patchQuestion(child.id, {
+              parentId: child.parentId,
+              clusterNodeId: child.clusterNodeId,
+              branchLabel: child.branchLabel,
+              clusterLabel: child.clusterLabel,
+            });
+          }
+          break;
+        }
+
+        default: {
+          // Exhaustiveness — the journal's cmd union has exactly six verbs.
+          // TypeScript flags this if a new verb is added without a case.
+          const _exhaustive: never = entry.cmd;
+          void _exhaustive;
+          // Unknown cmd is unreachable for legitimate journal entries — only
+          // hand-tampered storage could land here. Pop the entry physically.
+          graphEditJournal.popNewest();
+          result = fail<UndoData>('VALIDATION_ERROR', `Unknown cmd ${String(entry.cmd)}.`, false);
+          return;
+        }
+      }
+
+      // Inverse-verb-with-swapped-snapshots per RESEARCH Summary point 6. The journal cmd union is the six real verbs; undo writes the inverse direction as another entry of the same cmd. Repeated undo naturally re-applies via the same mechanism — no synthetic 'undo' cmd, no special "undo of undo" branch.
+      graphEditJournal.append({
+        cmd: entry.cmd,           // SAME as the popped entry — never 'undo'
+        targetIds: entry.targetIds,
+        before: entry.after,      // SWAPPED
+        after: entry.before,      // SWAPPED
+      });
+
+      // Event-bus signal: kind: 'undo' is the Phase 49 toast discriminator,
+      // SEPARATE from the journal cmd field. Subscribers dispatch on this
+      // kind to render "Undid X" without inspecting the journal.
+      eventBus.emit({
+        type: 'GRAPH_UPDATED',
+        payload: {
+          kind: 'undo',
+          anchorId: entry.targetIds[0],
+          affectedIds: entry.targetIds,
+        },
+      });
+
+      const summary = `Undid: ${phraseJournalEntry(entry)}`;
+      result = {
+        success: true,
+        data: {
+          undoneCmd: entry.cmd,
+          targetIds: entry.targetIds,
+          summary,
+        },
+      };
+    });
+
+    return result;
   },
 };
