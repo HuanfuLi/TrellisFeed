@@ -20,7 +20,7 @@ There is **no foundation phase**. The prior agent's FOUND-01..05 scaffolding (cr
 - Decimal phases (47.1, 47.2): Urgent insertions, if needed
 
 - [x] **Phase 47: Filter Redesign — Off-Topic + Malicious Prompt Prevention** — Replace regex-based classifier; pre-LLM gate (block malicious from request); structural injection bracketing at provider boundary; held-out eval set; per-question override.
-- [ ] **Phase 48: Graph Command Service and Trust Invariants** — Validated graph correction commands, undo metadata, manual locks, stale-write protection.
+- [x] **Phase 48: Graph Command Service and Trust Invariants** — Validated graph correction commands, undo metadata, manual locks, stale-write protection. (Completed 2026-05-17)
 - [ ] **Phase 49: Graph Correction UI** — Selected-node correction controls in GraphScreen; preview/confirm for high-impact actions; durability across reload.
 - [ ] **Phase 50: Retrieval and Library Foundation** — Bounded archive search; local-first tags/bookmarks.
 - [ ] **Phase 51: Concept Dashboard and Recovery Surfaces** — Per-concept dashboard joining Q&A, archive, review, podcast, tag, weak/due signals.

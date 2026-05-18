@@ -31,10 +31,10 @@ The current `app/src/services/question-filter.service.ts` is a regex pattern lib
 
 ### GRAPH — Correctable knowledge graph data layer (Phase 48)
 
-- [ ] **GRAPH-01** Graph corrections run through a dedicated service boundary that validates commands, patches all affected `Question` records, writes durable state, records undo metadata, and emits graph update events.
-- [ ] **GRAPH-02** User can rename anchors/clusters and move/reassign anchors or Q&As while preserving parent IDs, labels, cluster IDs, counts, summaries, review links, and retrieval identity.
-- [ ] **GRAPH-03** User can merge duplicate anchors, detach misplaced Q&As, prune/delete graph nodes, and undo the last graph correction without losing source Q&A content.
-- [ ] **GRAPH-04** Manual graph corrections are protected from stale in-flight classification or global reorganization commits through structural revision or manual-lock metadata.
+- [x] **GRAPH-01** Graph corrections run through a dedicated service boundary that validates commands, patches all affected `Question` records, writes durable state, records undo metadata, and emits graph update events.
+- [x] **GRAPH-02** User can rename anchors/clusters and move/reassign anchors or Q&As while preserving parent IDs, labels, cluster IDs, counts, summaries, review links, and retrieval identity.
+- [x] **GRAPH-03** User can merge duplicate anchors, detach misplaced Q&As, prune/delete graph nodes, and undo the last graph correction without losing source Q&A content.
+- [x] **GRAPH-04** Manual graph corrections are protected from stale in-flight classification or global reorganization commits through structural revision or manual-lock metadata.
 
 ### GRAPHUI — Mind-map correction experience (Phase 49)
 
@@ -116,10 +116,10 @@ Operator-managed memo for the professor; not tracked as requirements:
 | FILTER-03 | Phase 47 | Pending |
 | FILTER-04 | Phase 47 | Pending |
 | FILTER-05 | Phase 47 | Pending |
-| GRAPH-01 | Phase 48 | Pending |
-| GRAPH-02 | Phase 48 | Pending |
-| GRAPH-03 | Phase 48 | Pending |
-| GRAPH-04 | Phase 48 | Pending |
+| GRAPH-01 | Phase 48 | Validated (2026-05-17) |
+| GRAPH-02 | Phase 48 | Validated (2026-05-17) |
+| GRAPH-03 | Phase 48 | Validated (2026-05-17) |
+| GRAPH-04 | Phase 48 | Validated (2026-05-17) |
 | GRAPHUI-01 | Phase 49 | Pending |
 | GRAPHUI-02 | Phase 49 | Pending |
 | GRAPHUI-03 | Phase 49 | Pending |
