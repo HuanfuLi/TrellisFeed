@@ -163,10 +163,165 @@ export const graphCommandService = {
 
   /**
    * Move an anchor under a new cluster, or a QA under a new anchor.
-   * Plan 48-02 Task 2 fills this in.
+   *
+   * Validation:
+   *   - Target + newParent must exist; targetId !== newParentId; newParent
+   *     must NOT be in target's descendant subtree (cycle prevention via BFS).
+   *   - If `target.parentId === newParentId`, returns success no-op
+   *     (R10 risk 12 — no journal write, no emit).
+   *
+   * For anchor moves: patches target with parentId/clusterNodeId/branchLabel/
+   * clusterLabel inherited from the new cluster + a placementReason.
+   *
+   * For QA moves: same field set, inherited from the new anchor (which itself
+   * has been placed under a cluster).
+   *
+   * Side effects (NOT stored in journal per R2 — recomputed deterministically
+   * on undo by walking children):
+   *   - OLD parent qaCount decrements by 1 (clamped at 0).
+   *   - OLD anchor nodeSummary has `[targetId] ...` line stripped.
+   *   - NEW parent qaCount increments by 1.
+   *   - NEW anchor nodeSummary appends `[targetId] <shortSummary or content.slice(0,80)>`.
+   *
+   * Emits ONE typed GRAPH_UPDATED with payload.kind === 'move' from the
+   * command boundary on success (D-17). affectedIds includes the target,
+   * the new parent, and the old parent (when defined).
    */
-  async move(_id: string, _newParentId: string, _opts?: { signal?: AbortSignal }): Promise<ServiceResult<void>> {
-    return fail('NOT_IMPLEMENTED', 'move() is implemented in Plan 48-02 Task 2.', false);
+  async move(id: string, newParentId: string, _opts?: { signal?: AbortSignal }): Promise<ServiceResult<void>> {
+    // Validate id !== newParentId OUTSIDE the mutex — pure check.
+    if (id === newParentId) {
+      return fail('VALIDATION_ERROR', 'A node cannot be its own parent.', false);
+    }
+
+    let result: ServiceResult<void> = { success: true };
+    await _mutex.run(async () => {
+      const store = questionService.getAll({ includeFlagged: true });
+      const target = store.find((q) => q.id === id);
+      if (!target) {
+        result = fail('NOT_FOUND', `Question ${id} not found.`, false);
+        return;
+      }
+      const newParent = store.find((q) => q.id === newParentId);
+      if (!newParent) {
+        result = fail('NOT_FOUND', `New parent ${newParentId} not found.`, false);
+        return;
+      }
+
+      // R10 risk 12 — same-parent no-op. No journal, no emit.
+      if (target.parentId === newParentId) {
+        result = { success: true };
+        return;
+      }
+
+      // Cycle prevention: newParent must NOT be a descendant of target.
+      // BFS from target.id over children-by-parentId. If we encounter
+      // newParentId, the move would create a cycle.
+      const descendants = new Set<string>();
+      const queue: string[] = [id];
+      while (queue.length > 0) {
+        const current = queue.shift()!;
+        for (const q of store) {
+          if (q.parentId === current && !descendants.has(q.id)) {
+            descendants.add(q.id);
+            queue.push(q.id);
+          }
+        }
+      }
+      if (descendants.has(newParentId)) {
+        result = fail('VALIDATION_ERROR', `Cannot move ${id} under its own descendant ${newParentId} — would create a cycle.`, false);
+        return;
+      }
+
+      // Snapshot pre-image for journal (compact placement fields per R2).
+      const before = {
+        parentId: target.parentId,
+        clusterNodeId: target.clusterNodeId,
+        branchLabel: target.branchLabel,
+        clusterLabel: target.clusterLabel,
+        placementReason: target.placementReason,
+      };
+
+      // Build new placement based on whether target is an anchor or QA.
+      // Anchor move → inherits from cluster (clusterNodeId = newParent.id since
+      // newParent IS the cluster). QA move → inherits from anchor (clusterNodeId
+      // = newParent.clusterNodeId — the anchor's own cluster).
+      const isAnchorMove = target.isAnchorNode === true;
+      const newPatch: Partial<Question> = isAnchorMove
+        ? {
+            parentId: newParent.id,
+            clusterNodeId: newParent.id,
+            branchLabel: newParent.branchLabel,
+            clusterLabel: newParent.clusterLabel ?? newParent.title,
+            placementReason: `Manually moved under ${newParent.branchLabel ?? '?'} > ${newParent.title ?? newParent.id}`,
+          }
+        : {
+            parentId: newParent.id,
+            clusterNodeId: newParent.clusterNodeId,
+            branchLabel: newParent.branchLabel,
+            clusterLabel: newParent.clusterLabel,
+            placementReason: `Manually moved under ${newParent.branchLabel ?? '?'} > ${newParent.clusterLabel ?? '?'} > ${newParent.title ?? newParent.id}`,
+          };
+
+      questionService.patchQuestion(id, newPatch);
+
+      // ── OLD parent side effects ──
+      const oldParentId = target.parentId;
+      if (oldParentId) {
+        const oldParent = store.find((q) => q.id === oldParentId);
+        if (oldParent) {
+          const newOldQaCount = Math.max(0, (oldParent.qaCount ?? 1) - 1);
+          const oldPatch: Partial<Question> = { qaCount: newOldQaCount };
+          if (oldParent.isAnchorNode && oldParent.nodeSummary) {
+            // Strip the `[id] ...` line for the moved child.
+            const filtered = oldParent.nodeSummary
+              .split('\n')
+              .filter((line) => !line.startsWith(`[${id}]`))
+              .join('\n');
+            oldPatch.nodeSummary = filtered;
+          }
+          questionService.patchQuestion(oldParentId, oldPatch);
+        }
+      }
+
+      // ── NEW parent side effects ──
+      const newParentQaCount = (newParent.qaCount ?? 0) + 1;
+      const newParentPatch: Partial<Question> = { qaCount: newParentQaCount };
+      if (newParent.isAnchorNode) {
+        // Warning #3 verified — `shortSummary?: string` exists on Question.
+        const lineText = target.shortSummary ?? (target.content ? target.content.slice(0, 80) : '');
+        const line = `[${id}] ${lineText}`;
+        newParentPatch.nodeSummary = newParent.nodeSummary
+          ? `${newParent.nodeSummary}\n${line}`
+          : line;
+      }
+      questionService.patchQuestion(newParentId, newParentPatch);
+
+      // Journal — compact diff per R2. Side effects on old/new parents are
+      // recomputed deterministically on undo by walking children.
+      const after = {
+        parentId: newPatch.parentId,
+        clusterNodeId: newPatch.clusterNodeId,
+        branchLabel: newPatch.branchLabel,
+        clusterLabel: newPatch.clusterLabel,
+        placementReason: newPatch.placementReason,
+      };
+      graphEditJournal.append({
+        cmd: 'move',
+        targetIds: [id],
+        before,
+        after,
+      });
+
+      // D-17 — single typed emit from command boundary.
+      const affectedIds = [id, newParentId, ...(oldParentId ? [oldParentId] : [])];
+      eventBus.emit({
+        type: 'GRAPH_UPDATED',
+        payload: { kind: 'move', anchorId: id, affectedIds },
+      });
+
+      result = { success: true };
+    });
+    return result;
   },
 
   /**
