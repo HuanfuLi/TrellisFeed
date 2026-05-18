@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: milestone
 status: phase_49_in_progress
-stopped_at: Phase 50 context gathered
-last_updated: "2026-05-18T04:31:35.942Z"
-last_activity: "2026-05-18 — Plan 49-02 shipped sequentially on top of Plan 49-01. CorrectionCard built with per-node-type matrix (cluster=4, anchor=5, QA-leaf=2, orphan/flagged=[]) + inline Rename sub-flow via graphCommandService.rename + reorg-paused state. GraphScreen wired with useLocation explicit import (B-4 fix), always-mounted reset effect, B-6 silent-return guard. 18/18 source-reading + behavioral tests green; tsc -b --noEmit green; npm test:main 1032 pass / 16 fail (all pre-existing Wave-0 scaffolds owned by 49-03/04/05 + 1 documented date-related flake — ZERO regression). 5/5 plans in Phase 49 are planned; 2/5 executed; 3/5 remain."
+stopped_at: Plan 49-03 complete
+last_updated: "2026-05-18T04:43:01Z"
+last_activity: "2026-05-18 — Plan 49-03 shipped sequentially after Plans 49-01/02. ConfirmDialog reusable component extracted from GraphScreen's inline reorganize-modal (zIndex 300 + destructive variant + children slot). MergeConfirmPreview side-by-side loser/survivor preview with B-3 both-counts-as-props fix. Extended toast() signature with optional 3rd-arg action button (5000ms dismiss when action present, 3000ms otherwise; Test 11 walks src/ to confirm backward compatibility). GraphScreen wired with THREE ConfirmDialog mounts: migrated reorganize (byte-stable visual), drag-driven merge (pre-derives both qa-counts via questionService.getAll({ includeFlagged: true }) BEFORE modal — B-2 fix), destructive delete (no boolean param per B-3, always-cascades per D-09). 14 new i18n keys × 4 locale bundles (Rule 3 — bundle-parity). 19 new tests pass (6 ConfirmDialog + 5 Toast.action + 6 MergeConfirmPreview + 7 GraphScreen.delete-confirm — Tests 1-13 all green); npm test:main 1056 pass / 9 fail (down from 16; all 9 remaining are Plan 49-04/05 scaffolds + 1 pre-existing date flake — ZERO regression). 5/5 Phase 49 plans planned; 3/5 executed; 2/5 remain."
 progress:
   total_phases: 7
   completed_phases: 2
   total_plans: 15
-  completed_plans: 12
-  percent: 29
+  completed_plans: 13
+  percent: 32
 ---
 
 # Project State: v1.6 ROADMAP OVERHAULED — 2026-05-15
@@ -61,14 +61,14 @@ Plus the earlier 2026-05-15 corrections (during the same session, before the ful
 ## Current Position
 
 Phase: 49 of 53 — **EXECUTING** (2 of 7 phases complete + Phase 49 in progress) — Graph Correction UI
-Next: /gsd:execute-phase 49-03 (Wave 2 — ConfirmDialog + Merge/Delete + extended Toast)
-Last activity: 2026-05-18 — Plan 49-02 shipped sequentially on top of Plan 49-01. CorrectionCard built with per-node-type matrix (cluster=4, anchor=5, QA-leaf=2, orphan/flagged=[]) + inline Rename sub-flow via graphCommandService.rename + reorg-paused state. GraphScreen wired with useLocation explicit import (B-4 fix), always-mounted reset effect, B-6 silent-return guard. 18/18 source-reading + behavioral tests green; tsc -b --noEmit green; npm test:main 1032 pass / 16 fail (all pre-existing Wave-0 scaffolds owned by 49-03/04/05 + 1 documented date-related flake — ZERO regression). 5/5 plans in Phase 49 are planned; 2/5 executed; 3/5 remain.
+Next: /gsd:execute-phase 49-04 (Wave 2 — UndoButton + PickModeBanner + soft-prune Snackbar + detach toast)
+Last activity: 2026-05-18 — Plan 49-03 shipped sequentially after Plans 49-01/02. ConfirmDialog reusable component + MergeConfirmPreview side-by-side preview (B-3 both-counts-as-props) + extended toast() with optional action button + GraphScreen wired with THREE ConfirmDialog mounts (migrated reorganize, drag-driven merge, destructive delete). B-2 fix applied at both merge + delete derivation sites (questionService.getAll({ includeFlagged: true }) BEFORE modal opens). B-3 fix applied at merge (uses result.data.reparentedCount), delete (no boolean param), and MergeConfirmPreview (counts as required props, no internal service call). W-1 honored — zero pickMode references in this plan's GraphScreen.tsx. 14 new i18n keys × 4 locale bundles. 19/19 tests pass; tsc clean modulo pre-existing SavedScreen.tsx errors (logged to deferred-items.md per Scope Boundary); npm test:main 1056 pass / 9 fail (all 9 are Plan 49-04/05 scaffolds + 1 pre-existing date flake — ZERO regression). 5/5 Phase 49 plans planned; 3/5 executed; 2/5 remain (49-04 + 49-05).
 Prior: Phase 48 (Graph Command Service) COMPLETE. Verifier 16/16 must-haves verified. GRAPH-01..04 validated. Service surface committed contract for Phase 49.
 
 Progress: 2 / 7 phases complete (Phase 49 in progress)
 
 ```
-[##############------------------------------------] 28%
+[################----------------------------------] 32%
 ```
 
 ## Milestone Shape
