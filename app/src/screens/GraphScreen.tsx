@@ -17,6 +17,9 @@ import { eventBus } from '../lib/event-bus';
 import { createLongPressOrDragMachine } from '../hooks/useLongPressOrDrag';
 import { DragOverlay, type DragState, type DropTargetSnapshot } from '../components/graph/DragOverlay';
 import { CorrectionCard, getActionsForNode, type CorrectionAction } from '../components/graph/CorrectionCard';
+import { ConfirmDialog } from '../components/ui/ConfirmDialog';
+import { MergeConfirmPreview } from '../components/graph/MergeConfirmPreview';
+import { questionService } from '../services/question.service';
 import { hapticImpactMedium } from '../lib/haptics';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -663,12 +666,12 @@ export function GraphScreen() {
   // Phase 49-01 — drag-overlay state.
   const [dragState, setDragState] = useState<DragState | null>(null);
   const [dropTargets, setDropTargets] = useState<DropTargetSnapshot[]>([]);
-  // Phase 49-01 — Plan 49-03 will read mergeConfirm to mount MergeConfirmPreview.
+  // Phase 49-01 — mergeConfirm state (Plan 49-03 now mounts MergeConfirmPreview).
   const [mergeConfirm, setMergeConfirm] = useState<{ loser: Question; survivor: Question } | null>(null);
+  // Phase 49-03 — delete confirm state. Anchor-targeted; cluster delete is out of scope per D-09.
+  const [deleteConfirm, setDeleteConfirm] = useState<{ node: Question } | null>(null);
   // Phase 49-02 — captured long-press release coordinates feed CorrectionCard placement.
   const [correctionNode, setCorrectionNode] = useState<{ node: Question; anchorX: number; anchorY: number } | null>(null);
-  // Silence "declared but never read" for the Plan-49-03 stub state.
-  void mergeConfirm;
 
   // Keep dragState accessible from the gesture handler closure (which lives
   // in MasterMap's useEffect). The handler reads via this ref to decide
@@ -753,27 +756,39 @@ export function GraphScreen() {
 
   // Plan 49-02 — dispatch CorrectionCard action selections. Rename is owned
   // by the card itself (inline graphCommandService.rename); other branches
-  // are stubbed here and filled in by Plans 49-03 + 49-04.
+  // are filled in incrementally by Plans 49-03 + 49-04.
   const handleCorrectionAction = useCallback(
     (action: CorrectionAction) => {
+      // Get the node from the currently mounted correctionNode before clearing it.
+      const node = correctionNode?.node;
       switch (action.kind) {
         case 'rename':
           // Inline rename — CorrectionCard already committed via graphCommandService.rename
           // and called onClose. Nothing to do here.
           return;
-        case 'move':
+        case 'delete':
+          // Phase 49-03 — open the destructive ConfirmDialog. Always cascades
+          // (no boolean param per Phase 48 D-07 + Phase 49 D-09).
+          if (node) setDeleteConfirm({ node });
+          setCorrectionNode(null);
+          return;
         case 'merge':
+          // W-1 — menu-driven merge entry lands in Plan 49-04. The drag-driven
+          // path already populates mergeConfirm via handleDragEnd. Here we log
+          // + dismiss; Plan 49-04 replaces this with the pick-mode entry.
+          console.warn('[Phase 49-03] menu-driven merge pending Plan 49-04');
+          setCorrectionNode(null);
+          return;
+        case 'move':
         case 'prune':
         case 'detach':
-        case 'delete':
-          // Stubs — Plans 49-03 (delete + merge confirm) and 49-04 (move/merge
-          // pickMode, prune snackbar, detach toast) replace these.
-          console.warn(`[Phase 49-02] correction action "${action.kind}" pending Plans 49-03/04`);
+          // Plan 49-04 stubs — move pick entry, prune snackbar, detach toast.
+          console.warn(`[Phase 49-03] correction action "${action.kind}" pending Plan 49-04`);
           setCorrectionNode(null);
           return;
       }
     },
-    [],
+    [correctionNode],
   );
 
   // Plan 49-02 — B-4 + CLAUDE.md always-mounted-screen invariant.
@@ -783,7 +798,7 @@ export function GraphScreen() {
     if (location.pathname !== '/graph') {
       setCorrectionNode(null);
       setDragState(null);
-      // pickMode reset is added in Plan 49-04 alongside pickMode declaration.
+      // The reset for Plan 49-04's pick-mode state is added alongside its declaration.
     }
   }, [location.pathname]);
 
@@ -847,25 +862,114 @@ export function GraphScreen() {
 
   return (
     <div ref={containerRef} style={{ paddingTop: `${HEADER_HEIGHT + 8}px`, paddingLeft: '16px', paddingRight: '16px', paddingBottom: 'var(--bottom-nav-safe)', maxWidth: '448px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      {/* Reorganize confirmation dialog */}
-      {showReorgConfirm && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 300, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
-          <div style={{ backgroundColor: 'var(--surface)', borderRadius: 'var(--radius-xl)', padding: '24px', width: '100%', maxWidth: '340px', boxShadow: 'var(--shadow-3)' }}>
-            <p style={{ fontWeight: 700, fontSize: '1.05rem', marginBottom: '6px' }}>{t('graph.reorganizeModal.title')}</p>
-            <p style={{ fontSize: '0.85rem', color: 'var(--muted-foreground)', marginBottom: '16px', lineHeight: 1.5 }}>
-              {t('graph.reorganizeModal.description')}
-            </p>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button onClick={() => setShowReorgConfirm(false)} style={{ flex: 1, padding: '10px', borderRadius: '100px', border: '1px solid var(--border)', backgroundColor: 'transparent', color: 'var(--muted-foreground)', fontSize: '0.875rem', cursor: 'pointer' }}>
-                {t('graph.reorganizeModal.cancel')}
-              </button>
-              <button onClick={handleReorganize} style={{ flex: 1, padding: '10px', borderRadius: '100px', backgroundColor: 'var(--primary-40)', color: 'white', fontWeight: 600, fontSize: '0.875rem', border: 'none', cursor: 'pointer' }}>
-                {t('graph.reorganizeModal.confirm')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Reorganize confirmation dialog — Phase 49-03 migrated from inline modal to <ConfirmDialog>. */}
+      <ConfirmDialog
+        open={showReorgConfirm}
+        title={t('graph.reorganizeModal.title')}
+        body={t('graph.reorganizeModal.description')}
+        confirmLabel={t('graph.reorganizeModal.confirm')}
+        cancelLabel={t('graph.reorganizeModal.cancel')}
+        onConfirm={handleReorganize}
+        onCancel={() => setShowReorgConfirm(false)}
+      />
+
+      {/* Phase 49-03 — Merge confirm (drag-driven path; menu-driven entry lands in Plan 49-04).
+          B-2 + B-3: pre-derive BOTH counts via questionService.getAll({ includeFlagged: true })
+          BEFORE rendering the modal so the preview shows accurate snapshots. */}
+      {mergeConfirm && (() => {
+        const all = questionService.getAll({ includeFlagged: true });
+        const loserQaCount = all.filter((q) => q.parentId === mergeConfirm.loser.id).length;
+        const survivorQaCount = all.filter((q) => q.parentId === mergeConfirm.survivor.id).length;
+        const loserCluster = all.find((q) => q.id === mergeConfirm.loser.parentId);
+        const survivorCluster = all.find((q) => q.id === mergeConfirm.survivor.parentId);
+        return (
+          <ConfirmDialog
+            open={true}
+            title={t('graph.correction.merge.title')}
+            confirmLabel={t('graph.correction.merge.confirm')}
+            cancelLabel={t('graph.correction.merge.cancel')}
+            destructive={false}
+            onConfirm={async () => {
+              const result = await graphCommandService.merge(mergeConfirm.loser.id, mergeConfirm.survivor.id);
+              if (result.success) {
+                toast(
+                  t('graph.correction.toast.merged', {
+                    loserTitle: mergeConfirm.loser.title ?? mergeConfirm.loser.content,
+                    survivorTitle: mergeConfirm.survivor.title ?? mergeConfirm.survivor.content,
+                    // B-3 — use service-reported count for post-merge accuracy (may differ
+                    // from the UI-derived loserQaCount if a concurrent edit slipped through).
+                    // result.data is guaranteed non-null on the success branch but typed
+                    // as optional (ServiceResult is not a discriminated union); fall back
+                    // to loserQaCount which matches the pre-merge derivation.
+                    reparentedCount: result.data?.reparentedCount ?? loserQaCount,
+                  }),
+                  'success',
+                );
+                setMergeConfirm(null);
+              } else {
+                toast(result.error?.message ?? t('graph.correction.toast.dropInvalid'), 'error');
+                // Keep modal open so the user can cancel or retry.
+              }
+            }}
+            onCancel={() => setMergeConfirm(null)}
+          >
+            <MergeConfirmPreview
+              loser={mergeConfirm.loser}
+              survivor={mergeConfirm.survivor}
+              loserQaCount={loserQaCount}
+              survivorQaCount={survivorQaCount}
+              loserClusterTitle={loserCluster?.title ?? loserCluster?.content ?? t('graph.anchor.clusterFallback')}
+              survivorClusterTitle={survivorCluster?.title ?? survivorCluster?.content ?? t('graph.anchor.clusterFallback')}
+            />
+          </ConfirmDialog>
+        );
+      })()}
+
+      {/* Phase 49-03 — Delete confirm. B-2: questionService.getAll({ includeFlagged: true })
+          returns Question[] directly (no ServiceResult unwrap). B-3: ALWAYS cascades — no
+          boolean param. Modal only EXPLAINS cascade per D-09 — no cascade-choice radio. */}
+      {deleteConfirm && (() => {
+        const all = questionService.getAll({ includeFlagged: true });
+        const qaChildCount = all.filter((q) => q.parentId === deleteConfirm.node.id).length;
+        const parentCluster = all.find((q) => q.id === deleteConfirm.node.parentId);
+        const parentClusterTitle =
+          parentCluster?.title ?? parentCluster?.content ?? t('graph.anchor.clusterFallback');
+        const body =
+          qaChildCount > 0
+            ? t('graph.correction.delete.bodyWithChildren', {
+                count: qaChildCount,
+                parentCluster: parentClusterTitle,
+              })
+            : t('graph.correction.delete.bodyEmpty');
+        return (
+          <ConfirmDialog
+            open={true}
+            title={t('graph.correction.delete.title', {
+              title: deleteConfirm.node.title ?? deleteConfirm.node.content,
+            })}
+            body={body}
+            confirmLabel={t('graph.correction.delete.confirm')}
+            cancelLabel={t('graph.correction.delete.cancel')}
+            destructive={true}
+            onConfirm={async () => {
+              // B-3 — graphCommandService.delete takes NO boolean param. Always cascades.
+              const result = await graphCommandService.delete(deleteConfirm.node.id);
+              if (result.success) {
+                toast(
+                  t('graph.correction.toast.deleted', {
+                    title: deleteConfirm.node.title ?? deleteConfirm.node.content,
+                  }),
+                  'success',
+                );
+                setDeleteConfirm(null);
+              } else {
+                toast(result.error?.message ?? t('graph.correction.toast.dropInvalid'), 'error');
+              }
+            }}
+            onCancel={() => setDeleteConfirm(null)}
+          />
+        );
+      })()}
 
       <Header
         title={t('graph.headerTitle')}

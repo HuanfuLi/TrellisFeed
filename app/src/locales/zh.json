@@ -270,10 +270,28 @@
         "tooLong": "名称不能超过 100 个字符"
       },
       "reorgPaused": "正在重组 — 手动修正已暂停",
+      "merge": {
+        "title": "合并概念",
+        "willBeRemoved": "将被移除",
+        "willKeep": "将保留",
+        "body": "{{n}} 个问答将从 “{{loserTitle}}” 移入 “{{survivorTitle}}”。“{{loserTitle}}” 将被移除。",
+        "footer": "之后可通过角落的撤销按钮还原。",
+        "cancel": "取消",
+        "confirm": "合并"
+      },
+      "delete": {
+        "title": "删除 “{{title}}”?",
+        "bodyWithChildren": "此操作将移除该锚点。其 {{count}} 个问答将被重新归入 “{{parentCluster}}”。",
+        "bodyEmpty": "此操作将移除该锚点。没有受影响的子问答。",
+        "cancel": "取消",
+        "confirm": "删除"
+      },
       "toast": {
         "dropInvalid": "不是有效的放置目标",
         "moved": "已将 “{{title}}” 移到 “{{target}}”",
         "renamed": "已重命名为 “{{title}}”",
+        "merged": "已将 “{{loserTitle}}” 合并到 “{{survivorTitle}}”({{reparentedCount}} 个问答已转移)",
+        "deleted": "已删除 “{{title}}”",
         "reorgInProgress": "重组进行中 — 请稍后再试",
         "rootNotEditable": "根节点 — 不可编辑",
         "branchNotEditable": "分支标签 — 不可直接编辑"

@@ -270,10 +270,28 @@
         "tooLong": "タイトルは 100 文字以下にしてください"
       },
       "reorgPaused": "再編成中 — 手動修正は一時停止中",
+      "merge": {
+        "title": "概念をマージ",
+        "willBeRemoved": "削除されます",
+        "willKeep": "保持されます",
+        "body": "{{n}} 件の Q&A が「{{loserTitle}}」から「{{survivorTitle}}」に移動します。「{{loserTitle}}」は削除されます。",
+        "footer": "直後に隅の「元に戻す」ボタンで取り消せます。",
+        "cancel": "キャンセル",
+        "confirm": "マージ"
+      },
+      "delete": {
+        "title": "「{{title}}」を削除しますか?",
+        "bodyWithChildren": "このアンカーは削除されます。配下の {{count}} 件の Q&A は「{{parentCluster}}」に再配置されます。",
+        "bodyEmpty": "このアンカーは削除されます。子の Q&A への影響はありません。",
+        "cancel": "キャンセル",
+        "confirm": "削除"
+      },
       "toast": {
         "dropInvalid": "ドロップ先として無効です",
         "moved": "「{{title}}」を「{{target}}」に移動しました",
         "renamed": "「{{title}}」に名前を変更しました",
+        "merged": "「{{loserTitle}}」を「{{survivorTitle}}」にマージしました({{reparentedCount}} 件の Q&A を移動)",
+        "deleted": "「{{title}}」を削除しました",
         "reorgInProgress": "再編成中です — 少し時間をおいてから再試行してください",
         "rootNotEditable": "ルートノード — 編集不可",
         "branchNotEditable": "ブランチラベル — 直接編集できません"

@@ -270,10 +270,28 @@
         "tooLong": "Title cannot exceed 100 characters"
       },
       "reorgPaused": "Reorganizing — manual corrections paused",
+      "merge": {
+        "title": "Merge concepts",
+        "willBeRemoved": "Will be removed",
+        "willKeep": "Will keep",
+        "body": "{{n}} Q&As will move from \"{{loserTitle}}\" into \"{{survivorTitle}}\". \"{{loserTitle}}\" will be removed.",
+        "footer": "You can undo this from the corner button right after.",
+        "cancel": "Cancel",
+        "confirm": "Merge"
+      },
+      "delete": {
+        "title": "Delete \"{{title}}\"?",
+        "bodyWithChildren": "This will remove the anchor. Its {{count}} Q&As will be re-parented to \"{{parentCluster}}\".",
+        "bodyEmpty": "This will remove the anchor. No child Q&As are affected.",
+        "cancel": "Cancel",
+        "confirm": "Delete"
+      },
       "toast": {
         "dropInvalid": "Not a valid drop target",
         "moved": "\"{{title}}\" moved to \"{{target}}\"",
         "renamed": "Renamed to \"{{title}}\"",
+        "merged": "Merged \"{{loserTitle}}\" into \"{{survivorTitle}}\" ({{reparentedCount}} Q&As moved)",
+        "deleted": "Deleted \"{{title}}\"",
         "reorgInProgress": "Reorganize in progress — try again in a moment",
         "rootNotEditable": "Root node — not editable",
         "branchNotEditable": "Branch label — not directly editable"
