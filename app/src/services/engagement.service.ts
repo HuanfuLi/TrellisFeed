@@ -26,6 +26,7 @@
 import type { DailyPost } from '../types/index.ts';
 import { eventBus } from '../lib/event-bus.ts';
 import { postHistoryService } from './post-history.service.ts';
+import { collectionService } from './collection.service.ts';
 
 const STORAGE_KEY = 'trellis_engagement_v1';
 
@@ -186,14 +187,26 @@ export const engagementService = {
   // ─── Cross-module helper (D-04) ──────────────────────────────────────────
 
   /**
-   * Returns the union of saved ∪ liked post IDs (NOT dismissed anchor IDs).
-   * Consumed by `postHistoryService.purgeExpired()` to pin saved/liked posts
-   * against the retention purge so a post saved >retentionDays ago is not
-   * silently dropped from the snapshot store.
+   * Returns the union of saved ∪ liked ∪ collection-member post IDs (NOT
+   * dismissed anchor IDs). Consumed by `postHistoryService.purgeExpired()`
+   * to pin engaged posts against the retention purge so a post saved or
+   * collection-anchored >retentionDays ago is not silently dropped from
+   * the snapshot store.
+   *
+   * Phase 50 D-09: collection membership pins a post against the 7-day
+   * rolling history purge. If a user adds a post to "For thesis" but does
+   * NOT save it globally, the post still survives purge ("they kept it for
+   * a reason"). The union is computed lazily here — `purgeExpired()` calls
+   * this method ONCE per invocation, not once per candidate post.
+   *
+   * Import direction is one-way: engagementService → collectionService →
+   * postHistoryService (no circular dep — collectionService MUST NOT
+   * import engagementService; enforced in plan 50-03).
    */
   getPinnedIds(): Set<string> {
     const s = loadState();
-    return new Set<string>([...s.saved, ...s.liked]);
+    const collectionMembers = collectionService.getAllMemberPostIds();
+    return new Set<string>([...s.saved, ...s.liked, ...collectionMembers]);
   },
 
   // ─── Test/dev affordance (D-08) ──────────────────────────────────────────
