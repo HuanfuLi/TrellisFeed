@@ -131,7 +131,7 @@ Plans:
 - [x] 50-09-PLAN.md — SavedScreen search bar + filter chips + Fuse wiring + i18n bundles
 - [x] 50-10-PLAN.md — Gap closure G1+G3: CollectionPickerSheet no-refresh subscription + Saved pre-checked default
 - [x] 50-11-PLAN.md — Gap closure G4: FUSE_OPTIONS threshold/minMatchCharLength tuning
-- [ ] 50-12-PLAN.md — Gap closure G2+G6+G7: SavedScreen chip blur-race + tab-preserves-query + chip padding
+- [x] 50-12-PLAN.md — Gap closure G2+G6+G7: SavedScreen chip blur-race + tab-preserves-query + chip padding
 - [ ] 50-13-PLAN.md — Gap closure G5: FilterPickerSheet overscroll-behavior: contain
 
 **UI hint**: yes
