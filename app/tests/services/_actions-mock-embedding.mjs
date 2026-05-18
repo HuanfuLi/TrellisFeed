@@ -31,6 +31,16 @@
 
 const DIM = 64;
 
+// Plan 48-02 — per-test fail-toggle so graphCommandService.rename's
+// graceful-degradation path (embed rejection preserves old vector) can be
+// exercised without mutating the global embedText export. Set via
+// _setEmbedFail(true) at test start; reset to false in resetAll().
+let _embedFail = false;
+
+export function _setEmbedFail(fail) {
+  _embedFail = !!fail;
+}
+
 /**
  * FNV-1a 32-bit hash.
  * Returns an unsigned 32-bit integer.
@@ -56,6 +66,10 @@ function fnv1a32(str) {
  * interchangeably; the body itself is synchronous.
  */
 export async function embedText(text /* config?: unknown */) {
+  // Plan 48-02 — fail-toggle for graphCommandService.rename graceful-degradation test.
+  if (_embedFail) {
+    throw new Error('mock embedText forced failure (Plan 48-02 test)');
+  }
   // The real provider trims internally on some paths; keep this 1:1 with
   // input so tests can choose to pre-trim or not.
   const vec = new Array(DIM);
