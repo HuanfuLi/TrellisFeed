@@ -68,7 +68,7 @@ There is **no foundation phase**. The prior agent's FOUND-01..05 scaffolding (cr
 
 **Wave 3** *(blocked on Wave 2 completion; Plan 48-04 sequenced after 48-03 to avoid concurrent edits of `graph-command.service.ts`)*
 - [x] 48-03-PLAN.md — Wave 3: merge + detach + prune (GRAPH-03) — 2026-05-17
-- [ ] 48-04-PLAN.md — Wave 3: undo (inverse-verb with swapped snapshots) + integration + reload-survival + operator review (GRAPH-01, GRAPH-03, GRAPH-04)
+- [x] 48-04-PLAN.md — Wave 3: undo (inverse-verb with swapped snapshots) + integration + reload-survival + operator review (GRAPH-01, GRAPH-03, GRAPH-04) — 2026-05-17
 
 **Cross-cutting constraints** (every plan's `must_haves.truths` includes these):
 - All commands return `ServiceResult<T>` and route writes through `questionService.patchQuestion` / `questionService.delete` (no direct localStorage writes from `graph-command.service.ts`).

@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Control, Graph Trust, Retrieval, and Ethical Engagement
-status: phase_48_in_progress
-stopped_at: Phase 48 Waves 1+2+3a complete (Plans 48-01 foundation + 48-02 rename/move/delete + 48-03 merge/detach/prune with Blocker #2/#4 + Warning #2/#4 fixes). 32 new Plan 48-03 tests pass; full suite 1078/1082 modulo the same 4 pre-existing failures. Wave 3b next (Plan 48-04 undo + integration).
+status: phase_48_executed
+stopped_at: Phase 48 all 4 plans complete (48-01 foundation + 48-02 rename/move/delete + 48-03 merge/detach/prune + 48-04 undo+integration+reload-survival). All 7 verbs live in graphCommandService. Negative invariant grep -F "cmd: 'undo'" returns 0 (inverse-verb-with-swapped-snapshots strategy enforced). Full suite 1112/1116 modulo the 4 pre-existing failures in deferred-items.md. Ready for gsd-verifier + phase close-out.
 last_updated: "2026-05-17"
 last_activity: 2026-05-17
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 10
-  completed_plans: 9
+  completed_plans: 10
 ---
 
 # Project State: v1.6 ROADMAP OVERHAULED — 2026-05-15
