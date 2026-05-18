@@ -731,13 +731,78 @@
     "tabs": {
       "saved": "Guardados",
       "liked": "Te gusta",
-      "history": "Historial"
+      "history": "Historial",
+      "collections": "Colecciones"
     },
     "empty": {
       "savedTitle": "Aún no hay guardados",
       "savedBody": "Mantén pulsada una tarjeta para guardar una publicación",
       "likedTitle": "Aún no hay publicaciones que te gusten",
-      "likedBody": "Mantén pulsada una tarjeta para indicar que te gusta"
+      "likedBody": "Mantén pulsada una tarjeta para indicar que te gusta",
+      "collectionsTitle": "Aún no hay colecciones",
+      "collectionsBody": "Guarda una publicación para crear tu primera colección"
+    }
+  },
+  "library": {
+    "search": {
+      "placeholder": "Buscar...",
+      "clearAria": "Borrar búsqueda",
+      "noMatches": "Sin coincidencias en {{tab}}",
+      "clearFilters": "Borrar filtros"
+    },
+    "filters": {
+      "date": {
+        "label": "Fecha",
+        "today": "Hoy",
+        "last7": "Últimos 7 días",
+        "last30": "Últimos 30 días",
+        "allTime": "Cualquier fecha"
+      },
+      "concept": {
+        "label": "Concepto",
+        "placeholder": "Filtrar por concepto",
+        "emptyTitle": "Aún no hay conceptos",
+        "emptyBody": "Guarda más publicaciones para crear tu lista de conceptos"
+      },
+      "source": {
+        "label": "Fuente",
+        "placeholder": "Filtrar por fuente",
+        "emptyTitle": "Aún no se han registrado fuentes"
+      }
+    },
+    "collections": {
+      "tabTitle": "Colecciones",
+      "emptyTitle": "Aún no hay colecciones",
+      "emptyBody": "Guarda una publicación para crear tu primera colección",
+      "drillInEmptyTitle": "Esta colección está vacía",
+      "drillInEmptyBody": "Añade publicaciones desde la hoja Guardar",
+      "notFound": "Colección no encontrada",
+      "rename": "Renombrar",
+      "saveName": "Guardar nombre",
+      "delete": "Eliminar",
+      "keepCollection": "Mantener colección",
+      "kebabAria": "Opciones de la colección",
+      "deleteConfirm": "¿Eliminar \"{{name}}\"? Las publicaciones permanecerán en Guardados.",
+      "removeFromCollection": "Quitar de la colección",
+      "postCount_one": "{{count}} publicación",
+      "postCount_other": "{{count}} publicaciones",
+      "toast": {
+        "added": "Añadido a {{collection}}",
+        "addedMultiple": "Añadido a {{count}} colecciones",
+        "removed": "Quitado de {{collection}}",
+        "renamed": "Renombrado a \"{{name}}\"",
+        "deleted": "\"{{name}}\" eliminada"
+      }
+    },
+    "savePicker": {
+      "title": "Guardar en...",
+      "implicitSaved": "Guardados",
+      "createNew": "+ Nueva colección",
+      "createPlaceholder": "Nombre de la colección",
+      "done": "Listo",
+      "nameTooLong": "El nombre debe tener 50 caracteres o menos",
+      "nameEmpty": "El nombre de la colección no puede estar vacío",
+      "nameDuplicate": "Ya existe una colección con este nombre"
     }
   },
   "onboarding": {

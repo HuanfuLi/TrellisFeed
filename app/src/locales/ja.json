@@ -731,13 +731,78 @@
     "tabs": {
       "saved": "保存済み",
       "liked": "いいね",
-      "history": "履歴"
+      "history": "履歴",
+      "collections": "コレクション"
     },
     "empty": {
       "savedTitle": "まだ保存していません",
       "savedBody": "タイルを長押しして投稿を保存",
       "likedTitle": "まだいいねした投稿はありません",
-      "likedBody": "タイルを長押しして投稿にいいね"
+      "likedBody": "タイルを長押しして投稿にいいね",
+      "collectionsTitle": "まだコレクションがありません",
+      "collectionsBody": "投稿を保存して最初のコレクションを作成しましょう"
+    }
+  },
+  "library": {
+    "search": {
+      "placeholder": "検索...",
+      "clearAria": "検索をクリア",
+      "noMatches": "{{tab}}に一致するものはありません",
+      "clearFilters": "フィルターをクリア"
+    },
+    "filters": {
+      "date": {
+        "label": "日付",
+        "today": "今日",
+        "last7": "過去 7 日間",
+        "last30": "過去 30 日間",
+        "allTime": "すべての期間"
+      },
+      "concept": {
+        "label": "概念",
+        "placeholder": "概念で絞り込み",
+        "emptyTitle": "まだ概念がありません",
+        "emptyBody": "投稿を保存して概念リストを増やしましょう"
+      },
+      "source": {
+        "label": "ソース",
+        "placeholder": "ソースで絞り込み",
+        "emptyTitle": "まだソースは記録されていません"
+      }
+    },
+    "collections": {
+      "tabTitle": "コレクション",
+      "emptyTitle": "まだコレクションがありません",
+      "emptyBody": "投稿を保存して最初のコレクションを作成しましょう",
+      "drillInEmptyTitle": "このコレクションは空です",
+      "drillInEmptyBody": "「保存」シートから投稿を追加してください",
+      "notFound": "コレクションが見つかりません",
+      "rename": "名前を変更",
+      "saveName": "名前を保存",
+      "delete": "削除",
+      "keepCollection": "コレクションを残す",
+      "kebabAria": "コレクションのオプション",
+      "deleteConfirm": "「{{name}}」を削除しますか？投稿は保存済みに残ります。",
+      "removeFromCollection": "コレクションから削除",
+      "postCount_one": "{{count}} 件の投稿",
+      "postCount_other": "{{count}} 件の投稿",
+      "toast": {
+        "added": "「{{collection}}」に追加しました",
+        "addedMultiple": "{{count}} 個のコレクションに追加しました",
+        "removed": "「{{collection}}」から削除しました",
+        "renamed": "「{{name}}」に名前を変更しました",
+        "deleted": "「{{name}}」を削除しました"
+      }
+    },
+    "savePicker": {
+      "title": "保存先...",
+      "implicitSaved": "保存済み",
+      "createNew": "+ 新しいコレクション",
+      "createPlaceholder": "コレクション名",
+      "done": "完了",
+      "nameTooLong": "名前は 50 文字以内にしてください",
+      "nameEmpty": "コレクション名は空にできません",
+      "nameDuplicate": "同じ名前のコレクションが既に存在します"
     }
   },
   "onboarding": {

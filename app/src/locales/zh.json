@@ -731,13 +731,78 @@
     "tabs": {
       "saved": "已收藏",
       "liked": "已喜欢",
-      "history": "历史"
+      "history": "历史",
+      "collections": "收藏夹"
     },
     "empty": {
       "savedTitle": "还没有收藏",
       "savedBody": "长按任意卡片即可收藏帖子",
       "likedTitle": "还没有喜欢的帖子",
-      "likedBody": "长按任意卡片即可喜欢帖子"
+      "likedBody": "长按任意卡片即可喜欢帖子",
+      "collectionsTitle": "还没有收藏夹",
+      "collectionsBody": "保存帖子以创建你的第一个收藏夹"
+    }
+  },
+  "library": {
+    "search": {
+      "placeholder": "搜索…",
+      "clearAria": "清除搜索",
+      "noMatches": "在「{{tab}}」中没有匹配项",
+      "clearFilters": "清除筛选"
+    },
+    "filters": {
+      "date": {
+        "label": "日期",
+        "today": "今天",
+        "last7": "最近 7 天",
+        "last30": "最近 30 天",
+        "allTime": "全部时间"
+      },
+      "concept": {
+        "label": "概念",
+        "placeholder": "按概念筛选",
+        "emptyTitle": "还没有概念",
+        "emptyBody": "保存更多帖子以建立你的概念列表"
+      },
+      "source": {
+        "label": "来源",
+        "placeholder": "按来源筛选",
+        "emptyTitle": "尚未记录任何来源"
+      }
+    },
+    "collections": {
+      "tabTitle": "收藏夹",
+      "emptyTitle": "还没有收藏夹",
+      "emptyBody": "保存帖子以创建你的第一个收藏夹",
+      "drillInEmptyTitle": "此收藏夹为空",
+      "drillInEmptyBody": "从「保存」面板中添加帖子",
+      "notFound": "未找到收藏夹",
+      "rename": "重命名",
+      "saveName": "保存名称",
+      "delete": "删除",
+      "keepCollection": "保留收藏夹",
+      "kebabAria": "收藏夹选项",
+      "deleteConfirm": "要删除「{{name}}」吗？帖子将保留在已收藏中。",
+      "removeFromCollection": "从收藏夹中移除",
+      "postCount_one": "{{count}} 篇帖子",
+      "postCount_other": "{{count}} 篇帖子",
+      "toast": {
+        "added": "已添加到「{{collection}}」",
+        "addedMultiple": "已添加到 {{count}} 个收藏夹",
+        "removed": "已从「{{collection}}」中移除",
+        "renamed": "已重命名为「{{name}}」",
+        "deleted": "已删除「{{name}}」"
+      }
+    },
+    "savePicker": {
+      "title": "保存到…",
+      "implicitSaved": "已收藏",
+      "createNew": "+ 新建收藏夹",
+      "createPlaceholder": "收藏夹名称",
+      "done": "完成",
+      "nameTooLong": "名称不能超过 50 个字符",
+      "nameEmpty": "收藏夹名称不能为空",
+      "nameDuplicate": "已存在同名收藏夹"
     }
   },
   "onboarding": {
