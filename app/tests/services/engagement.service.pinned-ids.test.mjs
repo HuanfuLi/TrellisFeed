@@ -1,17 +1,16 @@
-// Phase 50 Plan 50-02 — Wave 0 RED scaffold for engagementService.getPinnedIds().
+// Phase 50 Plan 50-05 — engagementService.getPinnedIds() behavioral tests.
 //
-// Covers RETRIEVE-02 / CONTEXT D-09 (collection membership pins posts against
-// post-history purgeExpired). The getPinnedIds() helper returns the UNION
-// (saved ∪ liked ∪ collectionService.getAllMemberPostIds()) so that
-// post-history.service can skip-purge any post that belongs to ANY of those
-// buckets. Turned GREEN by plan 50-05.
+// Covers RETRIEVE-02 / CONTEXT D-09: getPinnedIds() returns the union of
+// saved ∪ liked ∪ collectionService.getAllMemberPostIds(). This pin set is
+// consumed by postHistoryService.purgeExpired() so collection-member posts
+// survive the 7-day rolling history purge.
 //
-// engagementService EXISTS today (Phase 39+) — this file adds a NEW behavior
-// for it. Until 50-05 adds getPinnedIds, every it() must fail.
+// Turned GREEN by plan 50-05 (this file replaces the Wave 0 RED scaffold).
 
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
+import { describe, it, beforeEach } from 'node:test';
 
+// localStorage polyfill — matches engagement.service.test.mjs (lines 13-19).
 globalThis.localStorage = {
   _store: new Map(),
   getItem(k) { return this._store.get(k) ?? null; },
@@ -20,18 +19,107 @@ globalThis.localStorage = {
   clear() { this._store.clear(); },
 };
 
-const TURNED_GREEN_BY = 'plan 50-05 (engagementService.getPinnedIds + collection-aware purge)';
+const { engagementService } = await import('../../src/services/engagement.service.ts');
+const { collectionService } = await import('../../src/services/collection.service.ts');
 
-describe('engagementService.getPinnedIds — Phase 50 Wave 0 RED scaffold', () => {
-  it('getPinnedIds returns union of saved ∪ liked ∪ collection memberships (D-09)', () => {
-    assert.fail(`Wave 0 scaffold — implemented in ${TURNED_GREEN_BY}. Behavior: with saved=[p1,p2], liked=[p2,p3], collection-member=[p3,p4], getPinnedIds() === Set(p1,p2,p3,p4). Used by post-history.purgeExpired to retain pinned posts.`);
+describe('engagementService.getPinnedIds — D-09 union with collection members', () => {
+  beforeEach(() => {
+    localStorage.clear();
   });
 
-  it('getPinnedIds() is empty when nothing is saved/liked AND no collection membership exists', () => {
-    assert.fail(`Wave 0 scaffold — implemented in ${TURNED_GREEN_BY}. Behavior: with no engagement and no collections, getPinnedIds() is empty.`);
+  it('returns Set([p1]) when only collectionService has p1 as a member (D-09)', () => {
+    const created = collectionService.createCollection('For thesis');
+    assert.equal(created.success, true);
+    collectionService.addPost(created.data.id, 'p1');
+
+    const pinned = engagementService.getPinnedIds();
+    assert.ok(pinned instanceof Set);
+    assert.equal(pinned.has('p1'), true);
+    assert.equal(pinned.size, 1);
   });
 
-  it('getPinnedIds() reflects live state — does not cache stale values across mutations', () => {
-    assert.fail(`Wave 0 scaffold — implemented in ${TURNED_GREEN_BY}. Behavior: getPinnedIds() called BEFORE collectionService.addPost vs AFTER must reflect both states.`);
+  it('returns the union of saved=[p1], liked=[p2], collection-member=[p3] → Set(p1,p2,p3)', () => {
+    engagementService.savePost('p1');
+    engagementService.likePost('p2');
+    const created = collectionService.createCollection('Inspiration');
+    collectionService.addPost(created.data.id, 'p3');
+
+    const pinned = engagementService.getPinnedIds();
+    assert.equal(pinned.size, 3);
+    assert.equal(pinned.has('p1'), true);
+    assert.equal(pinned.has('p2'), true);
+    assert.equal(pinned.has('p3'), true);
+  });
+
+  it('de-duplicates when the same id appears in saved AND a collection (Set semantics)', () => {
+    engagementService.savePost('p1');
+    const created = collectionService.createCollection('Overlap');
+    collectionService.addPost(created.data.id, 'p1');
+
+    const pinned = engagementService.getPinnedIds();
+    assert.equal(pinned.size, 1, 'Set must de-duplicate p1 across saved + collection');
+    assert.equal(pinned.has('p1'), true);
+  });
+
+  it('returns saved ∪ liked union when NO collections exist (zero regression)', () => {
+    engagementService.savePost('p1');
+    engagementService.likePost('p2');
+
+    const pinned = engagementService.getPinnedIds();
+    assert.equal(pinned.size, 2);
+    assert.equal(pinned.has('p1'), true);
+    assert.equal(pinned.has('p2'), true);
+  });
+
+  it('returns an empty Set when no engagement and no collection membership exist', () => {
+    const pinned = engagementService.getPinnedIds();
+    assert.equal(pinned.size, 0);
+  });
+
+  it('does NOT include dismissed anchor ids in the pin set (saved/liked union only)', () => {
+    engagementService.savePost('p1');
+    engagementService.dismissAnchor('a1');
+
+    const pinned = engagementService.getPinnedIds();
+    assert.equal(pinned.has('p1'), true);
+    assert.equal(pinned.has('a1'), false);
+    assert.equal(pinned.size, 1);
+  });
+
+  it('unions across multiple collections (Set merges all member lists)', () => {
+    const a = collectionService.createCollection('Alpha');
+    const b = collectionService.createCollection('Beta');
+    collectionService.addPost(a.data.id, 'p1');
+    collectionService.addPost(a.data.id, 'p2');
+    collectionService.addPost(b.data.id, 'p2'); // duplicated across collections
+    collectionService.addPost(b.data.id, 'p3');
+
+    const pinned = engagementService.getPinnedIds();
+    assert.equal(pinned.size, 3);
+    assert.equal(pinned.has('p1'), true);
+    assert.equal(pinned.has('p2'), true);
+    assert.equal(pinned.has('p3'), true);
+  });
+
+  it('reflects live state — pin set changes when a collection adds a post mid-session', () => {
+    const created = collectionService.createCollection('Live');
+    const before = engagementService.getPinnedIds();
+    assert.equal(before.size, 0);
+
+    collectionService.addPost(created.data.id, 'p1');
+    const after = engagementService.getPinnedIds();
+    assert.equal(after.size, 1);
+    assert.equal(after.has('p1'), true);
+  });
+
+  it('reflects removal — when a post is removed from a collection AND not saved/liked, it drops from the pin set', () => {
+    const created = collectionService.createCollection('Removal');
+    collectionService.addPost(created.data.id, 'p1');
+    assert.equal(engagementService.getPinnedIds().has('p1'), true);
+
+    collectionService.removePost(created.data.id, 'p1');
+    const pinned = engagementService.getPinnedIds();
+    assert.equal(pinned.has('p1'), false);
+    assert.equal(pinned.size, 0);
   });
 });
