@@ -22,7 +22,7 @@ There is **no foundation phase**. The prior agent's FOUND-01..05 scaffolding (cr
 
 - [x] **Phase 47: Filter Redesign — Off-Topic + Malicious Prompt Prevention** — Replace regex-based classifier; pre-LLM gate (block malicious from request); structural injection bracketing at provider boundary; held-out eval set; per-question override.
 - [x] **Phase 48: Graph Command Service and Trust Invariants** — Validated graph correction commands, undo metadata, manual locks, stale-write protection. (Completed 2026-05-17)
-- [ ] **Phase 49: Graph Correction UI** — Selected-node correction controls in GraphScreen; preview/confirm for high-impact actions; durability across reload.
+- [x] **Phase 49: Graph Correction UI** — Selected-node correction controls in GraphScreen; preview/confirm for high-impact actions; durability across reload. (completed 2026-05-18)
 - [x] **Phase 50: Retrieval and Library Foundation** — Bounded archive search; local-first tags/bookmarks. (completed 2026-05-18)
 - [ ] **Phase 51: Concept Dashboard and Recovery Surfaces** — Per-concept dashboard joining Q&A, archive, review, podcast, tag, weak/due signals.
 - [ ] **Phase 52: Podcast Quality Defaults and Learner Controls** — Educational defaults; bounded length/style controls; option identity; TTS safety checks.
@@ -119,6 +119,7 @@ There is **no foundation phase**. The prior agent's FOUND-01..05 scaffolding (cr
 **Plans**: 13 plans (9 original + 4 gap closure from UAT 2026-05-18)
 
 Plans:
+
 - [x] 50-01-PLAN.md — collectionService leaf module + COLLECTIONS_CHANGED event
 - [x] 50-02-PLAN.md — Wave 0 test scaffolds for collectionService + library-search + screens
 - [x] 50-03-PLAN.md — collectionService implementation + engagement.getPinnedIds extension
@@ -128,10 +129,11 @@ Plans:
 - [x] 50-07-PLAN.md — CollectionDrillInScreen + route + Remove-from-collection
 - [x] 50-08-PLAN.md — SavedScreen 4th tab (Collections) + drill-in nav
 - [x] 50-09-PLAN.md — SavedScreen search bar + filter chips + Fuse wiring + i18n bundles
-- [ ] 50-10-PLAN.md — Gap closure G1+G3: CollectionPickerSheet no-refresh subscription + Saved pre-checked default
-- [ ] 50-11-PLAN.md — Gap closure G4: FUSE_OPTIONS threshold/minMatchCharLength tuning
+- [x] 50-10-PLAN.md — Gap closure G1+G3: CollectionPickerSheet no-refresh subscription + Saved pre-checked default
+- [x] 50-11-PLAN.md — Gap closure G4: FUSE_OPTIONS threshold/minMatchCharLength tuning
 - [ ] 50-12-PLAN.md — Gap closure G2+G6+G7: SavedScreen chip blur-race + tab-preserves-query + chip padding
 - [ ] 50-13-PLAN.md — Gap closure G5: FilterPickerSheet overscroll-behavior: contain
+
 **UI hint**: yes
 
 ### Phase 51: Concept Dashboard and Recovery Surfaces
@@ -223,7 +225,7 @@ Phases execute in numeric order: 47 → 48 → 49 → 50 → 51 → 52 → 53
 |-------|----------------|--------|-----------|
 | 47. Filter Redesign — Off-Topic + Malicious Prompt Prevention | 0/6 | Planned | - |
 | 48. Graph Command Service and Trust Invariants | TBD | Not started | - |
-| 49. Graph Correction UI | 2/5 | In progress | - |
+| 49. Graph Correction UI | 5/6 | Complete    | 2026-05-18 |
 | 50. Retrieval and Library Foundation | 9/9 | Complete   | 2026-05-18 |
 | 51. Concept Dashboard and Recovery Surfaces | TBD | Not started | - |
 | 52. Podcast Quality Defaults and Learner Controls | TBD | Not started | - |
