@@ -32,6 +32,7 @@ import { graphEditJournal } from './graph-edit-journal.service.ts';
 import { eventBus } from '../lib/event-bus.ts';
 import { settingsService } from './settings.service.ts';
 import { embedText } from '../providers/embedding/index.ts';
+import { classifyAndAnchorIncremental } from './canonical-knowledge.service.ts';
 import { createPromiseMutex } from './refill-mutex.ts';
 
 // ─── Error codes ─────────────────────────────────────────────────────────
@@ -645,8 +646,148 @@ export const graphCommandService = {
     return result;
   },
 
-  async detach(_qaId: string, _opts?: { signal?: AbortSignal }): Promise<ServiceResult<void>> {
-    return fail('NOT_IMPLEMENTED', 'See Plan 48-03.', false);
+  /**
+   * Detach a Q&A from its anchor — clear placement fields then fire
+   * classifyAndAnchorIncremental to find a new home (D-13). Operator's
+   * intent: "this Q&A is misplaced, find it a better home." May no-op
+   * (classify routes back to the original anchor) — Phase 49 may surface
+   * a toast.
+   *
+   * Side effects:
+   *   - Target patched with parentId/branchLabel/clusterLabel/clusterNodeId/
+   *     nodeSummary/placementReason ALL undefined.
+   *   - Old parent's qaCount decrements (clamped at 0); if old parent is
+   *     an anchor, its nodeSummary strips the matching `[targetId] ` line
+   *     (mirrors move's old-parent update).
+   *
+   * Validation:
+   *   - Target must be a QA (NOT an anchor or cluster). Rejects with
+   *     VALIDATION_ERROR otherwise.
+   *   - NOT_FOUND for missing target.
+   *
+   * No-op (R10 risk 14):
+   *   - If target.parentId is already undefined, returns success without
+   *     writing a journal entry, emitting GRAPH_UPDATED, or firing the
+   *     classification call.
+   *
+   * Warning #2 — AbortSignal threading: opts?.signal is forwarded to
+   * classifyAndAnchorIncremental. LOCALE_CHANGED (Phase 27 D-22) or any
+   * operator-initiated abort cancels the in-flight classify at its next
+   * checkpoint.
+   */
+  async detach(qaId: string, opts?: { signal?: AbortSignal }): Promise<ServiceResult<void>> {
+    let result: ServiceResult<void> = { success: true };
+
+    await _mutex.run(async () => {
+      const store = questionService.getAll({ includeFlagged: true });
+      const target = store.find((q) => q.id === qaId);
+      if (!target) {
+        result = fail('NOT_FOUND', `Question ${qaId} not found.`, false);
+        return;
+      }
+
+      // Detach is for QA nodes only — rejecting anchor/cluster targets
+      // matches D-13's UX intent ("re-route this question").
+      if (target.isAnchorNode === true || target.isClusterNode === true) {
+        result = fail(
+          'VALIDATION_ERROR',
+          'Can only detach Q&A nodes, not anchors or clusters.',
+          false,
+        );
+        return;
+      }
+
+      // R10 risk 14 — no-op when target is already orphaned.
+      if (target.parentId === undefined) {
+        result = { success: true };
+        return;
+      }
+
+      // Snapshot pre-image per D-04.
+      const before = {
+        parentId: target.parentId,
+        branchLabel: target.branchLabel,
+        clusterLabel: target.clusterLabel,
+        clusterNodeId: target.clusterNodeId,
+        nodeSummary: target.nodeSummary,
+        placementReason: target.placementReason,
+      };
+
+      // Old parent side effects (mirror move's old-parent update).
+      const oldParentId = target.parentId;
+      const oldParent = store.find((q) => q.id === oldParentId);
+      if (oldParent) {
+        const newOldQaCount = Math.max(0, (oldParent.qaCount ?? 1) - 1);
+        const oldPatch: Partial<Question> = { qaCount: newOldQaCount };
+        if (oldParent.isAnchorNode && oldParent.nodeSummary) {
+          const filtered = oldParent.nodeSummary
+            .split('\n')
+            .filter((line) => !line.startsWith(`[${qaId}]`))
+            .join('\n');
+          oldPatch.nodeSummary = filtered;
+        }
+        questionService.patchQuestion(oldParentId, oldPatch);
+      }
+
+      // Clear placement on the target.
+      questionService.patchQuestion(qaId, {
+        parentId: undefined,
+        branchLabel: undefined,
+        clusterLabel: undefined,
+        clusterNodeId: undefined,
+        nodeSummary: undefined,
+        placementReason: undefined,
+      });
+
+      // Journal entry — one per command per D-17.
+      graphEditJournal.append({
+        cmd: 'detach',
+        targetIds: [qaId],
+        before,
+        after: { classificationFired: true },
+      });
+
+      // D-17 — single typed emit from THIS command. Downstream classify's
+      // emit is its own command per R7.
+      eventBus.emit({
+        type: 'GRAPH_UPDATED',
+        payload: {
+          kind: 'detach',
+          anchorId: qaId,
+          affectedIds: [qaId, ...(oldParentId ? [oldParentId] : [])],
+        },
+      });
+
+      // Fire-and-forget re-classification — D-13 / D-18 (commands sync,
+      // detach exception). Mirror question.service.ts:340-342.
+      // NOTE: classifyAndAnchorIncremental emits its OWN GRAPH_UPDATED upon
+      // completion (canonical-knowledge.service.ts). This is a second emit
+      // — but it's from a downstream COMMAND, not a duplicate. Subscribers
+      // re-read twice. Per R7 documented intentional behavior. opts?.signal
+      // is forwarded so LOCALE_CHANGED (Phase 27 D-22) or operator-initiated
+      // cancel terminates the classify cleanly (Warning #2 fix — test
+      // asserts signal.aborted is observed at the next checkpoint).
+      const allQuestionsAfter = questionService.getAll({ includeFlagged: true });
+      const targetAfter = allQuestionsAfter.find((q) => q.id === qaId);
+      if (targetAfter) {
+        const llmConfig = settingsService.getSync().llm;
+        void classifyAndAnchorIncremental(
+          targetAfter,
+          allQuestionsAfter,
+          llmConfig,
+          opts?.signal,
+        ).catch((err: unknown) => {
+          console.warn(
+            '[Trellis] detach re-classify failed:',
+            err instanceof Error ? err.message : err,
+          );
+        });
+      }
+
+      result = { success: true };
+    });
+
+    return result;
   },
 
   async prune(_anchorId: string, _opts?: { signal?: AbortSignal }): Promise<ServiceResult<void>> {
