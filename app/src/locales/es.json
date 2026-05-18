@@ -260,7 +260,8 @@
         "detach": "Separar",
         "prune": "Podar",
         "delete": "Eliminar",
-        "close": "Cerrar"
+        "close": "Cerrar",
+        "undo": "Deshacer"
       },
       "rename": {
         "placeholder": "Nuevo título",
@@ -294,7 +295,9 @@
         "deleted": "«{{title}}» eliminado",
         "reorgInProgress": "Reorganización en curso — inténtalo de nuevo en un momento",
         "rootNotEditable": "Nodo raíz — no editable",
-        "branchNotEditable": "Etiqueta de rama — no editable directamente"
+        "branchNotEditable": "Etiqueta de rama — no editable directamente",
+        "undone": "Deshecho: {{summary}}",
+        "nothingToUndo": "Nada que deshacer"
       }
     },
     "anchor": {

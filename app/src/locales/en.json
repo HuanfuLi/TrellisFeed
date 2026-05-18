@@ -260,7 +260,8 @@
         "detach": "Detach",
         "prune": "Prune",
         "delete": "Delete",
-        "close": "Close"
+        "close": "Close",
+        "undo": "Undo"
       },
       "rename": {
         "placeholder": "New title",
@@ -294,7 +295,9 @@
         "deleted": "Deleted \"{{title}}\"",
         "reorgInProgress": "Reorganize in progress — try again in a moment",
         "rootNotEditable": "Root node — not editable",
-        "branchNotEditable": "Branch label — not directly editable"
+        "branchNotEditable": "Branch label — not directly editable",
+        "undone": "Undone: {{summary}}",
+        "nothingToUndo": "Nothing to undo"
       }
     },
     "anchor": {

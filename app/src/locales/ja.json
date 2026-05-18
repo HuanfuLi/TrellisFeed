@@ -260,7 +260,8 @@
         "detach": "切り離す",
         "prune": "剪定",
         "delete": "削除",
-        "close": "閉じる"
+        "close": "閉じる",
+        "undo": "元に戻す"
       },
       "rename": {
         "placeholder": "新しいタイトル",
@@ -294,7 +295,9 @@
         "deleted": "「{{title}}」を削除しました",
         "reorgInProgress": "再編成中です — 少し時間をおいてから再試行してください",
         "rootNotEditable": "ルートノード — 編集不可",
-        "branchNotEditable": "ブランチラベル — 直接編集できません"
+        "branchNotEditable": "ブランチラベル — 直接編集できません",
+        "undone": "元に戻しました：{{summary}}",
+        "nothingToUndo": "元に戻す操作はありません"
       }
     },
     "anchor": {

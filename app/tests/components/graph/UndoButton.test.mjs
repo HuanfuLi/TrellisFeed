@@ -78,10 +78,12 @@ test('Test 2 — UndoButton subscribes to GRAPH_UPDATED on mount', () => {
 
 test('Test 3 — UndoButton initial state reads graphEditJournal.list().length', () => {
   const src = readSrc();
-  // useState initial value derived from journal length (lazy-init form).
+  // useState initial value derived from journal length (lazy-init form). The
+  // useState call must appear AND reference graphEditJournal.list().length
+  // inside the same statement (single-line lazy initializer is the convention).
   assert.match(
     src,
-    /useState[^(]*\([^)]*graphEditJournal\.list\(\)\.length/,
+    /useState[\s\S]*?graphEditJournal\.list\(\)\.length/,
     'useState initial value must read graphEditJournal.list().length (no hydration flicker)',
   );
 });

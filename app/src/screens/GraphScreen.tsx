@@ -19,6 +19,7 @@ import { DragOverlay, type DragState, type DropTargetSnapshot } from '../compone
 import { CorrectionCard, getActionsForNode, type CorrectionAction } from '../components/graph/CorrectionCard';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { MergeConfirmPreview } from '../components/graph/MergeConfirmPreview';
+import { UndoButton } from '../components/graph/UndoButton';
 import { questionService } from '../services/question.service';
 import { hapticImpactMedium } from '../lib/haptics';
 
@@ -217,6 +218,8 @@ interface MasterMapProps {
     sourceNode: Question,
     nodeMap: Record<string, Question>,
   ) => void;
+  // Phase 49-04 — propagated for the persistent UndoButton (D-16 disables tap during reorg).
+  reorganizing: boolean;
 }
 
 function setAllExpanded(node: NodeObj, expanded: boolean): void {
@@ -237,6 +240,7 @@ function MasterMap({
   onDragStart,
   onDragMove,
   onDragEnd,
+  reorganizing,
 }: MasterMapProps & { isVisible: boolean }) {
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -611,6 +615,11 @@ function MasterMap({
           transform: 'translateZ(0)',
         }}
       />
+      {/* Phase 49-04 — persistent UndoButton at right: 56px (D-13). Anchored to
+          the same containing block as the expand/collapse button below so the
+          two appear as a coherent pair at the bottom-right corner. D-16 — the
+          reorganizing prop disables the tap visually + functionally. */}
+      <UndoButton reorganizing={reorganizing} />
       <button
         onClick={handleToggleExpand}
         title={allExpanded ? t('graph.toggleCollapseTitle') : t('graph.toggleExpandTitle')}
@@ -1011,6 +1020,7 @@ export function GraphScreen() {
         onDragStart={handleDragStart}
         onDragMove={handleDragMove}
         onDragEnd={handleDragEnd}
+        reorganizing={reorganizing}
       />
 
       {/* Phase 49-01 — portaled drag overlay (ghost + origin-line + halo). */}
