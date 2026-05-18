@@ -51,17 +51,16 @@ test('CPS-03: collection membership writes route through collectionService.addPo
   assert.match(src, /collectionService\.removePost/, 'Must reference collectionService.removePost');
 });
 
-test('CPS-04: COLLECTIONS_CHANGED emission flows via collectionService (no direct eventBus emit in sheet)', () => {
+test('CPS-04: COLLECTIONS_CHANGED emission flows via collectionService (no direct eventBus.emit in sheet)', () => {
   const src = readSrc();
   // The event itself is emitted INSIDE collectionService.addPost/removePost
   // (one signal per semantic event — CLAUDE.md §"Event bus — unified"). The
   // sheet must NOT call eventBus.emit directly; it should only invoke the
-  // service. We verify the indirect wiring by asserting the service is used
-  // AND that the sheet never imports eventBus.
+  // service. Subscribing to eventBus is allowed (G1 no-refresh fix).
   assert.doesNotMatch(
     src,
-    /from\s+['"][^'"]*lib\/event-bus['"]/,
-    'CollectionPickerSheet must not import event-bus — emit happens inside collectionService',
+    /eventBus\.emit\s*\(/,
+    'CollectionPickerSheet must not call eventBus.emit — emit happens inside collectionService',
   );
 });
 

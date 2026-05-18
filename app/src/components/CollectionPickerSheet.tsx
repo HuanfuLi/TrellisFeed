@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { CSSProperties, KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { Collection } from '../types/index';
 import { Bookmark, Folder, FolderPlus, Check } from 'lucide-react';
 import { BottomSheet } from './ui/BottomSheet';
 import { engagementService } from '../services/engagement.service';
 import { collectionService } from '../services/collection.service';
+import { eventBus } from '../lib/event-bus';
 import { toast } from '../lib/toast';
 
 // Phase 50 Plan 50-06 — UI-SPEC Surface 4 ("Save to..." picker sheet).
@@ -17,6 +19,11 @@ import { toast } from '../lib/toast';
 //   - On open: snapshot engagementService.isSaved(postId) into draft state,
 //     pre-check the implicit Saved row, snapshot getPostCollections(postId)
 //     into the draft membership Set.
+//   - On COLLECTIONS_CHANGED: refresh collections list AND re-snapshot
+//     getPostCollections(postId) into originalMemberIds so the picker stays
+//     current when the service mutates from any source. Per
+//     ~/.claude/projects/-Users-Code-EchoLearn/memory/feedback_no_refresh_assumption.md
+//     — Capacitor mobile users CANNOT refresh.
 //   - Toggling rows mutates ONLY the draft state — never the underlying
 //     services. This is the T-50-PICKER-RACE mitigation: concurrent tap-tap
 //     on different rows cannot interleave addPost / removePost writes.
@@ -98,25 +105,40 @@ export function CollectionPickerSheet({ open, onClose, postId }: CollectionPicke
   // require the hook order to be stable across renders. The guard short-
   // circuits the RETURN, not the hook call sequence.
   //
-  // Capture baseline on the first render of an open cycle. The host
-  // re-mounts the sheet by toggling `open` + setting `postId`, so the
-  // useMemo initializer re-runs whenever `postId` changes (i.e., a new open).
-  // When `postId` is null the baseline collapses to `false` / empty set.
-  const originalSaved = useMemo(
+  // Phase 50 gap closure 50-10 (G1+G3): subscription per feedback_no_refresh_assumption.md; default-saved per D-04.
+
+  // G3 — actualSavedAtOpen captures the real isSaved baseline for handleDone's
+  // diff; originalSaved is repurposed to "default true on open" so the Saved
+  // row is pre-checked for every post (D-04 single-tap-save).
+  const actualSavedAtOpen = useMemo(
     () => (postId ? engagementService.isSaved(postId) : false),
     [postId],
   );
-  const originalMemberIds = useMemo(
+  const originalSaved = postId ? true : false;
+
+  // G1 — collections and originalMemberIds are useState so the
+  // COLLECTIONS_CHANGED handler can trigger re-reads without remount.
+  const [originalMemberIds, setOriginalMemberIds] = useState<Set<string>>(
     () =>
       postId
         ? new Set(collectionService.getPostCollections(postId).map(c => c.id))
         : new Set<string>(),
-    [postId],
+  );
+  const [collections, setCollections] = useState<Collection[]>(
+    () => (postId ? collectionService.getCollections() : []),
   );
 
-  // Read collections list once per open (no live subscription — sheet is a
-  // short-lived sibling of LongPressMenu).
-  const collections = useMemo(() => collectionService.getCollections(), [postId, open]);
+  // G1 — subscribe to COLLECTIONS_CHANGED so inline-create (and any parallel
+  // surface mutation) refreshes the picker list without remount or page refresh.
+  // Per ~/.claude/projects/-Users-Code-EchoLearn/memory/feedback_no_refresh_assumption.md
+  useEffect(() => {
+    if (!postId) return;
+    const unsub = eventBus.subscribe('COLLECTIONS_CHANGED', () => {
+      setCollections(collectionService.getCollections());
+      setOriginalMemberIds(new Set(collectionService.getPostCollections(postId).map(c => c.id)));
+    });
+    return unsub;
+  }, [postId]);
 
   // Draft state — what the user has toggled but NOT yet committed.
   const [draftSavedChecked, setDraftSavedChecked] = useState<boolean>(originalSaved);
@@ -135,10 +157,16 @@ export function CollectionPickerSheet({ open, onClose, postId }: CollectionPicke
   useEffect(() => {
     setDraftSavedChecked(originalSaved);
     setDraftMemberIds(originalMemberIds);
+    setCollections(postId ? collectionService.getCollections() : []);
+    setOriginalMemberIds(
+      postId
+        ? new Set(collectionService.getPostCollections(postId).map(c => c.id))
+        : new Set<string>(),
+    );
     setCreateMode(false);
     setCreateValue('');
     setCreateError(null);
-  }, [postId, originalSaved, originalMemberIds]);
+  }, [postId, actualSavedAtOpen, originalMemberIds]);
 
   // Defensive guard — host may toggle open=true before postId is set, or
   // the post may have been purged. Render a closed sheet shell so the
@@ -194,8 +222,9 @@ export function CollectionPickerSheet({ open, onClose, postId }: CollectionPicke
   };
 
   const handleDone = () => {
-    // Compute and apply the saved-bucket diff first.
-    if (draftSavedChecked !== originalSaved) {
+    // Compute and apply the saved-bucket diff against the ACTUAL baseline
+    // (not originalSaved which is always true for pre-check UX).
+    if (draftSavedChecked !== actualSavedAtOpen) {
       if (draftSavedChecked) engagementService.savePost(postId);
       else engagementService.removeSavedPost(postId);
     }
@@ -231,9 +260,9 @@ export function CollectionPickerSheet({ open, onClose, postId }: CollectionPicke
       }
     } else if (removedCount > 0 && lastRemovedName) {
       toast(t('library.collections.toast.removed', { collection: lastRemovedName }), 'info');
-    } else if (draftSavedChecked && !originalSaved) {
+    } else if (draftSavedChecked && !actualSavedAtOpen) {
       toast(t('engagement.toast.saved'), 'success');
-    } else if (!draftSavedChecked && originalSaved) {
+    } else if (!draftSavedChecked && actualSavedAtOpen) {
       toast(t('engagement.toast.unsaved'), 'info');
     }
     // else: no changes — silent close (matches D-05 single-tap-save with no
