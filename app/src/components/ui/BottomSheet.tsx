@@ -19,6 +19,13 @@ import { createPortal } from 'react-dom';
 // sheet only translates partway off-screen — its tail covers the BottomNavigation
 // even when the menu is dismissed. Keep `bottom: 0` so translateY(100%) fully
 // hides the sheet; push the LAST ROW above the nav via paddingBottom.
+//
+// Phase 50 plan 50-13 (UAT Test 5 G5 closure): inner sheet declares
+// overscroll-behavior: contain + WebkitOverflowScrolling: 'touch' on the same
+// element that owns overflowY: 'auto'. Fast-scroll at drawer top/bottom now hits
+// a hard stop instead of rubberbanding past the 20px rounded mask. All BottomSheet
+// consumers inherit this behavior — see plan-50-13 PLAN/SUMMARY for the
+// blast-radius analysis.
 
 interface BottomSheetProps {
   open: boolean;
@@ -72,6 +79,14 @@ export function BottomSheet({ open, onClose, title, children, compact }: BottomS
           minHeight: compact ? 'auto' : '45vh',
           maxHeight: compact ? '50vh' : '75vh',
           overflowY: 'auto',
+          // Phase 50 gap closure 50-13 (G5): rigid scroll boundary — prevents
+          // scroll-chaining to body and clamps rubberband inside the drawer on
+          // Android WebView + iOS WKWebView. Must live on the SAME element as
+          // overflowY: 'auto' (CSS overscroll-behavior only applies to scrolling
+          // elements). All consumers (FilterPickerSheet, CollectionPickerSheet,
+          // Rename/Delete, LongPressMenu) inherit this.
+          overscrollBehavior: 'contain',
+          WebkitOverflowScrolling: 'touch',
           transform: open ? 'translateY(0)' : 'translateY(100%)',
           transition: 'transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)',
         }}
