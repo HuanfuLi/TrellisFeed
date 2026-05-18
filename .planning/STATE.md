@@ -2,8 +2,8 @@
 gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Control, Graph Trust, Retrieval, and Ethical Engagement
-status: phase_48_planned
-stopped_at: Phase 48 planned — 4 plans across 3 waves; passed plan-checker on iteration 3/3; ready for /gsd:execute-phase 48
+status: phase_49_context_gathered
+stopped_at: Phase 49 CONTEXT.md gathered (17 decisions across 4 gray areas — iOS gesture model: tap=inspect, long-press-release=menu, long-press-drag=relocate; Undo at viewport corner); ready for /gsd:plan-phase 49. Phase 48 plans (4 plans, 3 waves) still pending execution.
 last_updated: "2026-05-17"
 last_activity: 2026-05-17
 progress:
@@ -58,9 +58,10 @@ Plus the earlier 2026-05-15 corrections (during the same session, before the ful
 
 ## Current Position
 
-Phase: 48 of 53 — **PLANNED** (1 of 7 in v1.6 complete + 1 plan-ready) — Graph Command Service and Trust Invariants
-Next: /gsd:execute-phase 48 (4 plans, Wave 1 → Wave 2 → Wave 3)
-Last activity: 2026-05-17 — Phase 48 plan-phase produced 48-RESEARCH.md, 48-VALIDATION.md, and 4 PLAN files; passed plan-checker on iteration 3/3 (5 blockers → 1 blocker → 0)
+Phase: 49 of 53 — **CONTEXT GATHERED** (1 of 7 in v1.6 complete + 1 plan-ready + 1 context-ready) — Graph Correction UI
+Next: /gsd:plan-phase 49 (after /gsd:execute-phase 48 lands the service layer)
+Last activity: 2026-05-17 — Phase 49 discuss-phase produced 49-CONTEXT.md (D-01..D-17) + 49-DISCUSSION-LOG.md. Locked iOS-style gesture model (tap=inspect, long-press-release=correction-menu, long-press-drag=relocate with ghost+origin-line+halo). Undo at viewport corner next to expand/collapse. Drop-on-cluster=Move, drop-on-anchor=Merge (dragged=LOSER). Operator counter-proposed both the gesture split (rejecting all 4 preset surface options) and the corner-Undo placement.
+Prior: Phase 48 plan-phase produced 48-RESEARCH.md, 48-VALIDATION.md, and 4 PLAN files; passed plan-checker on iteration 3/3 (5 blockers → 1 blocker → 0). Awaiting /gsd:execute-phase 48.
 
 Progress: 1 / 7 phases complete
 
