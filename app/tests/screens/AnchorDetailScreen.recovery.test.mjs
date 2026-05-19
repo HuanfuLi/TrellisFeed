@@ -27,11 +27,35 @@ describe('AnchorDetailScreen — LeafStateBadge placement (Phase 51-01)', () => 
     );
   });
 
-  it('computes leafState via computeLeafState(anchor, qaChildren)', () => {
+  it('computes leafState via computeLeafState(anchor, qaChildren, undefined, fcMap)', () => {
+    // WR-01 fix (Phase 51 code review): fcMap must be passed so this screen's
+    // leaf-state agrees with PlannerScreen's vine. The 3rd arg
+    // (blossomSinceDate) is undefined because the anchor screen doesn't
+    // persist the blossom-since date; the 4th arg (fcMap) is the WR-01 fix.
     assert.match(
       source,
-      /computeLeafState\(\s*anchor\s*,\s*qaChildren\s*\)/,
-      'AnchorDetailScreen.tsx must compute leafState by calling computeLeafState(anchor, qaChildren).',
+      /computeLeafState\(\s*anchor\s*,\s*qaChildren\s*,\s*undefined\s*,\s*fcMap\s*\)/,
+      'AnchorDetailScreen.tsx must compute leafState by calling computeLeafState(anchor, qaChildren, undefined, fcMap) — fcMap is load-bearing so the anchor badge agrees with PlannerScreen (WR-01).',
+    );
+  });
+
+  it('builds fcMap from flashcardService.getAll() (same shape as useTrellisData) — WR-01', () => {
+    // The fcMap must select the FlashCard with the highest reviewCount per
+    // nodeId (mirrors trellis-state.service.ts buildTrellisLayout). Source-level
+    // structural guard: the fcMap useMemo must include flashcardService.getAll()
+    // AND a reviewCount comparison.
+    assert.match(
+      source,
+      /useMemo\([\s\S]{0,1200}flashcardService\.getAll\(\)[\s\S]{0,800}reviewCount\s*>\s*existing\.reviewCount/,
+      'AnchorDetailScreen.tsx fcMap must select the FlashCard with the highest reviewCount per nodeId — same selection logic as trellis-state.service.ts buildTrellisLayout (WR-01).',
+    );
+    // fcMap must be a Map<string, ReviewSchedule>. Source-level guard:
+    // the generic type parameters must appear so a future refactor that
+    // changes the value type to `unknown` is caught.
+    assert.match(
+      source,
+      /new\s+Map<\s*string\s*,\s*ReviewSchedule\s*>/,
+      'AnchorDetailScreen.tsx fcMap must be typed Map<string, ReviewSchedule> (WR-01).',
     );
   });
 

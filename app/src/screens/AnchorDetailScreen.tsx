@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, BookOpen, FileText, ChevronRight } from 'lucide-react';
@@ -18,6 +18,7 @@ import { LeafStateBadge } from '../components/concept/LeafStateBadge';
 import { eventBus } from '../lib/event-bus';
 import { Header, HEADER_HEIGHT } from '../components/ui/Header';
 import { toast } from '../lib/toast';
+import type { ReviewSchedule } from '../types';
 
 export function AnchorDetailScreen() {
   const { id } = useParams<{ id: string }>();
@@ -34,7 +35,12 @@ export function AnchorDetailScreen() {
   // undefined → defined on the same component instance). Capacitor mobile =
   // no refresh (CLAUDE.md "no-refresh-assumption"); we listen to every event
   // that can mutate the data the recovery surfaces below read.
-  const [, setTick] = useState(0);
+  //
+  // `tick` is exposed (not discarded as a `_`) so the WR-01 fcMap memo and
+  // any future per-tick memoization can depend on it — fcMap re-reads
+  // flashcardService.getAll() when FLASHCARDS_CREATED / REVIEW_COMPLETED
+  // fires (both bump `tick`).
+  const [tick, setTick] = useState(0);
   useEffect(() => {
     const bump = () => setTick((tick) => tick + 1);
     const unsubs = [
@@ -47,6 +53,37 @@ export function AnchorDetailScreen() {
     ];
     return () => unsubs.forEach((u) => u());
   }, []);
+
+  // WR-01 (Phase 51 code review): build the FlashCard review lookup the
+  // same way useTrellisData does and pass it to computeLeafState. Without
+  // fcMap, AnchorDetailScreen's leaf-state would diverge from PlannerScreen's
+  // vine — a user who just reviewed a dying-anchor's flashcards to confident
+  // would see the anchor flip green in the planner but stay amber here,
+  // contradicting their action. The Question-level reviewSchedule is
+  // intentionally stale (see trellis-state.service.ts:39-43); FlashCard
+  // data is the authoritative review-state source.
+  //
+  // Memoized on `tick` so we don't rebuild on every render. tick bumps on
+  // FLASHCARDS_CREATED + REVIEW_COMPLETED (and other relevant events), so
+  // fcMap stays fresh under the no-refresh-assumption.
+  const fcMap = useMemo(() => {
+    const map = new Map<string, ReviewSchedule>();
+    try {
+      const allCards = flashcardService.getAll();
+      for (const card of allCards) {
+        if (!card.nodeId) continue;
+        const existing = map.get(card.nodeId);
+        // Keep the card with the most reviews (best signal). Mirrors the
+        // same selection logic in trellis-state.service.ts buildTrellisLayout.
+        if (!existing || card.reviewSchedule.reviewCount > existing.reviewCount) {
+          map.set(card.nodeId, card.reviewSchedule);
+        }
+      }
+    } catch {
+      /* flashcard service unavailable — fall back to Question-level data */
+    }
+    return map;
+  }, [tick]);
 
   if (!anchor || !anchor.isAnchorNode) {
     return (
@@ -86,11 +123,12 @@ export function AnchorDetailScreen() {
     .filter((text) => text.length > 0);
 
   // ── Phase 51-01: leaf state + recovery surfaces ────────────────────────
-  // computeLeafState reads anchor.reviewSchedule + qaChildren.reviewSchedule;
-  // the optional fcMap arg is omitted here because the anchor screen is fine
-  // with the Question-level data — the trellis layout (PlannerScreen) uses
-  // the FlashCard override, this read-only badge does not.
-  const leafState = computeLeafState(anchor, qaChildren);
+  // WR-01 fix (Phase 51 code review): pass fcMap so this screen agrees
+  // with PlannerScreen's vine. Question-level reviewSchedule is stale by
+  // design — FlashCard data is authoritative. Without fcMap, the badge
+  // and Flashcards CTA contradict the user's just-completed review action
+  // (see 51-REVIEW.md WR-01).
+  const leafState = computeLeafState(anchor, qaChildren, undefined, fcMap);
 
   // Appears-in counts — recomputed on every render. All localStorage-backed
   // sync reads, ~<1ms for typical anchor sizes (≤5 Q&As, ≤500 posts).
