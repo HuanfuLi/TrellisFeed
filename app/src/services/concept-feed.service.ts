@@ -2096,6 +2096,20 @@ export const conceptFeedService = {
   /** Save a completed discover essay as a DailyPost with the given stable ID. */
   saveDiscoverPost(concept: string, title: string, bodyMarkdown: string, postId: string): DailyPost {
     const date = today();
+    // Phase 51 UAT (verify-work, 2026-05-19): the stable post id shape is
+    // `anchor-post-{anchorId}` (AnchorDetailScreen.handleGeneratePost +
+    // trellisActionsService.replant). Recover the anchorId from the id and
+    // write it into sourceQuestionIds so downstream consumers — notably
+    // the AnchorDetailScreen "Appears in" footer count — can resolve this
+    // post back to its anchor. Without this, Learn-as-Post / replant posts
+    // had `sourceQuestionIds: []` and never matched the anchor intersection,
+    // so saved/collected discover posts were silently invisible to the
+    // footer counts even though they're the canonical recovery surface
+    // for dead anchors. Defensive regex fallback handles unexpected id
+    // shapes without throwing.
+    const anchorIdMatch = postId.match(/^anchor-post-(.+)$/);
+    const sourceQuestionIds = anchorIdMatch ? [anchorIdMatch[1]] : [];
+    const sourceQuestionTitles = anchorIdMatch ? [concept] : [];
     const post: DailyPost = {
       id: postId,
       date,
@@ -2112,8 +2126,8 @@ export const conceptFeedService = {
       narrativeMode: 'mechanism-breakdown',
       contextLabel: 'Discover',
       sourceType: 'mixed',
-      sourceQuestionIds: [],
-      sourceQuestionTitles: [],
+      sourceQuestionIds,
+      sourceQuestionTitles,
       keywords: [concept.toLowerCase()],
       generatedAt: Date.now(),
       origin: 'ai',

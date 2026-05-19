@@ -176,19 +176,41 @@ export function AnchorDetailScreen() {
   // mixed shape — concept-feed.service.ts produces video/news/concept
   // posts with `sourceQuestionIds: [anchorId]` (lines 1152, 1217), while
   // session-derived posts use Q&A child IDs. CLAUDE.md documents the
-  // Q&A-IDs claim but the codebase doesn't enforce it. To match either
-  // shape, intersect against `qaChildIdSet ∪ {anchor.id}` — posts
-  // pointing at the anchor directly OR at any of its Q&A children
-  // both count toward the Appears-in footer.
+  // Q&A-IDs claim but the codebase doesn't enforce it. Plus: Learn-as-Post
+  // / replant generates posts with the stable id shape `anchor-post-{anchorId}`
+  // that, pre-fix, wrote empty sourceQuestionIds. (Fixed for new posts at
+  // concept-feed.service.ts saveDiscoverPost, but legacy data still has
+  // empty arrays.) The read-time match below recovers both legacy and
+  // future cases via three predicates:
+  //   (1) post.id === `anchor-post-{anchorId}` — exact discover-post match,
+  //       independent of sourceQuestionIds shape
+  //   (2) sourceQuestionIds contains anchor.id — video/news/concept-feed
+  //       posts after L1 provenance (Phase 41)
+  //   (3) sourceQuestionIds contains any qaChildren id — session-derived
+  //       posts where source IDs are Q&A leaves
+  // savedCount uses the raw saved-ids list (engagementService.getSavedPostIds)
+  // so a saved discover post that never had a snapshot written to postHistory
+  // (legacy or race condition) still counts via the id-shape match.
   const qaChildIdSet = new Set(qaChildren.map((q) => q.id));
   const anchorId = anchor.id;
-  const conceptPosts = postHistoryService.getPosts().filter((p) =>
-    p.sourceQuestionIds.some((id) => qaChildIdSet.has(id) || id === anchorId),
-  );
+  const anchorDiscoverPostId = `anchor-post-${anchorId}`;
+  const matchesAnchor = (p: { id: string; sourceQuestionIds?: string[] }): boolean => {
+    if (p.id === anchorDiscoverPostId) return true;
+    const ids = p.sourceQuestionIds;
+    if (!Array.isArray(ids)) return false;
+    return ids.some((id) => qaChildIdSet.has(id) || id === anchorId);
+  };
+
+  const conceptPosts = postHistoryService.getPosts().filter(matchesAnchor);
   const conceptPostIdSet = new Set(conceptPosts.map((p) => p.id));
+
+  // savedCount: count raw saved ids that either map to a concept post in
+  // history OR are the anchor-discover-post id itself (catches legacy
+  // discover posts saved without a snapshot in postHistory).
   const savedCount = engagementService
-    .getSavedPosts()
-    .filter((p) => conceptPostIdSet.has(p.id)).length;
+    .getSavedPostIds()
+    .filter((id) => id === anchorDiscoverPostId || conceptPostIdSet.has(id))
+    .length;
   const inCollectionsCount = conceptPosts.filter(
     (p) => collectionService.getPostCollections(p.id).length > 0,
   ).length;

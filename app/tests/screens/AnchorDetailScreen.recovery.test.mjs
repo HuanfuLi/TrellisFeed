@@ -134,7 +134,10 @@ describe('AnchorDetailScreen — Appears-in footer (Phase 51-01)', () => {
     // independently. The chained method-call syntax across newlines breaks
     // a single combined regex, so we check identifier + method separately.
     assert.match(source, /\bsavedCount\b/, 'savedCount must be declared.');
-    assert.match(source, /engagementService[\s\S]*?\.getSavedPosts\(\)/, 'engagementService.getSavedPosts() must be called.');
+    // Either getSavedPosts (history-resolved) or getSavedPostIds (raw)
+    // satisfies this — the UAT-followup fix switched to getSavedPostIds so
+    // discover posts saved without a postHistory snapshot still count.
+    assert.match(source, /engagementService[\s\S]*?\.getSavedPost(?:Ids|s)\(\)/, 'engagementService.getSavedPostIds() or getSavedPosts() must be called.');
     assert.match(source, /\binCollectionsCount\b/, 'inCollectionsCount must be declared.');
     assert.match(source, /collectionService\.getPostCollections\(/, 'collectionService.getPostCollections must be called.');
     assert.match(source, /\bpodcastCount\b/, 'podcastCount must be declared.');
