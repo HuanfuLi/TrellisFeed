@@ -46,8 +46,8 @@ The current `app/src/services/question-filter.service.ts` is a regex pattern lib
 
 - [ ] **RETRIEVE-01** User can search Saved, Liked, and History archive items by title, body, concept, source, and date, then reopen the original post.
 - [ ] **RETRIEVE-02** User can tag or bookmark posts and concepts with local-first metadata that persists across days and supports filtering.
-- [ ] **RETRIEVE-03** User can open a concept dashboard that joins the concept's Q&As, posts, saved/liked/history items, review cards, podcast mentions, tags, and weak/due signals.
-- [ ] **RETRIEVE-04** Retrieval surfaces are bounded and recovery-oriented: they prioritize search, filters, dashboards, and review actions rather than another infinite recommendation feed.
+- [x] **RETRIEVE-03** User can open a concept dashboard that joins the concept's Q&As, posts, saved/liked/history items, review cards, podcast mentions, tags, and weak/due signals.
+- [x] **RETRIEVE-04** Retrieval surfaces are bounded and recovery-oriented: they prioritize search, filters, dashboards, and review actions rather than another infinite recommendation feed.
 
 ### PODCAST — Quality defaults and learner controls (Phase 52)
 
@@ -125,8 +125,8 @@ Operator-managed memo for the professor; not tracked as requirements:
 | GRAPHUI-03 | Phase 49 | Complete |
 | RETRIEVE-01 | Phase 50 | Done (Plan 50-09/11/12/13) |
 | RETRIEVE-02 | Phase 50 | Done (Plan 50-03/06/07/08/10) |
-| RETRIEVE-03 | Phase 51 | Pending |
-| RETRIEVE-04 | Phase 51 | Pending |
+| RETRIEVE-03 | Phase 51 | Complete |
+| RETRIEVE-04 | Phase 51 | Complete |
 | PODCAST-01 | Phase 52 | Pending |
 | PODCAST-02 | Phase 52 | Pending |
 | PODCAST-03 | Phase 52 | Pending |

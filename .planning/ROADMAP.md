@@ -148,11 +148,9 @@ Plans:
   3. User can jump from the dashboard to the original post, Q&A, review action, podcast mention, or tag-filtered retrieval result.
   4. Dashboard and retrieval surfaces prioritize search, filters, dashboard navigation, and review actions instead of endless scrolling.
 
-**Plans**: 3 plans
+**Plans**: 1 plan (operator redesigned 2026-05-19 as thin enrichment, not 3-plan rebuild; AnchorDetailScreen is the concept-level home)
 
-- [x] 51-01-PLAN.md — useConceptDashboard hook + LeafStateBadge + test scaffolds
-- [ ] 51-02-PLAN.md — ConceptDashboardScreen layout + route + concept-linked navigation
-- [ ] 51-03-PLAN.md — Dashboard sections + bounded views + action routes
+- [x] 51-01-PLAN.md — thin enrichment: LeafStateBadge + recovery-mode Flashcards button + Appears-in footer + tappable feed-tile/PostDetail badges + SavedScreen/PodcastScreen route-state filters
 
 **UI hint**: yes
 
@@ -245,7 +243,7 @@ Phases execute in numeric order: 47 → 48 → 49 → 50 → 51 → 52 → 53
 | 48. Graph Command Service and Trust Invariants | TBD | Not started | - |
 | 49. Graph Correction UI | 5/6 | Complete    | 2026-05-18 |
 | 50. Retrieval and Library Foundation | 13/13 | Complete   | 2026-05-18 |
-| 51. Concept Dashboard and Recovery Surfaces | 1/1 | Complete   | 2026-05-19 |
+| 51. Concept Dashboard and Recovery Surfaces | 1/1 | Complete    | 2026-05-19 |
 | 52. Podcast Quality Defaults and Learner Controls | 0/3 | Not started | - |
 | 53. Engagement Guardrails + Provider Privacy | TBD | Not started | - |
 
