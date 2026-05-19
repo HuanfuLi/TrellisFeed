@@ -1,11 +1,12 @@
-import type { DailyPodcast, Question, ServiceResult } from '../types';
+import type { DailyPodcast, Question, ServiceResult, PodcastOptions, SupportedLocale } from '../types';
 import { eventBus } from '../lib/event-bus';
 import { toast } from '../lib/toast';
-import { t } from '../lib/i18n-leaf.ts';
+import { t, getCurrentLocale } from '../lib/i18n-leaf.ts';
 import { settingsService } from './settings.service';
 import { questionService } from './question.service';
 import { chatCompletion } from '../providers/llm';
 import { synthesize } from '../providers/tts';
+import { buildPodcastPrompt, computeOptionsHash } from './podcast-prompt';
 
 const STORAGE_KEY = 'trellis_podcasts';
 const audioBlobUrls = new Map<string, string>();
@@ -148,16 +149,16 @@ export const podcastService = {
     return { success: true, data: sorted.slice(0, limit) };
   },
 
-  async generatePodcast(date: string, conceptIds?: string[]): Promise<ServiceResult<DailyPodcast>> {
-    const existing = loadStore().find((p) => p.date === date);
-
-    // Only skip if podcast is ready AND audio blob is available (in-memory or restored from dataUri)
-    if (existing?.status === 'ready' && audioBlobUrls.has(existing.id)) {
-      return { success: true, data: existing };
-    }
-
-    const id = existing?.id ?? newPodcastId();
+  async generatePodcast(date: string, conceptIds?: string[], options?: PodcastOptions): Promise<ServiceResult<DailyPodcast>> {
+    // Phase 52 — resolve options with three-step fallback (arg → settings → default per D-03/D-14).
+    // Literal strings 'standard' and 'conversational' are load-bearing for the source-read invariant
+    // in tests/services/podcast-options.test.mjs.
     const settings = settingsService.getSync();
+    const resolvedOptions: PodcastOptions = {
+      length: options?.length ?? settings.podcast.defaultLength ?? 'standard',
+      style: options?.style ?? settings.podcast.defaultStyle ?? 'conversational',
+    };
+    const locale = getCurrentLocale() as SupportedLocale;
 
     // Use provided concept IDs (from Knowledge Today list) or fall back to SM-2 due list
     let questions: Question[];
@@ -174,10 +175,29 @@ export const podcastService = {
       questions = recentResult.data ?? [];
     }
 
+    const conceptIdList = questions.map((q) => q.id);
+    const optionsHash = computeOptionsHash(conceptIdList, locale, resolvedOptions);
+
+    const existing = loadStore().find((p) => p.date === date);
+
+    // Cache-skip — Phase 52 PODCAST-03/D-05: only skip if podcast is ready AND audio blob is
+    // available AND the cached optionsHash matches the current request. An options mismatch
+    // forces regeneration so the new length/style/locale lands.
+    // Equivalent inlined form: existing.optionsHash === computeOptionsHash(conceptIdList, locale, resolvedOptions).
+    if (
+      existing?.status === 'ready' &&
+      audioBlobUrls.has(existing.id) &&
+      existing.optionsHash === optionsHash
+    ) {
+      return { success: true, data: existing };
+    }
+
+    const id = existing?.id ?? newPodcastId();
+
     const pod: DailyPodcast = {
       id,
       date,
-      questionIds: questions.map((q) => q.id),
+      questionIds: conceptIdList,
       script: existing?.script ?? '',
       status: 'generating',
       progress: 0,
@@ -195,16 +215,20 @@ export const podcastService = {
         eventBus.emit({ type: 'PODCAST_GENERATION_PROGRESS', payload: { podcastId: id, progress: 30 } });
 
         let script: string;
-        if (existing?.script) {
+        // Reuse cached script only when the cached optionsHash matches — preserves the
+        // resume-after-TTS-failure path (script already produced, only audio failed) without
+        // letting stale-option scripts leak across an option change (Phase 52 D-05).
+        if (existing?.script && existing.optionsHash === optionsHash) {
           script = existing.script;
         } else if (!settings.llm.isConfigured || questions.length === 0) {
           script = `Welcome to your daily Trellis podcast for ${date}! You reviewed ${questions.length} topic(s) today. Keep learning!`;
         } else {
           const questionLines = questions.map((q) => `- ${q.content}: ${q.summary}`).join('\n');
+          const { system, user } = buildPodcastPrompt(questionLines, resolvedOptions);
           script = await chatCompletion(
             [
-              { role: 'system', content: 'Write a 90-second spoken podcast recap. Conversational radio style. No stage directions, no music cues. Just the words to be spoken.' },
-              { role: 'user', content: `Create a daily learning recap for:\n${questionLines}` },
+              { role: 'system', content: system },
+              { role: 'user', content: user },
             ],
             settings.llm,
             { serviceName: 'podcast' },
@@ -231,7 +255,11 @@ export const podcastService = {
           try {
             const blobUrl = await synthesize(script, ttsConfig);
             audioBlobUrls.set(id, blobUrl);
-            duration = Math.round(script.length / 15);
+            // Word-count-based estimate (~150 wpm = 2.5 wps). Replaces the prior
+            // character-count heuristic which under-estimated short scripts.
+            // Math.max(1, ...) prevents a 0-second podcast for tiny scripts.
+            const wordCount = script.trim().split(/\s+/).length;
+            duration = Math.max(1, Math.round(wordCount / 2.5));
 
             // Persist audio blob to IndexedDB so it survives page reloads
             // without consuming the limited localStorage quota.
@@ -251,12 +279,14 @@ export const podcastService = {
         const completed: DailyPodcast = {
           id,
           date,
-          questionIds: questions.map((q) => q.id),
+          questionIds: conceptIdList,
           script,
           status: 'ready',
           progress: 100,
           duration,
           createdAt: pod.createdAt,
+          options: resolvedOptions,
+          optionsHash,
         };
 
         patchPodcast(id, completed);
@@ -277,7 +307,9 @@ export const podcastService = {
     if (!pod) {
       return { success: false, error: { code: 'NOT_FOUND', message: 'Podcast not found', retryable: false } };
     }
-    return this.generatePodcast(pod.date);
+    // Phase 52 D-12: retry preserves the cached generation's options so the regenerated
+    // podcast matches what the user originally selected (no silent setting drift).
+    return this.generatePodcast(pod.date, pod.questionIds, pod.options);
   },
 
   getAudioPath(podcastId: string): ServiceResult<string> {
