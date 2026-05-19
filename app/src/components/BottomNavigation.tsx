@@ -23,10 +23,13 @@ interface BottomNavigationProps {
   onAskLongPressRelease?: () => void;
   /**
    * Phase 28 D-06 — when false, the nav slides down off-screen (y: '100%').
+   * Also hidden while the virtual keyboard is open so one animation owner
+   * controls the vertical transform.
    * Defaults to true so any caller that hasn't wired the prop yet keeps
    * the nav visible (back-compat).
    */
   isTopLevelScreen?: boolean;
+  keyboardOpen?: boolean;
 }
 
 /**
@@ -40,7 +43,9 @@ const SLIDE_SPRING = { type: 'spring' as const, stiffness: 300, damping: 30, mas
  * Pure helper surfaced for BottomNavigation.slide.test.mjs. Keeps the
  * slide-target derivation testable without a DOM.
  */
-export const getNavYTarget = (isTop: boolean): number | string => (isTop ? 0 : '100%');
+export const getNavYTarget = (isTop: boolean, keyboardOpen = false): number | string => (
+  isTop && !keyboardOpen ? 0 : '100%'
+);
 
 /** Tab button with real-time color tracking via swipeProgress MotionValue */
 function TabButton({ item, swipeProgress, onTap }: {
@@ -90,7 +95,12 @@ function TabButton({ item, swipeProgress, onTap }: {
   );
 }
 
-export function BottomNavigation({ onAskLongPress, onAskLongPressRelease, isTopLevelScreen = true }: BottomNavigationProps) {
+export function BottomNavigation({
+  onAskLongPress,
+  onAskLongPressRelease,
+  isTopLevelScreen = true,
+  keyboardOpen = false,
+}: BottomNavigationProps) {
   const { t } = useTranslation();
   const { swipeProgress, navigateToTab } = useSwipeTab();
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -157,12 +167,11 @@ export function BottomNavigation({ onAskLongPress, onAskLongPressRelease, isTopL
   return (
     <motion.nav
       id="bottom-navigation"
-      // Phase 28 D-06: slide down off-screen when user is on a sub-screen
-      // (PostDetail, AnchorDetail, Review, Podcast, QuestionDetail, etc.).
-      // initial={{ y: 0 }} prevents a first-mount flash where the nav would
-      // otherwise animate into view from below even on the top-level route.
-      initial={{ y: 0 }}
-      animate={{ y: getNavYTarget(isTopLevelScreen) }}
+      // Phase 28 D-06 / Android startup: slide down off-screen when user is
+      // on a sub-screen or the keyboard is open, with React as the sole owner
+      // of vertical nav movement.
+      initial={false}
+      animate={{ y: getNavYTarget(isTopLevelScreen, keyboardOpen) }}
       transition={SLIDE_SPRING}
       style={{
         position: 'fixed',

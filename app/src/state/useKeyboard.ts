@@ -1,40 +1,102 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+
+const MIN_KEYBOARD_HEIGHT = 150;
+const VIEWPORT_WIDTH_RESET_DELTA = 40;
+const NON_TEXT_INPUT_TYPES = new Set([
+  'button',
+  'checkbox',
+  'color',
+  'file',
+  'hidden',
+  'image',
+  'radio',
+  'range',
+  'reset',
+  'submit',
+]);
+
+function isEditableElement(element: Element | null): boolean {
+  if (!(element instanceof HTMLElement)) return false;
+  if (element.isContentEditable) return true;
+  if (element instanceof HTMLTextAreaElement) return !element.disabled && !element.readOnly;
+  if (element instanceof HTMLInputElement) {
+    return !element.disabled && !element.readOnly && !NON_TEXT_INPUT_TYPES.has(element.type);
+  }
+  return false;
+}
 
 /**
  * useKeyboard.ts
- * 
+ *
  * Global hook to detect Android/iOS virtual keyboard presence via visualViewport.
- * Adds the `keyboard-open` class to document.body, allowing CSS to hide or adjust
- * elements (like BottomNavigation) that would otherwise steal screen real estate.
+ * Returns keyboard state and keeps `keyboard-open` on document.body for layout
+ * variables that reduce keyboard-era bottom spacing.
  */
 export function useKeyboard() {
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+
   useEffect(() => {
-    if (!window.visualViewport) return;
+    const viewport = window.visualViewport;
+    if (!viewport) {
+      document.body.classList.remove('keyboard-open');
+      setKeyboardOpen(false);
+      return;
+    }
 
-    const MIN_KEYBOARD_HEIGHT = 150;
-    
-    // Store original height on mount
-    const originalHeight = window.visualViewport.height;
+    const viewportState = {
+      baselineHeight: Math.max(viewport.height, window.innerHeight || 0),
+      width: viewport.width,
+    };
+    let appliedKeyboardOpen: boolean | null = null;
 
-    const handleResize = () => {
-      if (!window.visualViewport) return;
-      
-      const currentHeight = window.visualViewport.height;
-      const isKeyboardOpen = originalHeight - currentHeight > MIN_KEYBOARD_HEIGHT;
-
-      if (isKeyboardOpen) {
-        document.body.classList.add('keyboard-open');
-      } else {
-        document.body.classList.remove('keyboard-open');
-      }
+    const applyKeyboardOpen = (nextOpen: boolean) => {
+      document.body.classList.toggle('keyboard-open', nextOpen);
+      if (appliedKeyboardOpen === nextOpen) return;
+      appliedKeyboardOpen = nextOpen;
+      setKeyboardOpen(nextOpen);
     };
 
-    window.visualViewport.addEventListener('resize', handleResize);
-    // Initial check
+    const handleResize = () => {
+      const currentHeight = viewport.height;
+      const currentWidth = viewport.width;
+      const widthChanged = Math.abs(currentWidth - viewportState.width) > VIEWPORT_WIDTH_RESET_DELTA;
+      if (widthChanged) {
+        viewportState.width = currentWidth;
+        viewportState.baselineHeight = currentHeight;
+      }
+
+      const editableFocused = isEditableElement(document.activeElement);
+      if (!editableFocused) {
+        if (!widthChanged && currentHeight > viewportState.baselineHeight) {
+          viewportState.baselineHeight = currentHeight;
+        }
+        applyKeyboardOpen(false);
+        return;
+      }
+
+      if (!widthChanged && currentHeight > viewportState.baselineHeight) {
+        viewportState.baselineHeight = currentHeight;
+      }
+
+      const heightDelta = viewportState.baselineHeight - currentHeight;
+      const nextOpen = editableFocused && heightDelta > MIN_KEYBOARD_HEIGHT;
+      applyKeyboardOpen(nextOpen);
+    };
+
+    viewport.addEventListener('resize', handleResize);
+    window.addEventListener('resize', handleResize);
+    document.addEventListener('focusin', handleResize);
+    document.addEventListener('focusout', handleResize);
     handleResize();
 
     return () => {
-      window.visualViewport?.removeEventListener('resize', handleResize);
+      viewport.removeEventListener('resize', handleResize);
+      window.removeEventListener('resize', handleResize);
+      document.removeEventListener('focusin', handleResize);
+      document.removeEventListener('focusout', handleResize);
+      document.body.classList.remove('keyboard-open');
     };
   }, []);
+
+  return keyboardOpen;
 }

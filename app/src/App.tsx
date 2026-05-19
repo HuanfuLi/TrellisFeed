@@ -74,7 +74,7 @@ function RootLayout() {
     }
   }, [subScreenClosing]);
 
-  useKeyboard();
+  const keyboardOpen = useKeyboard();
 
   const handleAskLongPress = async () => {
     if (recordingActiveRef.current) return;
@@ -196,6 +196,7 @@ function RootLayout() {
           onAskLongPress={() => void handleAskLongPress()}
           onAskLongPressRelease={() => void handleAskLongPressRelease()}
           isTopLevelScreen={isTopLevelScreen}
+          keyboardOpen={keyboardOpen}
         />
         {/* Recording / transcribing indicator for the nav bar long-press flow */}
         {(isRecording || isTranscribing) && (

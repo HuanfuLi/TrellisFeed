@@ -153,12 +153,6 @@ body.keyboard-open {
   --bottom-nav-height: 0px;
 }
 
-body.keyboard-open #bottom-navigation {
-  transform: translateY(100%);
-  opacity: 0;
-  pointer-events: none;
-}
-
 .dark {
   /* Surfaces — true black and dark greys */
   --background: #0A0A0A;
