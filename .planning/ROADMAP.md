@@ -175,7 +175,7 @@ Plans:
 
 **Wave 1** *(blocked on Wave 0 completion)*
 
-- [ ] 52-02-PLAN.md — Wave 1: podcast.service.ts options integration + cache invalidation + scheduler default options + TTS model config + usePodcast pass-through (PODCAST-01..05)
+- [x] 52-02-PLAN.md — Wave 1: podcast.service.ts options integration + cache invalidation + scheduler default options + TTS model config + usePodcast pass-through (PODCAST-01..05)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -244,7 +244,7 @@ Phases execute in numeric order: 47 → 48 → 49 → 50 → 51 → 52 → 53
 | 49. Graph Correction UI | 5/6 | Complete    | 2026-05-18 |
 | 50. Retrieval and Library Foundation | 13/13 | Complete   | 2026-05-18 |
 | 51. Concept Dashboard and Recovery Surfaces | 1/1 | Complete    | 2026-05-19 |
-| 52. Podcast Quality Defaults and Learner Controls | 1/3 | In Progress|  |
+| 52. Podcast Quality Defaults and Learner Controls | 2/3 | In Progress|  |
 | 53. Engagement Guardrails + Provider Privacy | TBD | Not started | - |
 
 ---
