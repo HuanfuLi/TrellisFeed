@@ -154,19 +154,24 @@ export function CollectionPickerSheet({ open, onClose, postId }: CollectionPicke
   // if the same instance is reused across opens the useState lazy
   // initializers don't re-fire. Without this effect the second open would
   // show stale draft state from the previous post.
+  //
+  // CRITICAL: deps MUST be `[postId]` only. This effect calls
+  // setOriginalMemberIds(new Set(...)) — including `originalMemberIds` in
+  // deps creates an infinite loop because every Set is a new reference. The
+  // COLLECTIONS_CHANGED subscription above is what re-snapshots on mid-open
+  // mutations; this effect only handles the postId-change reseed.
   useEffect(() => {
-    setDraftSavedChecked(originalSaved);
-    setDraftMemberIds(originalMemberIds);
+    const nextMembers = postId
+      ? new Set(collectionService.getPostCollections(postId).map(c => c.id))
+      : new Set<string>();
+    setDraftSavedChecked(postId ? true : false);
+    setDraftMemberIds(nextMembers);
     setCollections(postId ? collectionService.getCollections() : []);
-    setOriginalMemberIds(
-      postId
-        ? new Set(collectionService.getPostCollections(postId).map(c => c.id))
-        : new Set<string>(),
-    );
+    setOriginalMemberIds(nextMembers);
     setCreateMode(false);
     setCreateValue('');
     setCreateError(null);
-  }, [postId, actualSavedAtOpen, originalMemberIds]);
+  }, [postId]);
 
   // Defensive guard — host may toggle open=true before postId is set, or
   // the post may have been purged. Render a closed sheet shell so the

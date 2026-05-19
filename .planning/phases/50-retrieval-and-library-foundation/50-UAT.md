@@ -12,7 +12,7 @@ source:
   - 50-08-SUMMARY.md
   - 50-09-SUMMARY.md
 started: 2026-05-18T00:00:00Z
-updated: 2026-05-18T00:00:00Z
+updated: 2026-05-18T11:30:00Z
 ---
 
 ## Current Test
@@ -173,6 +173,7 @@ issues: 4
 pending: 0
 skipped: 1
 blocked: 0
+gaps: 9 (G1–G7 awaiting re-UAT after 50-10..50-13 execution; G8 fixed inline 2026-05-18)
 
 ## Gaps
 
@@ -248,3 +249,18 @@ blocked: 0
   artifacts: []
   missing: []
   debug_session: ""
+- truth: "Opening CollectionPickerSheet (long-press → Save to...) mounts cleanly. No 'Maximum update depth exceeded' React error in console. Device deployment is not aborted by a render-loop crash."
+  status: fixed
+  reason: "Regression of the 50-10 G1 fix. The reseed useEffect at CollectionPickerSheet.tsx:157-169 had originalMemberIds (a Set state it also wrote) in its dep array. Each new Set() is a fresh reference, so the effect re-fired every render, flooding the console with 'Maximum update depth exceeded' and breaking device deployment. Surfaced when operator started Test 2 re-UAT."
+  severity: blocker
+  test: 2
+  root_cause: "useEffect dep on a Set state the same effect setOriginalMemberIds(new Set(...)) writes to. Identity-by-reference dep + reference-changing setter = unbounded re-fire loop."
+  artifacts: ["app/src/components/CollectionPickerSheet.tsx:157-176", "app/tests/components/CollectionPickerSheet.no-refresh.test.mjs:NR-09"]
+  missing: ["The original 50-10 source-reading regression test (NR-01..08) did not mount the component or simulate the runtime render loop. The new NR-09 parses the effect's dep array and asserts deps are exactly [postId]."]
+  debug_session: ""
+  fix: |
+    1. Compute nextMembers Set once per effect run, share identity between setDraftMemberIds and setOriginalMemberIds.
+    2. Drop actualSavedAtOpen and originalMemberIds from deps; keep [postId] only — postId is the actual baseline-change signal.
+    3. Inlined originalSaved as (postId ? true : false) at the setDraftSavedChecked call site.
+    4. NR-09 source-reading regression test parses the reseed useEffect and asserts deps === ['postId'].
+    Verification: 9/9 no-refresh tests pass; 12/12 CollectionPickerSheet base tests pass; tsc -b --noEmit clean.

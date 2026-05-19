@@ -110,3 +110,23 @@ test('NR-08: G3 commit — handleDone diff uses actualSavedAtOpen, not originalS
     'handleDone must NOT diff against originalSaved (which is always true for pre-check)',
   );
 });
+
+test('NR-09: postId-reseed useEffect deps are [postId] only — no Set state in deps causes infinite loop', () => {
+  const src = readSrc();
+  // Locate the reseed effect by its body — it calls setOriginalMemberIds AND setDraftMemberIds.
+  // The dep array must be exactly [postId]. Including originalMemberIds (a Set) in deps
+  // re-fires the effect every render because every new Set() is a fresh reference, causing
+  // "Maximum update depth exceeded" and breaking device deployment.
+  const effectMatch = src.match(
+    /useEffect\(\(\) => \{[\s\S]*?setOriginalMemberIds\([\s\S]*?\}, \[([^\]]*)\]\);/,
+  );
+  assert.ok(effectMatch, 'Could not locate the postId-reseed useEffect — has it been renamed?');
+  const deps = effectMatch[1].split(',').map(s => s.trim()).filter(Boolean);
+  assert.deepStrictEqual(
+    deps,
+    ['postId'],
+    `Reseed effect deps must be exactly [postId]. Found [${deps.join(', ')}]. ` +
+      'Including originalMemberIds or draftMemberIds in deps creates an infinite loop ' +
+      'because each new Set() is a fresh reference.',
+  );
+});
