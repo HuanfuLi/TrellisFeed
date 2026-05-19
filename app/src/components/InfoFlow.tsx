@@ -294,13 +294,18 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive: _isActive, onO
                 e.stopPropagation() prevents the tile-level "open post"
                 handler from also firing. Binary amber dot when the
                 concept is dying/falling/dead. */}
-            {post.sourceQuestionTitles?.slice(0, 1).filter(t => !isLikelyInternalId(t)).map((title, idx) => {
-              const qaId = post.sourceQuestionIds?.[idx];
+            {post.sourceQuestionTitles?.slice(0, 1).map((title, originalIdx) => ({ title, originalIdx })).filter(({ title }) => !isLikelyInternalId(title)).map(({ title, originalIdx }) => {
+              // CR-02 fix: use originalIdx (pre-filter) to look up
+              // sourceQuestionIds. The titles + ids arrays are PARALLEL by
+              // original index; .filter() re-indexes the array, so a post-filter
+              // idx wouldn't line up with sourceQuestionIds when an internal-ID
+              // entry is dropped from the head (see 51-REVIEW.md CR-02).
+              const qaId = post.sourceQuestionIds?.[originalIdx];
               const anchorId = qaId ? resolveAnchorId(qaId) : null;
               const leafSignal = getBadgeLeafSignal(qaId);
               return (
                 <button
-                  key={idx}
+                  key={originalIdx}
                   type="button"
                   onClick={anchorId ? (e) => { e.stopPropagation(); navigate(`/anchor/${anchorId}`); } : undefined}
                   disabled={!anchorId}
@@ -492,13 +497,18 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive: _isActive, onO
               also fire. Disabled state when no anchor resolves keeps the
               visual but suppresses the click. */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '12px' }}>
-            {post.sourceQuestionTitles?.slice(0, 2).filter(t => !isLikelyInternalId(t)).map((title, idx) => {
-              const qaId = post.sourceQuestionIds?.[idx];
+            {post.sourceQuestionTitles?.slice(0, 2).map((title, originalIdx) => ({ title, originalIdx })).filter(({ title }) => !isLikelyInternalId(title)).map(({ title, originalIdx }) => {
+              // CR-02 fix: use originalIdx (pre-filter) to look up
+              // sourceQuestionIds. The titles + ids arrays are PARALLEL by
+              // original index; .filter() re-indexes the array, so a post-filter
+              // idx wouldn't line up with sourceQuestionIds when an internal-ID
+              // entry is dropped from the head (see 51-REVIEW.md CR-02).
+              const qaId = post.sourceQuestionIds?.[originalIdx];
               const anchorId = qaId ? resolveAnchorId(qaId) : null;
               const leafSignal = getBadgeLeafSignal(qaId);
               return (
                 <button
-                  key={idx}
+                  key={originalIdx}
                   type="button"
                   onClick={anchorId ? (e) => { e.stopPropagation(); navigate(`/anchor/${anchorId}`); } : undefined}
                   onKeyDown={anchorId ? (e) => {
