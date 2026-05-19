@@ -623,27 +623,61 @@ export function HomeScreen() {
   }, [quotaAnchorIds, exploredAnchors, questionsById, questions]);
 
   // Scroll to the first post matching a concept (D-04).
-  // UAT Bug 6 follow-up (2026-05-19): scrollIntoView({behavior:'smooth'})
-  // is unreliable on Android Capacitor WebView when the scroll container
-  // has WebkitOverflowScrolling: 'touch' + overscroll-behavior: 'contain'
-  // — the scroll either no-ops or jumps with no animation. Manual scrollTo
-  // on the home-scroll container is reliable on both web and Capacitor.
+  // UAT Bug 6 follow-up (2026-05-19): scrollTo({behavior:'smooth'})
+  // with a non-zero target is unreliable on Android Capacitor WebView.
+  // Background:
+  //   • Chromium bug 470360 documents WebView scrollTo accuracy issues
+  //     with non-zero offsets.
+  //   • Per MDN, user agents ARE allowed to ignore behavior:'smooth'
+  //     — WebView is one such UA. The Capacitor performance guide
+  //     explicitly recommends requestAnimationFrame-based manual scroll.
+  //   • Empirically (operator-confirmed): ScrollToTopFAB's call
+  //     scrollTo({top:0, behavior:'smooth'}) works on this same
+  //     container, but our scrollTo to non-zero targets silently
+  //     no-ops. The top:0 case may hit a different WebView code path
+  //     (boundary-snap) than mid-content offsets.
+  //
+  // Fix: rAF-based animation that assigns scrollTop directly. Direct
+  // scrollTop assignment is the most primitive scroll API and bypasses
+  // the smooth-honoring layer entirely. easeInOutCubic over 380ms
+  // matches the feel of native smooth-scroll. We also defer one frame
+  // after setExpanded(false) (called by VineProgress.fireConceptTap)
+  // so React batches the dropdown collapse with the scroll start —
+  // in inline mode, this prevents the collapsing dropdown's height
+  // shift from desyncing the scroll target.
   const handleConceptTap = useCallback((conceptId: string) => {
-    const postElement = document.querySelector(`[data-concept-id="${conceptId}"]`) as HTMLElement | null;
-    if (!postElement) return;
     const scrollContainer = containerRef.current;
-    if (!scrollContainer) {
-      postElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      return;
-    }
-    const containerRect = scrollContainer.getBoundingClientRect();
-    const tileRect = postElement.getBoundingClientRect();
-    const offsetFromContainerTop = tileRect.top - containerRect.top + scrollContainer.scrollTop;
-    const targetScrollTop = Math.max(
-      0,
-      offsetFromContainerTop - containerRect.height / 2 + tileRect.height / 2,
-    );
-    scrollContainer.scrollTo({ top: targetScrollTop, behavior: 'smooth' });
+    if (!scrollContainer) return;
+
+    requestAnimationFrame(() => {
+      const postElement = document.querySelector(`[data-concept-id="${conceptId}"]`) as HTMLElement | null;
+      if (!postElement) return;
+
+      const containerRect = scrollContainer.getBoundingClientRect();
+      const tileRect = postElement.getBoundingClientRect();
+      const offsetFromContainerTop = tileRect.top - containerRect.top + scrollContainer.scrollTop;
+      const targetScrollTop = Math.max(
+        0,
+        offsetFromContainerTop - containerRect.height / 2 + tileRect.height / 2,
+      );
+
+      const startTop = scrollContainer.scrollTop;
+      const distance = targetScrollTop - startTop;
+      if (Math.abs(distance) < 4) return;
+
+      const durationMs = 380;
+      const startTime = performance.now();
+      const easeInOutCubic = (t: number) =>
+        t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+      const step = () => {
+        const elapsed = performance.now() - startTime;
+        const progress = Math.min(elapsed / durationMs, 1);
+        scrollContainer.scrollTop = startTop + distance * easeInOutCubic(progress);
+        if (progress < 1) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    });
   }, []);
 
   const [showConfetti, setShowConfetti] = useState(false);
