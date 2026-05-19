@@ -387,25 +387,31 @@ function VineProgressImpl({
       </div>
 
       {/* Concept checklist
-          UAT Bug 6 second follow-up (verify-work, 2026-05-19): the prior
-          two attempts (button conversion + framer-motion pointer-capture
-          escape) still failed on device. Operator confirmed:
-            - both inline + compact modes broken
-            - tap on item = NOTHING happens (not even dropdown collapse)
-            - bar toggle still works (so onClick fires fine on plain divs
-              at this level)
-          The bar toggle vs item-tap differential points at the SCROLL
-          CONTAINER, not pointer capture: the prior `overflow: auto +
-          maxHeight: 200px + transition: max-height` combo creates a
-          scroll-gesture-detection surface on Android Chromium WebView.
-          Even with no overflowing content, the WebView allocates
-          touchstart→scroll arbitration on that container, and on tap-up
-          the click never synthesizes. Bar toggle works because it's NOT
-          inside this scroll container.
-          Fix: render items conditionally (no clip, no transition, no
-          scroll) so they're plain flow children of containerRef when
-          expanded. Trade-off: lose the smooth max-height animation;
-          gain functional tappability. */}
+          UAT Bug 6 third follow-up (verify-work, 2026-05-19): three prior
+          attempts failed on device — (1) button + stopPropagation +
+          touchAction, (2) data-no-swipe-nav + onPointerDown
+          stopPropagation, (3) drop the maxHeight/overflow:auto scroll
+          container. Differential held: the parent BAR div fires
+          onClick fine on device, but the dropdown <button> items did
+          not. That points at click-synthesis being unreliable on
+          <button> elements under a framer-motion pan ancestor in
+          Android Capacitor WebView — the codebase already works around
+          this elsewhere by binding action to onPointerUp instead of
+          onClick (see BottomNavigation.tsx:204-205, ChatMessage.tsx:247,
+          SavedScreen.tsx:1383). The dropdown items just didn't adopt
+          the pattern. Fix:
+            • <button> → <div role="button" tabIndex={0}> to match the
+              bar-div shape that demonstrably works on device.
+            • onClick → onPointerUp for touch firing (mouse devices
+              also emit pointer events; no double-fire). Keep onKeyDown
+              for keyboard accessibility (Enter/Space).
+            • Always close the dropdown on tap so the user sees
+              immediate visual feedback even if the scroll target
+              ([data-concept-id]) hasn't been rendered yet — prevents
+              the "nothing happens" perception on first generation.
+            • Tap target raised to 44px (iOS HIG / Android Material
+              minimum) — 36px may be below the WebView's tap-rejection
+              threshold. */}
       {expanded && (
         <div
           role="list"
@@ -427,16 +433,26 @@ function VineProgressImpl({
             </div>
           )}
           {uncoveredConcepts.map(concept => (
-          <button
+          <div
             key={concept.id}
-            type="button"
+            role="button"
+            tabIndex={0}
+            aria-label={concept.name}
             data-no-swipe-nav="true"
-            onClick={(e) => {
+            onPointerUp={(e) => {
               e.stopPropagation();
+              setExpanded(false);
               onConceptTap?.(concept.id);
             }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                setExpanded(false);
+                onConceptTap?.(concept.id);
+              }
+            }}
             style={{
-              height: '36px',
+              minHeight: '44px',
               width: '100%',
               display: 'flex',
               alignItems: 'center',
@@ -448,11 +464,10 @@ function VineProgressImpl({
               fontWeight: 400,
               color: 'var(--foreground)',
               borderRadius: '6px',
-              background: 'transparent',
-              border: 'none',
-              textAlign: 'left',
               touchAction: 'manipulation',
               WebkitTapHighlightColor: 'transparent',
+              userSelect: 'none',
+              WebkitUserSelect: 'none',
             }}
           >
             <div style={{
@@ -463,7 +478,7 @@ function VineProgressImpl({
               flexShrink: 0,
             }} />
             {concept.name}
-          </button>
+          </div>
           ))}
         </div>
       )}
