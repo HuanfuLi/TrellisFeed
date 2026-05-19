@@ -171,9 +171,19 @@ export function AnchorDetailScreen() {
   // Appears-in counts — recomputed on every render. All localStorage-backed
   // sync reads, ~<1ms for typical anchor sizes (≤5 Q&As, ≤500 posts).
   // The setTick effect above keeps this consistent on data mutations.
+  //
+  // UAT (verify-work, 2026-05-19): DailyPost.sourceQuestionIds has a
+  // mixed shape — concept-feed.service.ts produces video/news/concept
+  // posts with `sourceQuestionIds: [anchorId]` (lines 1152, 1217), while
+  // session-derived posts use Q&A child IDs. CLAUDE.md documents the
+  // Q&A-IDs claim but the codebase doesn't enforce it. To match either
+  // shape, intersect against `qaChildIdSet ∪ {anchor.id}` — posts
+  // pointing at the anchor directly OR at any of its Q&A children
+  // both count toward the Appears-in footer.
   const qaChildIdSet = new Set(qaChildren.map((q) => q.id));
+  const anchorId = anchor.id;
   const conceptPosts = postHistoryService.getPosts().filter((p) =>
-    p.sourceQuestionIds.some((id) => qaChildIdSet.has(id)),
+    p.sourceQuestionIds.some((id) => qaChildIdSet.has(id) || id === anchorId),
   );
   const conceptPostIdSet = new Set(conceptPosts.map((p) => p.id));
   const savedCount = engagementService

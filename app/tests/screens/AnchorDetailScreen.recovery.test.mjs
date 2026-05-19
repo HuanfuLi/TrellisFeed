@@ -238,3 +238,20 @@ describe('AnchorDetailScreen — anchor lookup bypasses recent-50 cap (UAT Bug 2
     );
   });
 });
+
+describe('AnchorDetailScreen — conceptPosts intersection covers anchor-id AND qa-children-ids (UAT Test 3)', () => {
+  // DailyPost.sourceQuestionIds has a mixed shape: concept-feed.service.ts
+  // produces video/news/concept posts with `sourceQuestionIds: [anchorId]`
+  // (lines 1152, 1217), while session-derived posts use Q&A child IDs.
+  // The Appears-in footer count must accept either shape, otherwise posts
+  // generated from the concept-feed pipeline silently miss the count and
+  // the footer hides even when the user has saved/collected posts for
+  // that anchor.
+  it('conceptPosts filter intersects against qaChildIdSet UNION {anchor.id}', () => {
+    assert.match(
+      source,
+      /qaChildIdSet\.has\(id\)\s*\|\|\s*id\s*===\s*anchorId/,
+      'AnchorDetailScreen.tsx conceptPosts filter must accept BOTH Q&A child IDs AND the anchor ID itself in sourceQuestionIds intersection.',
+    );
+  });
+});
