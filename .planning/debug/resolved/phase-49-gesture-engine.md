@@ -1,5 +1,7 @@
 ---
-status: diagnosed
+status: resolved
+resolved_at: 2026-05-19T07:00:00Z
+resolved_by: "Plan 49-06 — useLongPressOrDrag onLongPressRecognized + capture-phase pointermove + state-machine feed. Phantom-finger leak fix at 49-06.1; drag-starvation fix at 49-06.2."
 trigger: "Phase 49 UAT Test 1 — long-press menu fires on finger release instead of 480ms tick AND canvas pans with the dragged ghost so the node cannot be repositioned"
 created: 2026-05-18T00:00:00Z
 updated: 2026-05-18T00:00:00Z

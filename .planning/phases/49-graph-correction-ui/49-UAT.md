@@ -1,9 +1,9 @@
 ---
-status: diagnosed
+status: complete
 phase: 49-graph-correction-ui
-source: 49-05-SUMMARY.md
+source: 49-05-SUMMARY.md, 49-06-SUMMARY.md
 started: 2026-05-18T00:00:00Z
-updated: 2026-05-18T00:00:00Z
+updated: 2026-05-19T07:00:00Z
 ---
 
 ## Current Test
@@ -14,22 +14,20 @@ updated: 2026-05-18T00:00:00Z
 
 ### 1. Magnetic snap on long-press drag
 expected: Long-press anchor at default 0.5× zoom → haptic + ghost @480ms → drag toward another anchor → halo activates within ~32px → ghost snaps to target. Acceptable band 24-48px.
-result: issue
-reported: "Yes popover displayed, but was triggered by release of finger after long-press instead of time-lapsed of long-press like the long-press behavior in feed post tiles. Another issue: The graph canvas is also moved along with the node when user long-press and drag the node, which keeps the node centered and cannot really be repositioned to other location. Blocked."
-severity: major
-findings:
-  - "Long-press menu fires on FINGER RELEASE rather than on the 480ms TIMER tick. Expected: menu pops while finger is still down at 480ms (matches feed post tile long-press behavior)."
-  - "Canvas pans along with the dragged ghost — node stays visually centered relative to viewport, so the user cannot reposition the node relative to other anchors. MindElixir pan/zoom is not being suppressed during long-press-drag."
+result: pass
+resolved_by: "Plan 49-06 — `useLongPressOrDrag` renamed `onLongPressRelease` → `onLongPressRecognized` and fires the callback inside the 480ms setTimeout; `GraphScreen.tsx` capture-phase pointermove listener now drives the state machine AND calls stopPropagation (49-06.2 at commit f28049a4) so MindElixir's bubble-phase pan handler stays silent for the duration of the gesture. Phantom-finger leak (tier-a/b/setPointerCapture preempting MindElixir's pinch-zoom Map cleanup) removed at 49-06.1 (28ecc89b)."
+re_tested: "2026-05-19 — Pixel 10 Pro pass"
 
 ### 2. Haptic feedback
 expected: Long-press a node → light tap haptic at 480ms. Drag + drop on a valid cluster → medium tap haptic at drop.
-result: skipped
-reason: "Skipped after Test 1 failure surfaced that the long-press menu fires on finger-release instead of at the 480ms timer tick. Haptic-at-480ms is likely affected by the same root cause; defer to post-fix re-verification on phone."
+result: pass
+re_tested: "2026-05-19 — Pixel 10 Pro pass. Plan 49-06 moved the haptic into the 480ms setTimeout (`useLongPressOrDrag.ts`), so the tap fires while the finger is still down."
 
 ### 3. Drag does not fight MindElixir pan/zoom
 expected: Pinch-zoom out to ~0.3×; long-press a deep anchor; drag toward a different cluster. Gesture commits without the map snapping back to default scale.
 result: skipped
-reason: "Pinch-zoom needs a touch device; operator testing on web (no Capacitor deploy yet). Test 1 already captured the broader 'canvas pans with drag' issue at default zoom."
+reason: "DEFERRED TO PHASE 53 (known issue). On Pixel 10 Pro at non-default zoom, drop or undo currently resets the viewport to the default 0.5× center. Four fix attempts (49-06.3 capture/restore transform; 49-06.4 init/refresh split; two first-run-skip variants) were rolled back at commit c6ac6170 — likely a React 19 StrictMode + MindElixir.init ordering hazard. Further attempts need on-device console.log instrumentation. Plan 49-06 SUMMARY documents this as the sole UAT-deferred item. Tracked alongside other graph-hygiene gaps for Phase 53."
+severity: minor
 
 ### 4. Pick-mode banner + Header positioning
 expected: Long-press an anchor → Move row → banner appears below Header. Swipe to Planner tab and back to Graph. Header stays in place; banner is still visible OR resets cleanly (always-mounted reset effect nulls pickMode on /graph leave).
@@ -64,38 +62,25 @@ result: pass
 ## Summary
 
 total: 10
-passed: 7
-issues: 1
+passed: 9
+issues: 0
 pending: 0
-skipped: 2
+skipped: 1
 blocked: 0
+
+deferred_to_next_phase:
+  - test: 3
+    reason: "Drag-vs-pinch viewport reset on drop/undo at non-default zoom. Tracked for Phase 53 (graph hygiene)."
 
 ## Gaps
 
-- truth: "Long-press menu fires at the 480ms timer tick (haptic + ghost appear while finger is still pressed); long-press-drag suppresses MindElixir pan/zoom so the dragged node can be repositioned relative to other anchors."
-  status: failed
-  reason: "User reported: 'Yes popover displayed, but was triggered by release of finger after long-press instead of time-lapsed of long-press like the long-press behavior in feed post tiles. Another issue: The graph canvas is also moved along with the node when user long-press and drag the node, which keeps the node centered and cannot really be repositioned to other location. Blocked.'"
-  severity: major
-  test: 1
-  findings:
-    - "Long-press menu fires on FINGER RELEASE rather than at the 480ms TIMER tick. Expected: menu pops while finger is still down at 480ms (matches feed post tile long-press behavior)."
-    - "Canvas pans along with the dragged ghost — node stays visually centered, so it cannot be repositioned relative to other anchors. MindElixir pan/zoom is not suppressed during long-press-drag."
-  root_cause_finding_1: "useLongPressOrDrag.ts createLongPressOrDragMachine (lines 78-149) is structurally wrong: the 480ms setTimeout (line 104-108) only sets internal didLongPress=true + fires haptic; it never invokes a consumer-visible 'long-press recognized' callback. onLongPressRelease fires from inside onPointerUp (line 148), gated on didLongPress && !didDrag. GraphScreen wires CorrectionCard mount to onLongPressRelease (GraphScreen.tsx:439-442 → handleLongPressRelease at 769-797), so the card only mounts after the user lifts their finger. Diverges from the codebase feed-tile convention at useLongPress.ts:42-45 which fires the callback INSIDE the timer."
-  root_cause_finding_2: "Two stacked issues. (a) MindElixir registers its own pointerdown/pointermove/pointerup listeners on the SAME container GraphScreen attaches its delegated gesture listener to (MindElixir.js:1095-1101). (b) With Trellis's editable:false config, MindElixir's pointerdown handler ALWAYS falls into the pan branch — t.mousedown=true + setPointerCapture(pointerId) on first touch (MindElixir.js:1044-1045). Every subsequent pointermove calls t.onMove(dx,dy) → e.move(dx,dy) which pans the map. GraphScreen never neutralizes MindElixir's pan after long-press is recognized: no mei.dragMoveHelper.clear(), no capture-phase stopPropagation, no override of MindElixir's pointer capture. setPointerCapture at GraphScreen.tsx:446 fires only on onDragStart (480ms + 8px later) and only reroutes events — it does NOT prevent MindElixir's co-registered listener on the same container from firing."
-  artifacts:
-    - path: "app/src/hooks/useLongPressOrDrag.ts"
-      issue: "Missing onLongPressRecognized callback inside the 480ms timer (Finding 1)"
-    - path: "app/src/screens/GraphScreen.tsx"
-      issue: "handlePointerDown (line 404-484) never engages MindElixir pan-suppression; comment at 379-380 acknowledges half of the constraint without implementing the other half (Finding 2)"
-    - path: "app/tests/hooks/useLongPressOrDrag.test.mjs"
-      issue: "Test 1 (lines 64-87) asserts onLongPressRelease fires AFTER pointerup, encoding the bug; no test asserts mid-press recognition"
-    - path: "app/tests/components/graph/DragOverlay.test.mjs"
-      issue: "No behavioral test for the 'MindElixir pan suppressed during drag' invariant"
-  missing:
-    - "onLongPressRecognized callback invoked inside the 480ms timer (alongside didLongPress=true + haptic). Match useLongPress.ts:42-45 pattern."
-    - "GraphScreen wires setCorrectionNode to onLongPressRecognized instead of onLongPressRelease (drop the latter — no consumer the new callback doesn't already cover)."
-    - "MindElixir pan-suppression engaged at the same 480ms recognition point. Three layered defenses in the new onLongPressRecognized GraphScreen handler: (a) call mei.dragMoveHelper.clear() to reset MindElixir's internal mousedown=true; (b) attach capture-phase pointermove listener on container calling event.stopPropagation(), torn down on pointerup/pointercancel; (c) re-setPointerCapture to the container (not the target node) so MindElixir's pointerup also routes correctly. Move existing setPointerCapture out of onDragStart."
-    - "Rewrite useLongPressOrDrag.test.mjs Test 1 to assert onLongPressRecognized fires at the 480ms tick BEFORE any pointerup."
-    - "Add integration test app/tests/screens/GraphScreen.gesture-isolation.test.mjs asserting mei.move is NOT invoked between recognition and pointerup."
-    - "Update load-bearing comment at GraphScreen.tsx:379-380 to reflect the new symmetric 'DO stopPropagation AFTER recognition' policy."
-  debug_session: ".planning/debug/phase-49-gesture-engine.md"
+[resolved — original gesture-engine bug closed by Plan 49-06 (commits 28ecc89b, f28049a4). Test 3 viewport-preservation deferred to Phase 53, documented in 49-06-SUMMARY.md and 49-VALIDATION.md's UAT scorecard.]
+
+## Resolution log
+
+- 2026-05-18 Initial UAT surfaced Test 1 issue → Phase 49 gap-closure cycle.
+- 2026-05-18 Diagnosis at `.planning/debug/phase-49-gesture-engine.md`.
+- 2026-05-18 Plan 49-06 generated + checker-verified.
+- 2026-05-18 → 2026-05-19 Execution. Phantom-finger fix (49-06.1, 28ecc89b). Drag state-machine starvation fix (49-06.2, f28049a4). Four Test 3 attempts rolled back to f28049a4 (c6ac6170).
+- 2026-05-19 Inline UAT-surfaced bonus fixes: self-snap drag (a8bd34f7), extractor union + cascade cleanup (2c296870), rename fire-and-forget (c2f6b8c4), prune cascade (8ea088c5).
+- 2026-05-19 Phase 49 closed: 49-VALIDATION.md nyquist_compliant=true, 49-06-SUMMARY.md written, commit 3a51a5e6.
