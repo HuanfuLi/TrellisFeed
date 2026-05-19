@@ -99,3 +99,20 @@ test('Assertion 3: no surviving banned callback byte sequence in GraphScreen.tsx
   assert.doesNotMatch(src, new RegExp(banned), `${banned} must be fully removed from GraphScreen.tsx`);
   assert.match(src, new RegExp(expected), `${expected} must be present in GraphScreen.tsx`);
 });
+
+test('Assertion 4: drop-target snapshot excludes the source node (no self-snap)', () => {
+  // UAT 2026-05-19 regression: dropping an anchor back near its origin
+  // produced a Merge confirm dialog with loser === survivor because the
+  // 32px snap loop in onDragEnd (and DragOverlay's halo) treated the
+  // source node's own rect as a candidate. The fix filters source out of
+  // activeSnapshot at gesture-start in handlePointerDown so BOTH consumers
+  // (visual halo + snap detect) agree.
+  const snapshotBlockStart = src.indexOf('activeSnapshot = tpcs');
+  assert.ok(snapshotBlockStart > 0, 'activeSnapshot construction block must exist');
+  const slice = src.slice(snapshotBlockStart, snapshotBlockStart + 1200);
+  assert.match(
+    slice,
+    /sourceId\s*!==\s*null\s*&&\s*obj\.id\s*===\s*sourceId/,
+    'Snapshot map MUST filter out the source node by id so drop-on-origin neither highlights nor commits a self-merge',
+  );
+});

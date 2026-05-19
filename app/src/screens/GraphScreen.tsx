@@ -434,11 +434,17 @@ function MasterMap({
 
       // Snapshot drop targets ONCE at gesture-start (T-49-02 mitigation —
       // later DOM mutations cannot change the target set mid-drag).
+      // Source node is excluded so dropping back at origin neither highlights
+      // (DragOverlay halo) nor commits (handleDragEnd self-merge) against
+      // itself. UAT 2026-05-19 regression: drop-on-origin opened a Merge
+      // confirm dialog with loser === survisor.
       const tpcs = Array.from(containerRef.current!.querySelectorAll('me-tpc'));
+      const sourceId = activeSourceNode?.id ?? null;
       activeSnapshot = tpcs
         .map((el) => {
           const obj = (el as HTMLElement & { nodeObj?: NodeObj }).nodeObj;
           if (!obj || obj.id === 'root-knowledge' || obj.id.startsWith('branch-')) return null;
+          if (sourceId !== null && obj.id === sourceId) return null;
           const q = nodeMapRef.current[obj.id];
           if (!q) return null;
           const kind: 'cluster' | 'anchor' | 'qa' = q.isClusterNode
