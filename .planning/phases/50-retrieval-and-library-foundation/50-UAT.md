@@ -1,5 +1,5 @@
 ---
-status: partial
+status: complete
 phase: 50-retrieval-and-library-foundation
 source:
   - 50-01-SUMMARY.md
@@ -17,19 +17,7 @@ updated: 2026-05-18T11:30:00Z
 
 ## Current Test
 
-number: 6
-name: Tab switch preserves query but rescopes results
-expected: |
-  On /saved Saved tab, type a query in the search bar. Results filter to Saved
-  matches. Tap the "Liked" tab in the strip. The query text stays in the search
-  bar. Results recompute against the Liked corpus (different rows).
-
-  RE-UAT after fixes (50-12):
-  - G6: SavedScreen tab-change effect dropped setQuery('')/setInputDraft('').
-    Still keeps the debounce-timer flush + filter-chip clear so stale results
-    don't show during the rescope.
-phase: re-uat
-awaiting: user response
+[testing complete]
 
 ## Tests
 
@@ -195,9 +183,12 @@ expected: |
   On /saved Saved tab, type a query in the search bar. Results filter to Saved
   matches. Tap the "Liked" tab in the strip. The query text stays in the search
   bar. Results recompute against the Liked corpus (different rows).
-result: issue
-reported: "Fail: Switching tab in Saved tab clears the search bar."
-severity: major
+result: pass
+note: |
+  Re-UAT 2026-05-18 pass after 50-12 closed G6: SavedScreen.tab-change effect
+  no longer calls setQuery('')/setInputDraft(''); debounce-timer flush + filter-chip
+  clear preserved (Pitfall 8 correctly applied).
+prior_reported: "Fail: Switching tab in Saved tab clears the search bar."
 analysis: |
   Direct contradiction between the validation contract and the executed plan:
   - 50-VALIDATION.md row 4 expects: "Query string persists, results rescope to Liked"
@@ -205,11 +196,7 @@ analysis: |
     + pending debounce timer (Pitfall 8)"
   The planner cited "Pitfall 8" as motivation but Pitfall 8 in RESEARCH.md is about
   flushing the pending debounce timer to avoid stale results, NOT about clearing
-  the query string. The query-clear is a misinterpretation. Fix: in
-  SavedScreen.tsx's tab-change effect, drop `setQuery('')` and `setInputDraft('')`
-  while KEEPING the debounce-timer flush + filter-chip clear. The Fuse index already
-  rebuilds on `[activeTab, corpus]` change (50-09 pattern), so rescoping is
-  automatic once the query is retained.
+  the query string. The query-clear was a misinterpretation. 50-12 corrected this.
 
 ### 7. Collection drill-in + Remove from collection
 expected: |
@@ -234,12 +221,12 @@ reason: "Operator does not wish to time-travel now. Defer to a follow-up UAT ses
 ## Summary
 
 total: 8
-passed: 6
-issues: 1
+passed: 7
+issues: 0
 pending: 0
 skipped: 1
 blocked: 0
-gaps: 15 total — fixed in-session: G1, G2, G3, G4, G5, G7, G8, G9, G12, G13, G14; deferred: G10 (Saved-as-real-folder, major), G11 (drop Liked tab, design); awaiting re-UAT: G6 (Test 6 — tab-preserves-query)
+gaps: 15 total — fixed in-session: G1, G2, G3, G4, G5, G6, G7, G8, G9, G12, G13, G14 (12 closed); deferred for design discussion: G10 (Saved-as-real-folder, major), G11 (drop Liked tab, design)
 
 ## Gaps
 
@@ -307,12 +294,12 @@ gaps: 15 total — fixed in-session: G1, G2, G3, G4, G5, G7, G8, G9, G12, G13, G
   missing: []
   debug_session: ""
 - truth: "Tab switch on /saved (Saved → Liked/History/Collections) preserves the search-bar query and rescopes results against the new tab's corpus. Only filters + pending debounce timer reset; query persists. Per 50-VALIDATION.md row 4."
-  status: failed
-  reason: "User reported: switching tabs in /saved clears the search bar. Contradicts 50-VALIDATION.md row 4 and CONTEXT D-11 (query persists, rescope). The 50-09 plan misread Pitfall 8 — should flush debounce timer, not clear query."
+  status: fixed
+  reason: "User reported: switching tabs in /saved clears the search bar. Contradicts 50-VALIDATION.md row 4 and CONTEXT D-11 (query persists, rescope). The 50-09 plan misread Pitfall 8 — should flush debounce timer, not clear query. Closed by 50-12 — tab-change effect retains query, only flushes debounce + clears filter chips. Re-UAT Test 6 confirmed query stays, results rescope."
   severity: major
   test: 6
-  root_cause: ""
-  artifacts: []
+  root_cause: "50-09 misread Pitfall 8: 'flush debounce timer on tab change' was implemented as 'also clear the query+inputDraft state.'"
+  artifacts: ["app/src/screens/SavedScreen.tsx tab-change effect", "app/tests/screens/SavedScreen.tab-preserves-query.test.mjs"]
   missing: []
   debug_session: ""
 - truth: "Opening CollectionPickerSheet (long-press → Save to...) mounts cleanly. No 'Maximum update depth exceeded' React error in console. Device deployment is not aborted by a render-loop crash."
