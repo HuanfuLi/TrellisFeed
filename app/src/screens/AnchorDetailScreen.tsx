@@ -24,7 +24,10 @@ export function AnchorDetailScreen() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const { getById, questions, isLoading } = useQuestions();
+  // `questions` is intentionally NOT destructured (WR-04): we read qaChildren
+  // from questionService.getAll() instead so the children of older anchors
+  // (past the useQuestions recent-50 cap) are not undercounted.
+  const { getById, isLoading } = useQuestions();
 
   const anchor = id ? getById(id) : undefined;
 
@@ -85,6 +88,29 @@ export function AnchorDetailScreen() {
     return map;
   }, [tick]);
 
+  // WR-04 fix (Phase 51 code review): build qaChildren from the FULL
+  // question store (questionService.getAll({ includeFlagged: true }))
+  // instead of from useQuestions()'s `questions`, which is capped at
+  // questionService.getRecent(50) and silently undercounts Q&A children
+  // of an anchor that predates the most recent 50 questions. That
+  // undercount cascades into qaChildIdSet → savedCount /
+  // inCollectionsCount / podcastCount, making the "Appears in" footer
+  // either hide (sum=0) or show smaller numbers than reality. Mirrors
+  // InfoFlow.getBadgeLeafSignal's same-reason switch from useQuestions to
+  // questionService.getAll (see InfoFlow.tsx:39).
+  //
+  // Declared BEFORE the not-found early-return so the hook order is
+  // stable across the undefined → defined anchor lifecycle (Rules of
+  // Hooks). Returns [] when anchor is undefined; that's harmless because
+  // the early-return below renders the not-found shell which never reads
+  // qaChildren.
+  const qaChildren = useMemo(() => {
+    void tick;
+    if (!anchor) return [];
+    const allQ = questionService.getAll({ includeFlagged: true });
+    return allQ.filter((q) => q.parentId === anchor.id && !q.isAnchorNode);
+  }, [tick, anchor]);
+
   if (!anchor || !anchor.isAnchorNode) {
     return (
       <div style={{ padding: '24px 16px', maxWidth: '448px', margin: '0 auto' }}>
@@ -107,8 +133,8 @@ export function AnchorDetailScreen() {
     );
   }
 
-  // Get all Q&As attached to this anchor
-  const qaChildren = questions.filter((q) => q.parentId === anchor.id && !q.isAnchorNode);
+  // qaChildren is built above (BEFORE the early-return) so the hook order
+  // is stable. See WR-04 comment block at the useMemo site.
 
   // Get flashcard count for this anchor's Q&As
   const allCards = flashcardService.getAll();
