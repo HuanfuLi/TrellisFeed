@@ -218,7 +218,7 @@ issues: 3
 pending: 0
 skipped: 1
 blocked: 1
-gaps: 14 total — G1+G3 fixed (50-10 verified Test 2 pass); G8 fixed (b9165f98); G9/G10/G11 net-new from re-UAT Test 2; G12/G13 net-new from re-UAT Test 4 (device-only); G2/G4/G5/G6/G7 still awaiting re-UAT Tests 4/5/6 once G13 unblocks long-press
+gaps: 14 total — fixed in-session: G1, G3, G8, G9, G12, G13; net-new from re-UAT but deferred: G10 (Saved-as-real-folder, major), G11 (drop Liked tab, design); awaiting re-UAT on device: G2/G4/G5/G6/G7 (gap-closure plans 50-10..50-13 already shipped, now unblocked by G13 long-press fix + G12 keyboard fix)
 
 ## Gaps
 
@@ -309,15 +309,19 @@ gaps: 14 total — G1+G3 fixed (50-10 verified Test 2 pass); G8 fixed (b9165f98)
     3. Inlined originalSaved as (postId ? true : false) at the setDraftSavedChecked call site.
     4. NR-09 source-reading regression test parses the reseed useEffect and asserts deps === ['postId'].
     Verification: 9/9 no-refresh tests pass; 12/12 CollectionPickerSheet base tests pass; tsc -b --noEmit clean.
-- truth: "Bookmark icon on the implicit Saved row in CollectionPickerSheet visually matches user-created collection rows when checked — same fill behavior, no jarring color shift unique to the implicit row."
-  status: failed
-  reason: "Operator reported during Test 2 re-UAT 2026-05-18: when the Saved row is checked, its bookmark icon turns dark (filled var(--primary-40) via fill='currentColor'), looking ugly and mismatching user-created collection rows whose Folder icons stay neutral on check. Screenshot: green check + dark-filled bookmark + 已保存 label. Fix candidate: in CollectionPickerSheet.tsx:299-303, drop the fill='currentColor' branch on the Bookmark (keep color shift only, or no shift at all — match the user-collection rows that pass static color='var(--foreground)' to Folder)."
+- truth: "Bookmark icon on the implicit Saved row in CollectionPickerSheet visually matches user-created collection rows when checked — same fill behavior, no jarring color shift unique to the implicit row. Long-press menu Save/Unsave row honors the same rule."
+  status: fixed
+  reason: "Operator reported during Test 2 re-UAT 2026-05-18: when the Saved row is checked, its bookmark icon turns dark (filled var(--primary-40) via fill='currentColor'), looking ugly and mismatching user-created collection rows whose Folder icons stay neutral on check. Re-UAT Test 4 Image #5 confirmed the SAME pattern in LongPressMenu's Save/Unsave row. Both sites used `fill={isSaved ? 'currentColor' : 'none'}` plus `color={isSaved ? 'var(--primary-40)' : 'var(--foreground)'}`."
   severity: cosmetic
   test: 2
-  root_cause: ""
-  artifacts: []
+  root_cause: "Two render sites (CollectionPickerSheet.tsx:299-303 and LongPressMenu.tsx:200-204) overloaded BOTH fill and color on isSaved. Color alone is sufficient for active-state signaling and matches the user-created folder rows that stay outlined."
+  artifacts: ["app/src/components/CollectionPickerSheet.tsx (drop fill prop)", "app/src/components/LongPressMenu.tsx (drop fill prop)"]
   missing: []
   debug_session: ""
+  fix: |
+    Dropped `fill={isSaved ? 'currentColor' : 'none'}` from both Bookmark render sites. Color-only state signaling stays
+    (color shifts to var(--primary-40) when saved/checked). Heart in LongPressMenu still uses fill on liked state — operator
+    did not flag Heart, leaving that intact.
 - truth: "User-saved posts (saved via the implicit Saved row of the picker) are retrievable as a 'Saved' folder in /saved → Collections tab. The implicit Saved bucket behaves as a real collection from the user's POV."
   status: failed
   reason: "Operator reported during Test 2 re-UAT 2026-05-18: 'There should be a default collection named Saved that will be checked by default when user save a post, and if user saved to that collection they can retrieve the posts in Saved collection in the saved path. Currently, there is no Saved collection in saved path, which is weird because user saved to Saved but cannot see a saved folder in that tab.' Currently the implicit Saved row is plumbed through engagementService.savePost (the global Saved bucket) and surfaces only in the Saved tab — not as a row in the Collections tab. Fix candidates: (a) auto-create a real Collection named 'Saved' on first install + treat its postIds as the canonical engagement.savedPosts bucket, dropping the special-case branch; (b) keep the implicit/explicit split but render a synthetic 'Saved' card at the top of the Collections tab that links to /saved (Saved tab). Choice is a design call — operator likely prefers (a) for consistency."
@@ -337,20 +341,26 @@ gaps: 14 total — G1+G3 fixed (50-10 verified Test 2 pass); G8 fixed (b9165f98)
   missing: []
   debug_session: ""
 - truth: "Tapping a bookmark icon (visual save-state badge) on /saved does NOT invoke the system keyboard. The keyboard appears only when the user explicitly taps a focusable input."
-  status: failed
-  reason: "Operator reported during Test 4 re-UAT 2026-05-18 on physical device: 'When user clicked the bookmark icon in the top right corner, the system keyboard was invoked although user did not click the search bar and the search bar is not focused.' Most likely candidates for the bookmark element: (a) corner-chip Bookmark icon on a feed tile (MasonryFeed.tsx:394+ engagement corner overlay) — if tapping the tile navigates to PostDetailScreen and that screen's ChatInput receives focus on mount via Capacitor's keyboard plugin resize behavior; (b) less likely, a Bookmark icon on a /saved internal element. Needs device repro to localize. Workaround: avoid corner-bookmark taps until isolated."
+  status: fixed
+  reason: "Operator reported during Test 4 re-UAT 2026-05-18 on physical device: 'When user clicked the bookmark icon in the top right corner, the system keyboard was invoked although user did not click the search bar and the search bar is not focused.' Image #6 localized the tap target: top-right Bookmark <button> on HomeScreen.tsx:813 that navigates to /saved via navigate('/saved'). Root cause: SavedScreen.tsx:1119 and CollectionDrillInScreen.tsx:539 both declared bare `autoFocus` on their rename inputs inside BottomSheet shells. BottomSheet always renders its children (translateY animation, not conditional mount), so the autoFocus fired on screen mount — focusing a hidden input and popping the keyboard."
   severity: major
   test: 4
-  root_cause: ""
-  artifacts: []
-  missing: []
+  root_cause: "BottomSheet renders children unconditionally; bare autoFocus on hidden inputs fires on host-screen mount. Pattern is general — any future input-inside-BottomSheet must defer focus to a deliberate user gesture."
+  artifacts: ["app/src/screens/SavedScreen.tsx:1117-1130 (ref + useEffect)", "app/src/screens/CollectionDrillInScreen.tsx:537-540 (ref + useEffect)", "app/tests/components/bottom-sheet-no-bare-autofocus.test.mjs (regression guard)"]
+  missing: ["Project-wide invariant: no bare autoFocus on input descendants of BottomSheet. Enforced by a new source-reading test that scans every BottomSheet consumer."]
   debug_session: ""
-- truth: "Long-press (480ms hold) on feed tiles fires the recognition callback on real touch hardware. LongPressMenu / CollectionPickerSheet open as expected. Sub-pixel finger jitter does not cancel the timer."
-  status: failed
-  reason: "Operator reported during Test 4 re-UAT 2026-05-18 on physical device: 'the long-press on post face tiles does not work on phones (not responding to long-press event), and it actually works in a weird way in browser (mouse scroll disabled after long-press). I do feel the haptics though. This blocked the test because I cannot save a post in this way.' Root cause: useLongPress.ts:57 binds onPointerMove: cancel. On real touch hardware, sub-pixel finger jitter fires pointermove events constantly during a held press, so the 480ms timer never elapses. Mouse-driven browser works because mouse pointermove only fires on actual pixel movement. The OS-native long-press still fires haptic (Android/iOS WebView system level), which is why the user 'feels haptics' even though the JS recognizer never fires. Fix: replace onPointerMove: cancel with an 8px Euclidean movement-threshold check, matching the sibling useLongPressOrDrag.ts:132-159 pattern. Cancel only when displacement from start coord exceeds 8px (scroll intent), not on every micro-jitter."
+  fix: |
+    1. Replace bare autoFocus with ref + useEffect that fires only when the sheet's `open` state flips to true.
+       Pattern: const ref = useRef<HTMLInputElement | null>(null);
+                useEffect(() => { if (sheetOpen) requestAnimationFrame(() => ref.current?.focus()); }, [sheetOpen]);
+    2. New regression test app/tests/components/bottom-sheet-no-bare-autofocus.test.mjs scans every BottomSheet consumer and asserts no bare autoFocus on input descendants. Catches the exact regression shape.
+    Verification: 12/12 useLongPress tests pass, 34/34 picker + LongPressMenu tests pass, tsc clean.
+- truth: "Long-press (480ms hold) on feed tiles fires the recognition callback on real touch hardware AND a haptic impact. LongPressMenu / CollectionPickerSheet open as expected. Sub-pixel finger jitter does not cancel the timer."
+  status: fixed
+  reason: "Operator reported during Test 4 re-UAT 2026-05-18 on physical device: 'the long-press on post face tiles does not work on phones (not responding to long-press event), and it actually works in a weird way in browser (mouse scroll disabled after long-press). I do feel the haptics though. This blocked the test because I cannot save a post in this way.' Root cause: useLongPress.ts:57 binds onPointerMove: cancel. On real touch hardware, sub-pixel finger jitter fires pointermove events constantly during a held press, so the 480ms timer never elapses. Mouse-driven browser works because mouse pointermove only fires on actual pixel movement. The OS-native long-press still fires haptic (Android/iOS WebView system level), which is why the user 'feels haptics' even though the JS recognizer never fires. Initial fix (b77b0f85) added the 8px threshold but did NOT call haptic — operator reported Test 4 re-UAT: 'Haptic in long-press is gone.' Follow-up: added `void hapticImpactLight()` inside the timer callback to match the sibling useLongPressOrDrag.ts:120 pattern."
   severity: blocker
   test: 4
-  root_cause: "useLongPress.ts:57 cancels timer on any pointermove. Touch jitter = constant pointermoves = timer never elapses. Sibling useLongPressOrDrag.ts already implements the 8px threshold correctly."
-  artifacts: []
-  missing: ["Hook lacks movement-threshold logic that's already present in useLongPressOrDrag.ts. Codebase had two long-press hooks but the simpler one is broken on touch devices."]
+  root_cause: "useLongPress.ts:57 cancels timer on any pointermove. Touch jitter = constant pointermoves = timer never elapses. Sibling useLongPressOrDrag.ts already implements the 8px threshold correctly. Haptic was free from OS-native long-press; with JS owning the path end-to-end the hook must fire it explicitly."
+  artifacts: ["b77b0f85 (8px threshold)", "app/src/hooks/useLongPress.ts:hapticImpactLight call (haptic restore)", "app/tests/hooks/useLongPress.test.mjs (G13 regression tests)"]
+  missing: ["Hook lacked movement-threshold logic AND haptic invocation. Both gaps surfaced in sequence — first the regression, then the haptic loss on the fix."]
   debug_session: ""

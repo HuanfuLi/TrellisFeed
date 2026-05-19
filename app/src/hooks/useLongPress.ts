@@ -1,5 +1,6 @@
 import { useRef, useEffect, useCallback } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
+import { hapticImpactLight } from '../lib/haptics';
 
 /**
  * 480ms long-press hook — codebase-wide convention (see CLAUDE.md "Best practices",
@@ -52,6 +53,12 @@ export function useLongPress(ms: number, onLongPress: () => void) {
       startCoordRef.current = { x: e.clientX, y: e.clientY };
       timerRef.current = setTimeout(() => {
         didLongPress.current = true;
+        // Fire-and-forget haptic — wrapper no-ops on web. Matches the sibling
+        // useLongPressOrDrag.ts:120 pattern. Phase 50 UAT G13 follow-up:
+        // before the G13 fix the OS-native long-press fired this haptic for
+        // free, so operators were used to feeling it; now the JS recognizer
+        // owns the path end-to-end and must fire it explicitly.
+        void hapticImpactLight();
         callbackRef.current();
       }, ms);
     },

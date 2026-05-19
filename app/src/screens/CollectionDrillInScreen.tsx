@@ -50,7 +50,7 @@
 //   collectionContext prop renders the "Remove from collection" row inside
 //   LongPressMenu (UI-SPEC §Surface 9).
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -271,6 +271,17 @@ export function CollectionDrillInScreen() {
   const [renameError, setRenameError] = useState<
     'nameEmpty' | 'nameTooLong' | 'nameDuplicate' | null
   >(null);
+
+  // Phase 50 UAT G12: BottomSheet always mounts children regardless of `open`,
+  // so a bare `autoFocus` on this rename input would grab focus immediately on
+  // screen mount and pop the system keyboard. Defer focus to the moment the
+  // sheet actually opens via ref + effect.
+  const renameInputRef = useRef<HTMLInputElement | null>(null);
+  useEffect(() => {
+    if (renameOpen) {
+      requestAnimationFrame(() => renameInputRef.current?.focus());
+    }
+  }, [renameOpen]);
 
   // Delete confirmation sheet.
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -535,8 +546,8 @@ export function CollectionDrillInScreen() {
             {t('library.collections.rename')}
           </h3>
           <input
+            ref={renameInputRef}
             type="text"
-            autoFocus
             value={renameValue}
             onChange={(e) => {
               setRenameValue(e.target.value);

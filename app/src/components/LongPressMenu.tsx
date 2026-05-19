@@ -192,14 +192,13 @@ export function LongPressMenu({
         </button>
 
         {/* Row 2: Save / Unsave — LP-04 state flip + Phase 50 D-04 branched behavior.
-            Visual is byte-stable: same Bookmark icon, same isSaved-driven fill,
-            same Save/Unsave label semantics. Only handleSave's behavior changes
-            when onOpenCollectionPicker is provided (opens picker instead of
-            direct toggle). */}
+            Visual: bookmark outline, color shifts to var(--primary-40) when saved.
+            Phase 50 UAT G9: dropped the `fill='currentColor'` branch — operator
+            flagged the filled-dark-green bookmark as visually inconsistent with
+            user-created folder rows that stay outlined regardless of state. */}
         <button type="button" style={rowStyle} onClick={handleSave}>
           <Bookmark
             size={22}
-            fill={isSaved ? 'currentColor' : 'none'}
             color={isSaved ? 'var(--primary-40)' : 'var(--foreground)'}
           />
           <span>{isSaved ? t('engagement.menu.unsave') : t('engagement.menu.save')}</span>

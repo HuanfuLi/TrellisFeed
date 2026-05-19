@@ -298,13 +298,15 @@ export function CollectionPickerSheet({ open, onClose, postId }: CollectionPicke
           {t('library.savePicker.title')}
         </h3>
 
-        {/* Implicit Saved row — pinned at top, pre-checked from engagementService.isSaved */}
+        {/* Implicit Saved row — pinned at top, pre-checked from engagementService.isSaved.
+            Phase 50 UAT G9: bookmark icon stays outlined regardless of check state.
+            Filled-dark-green looked inconsistent next to user-created Folder rows
+            that don't change fill on check. Color shift alone signals active state. */}
         <button type="button" style={rowStyle} onClick={toggleSaved}>
           <Checkbox checked={draftSavedChecked} />
           <Bookmark
             size={20}
             color={draftSavedChecked ? 'var(--primary-40)' : 'var(--foreground)'}
-            fill={draftSavedChecked ? 'currentColor' : 'none'}
           />
           <span style={{ flex: 1 }}>{t('library.savePicker.implicitSaved')}</span>
         </button>

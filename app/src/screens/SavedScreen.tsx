@@ -477,6 +477,19 @@ export default function SavedScreen() {
   const [renameError, setRenameError] = useState<string | null>(null);
   const [deleteSheetOpen, setDeleteSheetOpen] = useState(false);
 
+  // Phase 50 UAT G12: BottomSheet always mounts its children regardless of `open`.
+  // If the rename input declared `autoFocus`, it grabbed focus immediately on
+  // screen mount — invoking the system keyboard on every /saved entry. Move the
+  // focus call behind a ref + effect that fires only when the sheet actually
+  // opens. Matches the Capacitor keyboard plugin's expectation that focus is
+  // tied to a deliberate user gesture, not to incidental DOM mounting.
+  const renameInputRef = useRef<HTMLInputElement | null>(null);
+  useEffect(() => {
+    if (renameSheetOpen) {
+      requestAnimationFrame(() => renameInputRef.current?.focus());
+    }
+  }, [renameSheetOpen]);
+
   const refresh = useCallback(() => {
     setSavedPosts(engagementService.getSavedPosts());
     setLikedPosts(engagementService.getLikedPosts());
@@ -1115,8 +1128,8 @@ export default function SavedScreen() {
             {t('library.collections.rename')}
           </h3>
           <input
+            ref={renameInputRef}
             type="text"
-            autoFocus
             value={renameValue}
             onChange={(e) => {
               setRenameValue(e.target.value);
