@@ -389,6 +389,7 @@ function VineProgressImpl({
       {/* Concept checklist */}
       <div
         role="list"
+        data-no-swipe-nav="true"
         style={{
           maxHeight: expanded ? '200px' : '0',
           overflowY: expanded ? 'auto' : 'hidden',
@@ -424,6 +425,17 @@ function VineProgressImpl({
           <button
             key={concept.id}
             type="button"
+            data-no-swipe-nav="true"
+            // UAT Bug 6 follow-up (verify-work, 2026-05-19): framer-motion's
+            // Pan gesture on the SwipeTabContainer parent captures pointer
+            // events on Android WebView. Even with the data-no-swipe-nav
+            // opt-out and the touchAction:manipulation hint, the pointer
+            // capture can still pre-empt the synthetic click. Stopping
+            // propagation at onPointerDown removes the pointer from
+            // framer-motion's reach before the gesture starts; onClick
+            // then fires as expected on tap. This matches the SavedScreen
+            // G2 chip-blur-race fix pattern (Phase 50-12).
+            onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => {
               e.stopPropagation();
               onConceptTap?.(concept.id);
