@@ -222,7 +222,9 @@
       "moveBreadcrumb": "おすすめアクション：{{title}}",
       "progress": "{{reviewed}} / {{total}} 復習済み",
       "skip": "今はスキップ",
-      "completedToast": "今日の復習がすべて完了しました！🎉"
+      "completedToast": "今日の復習がすべて完了しました！🎉",
+      "overdueBadge_one": "{{count}} 日経過",
+      "overdueBadge_other": "{{count}} 日経過"
     }
   },
   "graph": {
@@ -324,6 +326,7 @@
       "flashcardsButton": "フラッシュカード",
       "reviewNow": "今すぐ復習",
       "learnAsPostButton": "投稿として学ぶ",
+      "rebuildAsPost": "投稿として再構築",
       "learnAsPostTitle": "{{concept}} を理解する：完全ガイド",
       "summaryHeading": "知識サマリー",
       "qaHeading": "質問と回答",

@@ -222,7 +222,9 @@
       "moveBreadcrumb": "建议行动：{{title}}",
       "progress": "已复习 {{reviewed}} / {{total}}",
       "skip": "暂时跳过",
-      "completedToast": "今天的复习全部完成！🎉"
+      "completedToast": "今天的复习全部完成！🎉",
+      "overdueBadge_one": "已逾期 {{count}} 天",
+      "overdueBadge_other": "已逾期 {{count}} 天"
     }
   },
   "graph": {
@@ -324,6 +326,7 @@
       "flashcardsButton": "闪卡",
       "reviewNow": "立即复习",
       "learnAsPostButton": "作为帖子学习",
+      "rebuildAsPost": "重建为帖子",
       "learnAsPostTitle": "理解 {{concept}}：完整指南",
       "summaryHeading": "知识摘要",
       "qaHeading": "问题与答案",

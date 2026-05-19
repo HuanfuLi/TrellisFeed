@@ -207,6 +207,33 @@ export function AnchorDetailScreen() {
   const flashcardsTextColor =
     anchorCardCount > 0 ? 'white' : 'var(--muted-foreground)';
 
+  // Phase 51 UAT-followup: Learn-as-Post is the operator-designated recovery
+  // path for dead anchors (or for any recovery state where no flashcards
+  // exist to review). When the Flashcards button is the right recovery
+  // affordance (recoveryActive && anchorCardCount > 0), Learn-as-Post stays
+  // neutral. Otherwise — dead OR recovery-without-cards — Learn-as-Post
+  // takes over as the primary recovery CTA with matching state-keyed color
+  // and a "Rebuild as Post" label so it's visually obvious that's the
+  // intended action.
+  const learnAsPostRecoveryActive =
+    leafState === 'dead' || (recoveryActive && anchorCardCount === 0);
+  const learnAsPostBg = (() => {
+    if (!learnAsPostRecoveryActive) return 'var(--surface-variant)';
+    if (leafState === 'dying') return '#f59e0b';
+    if (leafState === 'falling') return '#ef4444';
+    if (leafState === 'dead') return 'var(--muted-foreground)';
+    return 'var(--surface-variant)';
+  })();
+  const learnAsPostLabel = learnAsPostRecoveryActive
+    ? t('graph.anchor.rebuildAsPost')
+    : t('graph.anchor.learnAsPostButton');
+  const learnAsPostTextColor = learnAsPostRecoveryActive
+    ? 'white'
+    : 'var(--foreground)';
+  const learnAsPostBorder = learnAsPostRecoveryActive
+    ? 'none'
+    : '1.5px solid var(--border)';
+
   const conceptTitle = anchor.title || anchor.content;
   const linkBtnStyle = {
     background: 'none' as const,
@@ -362,11 +389,11 @@ export function AnchorDetailScreen() {
             flex: 1,
             padding: '12px 16px',
             borderRadius: 'var(--radius-xl)',
-            backgroundColor: 'var(--surface-variant)',
-            color: 'var(--foreground)',
+            backgroundColor: learnAsPostBg,
+            color: learnAsPostTextColor,
             fontWeight: 600,
             fontSize: '0.85rem',
-            border: '1.5px solid var(--border)',
+            border: learnAsPostBorder,
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
@@ -375,7 +402,7 @@ export function AnchorDetailScreen() {
           }}
         >
           <FileText size={16} />
-          {t('graph.anchor.learnAsPostButton')}
+          {learnAsPostLabel}
         </button>
       </div>
 

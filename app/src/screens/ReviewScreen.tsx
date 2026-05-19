@@ -10,6 +10,7 @@ import { useReview } from '../state/useReview';
 import { toast } from '../lib/toast';
 import type { DailyReviewMap, FlashCard } from '../types';
 import { buildDailyReviewMap } from '../services/canonical-knowledge.service';
+import { daysOverdue } from '../services/review.service';
 import { questionService } from '../services/question.service';
 import { graphService } from '../services/graph.service';
 
@@ -713,6 +714,31 @@ export function ReviewScreen() {
         </div>
         <ProgressBar value={progress} />
       </div>
+
+      {/* Gap B (Phase 51 UAT): show days-overdue badge when the active
+          card is past its scheduled review date. Pinned cards always
+          render the badge as 0-days-overdue (i.e., hidden) because they
+          come back every day by design — the "overdue" framing doesn't
+          apply to them. */}
+      {(() => {
+        const overdue = currentItem.pinned ? 0 : daysOverdue(currentItem.reviewSchedule.nextReviewDate);
+        if (overdue <= 0) return null;
+        return (
+          <div style={{ marginBottom: '8px' }}>
+            <span style={{
+              display: 'inline-block',
+              padding: '3px 10px',
+              borderRadius: '999px',
+              fontSize: '0.7rem',
+              fontWeight: 600,
+              backgroundColor: overdue >= 14 ? 'var(--muted-foreground)' : overdue >= 7 ? '#ef4444' : '#f59e0b',
+              color: 'white',
+            }}>
+              {t('review.session.overdueBadge', { count: overdue })}
+            </span>
+          </div>
+        );
+      })()}
 
       {/* Flashcard with pin button */}
       <Flashcard

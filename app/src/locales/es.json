@@ -222,7 +222,9 @@
       "moveBreadcrumb": "Movimiento sugerido: {{title}}",
       "progress": "{{reviewed}} / {{total}} repasadas",
       "skip": "Omitir por ahora",
-      "completedToast": "¡Repasos completos por hoy! 🎉"
+      "completedToast": "¡Repasos completos por hoy! 🎉",
+      "overdueBadge_one": "Atrasada {{count}} día",
+      "overdueBadge_other": "Atrasada {{count}} días"
     }
   },
   "graph": {
@@ -324,6 +326,7 @@
       "flashcardsButton": "Fichas",
       "reviewNow": "Repasar Ahora",
       "learnAsPostButton": "Aprender como publicación",
+      "rebuildAsPost": "Reconstruir como publicación",
       "learnAsPostTitle": "Entendiendo {{concept}}: una guía completa",
       "summaryHeading": "Resumen del conocimiento",
       "qaHeading": "Preguntas y respuestas",
