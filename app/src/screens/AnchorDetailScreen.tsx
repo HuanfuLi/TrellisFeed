@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, BookOpen, FileText, ChevronRight } from 'lucide-react';
@@ -8,6 +9,13 @@ import { DetailMenu } from '../components/DetailMenu';
 import { useQuestions } from '../state/useQuestions';
 import { questionService } from '../services/question.service';
 import { flashcardService } from '../services/flashcard.service';
+import { postHistoryService } from '../services/post-history.service';
+import { engagementService } from '../services/engagement.service';
+import { collectionService } from '../services/collection.service';
+import { podcastService } from '../services/podcast.service';
+import { computeLeafState } from '../services/trellis-state.service';
+import { LeafStateBadge } from '../components/concept/LeafStateBadge';
+import { eventBus } from '../lib/event-bus';
 import { Header, HEADER_HEIGHT } from '../components/ui/Header';
 import { toast } from '../lib/toast';
 
@@ -18,6 +26,27 @@ export function AnchorDetailScreen() {
   const { getById, questions, isLoading } = useQuestions();
 
   const anchor = id ? getById(id) : undefined;
+
+  // ── Phase 51-01: force re-render on data changes ─────────────────────────
+  // Hooks must run on every render — declared BEFORE the early-return so
+  // mounting → not-found → resolved doesn't trip the Rules of Hooks (the
+  // useQuestions hook reloads questions over time, so `anchor` flips
+  // undefined → defined on the same component instance). Capacitor mobile =
+  // no refresh (CLAUDE.md "no-refresh-assumption"); we listen to every event
+  // that can mutate the data the recovery surfaces below read.
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const bump = () => setTick((tick) => tick + 1);
+    const unsubs = [
+      eventBus.subscribe('GRAPH_UPDATED', bump),
+      eventBus.subscribe('REVIEW_COMPLETED', bump),
+      eventBus.subscribe('ENGAGEMENT_CHANGED', bump),
+      eventBus.subscribe('COLLECTIONS_CHANGED', bump),
+      eventBus.subscribe('FLASHCARDS_CREATED', bump),
+      eventBus.subscribe('PODCAST_GENERATION_COMPLETED', bump),
+    ];
+    return () => unsubs.forEach((u) => u());
+  }, []);
 
   if (!anchor || !anchor.isAnchorNode) {
     return (
@@ -55,6 +84,63 @@ export function AnchorDetailScreen() {
     .split(/\n(?=\[)/)
     .map((block) => block.replace(/^\[.*?\]\s*/, '').split(/\n\n/)[0].trim())
     .filter((text) => text.length > 0);
+
+  // ── Phase 51-01: leaf state + recovery surfaces ────────────────────────
+  // computeLeafState reads anchor.reviewSchedule + qaChildren.reviewSchedule;
+  // the optional fcMap arg is omitted here because the anchor screen is fine
+  // with the Question-level data — the trellis layout (PlannerScreen) uses
+  // the FlashCard override, this read-only badge does not.
+  const leafState = computeLeafState(anchor, qaChildren);
+
+  // Appears-in counts — recomputed on every render. All localStorage-backed
+  // sync reads, ~<1ms for typical anchor sizes (≤5 Q&As, ≤500 posts).
+  // The setTick effect above keeps this consistent on data mutations.
+  const qaChildIdSet = new Set(qaChildren.map((q) => q.id));
+  const conceptPosts = postHistoryService.getPosts().filter((p) =>
+    p.sourceQuestionIds.some((id) => qaChildIdSet.has(id)),
+  );
+  const conceptPostIdSet = new Set(conceptPosts.map((p) => p.id));
+  const savedCount = engagementService
+    .getSavedPosts()
+    .filter((p) => conceptPostIdSet.has(p.id)).length;
+  const inCollectionsCount = conceptPosts.filter(
+    (p) => collectionService.getPostCollections(p.id).length > 0,
+  ).length;
+  const podcastCount = podcastService
+    .getAll()
+    .filter((p) => p.status === 'ready' && p.questionIds.some((id) => qaChildIdSet.has(id)))
+    .length;
+
+  // Flashcards button morph — recovery states get a louder color + label.
+  // Healthy states keep the existing visuals. The button stays clickable in
+  // every state (re-plant lives on PlannerScreen; this is just "review the
+  // existing flashcards now").
+  const recoveryActive =
+    leafState === 'dying' || leafState === 'falling' || leafState === 'dead';
+  const flashcardsBg = (() => {
+    if (anchorCardCount === 0) return 'var(--surface-variant)';
+    if (leafState === 'dying') return '#f59e0b';
+    if (leafState === 'falling') return '#ef4444';
+    if (leafState === 'dead') return 'var(--muted-foreground)';
+    return 'var(--primary-40)';
+  })();
+  const flashcardsLabel =
+    recoveryActive && anchorCardCount > 0
+      ? t('graph.anchor.reviewNow')
+      : t('graph.anchor.flashcardsButton');
+  const flashcardsTextColor =
+    anchorCardCount > 0 ? 'white' : 'var(--muted-foreground)';
+
+  const conceptTitle = anchor.title || anchor.content;
+  const linkBtnStyle = {
+    background: 'none' as const,
+    border: 'none' as const,
+    padding: 0,
+    color: 'var(--primary-40)',
+    fontWeight: 600,
+    cursor: 'pointer' as const,
+    fontSize: 'inherit' as const,
+  };
 
   const handleReviewCards = () => {
     // Navigate to review with anchor context — ReviewScreen filters by nodeId
@@ -150,6 +236,14 @@ export function AnchorDetailScreen() {
         {anchor.title || anchor.content}
       </h1>
 
+      {/* Phase 51-01: leaf-state badge sits between title and stats.
+          Renders nothing when leafState is null. */}
+      {leafState && (
+        <div style={{ marginBottom: '12px' }}>
+          <LeafStateBadge leafState={leafState} />
+        </div>
+      )}
+
       {/* Stats */}
       <div style={{
         display: 'flex',
@@ -171,8 +265,8 @@ export function AnchorDetailScreen() {
             flex: 1,
             padding: '12px 16px',
             borderRadius: 'var(--radius-xl)',
-            backgroundColor: anchorCardCount > 0 ? 'var(--primary-40)' : 'var(--surface-variant)',
-            color: anchorCardCount > 0 ? 'white' : 'var(--muted-foreground)',
+            backgroundColor: flashcardsBg,
+            color: flashcardsTextColor,
             fontWeight: 600,
             fontSize: '0.85rem',
             border: 'none',
@@ -184,7 +278,7 @@ export function AnchorDetailScreen() {
           }}
         >
           <BookOpen size={16} />
-          {t('graph.anchor.flashcardsButton')}
+          {flashcardsLabel}
         </button>
         <button
           onClick={handleGeneratePost}
@@ -274,6 +368,55 @@ export function AnchorDetailScreen() {
                 </div>
               </Card>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Phase 51-01: "Appears in" footer — bounded recovery surface that
+          link-outs to SavedScreen and PodcastScreen with pre-applied concept
+          filter. Only renders when at least one count > 0 so a fresh anchor
+          (no posts yet) doesn't show empty rows. */}
+      {savedCount + inCollectionsCount + podcastCount > 0 && (
+        <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
+          <h4 style={{
+            fontSize: '0.75rem',
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+            color: 'var(--muted-foreground)',
+            marginBottom: '8px',
+          }}>
+            {t('graph.anchor.appearsIn')}
+          </h4>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', fontSize: '0.85rem' }}>
+            {savedCount > 0 && (
+              <button
+                onClick={() => navigate('/saved', { state: { conceptFilterTitle: conceptTitle } })}
+                style={linkBtnStyle}
+              >
+                {t('graph.anchor.appearsInSaved', { count: savedCount })}
+              </button>
+            )}
+            {inCollectionsCount > 0 && (
+              <button
+                onClick={() => navigate('/saved', { state: { conceptFilterTitle: conceptTitle, openTab: 'collections' } })}
+                style={linkBtnStyle}
+              >
+                {t('graph.anchor.appearsInCollections', { count: inCollectionsCount })}
+              </button>
+            )}
+            {podcastCount > 0 && (
+              <button
+                onClick={() => navigate('/podcast', {
+                  state: {
+                    conceptFilterQaIds: Array.from(qaChildIdSet),
+                    conceptTitle,
+                  },
+                })}
+                style={linkBtnStyle}
+              >
+                {t('graph.anchor.appearsInPodcasts', { count: podcastCount })}
+              </button>
+            )}
           </div>
         </div>
       )}

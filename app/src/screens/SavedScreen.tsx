@@ -60,7 +60,7 @@
 // create a containing block.
 
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   Bookmark,
@@ -459,6 +459,35 @@ export default function SavedScreen() {
   const [filterConcept, setFilterConcept] = useState<string | null>(null);
   const [filterSource, setFilterSource] = useState<string | null>(null);
   const [filterDate, setFilterDate] = useState<DateFilterPreset>('all');
+
+  // Phase 51-01: accept { conceptFilterTitle, openTab? } route state from
+  // AnchorDetailScreen's Appears-in footer. Pre-applies the concept filter
+  // and (optionally) switches to the collections tab on mount. Route state
+  // is cleared after consumption so back-navigation / remount doesn't
+  // re-apply. The chip remains user-controllable — this is just an initial
+  // value, not a lock.
+  const location = useLocation();
+  useEffect(() => {
+    const state = location.state as { conceptFilterTitle?: string; openTab?: string } | null;
+    if (!state) return;
+    if (state.conceptFilterTitle) {
+      setFilterConcept(state.conceptFilterTitle);
+    }
+    if (
+      state.openTab === 'saved' ||
+      state.openTab === 'liked' ||
+      state.openTab === 'history' ||
+      state.openTab === 'collections'
+    ) {
+      setActiveTab(state.openTab);
+    }
+    // Clear route state so back-navigation / remount doesn't re-apply.
+    navigate(location.pathname, { replace: true, state: null });
+    // Empty deps — SavedScreen is rendered via Outlet (sub-screen, not a
+    // swipe-tab slot), so it mounts fresh on each /saved navigation. The
+    // effect fires once per mount, consumes the route state, and clears it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Filter picker sheet hosts.
   const [conceptPickerOpen, setConceptPickerOpen] = useState(false);

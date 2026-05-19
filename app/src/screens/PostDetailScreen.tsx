@@ -24,6 +24,7 @@ import { normalizePlainText } from '../lib/text-normalization';
 import { generatePostEssay, generateEssayMeta, patchPostEssayInCache, type EssayContent } from '../services/post-essay.service';
 import { eventBus } from '../lib/event-bus';
 import { postHistoryService } from '../services/post-history.service';
+import { resolveAnchorId } from '../lib/anchor-resolution';
 
 interface ConnectionMeta {
   questionA: Question;
@@ -478,6 +479,25 @@ export function PostDetailScreen() {
   const normalizedContextLabel = post ? normalizePlainText(post.contextLabel) : '';
   const normalizedTitle = post ? normalizePlainText(post.title) : '';
 
+  // Phase 51-01: resolve the post's primary concept anchor + connection
+  // anchors so the contextLabel and connection pills can deep-link to the
+  // concept dashboard when the underlying Q&A → anchor walk succeeds.
+  // Static text fallback when unresolvable — no broken navigation.
+  const conceptAnchorId = useMemo(() => {
+    if (!post?.sourceQuestionIds?.length) return null;
+    return resolveAnchorId(post.sourceQuestionIds[0]);
+  }, [post?.sourceQuestionIds]);
+
+  const connectionMeta = connectionMetaRef.current;
+  const isConnection = post?.sourceType === 'connection';
+  const connectionAnchorIds = useMemo<[string | null, string | null]>(() => {
+    if (!isConnection || !connectionMeta) return [null, null];
+    return [
+      resolveAnchorId(connectionMeta.questionA.id),
+      resolveAnchorId(connectionMeta.questionB.id),
+    ];
+  }, [isConnection, connectionMeta]);
+
   const handleAsk = async (content: string) => {
     if (!content.trim() || !post || !session) return;
 
@@ -781,24 +801,41 @@ export function PostDetailScreen() {
         </div>
       )}
 
-      {/* Concept pills — shown for connection posts */}
+      {/* Concept pills — shown for connection posts.
+          Phase 51-01: each pill is a tappable button when its underlying
+          Q&A resolves to an anchor; static span otherwise. Same color/style
+          as before, just adds optional cursor: pointer + onClick. */}
       {isConnectionPost && meta && (
         <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
-          {[meta.conceptNounA, meta.conceptNounB].map((noun, i) => (
-            <span
-              key={i}
-              style={{
-                padding: '6px 16px',
-                borderRadius: '100px',
-                backgroundColor: i === 0 ? 'var(--node-mint)' : 'var(--node-sky)',
-                color: 'var(--foreground)',
-                fontWeight: 700,
-                fontSize: '0.875rem',
-              }}
-            >
-              {noun}
-            </span>
-          ))}
+          {[meta.conceptNounA, meta.conceptNounB].map((noun, i) => {
+            const anchorId = connectionAnchorIds[i];
+            return (
+              <span
+                key={i}
+                role={anchorId ? 'button' : undefined}
+                tabIndex={anchorId ? 0 : undefined}
+                onClick={anchorId ? () => navigate(`/anchor/${anchorId}`) : undefined}
+                onKeyDown={anchorId ? (e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    navigate(`/anchor/${anchorId}`);
+                  }
+                } : undefined}
+                style={{
+                  padding: '6px 16px',
+                  borderRadius: '100px',
+                  backgroundColor: i === 0 ? 'var(--node-mint)' : 'var(--node-sky)',
+                  color: 'var(--foreground)',
+                  fontWeight: 700,
+                  fontSize: '0.875rem',
+                  cursor: anchorId ? 'pointer' : 'default',
+                  userSelect: anchorId ? 'none' : 'auto',
+                }}
+              >
+                {noun}
+              </span>
+            );
+          })}
         </div>
       )}
 
@@ -966,8 +1003,36 @@ export function PostDetailScreen() {
           WebkitTouchCallout: 'default',
         }}
       >
+        {/* Phase 51-01: contextLabel is a deep-link to the concept anchor
+            when sourceQuestionIds[0] resolves; static text otherwise.
+            The narrativeMode suffix stays static. */}
         <p style={{ fontSize: '0.68rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--muted-foreground)', marginBottom: '8px' }}>
-          {normalizedContextLabel} · {post.narrativeMode}
+          {conceptAnchorId ? (
+            <>
+              <button
+                type="button"
+                onClick={() => navigate(`/anchor/${conceptAnchorId}`)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  padding: 0,
+                  margin: 0,
+                  color: 'var(--primary-40)',
+                  fontWeight: 600,
+                  fontSize: 'inherit',
+                  letterSpacing: 'inherit',
+                  textTransform: 'inherit',
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                }}
+              >
+                {normalizedContextLabel}
+              </button>
+              {' · '}{post.narrativeMode}
+            </>
+          ) : (
+            <>{normalizedContextLabel} · {post.narrativeMode}</>
+          )}
         </p>
         <h1 style={{ fontSize: '1.55rem', lineHeight: 1.12, marginBottom: '12px', textWrap: 'balance' }}>{normalizedTitle}</h1>
         {post.sourceType !== 'video' && (post.whyCare || onEnterMeta?.whyCare) && (

@@ -6,6 +6,7 @@
     "delete": "Delete",
     "undo": "Undo",
     "back": "Back",
+    "clear": "Clear",
     "greeting": {
       "morning": "Good Morning",
       "afternoon": "Good Afternoon",
@@ -321,12 +322,26 @@
       "qaCount": "{{count}} Q&As",
       "flashcardCount": "{{count}} flashcards",
       "flashcardsButton": "Flashcards",
+      "reviewNow": "Review Now",
       "learnAsPostButton": "Learn as Post",
       "learnAsPostTitle": "Understanding {{concept}}: A Complete Guide",
       "summaryHeading": "Knowledge Summary",
       "qaHeading": "Questions & Answers",
       "viewDetails": "View details",
-      "notFound": "Anchor not found."
+      "notFound": "Anchor not found.",
+      "appearsIn": "Appears in",
+      "appearsInSaved": "{{count}} saved",
+      "appearsInCollections": "{{count}} in collections",
+      "appearsInPodcasts": "{{count}} podcasts",
+      "leafState": {
+        "bud": "New",
+        "green": "Healthy",
+        "dying": "Needs Review",
+        "falling": "Overdue",
+        "dead": "Inactive",
+        "blossom": "Mastered",
+        "fruit": "Ready to Harvest"
+      }
     },
     "cluster": {
       "title": "Knowledge Cluster",
@@ -650,7 +665,8 @@
       "conceptAddedToPodcast": "Concept added to today's podcast. Regenerate to update the script.",
       "conceptAddedToList": "Concept added to review list.",
       "audioUnavailable": "Audio unavailable — try regenerating."
-    }
+    },
+    "filteredBy": "Filtered by {{concept}}"
   },
   "posts": {
     "title": "Posts",

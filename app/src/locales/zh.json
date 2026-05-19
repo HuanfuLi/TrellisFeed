@@ -6,6 +6,7 @@
     "delete": "删除",
     "undo": "撤销",
     "back": "返回",
+    "clear": "清除",
     "greeting": {
       "morning": "早上好",
       "afternoon": "下午好",
@@ -321,12 +322,26 @@
       "qaCount": "{{count}} 个问答",
       "flashcardCount": "{{count}} 张闪卡",
       "flashcardsButton": "闪卡",
+      "reviewNow": "立即复习",
       "learnAsPostButton": "作为帖子学习",
       "learnAsPostTitle": "理解 {{concept}}：完整指南",
       "summaryHeading": "知识摘要",
       "qaHeading": "问题与答案",
       "viewDetails": "查看详情",
-      "notFound": "未找到锚点。"
+      "notFound": "未找到锚点。",
+      "appearsIn": "出现在",
+      "appearsInSaved": "{{count}} 个已保存",
+      "appearsInCollections": "{{count}} 个合集中",
+      "appearsInPodcasts": "{{count}} 个播客",
+      "leafState": {
+        "bud": "新概念",
+        "green": "健康",
+        "dying": "需要复习",
+        "falling": "逾期",
+        "dead": "不活跃",
+        "blossom": "已掌握",
+        "fruit": "待收获"
+      }
     },
     "cluster": {
       "title": "知识集群",
@@ -650,7 +665,8 @@
       "conceptAddedToPodcast": "概念已加入今日播客。重新生成以更新文稿。",
       "conceptAddedToList": "概念已加入复习列表。",
       "audioUnavailable": "音频不可用 — 请尝试重新生成。"
-    }
+    },
+    "filteredBy": "筛选：{{concept}}"
   },
   "posts": {
     "title": "帖子",

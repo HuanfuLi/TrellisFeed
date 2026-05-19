@@ -6,6 +6,7 @@
     "delete": "削除",
     "undo": "元に戻す",
     "back": "戻る",
+    "clear": "クリア",
     "greeting": {
       "morning": "おはようございます",
       "afternoon": "こんにちは",
@@ -321,12 +322,26 @@
       "qaCount": "{{count}} 件の Q&A",
       "flashcardCount": "{{count}} 枚のフラッシュカード",
       "flashcardsButton": "フラッシュカード",
+      "reviewNow": "今すぐ復習",
       "learnAsPostButton": "投稿として学ぶ",
       "learnAsPostTitle": "{{concept}} を理解する：完全ガイド",
       "summaryHeading": "知識サマリー",
       "qaHeading": "質問と回答",
       "viewDetails": "詳細を表示",
-      "notFound": "アンカーが見つかりません。"
+      "notFound": "アンカーが見つかりません。",
+      "appearsIn": "出現箇所",
+      "appearsInSaved": "{{count}}件の保存",
+      "appearsInCollections": "{{count}}個のコレクション",
+      "appearsInPodcasts": "{{count}}個のポッドキャスト",
+      "leafState": {
+        "bud": "新規",
+        "green": "健全",
+        "dying": "復習が必要",
+        "falling": "期限超過",
+        "dead": "非アクティブ",
+        "blossom": "習得済み",
+        "fruit": "収穫可能"
+      }
     },
     "cluster": {
       "title": "知識クラスター",
@@ -650,7 +665,8 @@
       "conceptAddedToPodcast": "今日のポッドキャストに概念を追加しました。再生成してスクリプトを更新してください。",
       "conceptAddedToList": "復習リストに概念を追加しました。",
       "audioUnavailable": "音声を利用できません — 再生成をお試しください。"
-    }
+    },
+    "filteredBy": "{{concept}}で絞り込み"
   },
   "posts": {
     "title": "投稿",
