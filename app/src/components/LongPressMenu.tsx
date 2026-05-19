@@ -3,6 +3,7 @@ import { Heart, Bookmark, EyeOff, FolderMinus } from 'lucide-react';
 import { BottomSheet } from './ui/BottomSheet';
 import { engagementService } from '../services/engagement.service';
 import { collectionService } from '../services/collection.service';
+import { conceptFeedService } from '../services/concept-feed.service';
 import { toast } from '../lib/toast';
 
 interface LongPressMenuProps {
@@ -116,7 +117,12 @@ export function LongPressMenu({
         engagementService.removeSavedPost(postId);
         toast(t('engagement.toast.unsaved'), 'info');
       } else {
-        engagementService.savePost(postId);
+        // Phase 50 UAT G14: persist the post snapshot to history at save time
+        // so unopened stubs surface on /saved. conceptFeedService.getPostById
+        // walks cache + connection / video / news stores; null when the post
+        // is somehow gone (rare) — fall back to save without snapshot.
+        const snapshot = conceptFeedService.getPostById(postId) ?? undefined;
+        engagementService.savePost(postId, snapshot);
         toast(t('engagement.toast.saved'), 'success');
       }
       onClose();
@@ -128,7 +134,9 @@ export function LongPressMenu({
       engagementService.unlikePost(postId);
       toast(t('engagement.toast.unliked'), 'info');
     } else {
-      engagementService.likePost(postId);
+      // Phase 50 UAT G14: same snapshot-persist as savePost above.
+      const snapshot = conceptFeedService.getPostById(postId) ?? undefined;
+      engagementService.likePost(postId, snapshot);
       toast(t('engagement.toast.liked'), 'success');
     }
     onClose();

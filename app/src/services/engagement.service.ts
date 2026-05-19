@@ -84,12 +84,23 @@ function resolvePostsByIds(ids: string[]): DailyPost[] {
 export const engagementService = {
   // ─── Saved posts ─────────────────────────────────────────────────────────
 
-  /** Save a post (idempotent — no-op + no event if already saved). */
-  savePost(postId: string): void {
+  /**
+   * Save a post (idempotent — no-op + no event if already saved).
+   *
+   * Phase 50 UAT G14: optional `snapshot` parameter. When provided, the post
+   * snapshot is persisted to postHistoryService BEFORE the event fires, so
+   * unopened stub posts (which only exist in the feed queue, not yet in
+   * history) still surface on /saved. Without the snapshot, resolvePostsByIds
+   * would silently drop the id at SavedScreen render time. Callers that have
+   * the post object (LongPressMenu host, CollectionPickerSheet host) should
+   * pass it; callers that don't are unchanged.
+   */
+  savePost(postId: string, snapshot?: DailyPost): void {
     const state = loadState();
     if (state.saved.includes(postId)) return;
     state.saved.push(postId);
     saveState(state);
+    if (snapshot) postHistoryService.addPost(snapshot);
     eventBus.emit({ type: 'ENGAGEMENT_CHANGED', payload: { kind: 'save', id: postId } });
   },
 
@@ -117,12 +128,19 @@ export const engagementService = {
 
   // ─── Likes ───────────────────────────────────────────────────────────────
 
-  /** Like a post (idempotent — no-op + no event if already liked). */
-  likePost(postId: string): void {
+  /**
+   * Like a post (idempotent — no-op + no event if already liked).
+   *
+   * Phase 50 UAT G14: optional `snapshot` parameter — same rationale as
+   * savePost. Persists the stub to postHistoryService so Liked tab surfaces
+   * the post even before its body has been generated.
+   */
+  likePost(postId: string, snapshot?: DailyPost): void {
     const state = loadState();
     if (state.liked.includes(postId)) return;
     state.liked.push(postId);
     saveState(state);
+    if (snapshot) postHistoryService.addPost(snapshot);
     eventBus.emit({ type: 'ENGAGEMENT_CHANGED', payload: { kind: 'like', id: postId } });
   },
 

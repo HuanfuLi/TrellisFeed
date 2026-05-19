@@ -178,4 +178,60 @@ describe('engagementService — Phase 39', () => {
     assert.deepEqual(engagementService.getLikedPostIds(), []);
     assert.deepEqual(engagementService.getDismissedAnchorIds(), []);
   });
+
+  // Phase 50 UAT G14: optional snapshot parameter persists stub posts to
+  // postHistoryService at save/like time so unopened posts surface on /saved
+  // and /saved → Liked. Without this, resolvePostsByIds silently drops the
+  // id because postHistoryService.getPosts() is the only resolution path.
+  it('G14: savePost with snapshot persists the post to postHistoryService and getSavedPosts resolves it', () => {
+    const stub = {
+      id: 'stub-1',
+      generatedAt: Date.now(),
+      title: 'Unopened stub',
+      bodyMarkdown: '', // deliberate — stub posts have empty body before on-open generation
+    };
+    engagementService.savePost('stub-1', stub);
+    const posts = engagementService.getSavedPosts();
+    assert.equal(posts.length, 1, 'getSavedPosts must surface the stub even before it has a body');
+    assert.equal(posts[0].id, 'stub-1');
+    assert.equal(posts[0].title, 'Unopened stub');
+  });
+
+  it('G14: likePost with snapshot persists the post to postHistoryService and getLikedPosts resolves it', () => {
+    const stub = {
+      id: 'stub-2',
+      generatedAt: Date.now(),
+      title: 'Unopened liked stub',
+      bodyMarkdown: '',
+    };
+    engagementService.likePost('stub-2', stub);
+    const posts = engagementService.getLikedPosts();
+    assert.equal(posts.length, 1, 'getLikedPosts must surface the stub even before it has a body');
+    assert.equal(posts[0].id, 'stub-2');
+  });
+
+  it('G14: savePost WITHOUT snapshot leaves history unchanged (back-compat with non-host callers)', () => {
+    // No prior history seed → no post resolves. The id is still saved.
+    engagementService.savePost('p-no-snapshot');
+    assert.deepEqual(engagementService.getSavedPostIds(), ['p-no-snapshot']);
+    // History remains untouched.
+    const raw = localStorage.getItem('trellis_post_history');
+    assert.equal(raw, null, 'savePost without snapshot must not create a history entry');
+    // getSavedPosts silently drops the unresolved id (T-50-ORPHAN / D-04).
+    assert.equal(engagementService.getSavedPosts().length, 0);
+  });
+
+  it('G14: savePost with snapshot is idempotent — second call does not duplicate history entry', () => {
+    const stub = { id: 'stub-3', generatedAt: Date.now(), title: 'once', bodyMarkdown: '' };
+    engagementService.savePost('stub-3', stub);
+    // Second call with a DIFFERENT title — postHistoryService.addPost dedups
+    // by id, so the original snapshot survives. savePost itself is also
+    // idempotent (already covered above) so no double-event either.
+    engagementService.savePost('stub-3', { ...stub, title: 'twice' });
+    const posts = engagementService.getSavedPosts();
+    assert.equal(posts.length, 1);
+    assert.equal(posts[0].title, 'once', 'postHistoryService.addPost dedups by id; original snapshot wins');
+    const saveEvents = engagementEvents.filter(e => e.payload.kind === 'save');
+    assert.equal(saveEvents.length, 1, 'savePost idempotency still holds — second call must not re-emit');
+  });
 });

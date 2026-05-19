@@ -221,7 +221,7 @@ export const collectionService = {
    * against caller races). Emits EXACTLY ONE COLLECTIONS_CHANGED
    * { kind: 'add-post' } on a real addition.
    */
-  addPost(collectionId: string, postId: string): void {
+  addPost(collectionId: string, postId: string, snapshot?: DailyPost): void {
     const state = loadState();
     const target = state.collections.find(c => c.id === collectionId);
     if (!target) return;
@@ -229,6 +229,12 @@ export const collectionService = {
     target.postIds.push(postId);
     target.updatedAt = Date.now();
     saveState(state);
+    // Phase 50 UAT G14: persist stub posts to history at membership time so
+    // unopened posts surface in collection drill-in (mirrors the
+    // engagementService.savePost snapshot path). Callers that have the post
+    // pass it; callers without the snapshot are unchanged (T-50-ORPHAN still
+    // applies if the post never makes it into history by any path).
+    if (snapshot) postHistoryService.addPost(snapshot);
     eventBus.emit({
       type: 'COLLECTIONS_CHANGED',
       payload: { kind: 'add-post', collectionId },

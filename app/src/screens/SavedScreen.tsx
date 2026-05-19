@@ -378,11 +378,12 @@ function FilterChip({ label, active, onTap, onClear }: FilterChipProps) {
         display: 'inline-flex',
         alignItems: 'center',
         gap: '4px',
-        height: '32px',
-        // G7 fix (50-12): fixed 6px/12px padding for rhythm. Concept/Source/Date
-        // label widths vary; without explicit vertical pad the perceived chip
-        // height drifted by glyph descender.
-        padding: '6px 12px',
+        // G7 follow-up (re-UAT Test 5): the previous `height: '32px'` clipped the
+        // chip and made the perceived vertical padding feel tight regardless of
+        // the padding value. Drop the fixed height and let padding drive the
+        // chip's intrinsic height — 10px vertical reads as comfortable with
+        // 12px font, 14px horizontal preserves Concept/Source/Date rhythm.
+        padding: '10px 14px',
         borderRadius: 'var(--radius-pill)',
         fontSize: '12px',
         fontWeight: 500,

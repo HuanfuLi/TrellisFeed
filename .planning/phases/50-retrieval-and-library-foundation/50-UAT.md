@@ -17,18 +17,17 @@ updated: 2026-05-18T11:30:00Z
 
 ## Current Test
 
-number: 4
-name: Search highlight on /saved
+number: 6
+name: Tab switch preserves query but rescopes results
 expected: |
-  Open /saved. Tap the search bar (sticky top). Type a substring matching a
-  known saved post title or body. Matched substrings render visually distinct
-  (bg-tinted highlight using --primary-40). Body snippet renders ~120 chars
-  centered on the first match. No raw HTML, no escape artifacts.
+  On /saved Saved tab, type a query in the search bar. Results filter to Saved
+  matches. Tap the "Liked" tab in the strip. The query text stays in the search
+  bar. Results recompute against the Liked corpus (different rows).
 
-  RE-UAT after fixes (50-11):
-  - G4: FUSE_OPTIONS tuned — threshold 0.4 → 0.3, minMatchCharLength 2 → 3
-  - Effect: "3D printing" should NOT match unrelated Kanji video; single-char
-    and two-char queries return zero results instead of scattered fuzzy noise
+  RE-UAT after fixes (50-12):
+  - G6: SavedScreen tab-change effect dropped setQuery('')/setInputDraft('').
+    Still keeps the debounce-timer flush + filter-chip clear so stale results
+    don't show during the rescope.
 phase: re-uat
 awaiting: user response
 
@@ -86,8 +85,15 @@ expected: |
   known saved post title or body. Matched substrings render visually distinct
   (bg-tinted highlight using --primary-40). Body snippet renders ~120 chars
   centered on the first match. No raw HTML, no escape artifacts.
-result: blocked
-blocked_by: long-press-broken-on-touch-device
+result: pass
+note: |
+  Re-UAT 2026-05-18 pass after the following fixes shipped during the re-walk:
+  - 50-11 Fuse tuning (G4): threshold 0.4→0.3, minMatchCharLength 2→3
+  - G13 long-press regression (b77b0f85): 8px movement threshold restored
+  - G13 haptic follow-up (17ac2dda): explicit hapticImpactLight in timer
+  - G12 keyboard side-effect (17ac2dda): autoFocus deferred behind sheet-open
+  - G9 cosmetic (17ac2dda): bookmark stays outlined in active state
+prior_blocked_by: long-press-broken-on-touch-device
 reported: |
   Original 2026-05-18: "Partial: Would work but has false positives sometimes.
   Searched '3D printing' on Liked tab, top hit is a Kanji video. Body snippet
@@ -132,8 +138,23 @@ expected: |
   bar: Concept · Source · Date. Tap outside the search bar (blur with empty
   input and no active filter). Chips collapse and disappear. If query OR any
   filter is active, chips stay visible after blur.
-result: issue
-reported: |
+result: pass
+note: |
+  Re-UAT 2026-05-18 pass after the following fixes shipped during re-walk:
+  - G2 (50-12): onPointerDown preventDefault on chip wrapper — chip tap no longer
+    blurs the search input before chip handler runs (empty-query path)
+  - G5 (50-13): BottomSheet overscroll-behavior contain — drawer hits rigid hard-stop
+  - G7 (50-12 + re-UAT follow-up): chips now use padding-driven sizing (10px/14px),
+    fixed `height: 32px` was the actual culprit clipping vertical breathing room
+
+  Operator clarification: "Vertical padding was bad, not horizontal padding issue."
+  Original G7 framed it as horizontal — re-UAT confirmed it was the fixed 32px
+  height clipping the chip regardless of padding values. Final fix drops the
+  fixed height and lets padding drive intrinsic chip size.
+
+  New finding during this test → G14 logged separately (saved/liked stubs
+  invisible on /saved until opened).
+prior_reported: |
   "Fail: 1. Inconsistent padding for chips (screenshot — Concept/Source/Date pills
   have uneven horizontal padding around text). 2. Tapping a chip is recognized as
   tapping outside the search bar → chips disappear before the chip's tap handler
@@ -213,12 +234,12 @@ reason: "Operator does not wish to time-travel now. Defer to a follow-up UAT ses
 ## Summary
 
 total: 8
-passed: 4
-issues: 3
+passed: 6
+issues: 1
 pending: 0
 skipped: 1
-blocked: 1
-gaps: 14 total — fixed in-session: G1, G3, G8, G9, G12, G13; net-new from re-UAT but deferred: G10 (Saved-as-real-folder, major), G11 (drop Liked tab, design); awaiting re-UAT on device: G2/G4/G5/G6/G7 (gap-closure plans 50-10..50-13 already shipped, now unblocked by G13 long-press fix + G12 keyboard fix)
+blocked: 0
+gaps: 15 total — fixed in-session: G1, G2, G3, G4, G5, G7, G8, G9, G12, G13, G14; deferred: G10 (Saved-as-real-folder, major), G11 (drop Liked tab, design); awaiting re-UAT: G6 (Test 6 — tab-preserves-query)
 
 ## Gaps
 
@@ -250,39 +271,39 @@ gaps: 14 total — fixed in-session: G1, G3, G8, G9, G12, G13; net-new from re-U
   missing: []
   debug_session: ""
 - truth: "Tapping a filter chip (Concept · Source · Date) opens its FilterPickerSheet. Chip taps do not collapse the chip row before the tap handler runs."
-  status: failed
-  reason: "User reported: tapping a chip is registered as a blur on the search bar, the chip-row collapses, and the chip's own tap handler never fires. Chips are non-interactive in practice."
+  status: fixed
+  reason: "User reported: tapping a chip is registered as a blur on the search bar, the chip-row collapses, and the chip's own tap handler never fires. Chips are non-interactive in practice. Closed by 50-12 (onPointerDown preventDefault on chip wrapper); re-UAT Test 5 confirmed chip taps fire FilterPickerSheet from the empty-query path."
   severity: blocker
   test: 5
-  root_cause: ""
-  artifacts: []
+  root_cause: "input blur fired on chip pointerdown before chip onClick promoted from the synthetic pointerup → blur collapsed the chip-row mount."
+  artifacts: ["app/src/screens/SavedScreen.tsx:374-375 (onPointerDown + onMouseDown preventDefault on FilterChip wrapper)"]
   missing: []
   debug_session: ""
-- truth: "Filter chips (Concept · Source · Date) have uniform visual padding so the pill widths feel rhythmic regardless of text length."
-  status: failed
-  reason: "User reported: visible padding around the chip labels is inconsistent across the three chips (see UAT Test 5 screenshot)."
+- truth: "Filter chips (Concept · Source · Date) have uniform visual padding so the pill widths feel rhythmic regardless of text length AND vertical breathing room is consistent (no clipped top/bottom)."
+  status: fixed
+  reason: "User reported original: visible padding around the chip labels is inconsistent across the three chips. Re-UAT clarification 2026-05-18: 'Vertical padding was bad, not horizontal padding issue.' Root cause: fixed `height: '32px'` on FilterChip clipped vertical pad regardless of value. Fix: drop fixed height, use padding-driven sizing (10px vert / 14px horiz)."
   severity: cosmetic
   test: 5
-  root_cause: ""
-  artifacts: []
+  root_cause: "fixed height: 32px constrained chip; vertical padding values were silently truncated by the height ceiling."
+  artifacts: ["app/src/screens/SavedScreen.tsx:FilterChip style (height removed, padding 10px/14px)"]
   missing: []
   debug_session: ""
 - truth: "Chip-row blur-collapse race only applies when search bar is empty; when query is non-empty the latch keeps chips mounted and chip taps reach FilterPickerSheet."
-  status: failed
-  reason: "Operator clarification 2026-05-18: chip-tap-collapses only happens when search bar is empty. When search bar has text, the drawer can expand. Refines the blur-race gap above to the empty-query path specifically."
+  status: fixed
+  reason: "Operator clarification 2026-05-18: chip-tap-collapses only happens when search bar is empty. Refined the blur-race gap to the empty-query path specifically. Closed by the same 50-12 onPointerDown preventDefault that closed the parent G2 — both query-empty and query-nonempty paths now reach the chip onClick handler."
   severity: blocker
   test: 5
   root_cause: ""
-  artifacts: []
+  artifacts: ["app/src/screens/SavedScreen.tsx:374-375"]
   missing: []
   debug_session: ""
 - truth: "FilterPickerSheet drawer has rigid scroll boundaries — fast-scroll near top/bottom does NOT show flicker, end-of-page, or content overshoot outside the drawer's rounded mask."
-  status: failed
-  reason: "Operator reported 2026-05-18: drawer not optimized for scrolling — no safe area above/below viewable area, user sees flicker or end of page when scrolled too fast at boundary. Suggests rigid boundary instead of flexible. Screenshot: FilterPickerSheet open from /saved with 'System' query, showing Few-Shot Learning / Transformer Architecture / Prompt Engineering / SSDs vs RAM / Feynman Technique. Fix candidates: overscroll-behavior:contain on inner scroll container; clip mask on outer + overflow:auto on inner; fixed-height clip wrapper."
+  status: fixed
+  reason: "Operator reported 2026-05-18: drawer not optimized for scrolling — no safe area above/below viewable area, user sees flicker or end of page when scrolled too fast at boundary. Closed by 50-13 — overscroll-behavior: contain + WebkitOverflowScrolling: 'touch' added to BottomSheet inner scroll container (same element as overflowY: auto). Re-UAT Test 5 confirmed hard-stop at drawer mask."
   severity: major
   test: 5
-  root_cause: ""
-  artifacts: []
+  root_cause: "BottomSheet inner scroll container lacked overscroll-behavior; rubberband + scroll-chaining leaked content past the rounded mask on Android WebView + iOS WKWebView."
+  artifacts: ["app/src/components/ui/BottomSheet.tsx (overscrollBehavior + WebkitOverflowScrolling on same element as overflowY)"]
   missing: []
   debug_session: ""
 - truth: "Tab switch on /saved (Saved → Liked/History/Collections) preserves the search-bar query and rescopes results against the new tab's corpus. Only filters + pending debounce timer reset; query persists. Per 50-VALIDATION.md row 4."
@@ -355,6 +376,22 @@ gaps: 14 total — fixed in-session: G1, G3, G8, G9, G12, G13; net-new from re-U
                 useEffect(() => { if (sheetOpen) requestAnimationFrame(() => ref.current?.focus()); }, [sheetOpen]);
     2. New regression test app/tests/components/bottom-sheet-no-bare-autofocus.test.mjs scans every BottomSheet consumer and asserts no bare autoFocus on input descendants. Catches the exact regression shape.
     Verification: 12/12 useLongPress tests pass, 34/34 picker + LongPressMenu tests pass, tsc clean.
+- truth: "Posts saved or liked from a feed tile surface on /saved (Saved + Liked tabs) regardless of whether their body has been generated yet. Stub posts — only metadata + empty bodyMarkdown — are not silently dropped on the read path."
+  status: fixed
+  reason: "Operator reported during Test 5 re-UAT 2026-05-18: 'When user like or save a un-opened post (only has stub, does not have body), the post is not displayed in saved page. After this is checked, user go back to Home and click into the post to generate the body and return to saved page, the post is then displayed. This is an error, the post should be displayed in saved page no matter whether it has been opened and has body.' Root cause: engagementService.getSavedPosts and getLikedPosts both call resolvePostsByIds → postHistoryService.getPosts(). Stubs only enter postHistory when their body is generated on-open. Before that, the engagement id is stored but resolvePostsByIds silently drops it. Same root cause for collection memberships — collectionService.getCollectionPosts uses the same resolver."
+  severity: major
+  test: 5
+  root_cause: "Single resolution path through postHistoryService. Stubs live only in the feed queue / video / news / connection caches at save time, not yet in history. resolvePostsByIds silently drops unresolvable ids (T-50-ORPHAN / D-04 graceful degradation pattern)."
+  artifacts: ["app/src/services/engagement.service.ts:savePost+likePost (optional snapshot param)", "app/src/services/collection.service.ts:addPost (optional snapshot param)", "app/src/components/LongPressMenu.tsx (snapshot lookup via conceptFeedService.getPostById)", "app/src/components/CollectionPickerSheet.tsx (snapshot lookup once per handleDone)", "app/tests/services/engagement.service.test.mjs (G14 regression coverage: snapshot persists; back-compat without snapshot; idempotency)"]
+  missing: []
+  debug_session: ""
+  fix: |
+    1. engagementService.savePost(postId, snapshot?) and likePost(postId, snapshot?) — optional DailyPost parameter. When provided, calls postHistoryService.addPost(snapshot) BEFORE emitting ENGAGEMENT_CHANGED.
+    2. collectionService.addPost(collectionId, postId, snapshot?) — same pattern for collection membership.
+    3. LongPressMenu.tsx imports conceptFeedService and resolves snapshot via getPostById(postId) before calling save/like. Avoids circular dependency at the service layer (engagement → concept-feed cycle would form if we resolved inside engagement.service).
+    4. CollectionPickerSheet.tsx resolves the snapshot once at the top of handleDone and passes it to both savePost and every collectionService.addPost call.
+    5. New tests G14 in engagement.service.test.mjs: snapshot path surfaces stub on getSavedPosts/getLikedPosts; no-snapshot path leaves history untouched (back-compat); idempotency preserved (postHistoryService.addPost dedups by id; original snapshot wins).
+    Verification: 17/17 engagement tests pass, 36/36 collection tests pass, 34/34 picker tests pass, tsc -b --noEmit clean.
 - truth: "Long-press (480ms hold) on feed tiles fires the recognition callback on real touch hardware AND a haptic impact. LongPressMenu / CollectionPickerSheet open as expected. Sub-pixel finger jitter does not cancel the timer."
   status: fixed
   reason: "Operator reported during Test 4 re-UAT 2026-05-18 on physical device: 'the long-press on post face tiles does not work on phones (not responding to long-press event), and it actually works in a weird way in browser (mouse scroll disabled after long-press). I do feel the haptics though. This blocked the test because I cannot save a post in this way.' Root cause: useLongPress.ts:57 binds onPointerMove: cancel. On real touch hardware, sub-pixel finger jitter fires pointermove events constantly during a held press, so the 480ms timer never elapses. Mouse-driven browser works because mouse pointermove only fires on actual pixel movement. The OS-native long-press still fires haptic (Android/iOS WebView system level), which is why the user 'feels haptics' even though the JS recognizer never fires. Initial fix (b77b0f85) added the 8px threshold but did NOT call haptic — operator reported Test 4 re-UAT: 'Haptic in long-press is gone.' Follow-up: added `void hapticImpactLight()` inside the timer callback to match the sibling useLongPressOrDrag.ts:120 pattern."

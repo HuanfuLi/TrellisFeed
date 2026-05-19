@@ -6,6 +6,7 @@ import { Bookmark, Folder, FolderPlus, Check } from 'lucide-react';
 import { BottomSheet } from './ui/BottomSheet';
 import { engagementService } from '../services/engagement.service';
 import { collectionService } from '../services/collection.service';
+import { conceptFeedService } from '../services/concept-feed.service';
 import { eventBus } from '../lib/event-bus';
 import { toast } from '../lib/toast';
 
@@ -227,10 +228,19 @@ export function CollectionPickerSheet({ open, onClose, postId }: CollectionPicke
   };
 
   const handleDone = () => {
+    // Phase 50 UAT G14: resolve the post snapshot once up-front so every
+    // additive engagement path (Saved bucket + collection membership) can
+    // persist the stub to postHistoryService — surfaces unopened posts in
+    // /saved and collection drill-in without requiring the user to open
+    // them first. Null when the post is somehow already absent from every
+    // cache; in that case we proceed without the snapshot (callee handles
+    // undefined as a no-op for the history write).
+    const snapshot = conceptFeedService.getPostById(postId) ?? undefined;
+
     // Compute and apply the saved-bucket diff against the ACTUAL baseline
     // (not originalSaved which is always true for pre-check UX).
     if (draftSavedChecked !== actualSavedAtOpen) {
-      if (draftSavedChecked) engagementService.savePost(postId);
+      if (draftSavedChecked) engagementService.savePost(postId, snapshot);
       else engagementService.removeSavedPost(postId);
     }
 
@@ -246,7 +256,7 @@ export function CollectionPickerSheet({ open, onClose, postId }: CollectionPicke
       const wasMember = originalMemberIds.has(collectionId);
       const isMember = draftMemberIds.has(collectionId);
       if (isMember && !wasMember) {
-        collectionService.addPost(collectionId, postId);
+        collectionService.addPost(collectionId, postId, snapshot);
         addedCount += 1;
         lastAddedName = collections.find(c => c.id === collectionId)?.name ?? lastAddedName;
       } else if (!isMember && wasMember) {
