@@ -15,11 +15,37 @@ function newId(): string {
   return `fc-${++idCounter}`;
 }
 
+// UAT Bug 3 (Phase 51 verify-work, 2026-05-19): the Phase 38-04 fix
+// (commit 8829a68c) removed makeSeedCards from source so new installs
+// never see the 5 hardcoded placeholders ("What is dialectical
+// materialism?" etc.), but it shipped no migration for existing installs
+// that had already persisted those seed cards to localStorage. The seed
+// records have stable ids `fc-seed-1`..`fc-seed-5` AND `sessionId: 'seed'`,
+// neither of which any production code path produces today (newId uses
+// `fc-${Date.now()+N}`; real sessionIds come from sessionService). This
+// one-time migration strips them on the next app launch and writes back,
+// so it self-disables after one read. Conservative AND-gate on both
+// markers (id prefix AND sessionId) prevents a future legitimate card
+// with an `fc-seed-` user-typed id from being purged.
+function purgeStaleSeedCards(cards: FlashCard[]): { cards: FlashCard[]; purged: number } {
+  const filtered = cards.filter(
+    (c) => !(typeof c.id === 'string' && c.id.startsWith('fc-seed-') && c.sessionId === 'seed'),
+  );
+  return { cards: filtered, purged: cards.length - filtered.length };
+}
+
 function loadAll(): FlashCard[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
-    return JSON.parse(raw) as FlashCard[];
+    const parsed = JSON.parse(raw) as FlashCard[];
+    const { cards, purged } = purgeStaleSeedCards(parsed);
+    if (purged > 0) {
+      // Self-disabling: write the cleaned array back so subsequent loads
+      // see no seed records and the filter becomes a no-op.
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(cards));
+    }
+    return cards;
   } catch {
     return [];
   }
