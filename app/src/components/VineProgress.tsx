@@ -386,56 +386,51 @@ function VineProgressImpl({
         </div>
       </div>
 
-      {/* Concept checklist */}
-      <div
-        role="list"
-        data-no-swipe-nav="true"
-        style={{
-          maxHeight: expanded ? '200px' : '0',
-          overflowY: expanded ? 'auto' : 'hidden',
-          transition: 'max-height 200ms ease-out',
-          borderTop: expanded ? '1px solid var(--border)' : 'none',
-          marginTop: expanded ? '8px' : '0',
-          paddingTop: expanded ? '4px' : '0',
-        }}
-      >
-        {uncoveredConcepts.length === 0 && (
-          <div style={{
-            padding: '8px',
-            fontSize: '13px',
-            color: 'var(--muted-foreground)',
-            textAlign: 'center',
-          }}>
-            {t('home.feed.allExplored')}
-          </div>
-        )}
-        {uncoveredConcepts.map(concept => (
-          // UAT Bug 6 (verify-work, 2026-05-19): converted from
-          // `<div role="listitem" onClick>` to `<button>` because
-          // div+onClick is unreliable on Android Chromium WebView
-          // when nested inside a translateZ(0)/stacking-context
-          // ancestor (SwipeTabContainer slot) plus a fixed-position
-          // backdrop sibling. Buttons handle pointer events more
-          // robustly. Added touchAction:manipulation +
-          // WebkitTapHighlightColor:transparent for the standard
-          // device-tap-delay defense (Phase 33 / Capacitor pattern).
-          // stopPropagation prevents the backdrop's setExpanded(false)
-          // from firing when the tap bubbles up through the stacking
-          // context.
+      {/* Concept checklist
+          UAT Bug 6 second follow-up (verify-work, 2026-05-19): the prior
+          two attempts (button conversion + framer-motion pointer-capture
+          escape) still failed on device. Operator confirmed:
+            - both inline + compact modes broken
+            - tap on item = NOTHING happens (not even dropdown collapse)
+            - bar toggle still works (so onClick fires fine on plain divs
+              at this level)
+          The bar toggle vs item-tap differential points at the SCROLL
+          CONTAINER, not pointer capture: the prior `overflow: auto +
+          maxHeight: 200px + transition: max-height` combo creates a
+          scroll-gesture-detection surface on Android Chromium WebView.
+          Even with no overflowing content, the WebView allocates
+          touchstart→scroll arbitration on that container, and on tap-up
+          the click never synthesizes. Bar toggle works because it's NOT
+          inside this scroll container.
+          Fix: render items conditionally (no clip, no transition, no
+          scroll) so they're plain flow children of containerRef when
+          expanded. Trade-off: lose the smooth max-height animation;
+          gain functional tappability. */}
+      {expanded && (
+        <div
+          role="list"
+          data-no-swipe-nav="true"
+          style={{
+            borderTop: '1px solid var(--border)',
+            marginTop: '8px',
+            paddingTop: '4px',
+          }}
+        >
+          {uncoveredConcepts.length === 0 && (
+            <div style={{
+              padding: '8px',
+              fontSize: '13px',
+              color: 'var(--muted-foreground)',
+              textAlign: 'center',
+            }}>
+              {t('home.feed.allExplored')}
+            </div>
+          )}
+          {uncoveredConcepts.map(concept => (
           <button
             key={concept.id}
             type="button"
             data-no-swipe-nav="true"
-            // UAT Bug 6 follow-up (verify-work, 2026-05-19): framer-motion's
-            // Pan gesture on the SwipeTabContainer parent captures pointer
-            // events on Android WebView. Even with the data-no-swipe-nav
-            // opt-out and the touchAction:manipulation hint, the pointer
-            // capture can still pre-empt the synthetic click. Stopping
-            // propagation at onPointerDown removes the pointer from
-            // framer-motion's reach before the gesture starts; onClick
-            // then fires as expected on tap. This matches the SavedScreen
-            // G2 chip-blur-race fix pattern (Phase 50-12).
-            onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => {
               e.stopPropagation();
               onConceptTap?.(concept.id);
@@ -469,8 +464,9 @@ function VineProgressImpl({
             }} />
             {concept.name}
           </button>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
     </>
   );
