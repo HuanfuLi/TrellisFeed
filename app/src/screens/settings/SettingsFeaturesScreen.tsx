@@ -10,7 +10,8 @@ import { scheduleNativeNotifications } from '../../services/scheduler.native';
 import { plannerAutoGenService } from '../../services/plannerAutoGen.service';
 import { plannerService } from '../../services/planner.service';
 import { questionService } from '../../services/question.service';
-import { SectionHeader, SettingRow, MaterialSwitch, TextInput, SUB_SCREEN_STYLE } from './SettingsShared';
+import { SectionHeader, SettingRow, MaterialSwitch, SelectInput, TextInput, SUB_SCREEN_STYLE } from './SettingsShared';
+import type { PodcastLength, PodcastStyle } from '../../types';
 
 export function SettingsFeaturesScreen() {
   const { t } = useTranslation();
@@ -19,6 +20,15 @@ export function SettingsFeaturesScreen() {
   const [podcastAutoGenerate, setPodcastAutoGenerate] = useState(() => settingsService.getSync().podcast.autoGenerate);
   const [podcastSleepTime, setPodcastSleepTime] = useState(() => settingsService.getSync().podcast.sleepTime);
   const [podcastAdvance, setPodcastAdvance] = useState(() => String(settingsService.getSync().podcast.advanceMinutes));
+  // Phase 52 D-11 + D-14: defaults persisted via SettingsFeaturesScreen.
+  // Initial values fall back silently to 'standard' / 'conversational' for
+  // pre-Phase-52 users.
+  const [podcastDefaultLength, setPodcastDefaultLength] = useState<PodcastLength>(
+    () => settingsService.getSync().podcast.defaultLength ?? 'standard',
+  );
+  const [podcastDefaultStyle, setPodcastDefaultStyle] = useState<PodcastStyle>(
+    () => settingsService.getSync().podcast.defaultStyle ?? 'conversational',
+  );
 
   // Review state
   const [reviewNotif, setReviewNotif] = useState(() => settingsService.getSync().review.notificationsEnabled);
@@ -64,6 +74,29 @@ export function SettingsFeaturesScreen() {
         <SettingRow label={t('settings.fields.advanceMinutes')} description={t('settings.descriptions.podcastAdvance')}>
           <TextInput value={podcastAdvance} onChange={setPodcastAdvance} placeholder={t('settings.placeholders.advance')} />
         </SettingRow>
+        <SettingRow label={t('settings.fields.podcastDefaultLength')} description={t('settings.descriptions.podcastDefaultLength')}>
+          <SelectInput
+            value={podcastDefaultLength}
+            onChange={(v) => setPodcastDefaultLength(v as PodcastLength)}
+            options={[
+              { value: 'brief', label: t('podcast.options.brief') },
+              { value: 'standard', label: t('podcast.options.standard') },
+              { value: 'deep', label: t('podcast.options.deep') },
+              { value: 'extended', label: t('podcast.options.extended') },
+            ]}
+          />
+        </SettingRow>
+        <SettingRow label={t('settings.fields.podcastDefaultStyle')} description={t('settings.descriptions.podcastDefaultStyle')}>
+          <SelectInput
+            value={podcastDefaultStyle}
+            onChange={(v) => setPodcastDefaultStyle(v as PodcastStyle)}
+            options={[
+              { value: 'focused', label: t('podcast.options.focused') },
+              { value: 'conversational', label: t('podcast.options.conversational') },
+              { value: 'review', label: t('podcast.options.review') },
+            ]}
+          />
+        </SettingRow>
         <div style={{ paddingTop: '12px' }}>
           <Button
             size="sm"
@@ -73,6 +106,8 @@ export function SettingsFeaturesScreen() {
                 autoGenerate: podcastAutoGenerate,
                 sleepTime: podcastSleepTime,
                 advanceMinutes: Number.isNaN(parseInt(podcastAdvance)) ? 60 : parseInt(podcastAdvance),
+                defaultLength: podcastDefaultLength,
+                defaultStyle: podcastDefaultStyle,
               });
               if (result.success) {
                 toast(t('settings.toast.podcastSaved'), 'success');
