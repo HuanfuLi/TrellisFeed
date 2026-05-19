@@ -51,7 +51,7 @@ export async function synthesize(text: string, config: TTSConfig): Promise<strin
       'Authorization': `Bearer ${config.apiKey}`,
     },
     body: JSON.stringify({
-      model: 'tts-1',
+      model: config.model ?? 'tts-1',
       input: text,
       voice,
       speed: config.speed,
