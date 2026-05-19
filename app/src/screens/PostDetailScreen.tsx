@@ -108,31 +108,72 @@ export function PostDetailScreen() {
 
   // --- Reading detectors (Phase 30, D-04/D-05/D-06) ---
   const [resolvedAnchorId, setResolvedAnchorId] = useState<string | null>(null);
+  // Chip-only navigation target — STRICTLY validated to be isAnchorNode=true,
+  // unlike resolvedAnchorId which uses getAnchorIdForPost (loose ownership
+  // tracking for daily-read). 2026-05-19: tapping the chip on Android
+  // sometimes landed on /anchor/<qa-leaf-id> via getAnchorIdForPost's
+  // fallback to sourceQuestionIds[0] which AnchorDetailScreen rejects
+  // with "Anchor not found" because the question's isAnchorNode is false.
+  // Same strict pattern InfoFlow's working badge taps use (Test 6 pass).
+  const [chipAnchorId, setChipAnchorId] = useState<string | null>(null);
   const [resolvedAnchorName, setResolvedAnchorName] = useState<string | null>(null);
   const hasEmittedRef = useRef(false);
   const scrollSentinelRef = useRef<HTMLDivElement>(null);
   const dwellTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Resolve anchor ID + display name for the current post.
+  // Resolve anchor IDs + display name for the current post.
   // 2026-05-19: name resolution moved INTO this effect (was a useMemo
   // that didn't subscribe to question-store loading). On device, the
   // store is sometimes empty at first render and the useMemo silently
   // returned null. useEffect runs after commit and re-runs on post
-  // changes — the lookup now sees a populated store. Fallback chain:
-  // anchor.title → anchor.content slice → post.sourceQuestionTitles[0]
-  // (always present for video/news posts) — so the chip always has a
-  // display string even if the anchor record itself is unresolvable.
+  // changes — the lookup now sees a populated store.
+  //
+  // Two anchor IDs are computed:
+  //   resolvedAnchorId — for emit-explored / daily-read (loose,
+  //     getAnchorIdForPost — accepts sourceQuestionIds[0] fallback)
+  //   chipAnchorId — for chip NAVIGATION (strict, resolveAnchorId +
+  //     title fallback — same pattern as working InfoFlow badge taps).
+  //     Only set when the resolved ID's question has isAnchorNode=true.
+  //
+  // Display name fallback chain (uses chipAnchorId when valid):
+  //   anchor.title → anchor.content slice → post.sourceQuestionTitles[0]
+  //     (always present for video/news posts — concept-feed.service.ts:1153)
   useEffect(() => {
     if (!post) {
       setResolvedAnchorId(null);
+      setChipAnchorId(null);
       setResolvedAnchorName(null);
       return;
     }
     const allQ = questionService.getAll({ includeFlagged: true });
     const byId = new Map(allQ.map(q => [q.id, q]));
-    const anchorId = getAnchorIdForPost(post, byId);
-    setResolvedAnchorId(anchorId);
-    const anchor = anchorId ? allQ.find(q => q.id === anchorId) : undefined;
+
+    // Loose: tracks "which concept owns this post" for daily-read
+    setResolvedAnchorId(getAnchorIdForPost(post, byId));
+
+    // Strict: walks sourceQuestionIds through resolveAnchorId (which
+    // returns null unless the result is a verified anchor); falls back
+    // to title-match on the post's sourceQuestionTitles[0] for legacy
+    // posts with empty/unresolvable sourceQuestionIds.
+    let strictId: string | null = null;
+    for (const qId of post.sourceQuestionIds ?? []) {
+      const r = resolveAnchorId(qId);
+      if (r) { strictId = r; break; }
+    }
+    if (!strictId) {
+      const fallbackTitle = post.sourceQuestionTitles?.[0]?.trim().toLowerCase();
+      if (fallbackTitle) {
+        const matched = allQ.find(q =>
+          q.isAnchorNode &&
+          ((q.title ?? '').trim().toLowerCase() === fallbackTitle ||
+            (q.content ?? '').trim().toLowerCase() === fallbackTitle)
+        );
+        strictId = matched?.id ?? null;
+      }
+    }
+    setChipAnchorId(strictId);
+
+    const anchor = strictId ? allQ.find(q => q.id === strictId) : undefined;
     const name = anchor?.title?.trim()
       || anchor?.content?.slice(0, 40)?.trim()
       || post.sourceQuestionTitles?.[0]?.trim()
@@ -1049,7 +1090,7 @@ export function PostDetailScreen() {
             Android Capacitor WebView (Phase 51 Bug 6 follow-ups). */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
           {resolvedAnchorName && (
-            resolvedAnchorId ? (
+            chipAnchorId ? (
               <div
                 role="button"
                 tabIndex={0}
@@ -1057,12 +1098,12 @@ export function PostDetailScreen() {
                 data-no-swipe-nav="true"
                 onPointerUp={(e) => {
                   e.stopPropagation();
-                  fireAnchorChipTap(resolvedAnchorId);
+                  fireAnchorChipTap(chipAnchorId);
                 }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
-                    fireAnchorChipTap(resolvedAnchorId);
+                    fireAnchorChipTap(chipAnchorId);
                   }
                 }}
                 style={{
