@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown } from 'lucide-react';
 
@@ -192,7 +192,9 @@ function VineProgressImpl({
   // `preserveAspectRatio="xMidYMid meet"` left empty space on the right half of
   // the card on phones wider than ~330px (operator-reported 2026-04-19).
   const svgWrapperRef = useRef<HTMLDivElement>(null);
+  const dropdownContentRef = useRef<HTMLDivElement>(null);
   const [measuredWidth, setMeasuredWidth] = useState<number>(300);
+  const [dropdownHeight, setDropdownHeight] = useState(0);
 
   useEffect(() => {
     if (!expanded) return;
@@ -257,6 +259,21 @@ function VineProgressImpl({
 
   const conceptTotal = concepts.length;
   const conceptExplored = concepts.filter(c => c.explored).length;
+  const uncoveredConcepts = useMemo(() => concepts.filter(c => !c.explored), [concepts]);
+
+  useLayoutEffect(() => {
+    const el = dropdownContentRef.current;
+    if (!el) return;
+    const update = () => {
+      const nextHeight = el.scrollHeight;
+      setDropdownHeight(prev => (prev === nextHeight ? prev : nextHeight));
+    };
+    update();
+    if (typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [uncoveredConcepts]);
 
   if (conceptTotal === 0) return null;
 
@@ -311,7 +328,6 @@ function VineProgressImpl({
     ? t('home.feed.vineComplete')
     : t('home.feed.vineProgress', { explored: conceptExplored, total: conceptTotal });
 
-  const uncoveredConcepts = concepts.filter(c => !c.explored);
   const flowerSize = isInline ? 8 : 6;
 
   const containerStyle: React.CSSProperties = isInline
@@ -420,96 +436,81 @@ function VineProgressImpl({
         </div>
       </div>
 
-      {/* Concept checklist — UAT Bug 6 fifth follow-up (2026-05-19).
-          Attempts 1–3 misdiagnosed the bug as a scroll-container
-          arbitration issue; attempt 4 (<div role="button"
-          onPointerUp>) proved the touch DOES reach the item on
-          device but caused click penetration to the tile underneath;
-          attempt 5 (capture-phase click swallow) fixed penetration
-          but left items in DOM and dropped the open/close animation.
-          Now we restore the animation safely:
-            • Always-render items inside a max-height + overflow
-              hidden + transition wrapper (smooth 220ms slide).
-            • pointer-events: none when collapsed so even if the
-              clip region briefly allows hit-testing during the
-              fold-in, tap events can't fire on items in the
-              hidden state.
-            • aria-hidden mirrors expanded for screen readers.
-            • The onPointerUp + capture-phase click-swallow pattern
-              from attempt 5 stays — that's what makes taps
-              respond + close the dropdown without penetration. */}
+      {/* Concept checklist */}
       <div
         role="list"
         data-no-swipe-nav="true"
         aria-hidden={!expanded}
         style={{
-          maxHeight: expanded ? '600px' : '0',
+          maxHeight: expanded ? `${dropdownHeight}px` : '0',
           overflow: 'hidden',
           pointerEvents: expanded ? 'auto' : 'none',
           marginTop: expanded ? '8px' : '0',
           paddingTop: expanded ? '4px' : '0',
           borderTop: expanded ? '1px solid var(--border)' : '1px solid transparent',
-          transition: 'max-height 220ms ease, margin-top 220ms ease, padding-top 220ms ease, border-top-color 220ms ease',
+          transition: 'max-height 180ms ease-out, margin-top 180ms ease-out, padding-top 180ms ease-out, border-top-color 180ms ease-out',
         }}
       >
-        {uncoveredConcepts.length === 0 && (
-          <div style={{
-            padding: '8px',
-            fontSize: '13px',
-            color: 'var(--muted-foreground)',
-            textAlign: 'center',
-          }}>
-            {t('home.feed.allExplored')}
-          </div>
-        )}
-        {uncoveredConcepts.map(concept => (
-          <div
-            key={concept.id}
-            role="button"
-            tabIndex={expanded ? 0 : -1}
-            aria-label={concept.name}
-            data-no-swipe-nav="true"
-            onPointerUp={(e) => {
-              if (!expanded) return;
-              e.stopPropagation();
-              fireConceptTap(concept.id);
-            }}
-            onKeyDown={(e) => {
-              if (!expanded) return;
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                fireConceptTap(concept.id);
-              }
-            }}
-            style={{
-              minHeight: '44px',
-              width: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              paddingLeft: '8px',
-              paddingRight: '8px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: 400,
-              color: 'var(--foreground)',
-              borderRadius: '6px',
-              touchAction: 'manipulation',
-              WebkitTapHighlightColor: 'transparent',
-              userSelect: 'none',
-              WebkitUserSelect: 'none',
-            }}
-          >
+        <div ref={dropdownContentRef}>
+          {uncoveredConcepts.length === 0 && (
             <div style={{
-              width: '6px',
-              height: '6px',
-              borderRadius: '50%',
-              backgroundColor: 'var(--primary-40)',
-              flexShrink: 0,
-            }} />
-            {concept.name}
-          </div>
-        ))}
+              padding: '8px',
+              fontSize: '13px',
+              color: 'var(--muted-foreground)',
+              textAlign: 'center',
+            }}>
+              {t('home.feed.allExplored')}
+            </div>
+          )}
+          {uncoveredConcepts.map(concept => (
+            <div
+              key={concept.id}
+              role="button"
+              tabIndex={expanded ? 0 : -1}
+              aria-label={concept.name}
+              data-no-swipe-nav="true"
+              onPointerUp={(e) => {
+                if (!expanded) return;
+                e.stopPropagation();
+                fireConceptTap(concept.id);
+              }}
+              onKeyDown={(e) => {
+                if (!expanded) return;
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  fireConceptTap(concept.id);
+                }
+              }}
+              style={{
+                minHeight: '44px',
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                paddingLeft: '8px',
+                paddingRight: '8px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: 400,
+                color: 'var(--foreground)',
+                borderRadius: '6px',
+                touchAction: 'manipulation',
+                WebkitTapHighlightColor: 'transparent',
+                userSelect: 'none',
+                WebkitUserSelect: 'none',
+              }}
+            >
+              <div style={{
+                width: '6px',
+                height: '6px',
+                borderRadius: '50%',
+                backgroundColor: 'var(--primary-40)',
+                flexShrink: 0,
+              }} />
+              {concept.name}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
     </>

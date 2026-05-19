@@ -100,7 +100,7 @@ const NON_CONCEPT_SOURCE_TYPES = new Set(['starter', 'connection', 'suggestion']
 
 export function getAnchorIdForPost(
   post: Pick<DailyPost, 'sourceQuestionIds' | 'sourceType'>,
-  questionsById: Map<string, Pick<Question, 'id' | 'parentId'>>
+  questionsById: ReadonlyMap<string, Pick<Question, 'id' | 'parentId'>>
 ): string | null {
   if (NON_CONCEPT_SOURCE_TYPES.has(post.sourceType)) return null;
   for (const qId of post.sourceQuestionIds) {

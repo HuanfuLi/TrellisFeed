@@ -29,6 +29,7 @@ import { trellisCreditsService } from '../services/trellis-credits.service';
 import { eventBus } from '../lib/event-bus';
 import { today, getGreeting } from '../lib/date';
 import { toast } from '../lib/toast';
+import { findPostForConcept } from '../lib/concept-target';
 
 
 
@@ -622,35 +623,20 @@ export function HomeScreen() {
       .filter((c): c is NonNullable<typeof c> => c !== null);
   }, [quotaAnchorIds, exploredAnchors, questionsById, questions]);
 
-  // Scroll to the first post matching a concept (D-04).
-  // UAT Bug 6 follow-up (2026-05-19): scrollTo({behavior:'smooth'})
-  // with a non-zero target is unreliable on Android Capacitor WebView.
-  // Background:
-  //   • Chromium bug 470360 documents WebView scrollTo accuracy issues
-  //     with non-zero offsets.
-  //   • Per MDN, user agents ARE allowed to ignore behavior:'smooth'
-  //     — WebView is one such UA. The Capacitor performance guide
-  //     explicitly recommends requestAnimationFrame-based manual scroll.
-  //   • Empirically (operator-confirmed): ScrollToTopFAB's call
-  //     scrollTo({top:0, behavior:'smooth'}) works on this same
-  //     container, but our scrollTo to non-zero targets silently
-  //     no-ops. The top:0 case may hit a different WebView code path
-  //     (boundary-snap) than mid-content offsets.
-  //
-  // Fix: rAF-based animation that assigns scrollTop directly. Direct
-  // scrollTop assignment is the most primitive scroll API and bypasses
-  // the smooth-honoring layer entirely. easeInOutCubic over 380ms
-  // matches the feel of native smooth-scroll. We also defer one frame
-  // after setExpanded(false) (called by VineProgress.fireConceptTap)
-  // so React batches the dropdown collapse with the scroll start —
-  // in inline mode, this prevents the collapsing dropdown's height
-  // shift from desyncing the scroll target.
+  // Scroll to the first rendered post for a concept (D-04). VineProgress emits
+  // anchor IDs, but older cached posts can carry Q&A child IDs or only a source
+  // title, so resolve through the post model before looking up the DOM tile.
   const handleConceptTap = useCallback((conceptId: string) => {
     const scrollContainer = containerRef.current;
     if (!scrollContainer) return;
 
     requestAnimationFrame(() => {
-      const postElement = document.querySelector(`[data-concept-id="${conceptId}"]`) as HTMLElement | null;
+      const targetPost = findPostForConcept(dailyPosts, conceptId, questionsById);
+      const postElement = targetPost
+        ? Array.from(scrollContainer.querySelectorAll<HTMLElement>('[data-feed-id]'))
+            .find((el) => el.dataset.feedId === targetPost.id) ?? null
+        : Array.from(scrollContainer.querySelectorAll<HTMLElement>('[data-concept-id]'))
+            .find((el) => el.dataset.conceptId === conceptId) ?? null;
       if (!postElement) return;
 
       const containerRect = scrollContainer.getBoundingClientRect();
@@ -661,24 +647,9 @@ export function HomeScreen() {
         offsetFromContainerTop - containerRect.height / 2 + tileRect.height / 2,
       );
 
-      const startTop = scrollContainer.scrollTop;
-      const distance = targetScrollTop - startTop;
-      if (Math.abs(distance) < 4) return;
-
-      const durationMs = 380;
-      const startTime = performance.now();
-      const easeInOutCubic = (t: number) =>
-        t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-
-      const step = () => {
-        const elapsed = performance.now() - startTime;
-        const progress = Math.min(elapsed / durationMs, 1);
-        scrollContainer.scrollTop = startTop + distance * easeInOutCubic(progress);
-        if (progress < 1) requestAnimationFrame(step);
-      };
-      requestAnimationFrame(step);
+      scrollContainer.scrollTo({ top: targetScrollTop, behavior: 'smooth' });
     });
-  }, []);
+  }, [dailyPosts, questionsById]);
 
   const [showConfetti, setShowConfetti] = useState(false);
   const creditAwardedRef = useRef(dailyReadService.isCreditAwarded());
