@@ -73,9 +73,9 @@ test('CBR-05: FilterChip has a code comment citing G2 for provenance', () => {
     'FilterChip must contain a comment citing G2 so future readers understand why preventDefault is there.');
 });
 
-test('CBR-06: FilterChip uses padding 6px 12px — G7 uniform chip padding', () => {
+test('CBR-06: FilterChip uses padding 10px 14px — G7 vertical padding follow-up', () => {
   const src = readSrc('src/screens/SavedScreen.tsx');
   const chip = extractFilterChipBody(src);
-  assert.match(chip, /padding:\s*['"]6px 12px['"]/,
-    'FilterChip must use padding: "6px 12px" for uniform visual rhythm (G7 fix).');
+  assert.match(chip, /padding:\s*['"]10px 14px['"]/,
+    'FilterChip must use padding: "10px 14px" after the G7 re-UAT clarification that vertical padding, not horizontal rhythm, was the visible issue.');
 });

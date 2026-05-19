@@ -52,9 +52,9 @@ test('LP-04: Save/Like row labels flip via engagementService.isSaved / isLiked',
 
 test('LP: row tap calls engagementService method + emits toast + closes sheet', () => {
   const src = readSrc('src/components/LongPressMenu.tsx');
-  assert.match(src, /engagementService\.savePost\(postId\)/);
+  assert.match(src, /engagementService\.savePost\(\s*postId\s*(?:,\s*[^)]*)?\)/);
   assert.match(src, /engagementService\.removeSavedPost\(postId\)/);
-  assert.match(src, /engagementService\.likePost\(postId\)/);
+  assert.match(src, /engagementService\.likePost\(\s*postId\s*(?:,\s*[^)]*)?\)/);
   assert.match(src, /engagementService\.unlikePost\(postId\)/);
   assert.match(src, /engagementService\.dismissAnchor\(anchorId\)/);
   assert.match(src, /toast\(t\('engagement\.toast\.saved'\)/);
@@ -133,8 +133,10 @@ test('LP-50-07: graceful degradation — direct-toggle Save path preserved when 
   const src = readSrc('src/components/LongPressMenu.tsx');
   // When no picker is wired, the existing Save toggle must still call the
   // engagement service directly (so HomeScreen's current consumer doesn't break
-  // until plan 50-09 wires onOpenCollectionPicker).
-  assert.match(src, /engagementService\.savePost\(postId\)/, 'Must preserve direct savePost call (fallback path)');
+  // until plan 50-09 wires onOpenCollectionPicker). Phase 50 UAT G14 allows
+  // passing a post snapshot as the second argument so unopened posts surface
+  // in /saved and collection drill-in.
+  assert.match(src, /engagementService\.savePost\(\s*postId\s*(?:,\s*[^)]*)?\)/, 'Must preserve direct savePost call (fallback path)');
   assert.match(src, /engagementService\.removeSavedPost\(postId\)/, 'Must preserve direct removeSavedPost call (fallback path)');
   // Toasts on the fallback path stay byte-stable.
   assert.match(src, /toast\(t\('engagement\.toast\.saved'\),\s*'success'\)/);
