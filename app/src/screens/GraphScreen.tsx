@@ -286,35 +286,27 @@ function MasterMap({
   // Node lookup ref — populated synchronously inside the main effect
   const nodeMapRef = useRef<Record<string, Question>>({});
 
-  // 49-06.4 — tracks the `nodes` reference applied by Effect A's mei.init().
-  // Effect B compares the current `nodes` against this ref; identity match
-  // means init already applied this data, so refresh is skipped (would
-  // double-link the DOM). Survives StrictMode double-mount because Effect A
-  // re-sets it on every (re-)mount with the same nodes value.
-  const lastInitNodesRef = useRef<Question[] | null>(null);
+  // Reset init tracking when nodes change so the map reinitializes with new data
+  useEffect(() => {
+    initCompletedRef.current = false;
+  }, [nodes, edges]);
 
-  // ─── Phase 49-06.4 — MindElixir lifecycle split (load-bearing) ─────────────
-  //
-  // The MindElixir instance is created ONCE on mount (effect with [] deps) and
-  // DATA UPDATES are applied via `mei.refresh(newData)` in a sibling effect
-  // with [nodes, edges] deps. The prior unified effect destroyed + recreated
-  // the instance on every nodes change, which reset scale + center (Test 3
-  // UAT 2026-05-18: drag-drop snapped view back to default 0.5x centered).
-  //
-  // mei.refresh() (MindElixir.js:662-663, `gn`) swaps nodeData / arrows /
-  // summaries, re-runs G() processing, calls layout() and linkDiv() — without
-  // touching map.style.transform or scaleVal. User's viewport survives.
-  //
-  // DO NOT re-add [nodes, edges] to the init effect's deps. The cleanup tears
-  // down listeners + destroys the instance; React calls cleanup on every dep
-  // change, so any data-change re-run would lose the user's view AND require
-  // re-attaching all pointer listeners (49-06.3 attempted to capture/restore
-  // the transform string and failed — MindElixir's init() resets it).
   useEffect(() => {
     if (!containerRef.current) return;
 
     // Skip initialization when not visible (prevents 0-width MindElixir bug)
     if (!isVisible) return;
+
+    // If already initialized with current data, just re-center/re-scale
+    if (initCompletedRef.current && instanceRef.current) {
+      const mei = instanceRef.current;
+      mei.toCenter();
+      const containerWidth = containerRef.current.offsetWidth;
+      if (containerWidth > 0) {
+        mei.move(-containerWidth * 0.25, 0);
+      }
+      return;
+    }
 
     // Populate nodeMap synchronously before creating listeners
     nodeMapRef.current = Object.fromEntries(nodes.map((n) => [n.id, n]));
@@ -342,13 +334,6 @@ function MasterMap({
 
     mei.init(buildMindElixirData(nodes));
     initCompletedRef.current = true;
-    // 49-06.4 — record the nodes reference applied by init() so Effect B can
-    // skip-refresh when it would re-apply the same data. StrictMode double-
-    // mounts Effect A; the ref-by-data approach is robust to that (a boolean
-    // first-run gate is NOT — it persists across the StrictMode unmount/remount
-    // and lets Effect B's second invocation re-layout an already-laid-out
-    // DOM, producing an empty viewport on dev/web).
-    lastInitNodesRef.current = nodes;
 
     // Zoom to 50%, centre, then nudge left so the right-expanding tree
     // uses more of the portrait viewport instead of leaving the left half empty.
@@ -658,42 +643,7 @@ function MasterMap({
       instanceRef.current = null;
       initCompletedRef.current = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- 49-06.4: nodes/edges
-    // intentionally excluded; mutation handled by the sibling refresh effect below.
-  }, [isVisible]);
-
-  // ─── Phase 49-06.4 — data sync via mei.refresh() ─────────────────────────────
-  //
-  // Updates the in-place MindElixir instance when nodes/edges CHANGE. Preserves
-  // user pan/zoom because refresh re-lays-out without touching map.style.transform
-  // or scaleVal (MindElixir.js:662-663). nodeMapRef is updated synchronously so
-  // pointer handlers' findNodeFromTarget stays accurate for the new tree shape.
-  //
-  // SKIP condition: when `nodes` reference matches what Effect A's mei.init()
-  // already applied (tracked via lastInitNodesRef). MindElixir's init() ends
-  // with `layout() + linkDiv() + toCenter()` (MindElixir.js:2692). Re-running
-  // refresh on the same data would re-link the DOM and produce an empty
-  // viewport. Ref-by-data is robust to React StrictMode dev double-mount
-  // (a boolean first-run gate is NOT — see UAT 2026-05-19 web-browser test
-  // where StrictMode persisted the boolean across the second mount).
-  useEffect(() => {
-    const mei = instanceRef.current;
-    if (!mei) return;
-    if (nodes === lastInitNodesRef.current) {
-      // Same data Effect A inited with — no refresh needed.
-      return;
-    }
-    nodeMapRef.current = Object.fromEntries(nodes.map((n) => [n.id, n]));
-    try {
-      mei.refresh(buildMindElixirData(nodes));
-      lastInitNodesRef.current = nodes;
-    } catch (err) {
-      // Log but do not throw — a malformed nodes payload should not crash the
-      // graph screen. Worst case the user sees a stale tree until the next
-      // GRAPH_UPDATED arrives.
-      console.warn('[GraphScreen 49-06.4] mei.refresh failed', err);
-    }
-  }, [nodes, edges]);
+  }, [nodes, edges, isVisible]);
 
   if (nodes.length === 0) {
     return (
