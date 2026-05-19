@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { BlindboxItem, DailyPost, GeneratedImage, Question } from '../types';
 import { FeedPostImage } from './FeedPostImage';
@@ -7,6 +8,9 @@ import { inferImageStyle, buildImagePrompt } from '../services/postFormatting.se
 import { normalizePlainText } from '../lib/text-normalization';
 import { settingsService } from '../services/settings.service';
 import { SuggestionCard } from './SuggestionCard';
+import { resolveAnchorId } from '../lib/anchor-resolution';
+import { computeLeafState } from '../services/trellis-state.service';
+import { questionService } from '../services/question.service';
 
 // Defensive chip-title filter (2026-05-12). The concept-tag chip renders
 // post.sourceQuestionTitles[0]; upstream paths in concept-feed.service.ts have
@@ -17,6 +21,27 @@ import { SuggestionCard } from './SuggestionCard';
 function isLikelyInternalId(title: string | undefined): boolean {
   if (!title) return true;
   return /^(anchor|post|concept|question)-/i.test(title.trim());
+}
+
+// Phase 51-01: binary leaf-state signal for feed tile concept badges.
+// Operator-locked (2026-05-19, see CLAUDE.md feed-tile simplicity rule):
+// dying / falling / dead all show the SAME small amber dot. Not three colors.
+// One signal, "needs attention" — richer state visualization lives in the
+// AnchorDetailScreen LeafStateBadge.
+//
+// Runs per-badge per-render. For a 32-tile masonry feed × ≤2 badges each,
+// that's ≤64 localStorage parses → ~2-5ms total on mobile. No memoization
+// added — the cost is well below the 16ms frame budget.
+function getBadgeLeafSignal(qaId: string | undefined): 'attention' | 'normal' {
+  if (!qaId) return 'normal';
+  const anchorId = resolveAnchorId(qaId);
+  if (!anchorId) return 'normal';
+  const all = questionService.getAll({ includeFlagged: true });
+  const anchor = all.find((q) => q.id === anchorId);
+  if (!anchor) return 'normal';
+  const qaChildren = all.filter((q) => q.parentId === anchorId && !q.isAnchorNode);
+  const ls = computeLeafState(anchor, qaChildren);
+  return ls === 'dying' || ls === 'falling' || ls === 'dead' ? 'attention' : 'normal';
 }
 
 // ── Text-art theme pool (random selection per render) ──────────────────────────
@@ -77,6 +102,7 @@ interface ConceptCardProps {
 
 function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive: _isActive, onOpen }: ConceptCardProps) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
 
   // ── Image generation state ──────────────────────────────────────────────────
   // Video posts skip AI image generation entirely (D-08: use YouTube thumbnail).
@@ -263,21 +289,42 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive: _isActive, onO
               Operator-bounded simplification — "tiles already too rich; simplify".
               See .planning/phases/43-engagement-ui/43-CONTEXT.md §"Tile simplification (TS-*)". */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-            {post.sourceQuestionTitles?.slice(0, 1).filter(t => !isLikelyInternalId(t)).map((title, idx) => (
-              <span
-                key={idx}
-                style={{
-                  fontSize: '0.65rem',
-                  color: 'var(--news-card-muted)',
-                  fontFamily: 'system-ui, -apple-system, sans-serif',
-                  padding: '3px 8px',
-                  borderRadius: '100px',
-                  border: '1px solid var(--news-card-tag-border)',
-                }}
-              >
-                {title}
-              </span>
-            ))}
+            {/* Phase 51-01: concept badges are tappable when the underlying
+                Q&A resolves to an anchor. Tap navigates to /anchor/:id;
+                e.stopPropagation() prevents the tile-level "open post"
+                handler from also firing. Binary amber dot when the
+                concept is dying/falling/dead. */}
+            {post.sourceQuestionTitles?.slice(0, 1).filter(t => !isLikelyInternalId(t)).map((title, idx) => {
+              const qaId = post.sourceQuestionIds?.[idx];
+              const anchorId = qaId ? resolveAnchorId(qaId) : null;
+              const leafSignal = getBadgeLeafSignal(qaId);
+              return (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={anchorId ? (e) => { e.stopPropagation(); navigate(`/anchor/${anchorId}`); } : undefined}
+                  disabled={!anchorId}
+                  style={{
+                    fontSize: '0.65rem',
+                    color: 'var(--news-card-muted)',
+                    fontFamily: 'system-ui, -apple-system, sans-serif',
+                    padding: '6px 10px',
+                    borderRadius: '100px',
+                    border: '1px solid var(--news-card-tag-border)',
+                    background: 'transparent',
+                    cursor: anchorId ? 'pointer' : 'default',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  {leafSignal === 'attention' && (
+                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#f59e0b', display: 'inline-block' }} />
+                  )}
+                  {title}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -438,23 +485,51 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive: _isActive, onO
               {normalizedPreview}
             </p>
           )}
-          {/* Bottom tags: source concepts + narrative mode */}
+          {/* Bottom tags: source concepts + narrative mode.
+              Phase 51-01: tappable concept badges with binary amber dot
+              for dying/falling/dead. Tap navigates to /anchor/:id and
+              stopPropagation()s so the tile-level handleActivate does NOT
+              also fire. Disabled state when no anchor resolves keeps the
+              visual but suppresses the click. */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '12px' }}>
-            {post.sourceQuestionTitles?.slice(0, 2).filter(t => !isLikelyInternalId(t)).map((title, idx) => (
-              <span
-                key={idx}
-                style={{
-                  fontSize: '0.7rem',
-                  color: 'var(--muted-foreground)',
-                  backgroundColor: 'var(--surface)',
-                  border: '1px solid var(--border)',
-                  padding: '3px 8px',
-                  borderRadius: '100px',
-                }}
-              >
-                {title}
-              </span>
-            ))}
+            {post.sourceQuestionTitles?.slice(0, 2).filter(t => !isLikelyInternalId(t)).map((title, idx) => {
+              const qaId = post.sourceQuestionIds?.[idx];
+              const anchorId = qaId ? resolveAnchorId(qaId) : null;
+              const leafSignal = getBadgeLeafSignal(qaId);
+              return (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={anchorId ? (e) => { e.stopPropagation(); navigate(`/anchor/${anchorId}`); } : undefined}
+                  onKeyDown={anchorId ? (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      navigate(`/anchor/${anchorId}`);
+                    }
+                  } : undefined}
+                  disabled={!anchorId}
+                  style={{
+                    fontSize: '0.7rem',
+                    color: 'var(--muted-foreground)',
+                    backgroundColor: 'var(--surface)',
+                    border: '1px solid var(--border)',
+                    padding: '6px 10px',
+                    borderRadius: '100px',
+                    cursor: anchorId ? 'pointer' : 'default',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontFamily: 'inherit',
+                  }}
+                >
+                  {leafSignal === 'attention' && (
+                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#f59e0b', display: 'inline-block' }} />
+                  )}
+                  {title}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
