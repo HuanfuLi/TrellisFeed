@@ -622,12 +622,28 @@ export function HomeScreen() {
       .filter((c): c is NonNullable<typeof c> => c !== null);
   }, [quotaAnchorIds, exploredAnchors, questionsById, questions]);
 
-  // Scroll to the first post matching a concept (D-04)
+  // Scroll to the first post matching a concept (D-04).
+  // UAT Bug 6 follow-up (2026-05-19): scrollIntoView({behavior:'smooth'})
+  // is unreliable on Android Capacitor WebView when the scroll container
+  // has WebkitOverflowScrolling: 'touch' + overscroll-behavior: 'contain'
+  // — the scroll either no-ops or jumps with no animation. Manual scrollTo
+  // on the home-scroll container is reliable on both web and Capacitor.
   const handleConceptTap = useCallback((conceptId: string) => {
-    const postElement = document.querySelector(`[data-concept-id="${conceptId}"]`);
-    if (postElement) {
+    const postElement = document.querySelector(`[data-concept-id="${conceptId}"]`) as HTMLElement | null;
+    if (!postElement) return;
+    const scrollContainer = containerRef.current;
+    if (!scrollContainer) {
       postElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
     }
+    const containerRect = scrollContainer.getBoundingClientRect();
+    const tileRect = postElement.getBoundingClientRect();
+    const offsetFromContainerTop = tileRect.top - containerRect.top + scrollContainer.scrollTop;
+    const targetScrollTop = Math.max(
+      0,
+      offsetFromContainerTop - containerRect.height / 2 + tileRect.height / 2,
+    );
+    scrollContainer.scrollTo({ top: targetScrollTop, behavior: 'smooth' });
   }, []);
 
   const [showConfetti, setShowConfetti] = useState(false);

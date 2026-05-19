@@ -420,64 +420,62 @@ function VineProgressImpl({
         </div>
       </div>
 
-      {/* Concept checklist
-          UAT Bug 6 third follow-up (verify-work, 2026-05-19): three prior
-          attempts failed on device — (1) button + stopPropagation +
-          touchAction, (2) data-no-swipe-nav + onPointerDown
-          stopPropagation, (3) drop the maxHeight/overflow:auto scroll
-          container. Differential held: the parent BAR div fires
-          onClick fine on device, but the dropdown <button> items did
-          not. That points at click-synthesis being unreliable on
-          <button> elements under a framer-motion pan ancestor in
-          Android Capacitor WebView — the codebase already works around
-          this elsewhere by binding action to onPointerUp instead of
-          onClick (see BottomNavigation.tsx:204-205, ChatMessage.tsx:247,
-          SavedScreen.tsx:1383). The dropdown items just didn't adopt
-          the pattern. Fix:
-            • <button> → <div role="button" tabIndex={0}> to match the
-              bar-div shape that demonstrably works on device.
-            • onClick → onPointerUp for touch firing (mouse devices
-              also emit pointer events; no double-fire). Keep onKeyDown
-              for keyboard accessibility (Enter/Space).
-            • Always close the dropdown on tap so the user sees
-              immediate visual feedback even if the scroll target
-              ([data-concept-id]) hasn't been rendered yet — prevents
-              the "nothing happens" perception on first generation.
-            • Tap target raised to 44px (iOS HIG / Android Material
-              minimum) — 36px may be below the WebView's tap-rejection
-              threshold. */}
-      {expanded && (
-        <div
-          role="list"
-          data-no-swipe-nav="true"
-          style={{
-            borderTop: '1px solid var(--border)',
-            marginTop: '8px',
-            paddingTop: '4px',
-          }}
-        >
-          {uncoveredConcepts.length === 0 && (
-            <div style={{
-              padding: '8px',
-              fontSize: '13px',
-              color: 'var(--muted-foreground)',
-              textAlign: 'center',
-            }}>
-              {t('home.feed.allExplored')}
-            </div>
-          )}
-          {uncoveredConcepts.map(concept => (
+      {/* Concept checklist — UAT Bug 6 fifth follow-up (2026-05-19).
+          Attempts 1–3 misdiagnosed the bug as a scroll-container
+          arbitration issue; attempt 4 (<div role="button"
+          onPointerUp>) proved the touch DOES reach the item on
+          device but caused click penetration to the tile underneath;
+          attempt 5 (capture-phase click swallow) fixed penetration
+          but left items in DOM and dropped the open/close animation.
+          Now we restore the animation safely:
+            • Always-render items inside a max-height + overflow
+              hidden + transition wrapper (smooth 220ms slide).
+            • pointer-events: none when collapsed so even if the
+              clip region briefly allows hit-testing during the
+              fold-in, tap events can't fire on items in the
+              hidden state.
+            • aria-hidden mirrors expanded for screen readers.
+            • The onPointerUp + capture-phase click-swallow pattern
+              from attempt 5 stays — that's what makes taps
+              respond + close the dropdown without penetration. */}
+      <div
+        role="list"
+        data-no-swipe-nav="true"
+        aria-hidden={!expanded}
+        style={{
+          maxHeight: expanded ? '600px' : '0',
+          overflow: 'hidden',
+          pointerEvents: expanded ? 'auto' : 'none',
+          marginTop: expanded ? '8px' : '0',
+          paddingTop: expanded ? '4px' : '0',
+          borderTop: expanded ? '1px solid var(--border)' : '1px solid transparent',
+          transition: 'max-height 220ms ease, margin-top 220ms ease, padding-top 220ms ease, border-top-color 220ms ease',
+        }}
+      >
+        {uncoveredConcepts.length === 0 && (
+          <div style={{
+            padding: '8px',
+            fontSize: '13px',
+            color: 'var(--muted-foreground)',
+            textAlign: 'center',
+          }}>
+            {t('home.feed.allExplored')}
+          </div>
+        )}
+        {uncoveredConcepts.map(concept => (
           <div
             key={concept.id}
             role="button"
-            tabIndex={0}
+            tabIndex={expanded ? 0 : -1}
             aria-label={concept.name}
             data-no-swipe-nav="true"
             onPointerUp={(e) => {
+              if (!expanded) return;
               e.stopPropagation();
               fireConceptTap(concept.id);
             }}
             onKeyDown={(e) => {
+              if (!expanded) return;
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
                 fireConceptTap(concept.id);
@@ -511,9 +509,8 @@ function VineProgressImpl({
             }} />
             {concept.name}
           </div>
-          ))}
-        </div>
-      )}
+        ))}
+      </div>
     </div>
     </>
   );
