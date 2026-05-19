@@ -52,12 +52,23 @@ export function computeLeafState(
   const anchorReview = resolveReview(anchor, fm);
   const childReviews = qaChildren.map((q) => resolveReview(q, fm));
 
-  // Bud gate: if no reviews happened anywhere, it's a bud.
+  // Bud gate (UAT Bug 1 fix): bud means "truly fresh concept, hasn't entered
+  // the review treadmill yet." The pre-fix gate fired whenever reviewCount
+  // was zero everywhere — which is the normal state for a user who creates
+  // Q&As but never opens the Flashcards flow. Those concepts then stayed
+  // bud forever, even when their Q&A reviewSchedule.nextReviewDate was
+  // weeks overdue. Phase 51's leaf-state badge made this visible and
+  // surfaced the design flaw.
+  //
+  // New semantics: bud only when the anchor has NO Q&A children AND has
+  // never been reviewed itself. Once a concept has children, the review
+  // treadmill has effectively started — overdue aggregation below handles
+  // dying/falling/dead/green/blossom transitions. Children with empty
+  // nextReviewDate are skipped in the overdue loop and naturally fall
+  // through to 'green' (no overdue signal → healthy by default).
   const anchorReviewCount = anchorReview.reviewCount ?? 0;
-  const anyChildReviewed = childReviews.some((r) => (r.reviewCount ?? 0) > 0);
-  // Also check lastReviewedAt as a fallback signal
   const anchorEverReviewed = anchorReviewCount > 0 || (anchor.lastReviewedAt != null && anchor.lastReviewedAt > 0);
-  if (!anchorEverReviewed && !anyChildReviewed) return 'bud';
+  if (qaChildren.length === 0 && !anchorEverReviewed) return 'bud';
 
   // Fruit check (D-09): 7+ consecutive days in blossom
   if (blossomSinceDate) {

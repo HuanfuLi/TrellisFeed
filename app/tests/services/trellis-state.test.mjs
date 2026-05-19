@@ -82,3 +82,45 @@ test('buildTrellisState([]) returns empty nodes and vines', async () => {
   assert.deepEqual(result.nodes, []);
   assert.deepEqual(result.vines, []);
 });
+
+// UAT Bug 1 fix — Phase 51 verify-work
+// The pre-fix bud gate returned 'bud' whenever reviewCount was zero across
+// the anchor + every child, ignoring nextReviewDate overdue-ness entirely.
+// For users who create Q&As but never open the Flashcards flow, that
+// stranded every concept on 'bud' forever even when weeks overdue.
+
+test('UAT Bug 1: anchor with children + child overdue + reviewCount=0 → dying (NOT bud)', async () => {
+  storage.clear();
+  const { computeLeafState } = await import('../../src/services/trellis-state.service.ts');
+  const anchor = mkQ({ reviewSchedule: { ...mkQ().reviewSchedule, reviewCount: 0 } });
+  // Child has reviewCount=0 (never reviewed) but nextReviewDate is 3 days
+  // overdue — i.e., schedule initialized at creation but user never opened
+  // the Flashcards review flow.
+  const child = mkQ({ reviewSchedule: { nextReviewDate: daysAgo(3), reviewCount: 0, easeFactor: 2.5, interval: 1, lastReviewedAt: null } });
+  assert.equal(computeLeafState(anchor, [child]), 'dying');
+});
+
+test('UAT Bug 1: anchor with 14-day overdue child + reviewCount=0 → dead', async () => {
+  storage.clear();
+  const { computeLeafState } = await import('../../src/services/trellis-state.service.ts');
+  const anchor = mkQ({ reviewSchedule: { ...mkQ().reviewSchedule, reviewCount: 0 } });
+  const child = mkQ({ reviewSchedule: { nextReviewDate: daysAgo(14), reviewCount: 0, easeFactor: 2.5, interval: 1, lastReviewedAt: null } });
+  assert.equal(computeLeafState(anchor, [child]), 'dead');
+});
+
+test('UAT Bug 1: anchor with on-schedule child + reviewCount=0 → green (not bud)', async () => {
+  storage.clear();
+  const { computeLeafState } = await import('../../src/services/trellis-state.service.ts');
+  const anchor = mkQ({ reviewSchedule: { ...mkQ().reviewSchedule, reviewCount: 0 } });
+  // Child scheduled for 5 days from now — not yet due, never reviewed.
+  const child = mkQ({ reviewSchedule: { nextReviewDate: daysAgo(-5), reviewCount: 0, easeFactor: 2.5, interval: 1, lastReviewedAt: null } });
+  assert.equal(computeLeafState(anchor, [child]), 'green');
+});
+
+test('UAT Bug 1: bud preserved for truly fresh anchor (no children, never reviewed)', async () => {
+  storage.clear();
+  const { computeLeafState } = await import('../../src/services/trellis-state.service.ts');
+  const anchor = mkQ({ reviewSchedule: { ...mkQ().reviewSchedule, reviewCount: 0 } });
+  // Bud semantic preserved: no Q&A children AND anchor never reviewed.
+  assert.equal(computeLeafState(anchor, []), 'bud');
+});
