@@ -466,20 +466,38 @@ export default function SavedScreen() {
   // is cleared after consumption so back-navigation / remount doesn't
   // re-apply. The chip remains user-controllable — this is just an initial
   // value, not a lock.
+  //
+  // CR-01 (Phase 51 code review): `setFilterConcept` must run AFTER the
+  // `[activeTab]` reset effect (which unconditionally clears filter chips)
+  // has flushed. Without the queueMicrotask deferral, React batches the
+  // mount-effect's two setters, commits both, then re-runs the
+  // `[activeTab]` reset (because activeTab flipped from 'saved' default to
+  // 'collections'), which silently wipes the just-set filterConcept value.
+  // Deferring setFilterConcept to a microtask makes its commit happen AFTER
+  // the tab-change reset has already fired, so the filter survives. This is
+  // load-bearing for the Collections deep-link from AnchorDetailScreen's
+  // "X in collections" link-out — see 51-REVIEW.md CR-01.
   const location = useLocation();
   useEffect(() => {
     const state = location.state as { conceptFilterTitle?: string; openTab?: string } | null;
     if (!state) return;
-    if (state.conceptFilterTitle) {
-      setFilterConcept(state.conceptFilterTitle);
-    }
+    let nextTab: Tab | null = null;
     if (
       state.openTab === 'saved' ||
       state.openTab === 'liked' ||
       state.openTab === 'history' ||
       state.openTab === 'collections'
     ) {
-      setActiveTab(state.openTab);
+      nextTab = state.openTab;
+    }
+    if (nextTab && nextTab !== activeTab) {
+      setActiveTab(nextTab);
+    }
+    // CR-01 fix: defer setFilterConcept(state.conceptFilterTitle) so the
+    // tab-change reset effect runs first and doesn't wipe this value.
+    if (state.conceptFilterTitle) {
+      const pendingFilter = state.conceptFilterTitle;
+      queueMicrotask(() => setFilterConcept(pendingFilter));
     }
     // Clear route state so back-navigation / remount doesn't re-apply.
     navigate(location.pathname, { replace: true, state: null });

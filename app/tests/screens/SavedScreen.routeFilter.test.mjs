@@ -43,10 +43,64 @@ describe('SavedScreen — route-state concept filter consume + clear (Phase 51-0
     // Both fields must be referenced as the consumed shape.
     assert.match(source, /conceptFilterTitle\?\s*:\s*string/, 'SavedScreen.tsx must type-narrow conceptFilterTitle as string.');
     assert.match(source, /openTab\?\s*:\s*string/, 'SavedScreen.tsx must type-narrow openTab as string.');
+    // CR-01 fix: setFilterConcept(state.conceptFilterTitle) must be deferred
+    // via queueMicrotask so the `[activeTab]` reset effect (which
+    // unconditionally clears filterConcept) runs FIRST and does not wipe
+    // the route-state value. Bare `setFilterConcept(state.conceptFilterTitle)`
+    // in the same tick as `setActiveTab(...)` regresses CR-01 — the filter
+    // chip vanishes on every Collections deep-link.
     assert.match(
       source,
-      /setFilterConcept\(state\.conceptFilterTitle\)/,
-      'SavedScreen.tsx must call setFilterConcept(state.conceptFilterTitle) when present.',
+      /queueMicrotask\(\(\)\s*=>\s*setFilterConcept\(/,
+      'SavedScreen.tsx must defer setFilterConcept via queueMicrotask so the [activeTab] reset cannot wipe it (CR-01).',
+    );
+    // The value must still come from state.conceptFilterTitle (or a closure
+    // capture of it). Reject any code path that just calls setFilterConcept
+    // with a literal or null inside the deferral.
+    assert.match(
+      source,
+      /(?:const|let)\s+pendingFilter\s*=\s*state\.conceptFilterTitle[\s\S]{0,200}queueMicrotask\(\(\)\s*=>\s*setFilterConcept\(pendingFilter\)\)/,
+      'SavedScreen.tsx must capture state.conceptFilterTitle into a const and pass it to the deferred setFilterConcept call so the value survives the tab-change reset (CR-01).',
+    );
+  });
+
+  it('CR-01 fix: filter VALUE survives the [activeTab] reset effect — not just that the setter was called', () => {
+    // The original test ("setFilterConcept(state.conceptFilterTitle)" matched
+    // anywhere) failed to catch the regression where the value was wiped by
+    // the next tick's reset effect. The structural guard for the fix is:
+    //   1. The [activeTab] reset effect with setFilterConcept(null) MUST
+    //      still exist (it serves the user-driven tab-tap case).
+    //   2. The mount effect must NOT call setFilterConcept(state.conceptFilterTitle)
+    //      synchronously — it must be inside a queueMicrotask callback.
+    //   3. The mount effect's queueMicrotask deferral runs AFTER React has
+    //      flushed the activeTab change AND the [activeTab] reset effect, so
+    //      the filterConcept value persists into the render that the user
+    //      sees.
+    // Together, these three guards make the regression visible at the source
+    // level: any future refactor that re-introduces a synchronous
+    // setFilterConcept(state.conceptFilterTitle) call will fail (1) the
+    // earlier test's queueMicrotask match.
+    assert.match(
+      source,
+      /useEffect\(\(\)\s*=>\s*\{[\s\S]*?setFilterConcept\(null\)[\s\S]*?\},\s*\[activeTab\]\)/,
+      'SavedScreen.tsx must keep the [activeTab] reset effect with setFilterConcept(null) (user-driven tab-tap case).',
+    );
+    // The mount effect (empty deps) must NOT contain a bare synchronous
+    // setFilterConcept(state.conceptFilterTitle) call. Look for the
+    // setFilterConcept call in the mount effect — it must appear inside a
+    // queueMicrotask callback, not at the top level of the effect body.
+    const mountEffectMatch = source.match(/\/\/ Phase 51-01: accept \{ conceptFilterTitle[\s\S]*?\},\s*\[\]\);/);
+    assert.ok(mountEffectMatch, 'SavedScreen.tsx must keep the route-state mount effect with empty deps.');
+    const mountEffect = mountEffectMatch[0];
+    // The bare synchronous form is the regression. Require it to NOT match.
+    assert.ok(
+      !/^\s*setFilterConcept\(state\.conceptFilterTitle\)/m.test(mountEffect),
+      'SavedScreen.tsx mount effect must NOT contain a synchronous setFilterConcept(state.conceptFilterTitle) — that gets wiped by the [activeTab] reset effect (CR-01).',
+    );
+    assert.match(
+      mountEffect,
+      /queueMicrotask\(\(\)\s*=>\s*setFilterConcept\(/,
+      'SavedScreen.tsx mount effect must call setFilterConcept inside queueMicrotask so the value persists past the [activeTab] reset.',
     );
   });
 
@@ -57,10 +111,14 @@ describe('SavedScreen — route-state concept filter consume + clear (Phase 51-0
       /state\.openTab\s*===\s*['"]saved['"][\s\S]{0,200}state\.openTab\s*===\s*['"]liked['"][\s\S]{0,200}state\.openTab\s*===\s*['"]history['"][\s\S]{0,200}state\.openTab\s*===\s*['"]collections['"]/,
       'SavedScreen.tsx must validate state.openTab against all four Tab values.',
     );
+    // CR-01 fix changed the call to setActiveTab(nextTab) where nextTab is
+    // narrowed from state.openTab via a Tab-typed local. Accept either
+    // shape (direct or via narrowed local) so the test stays correct under
+    // the post-fix structure.
     assert.match(
       source,
-      /setActiveTab\(state\.openTab\)/,
-      'SavedScreen.tsx must call setActiveTab(state.openTab) after validating.',
+      /setActiveTab\((?:state\.openTab|nextTab)\)/,
+      'SavedScreen.tsx must call setActiveTab(state.openTab) or setActiveTab(nextTab) after validating.',
     );
   });
 
