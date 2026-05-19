@@ -221,6 +221,40 @@ function VineProgressImpl({
 
   const toggleExpand = useCallback(() => setExpanded(prev => !prev), []);
 
+  // Dropdown-item tap handler. UAT Bug 6 fourth follow-up
+  // (verify-work, 2026-05-19): attempt 4 (<div role="button">
+  // onPointerUp) proved the touch reaches the item on device, but
+  // closing the dropdown synchronously inside onPointerUp let the
+  // browser-synthesized click event penetrate to the masonry tile
+  // underneath — wrong-navigating the user to post detail.
+  //
+  // Sequence on Android Capacitor WebView:
+  //   1. pointerup on item → action fires + setExpanded(false)
+  //   2. React unmounts the dropdown item
+  //   3. Browser synthesizes click at original tap coordinate
+  //   4. Click lands on the masonry tile now at that position
+  //   5. Tile's onClick navigates to post detail (bug)
+  //
+  // Fix: install a one-shot capture-phase click swallower on
+  // document the moment the action fires. Document capture-phase
+  // runs before React's delegated root listener (React 17+
+  // delegates to the root, not document), so the synthesized
+  // click is intercepted before it reaches any descendant
+  // onClick — including the tile underneath. `once: true` auto-
+  // removes the listener after one fire; the 300ms setTimeout
+  // is a safety net if no click event ever arrives (e.g.,
+  // accessibility activation pathways).
+  const fireConceptTap = useCallback((id: string) => {
+    onConceptTap?.(id);
+    const swallowClick = (ev: Event) => {
+      ev.stopPropagation();
+      ev.preventDefault();
+    };
+    document.addEventListener('click', swallowClick, { capture: true, once: true });
+    setTimeout(() => document.removeEventListener('click', swallowClick, true), 300);
+    setExpanded(false);
+  }, [onConceptTap]);
+
   const conceptTotal = concepts.length;
   const conceptExplored = concepts.filter(c => c.explored).length;
 
@@ -441,14 +475,12 @@ function VineProgressImpl({
             data-no-swipe-nav="true"
             onPointerUp={(e) => {
               e.stopPropagation();
-              setExpanded(false);
-              onConceptTap?.(concept.id);
+              fireConceptTap(concept.id);
             }}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
-                setExpanded(false);
-                onConceptTap?.(concept.id);
+                fireConceptTap(concept.id);
               }
             }}
             style={{
