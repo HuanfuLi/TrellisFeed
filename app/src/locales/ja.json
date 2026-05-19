@@ -435,7 +435,12 @@
       "postRetentionAll": "すべて保持",
       "generationCap": "1日の生成上限",
       "bonusCap": "ボーナス投稿の上限",
-      "sendFeedback": "フィードバックを送信"
+      "sendFeedback": "フィードバックを送信",
+      "podcastDefaultLength": "ポッドキャストの既定の長さ",
+      "podcastDefaultStyle": "ポッドキャストの既定のスタイル",
+      "ttsModel": "TTS モデル",
+      "ttsModelStandard": "標準（tts-1）",
+      "ttsModelHd": "HD（tts-1-hd）"
     },
     "descriptions": {
       "embeddingBlurb": "概念間の意味的類似度に使用され、コネクションカードの品質を支えます。LLM とは別 — Anthropic に埋め込みモデルはありません。",
@@ -472,7 +477,10 @@
       "privacyBlurb": "Trellis はローカル優先です。ノート、フラッシュカード、セッションはこの端末のみに保存されます。Trellis サーバーがデータを受け取ることはありません。",
       "aiConsentHint": "質問を設定済みの AI プロバイダーへ送信することを許可",
       "generationCap": "コンセプトごとの1日最大生成数",
-      "bonusCap": "全コンセプト探索後の追加投稿数"
+      "bonusCap": "全コンセプト探索後の追加投稿数",
+      "podcastDefaultLength": "自動生成時に使う長さ",
+      "podcastDefaultStyle": "自動生成時に使うスタイル",
+      "ttsModel": "高品質ほどコストが高くなります。標準はすべての OpenAI エンドポイントで動作します"
     },
     "providerLabels": {
       "openai": "OpenAI",
@@ -644,7 +652,9 @@
       "conceptsDuration": "{{count}} 概念 · {{duration}}",
       "cancelDelete": "削除をキャンセル",
       "confirmDelete": "削除を確認",
-      "deleteTitle": "ポッドキャストを削除"
+      "deleteTitle": "ポッドキャストを削除",
+      "optionsBadge": "キャッシュ：{{length}} · {{style}}",
+      "playbackRateLabel": "速度 {{rate}}x"
     },
     "generateCard": {
       "failedTitle": "ポッドキャスト生成に失敗",
@@ -669,7 +679,19 @@
       "conceptAddedToList": "復習リストに概念を追加しました。",
       "audioUnavailable": "音声を利用できません — 再生成をお試しください。"
     },
-    "filteredBy": "{{concept}}で絞り込み"
+    "filteredBy": "{{concept}}で絞り込み",
+    "options": {
+      "lengthLabel": "長さ",
+      "brief": "短め",
+      "standard": "標準",
+      "deep": "詳細",
+      "extended": "長尺",
+      "styleLabel": "スタイル",
+      "focused": "重点",
+      "conversational": "対話風",
+      "review": "復習特訓",
+      "regenerateWithNew": "新しいオプションで再生成"
+    }
   },
   "posts": {
     "title": "投稿",

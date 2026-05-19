@@ -435,7 +435,12 @@
       "postRetentionAll": "Conservar todo",
       "generationCap": "Limite diario de generacion",
       "bonusCap": "Limite de publicaciones extra",
-      "sendFeedback": "Enviar comentarios"
+      "sendFeedback": "Enviar comentarios",
+      "podcastDefaultLength": "Duración por defecto del podcast",
+      "podcastDefaultStyle": "Estilo por defecto del podcast",
+      "ttsModel": "Modelo TTS",
+      "ttsModelStandard": "Estándar (tts-1)",
+      "ttsModelHd": "HD (tts-1-hd)"
     },
     "descriptions": {
       "embeddingBlurb": "Usado para la similitud semántica entre conceptos. Impulsa la calidad de las tarjetas de conexión. Independiente del LLM — Anthropic no tiene modelo de embeddings.",
@@ -472,7 +477,10 @@
       "privacyBlurb": "Trellis es local-first. Todas las notas, fichas y sesiones se guardan solo en este dispositivo. Ningún servidor de Trellis recibe tus datos.",
       "aiConsentHint": "Permitir que las preguntas se envíen a tu proveedor de IA",
       "generationCap": "Publicaciones max por concepto al dia",
-      "bonusCap": "Publicaciones extra tras explorar todos los conceptos"
+      "bonusCap": "Publicaciones extra tras explorar todos los conceptos",
+      "podcastDefaultLength": "Duración usada al generar automáticamente",
+      "podcastDefaultStyle": "Estilo usado al generar automáticamente",
+      "ttsModel": "Mayor calidad cuesta más; el estándar funciona en todos los endpoints de OpenAI"
     },
     "providerLabels": {
       "openai": "OpenAI",
@@ -644,7 +652,9 @@
       "conceptsDuration": "{{count}} conceptos · {{duration}}",
       "cancelDelete": "Cancelar eliminación",
       "confirmDelete": "Confirmar eliminación",
-      "deleteTitle": "Eliminar podcast"
+      "deleteTitle": "Eliminar podcast",
+      "optionsBadge": "En caché: {{length}} · {{style}}",
+      "playbackRateLabel": "Velocidad {{rate}}x"
     },
     "generateCard": {
       "failedTitle": "Falló la generación del podcast",
@@ -669,7 +679,19 @@
       "conceptAddedToList": "Concepto añadido a la lista de repaso.",
       "audioUnavailable": "Audio no disponible — prueba a regenerar."
     },
-    "filteredBy": "Filtrado por {{concept}}"
+    "filteredBy": "Filtrado por {{concept}}",
+    "options": {
+      "lengthLabel": "Duración",
+      "brief": "Breve",
+      "standard": "Estándar",
+      "deep": "Profundo",
+      "extended": "Extendido",
+      "styleLabel": "Estilo",
+      "focused": "Enfocado",
+      "conversational": "Conversacional",
+      "review": "Repaso intensivo",
+      "regenerateWithNew": "Regenerar con nuevas opciones"
+    }
   },
   "posts": {
     "title": "Publicaciones",

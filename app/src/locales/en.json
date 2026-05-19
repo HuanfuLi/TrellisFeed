@@ -435,7 +435,12 @@
       "postRetentionAll": "Keep all",
       "generationCap": "Daily generation cap",
       "bonusCap": "Bonus post limit",
-      "sendFeedback": "Send Feedback"
+      "sendFeedback": "Send Feedback",
+      "podcastDefaultLength": "Default Podcast Length",
+      "podcastDefaultStyle": "Default Podcast Style",
+      "ttsModel": "TTS Model",
+      "ttsModelStandard": "Standard (tts-1)",
+      "ttsModelHd": "HD (tts-1-hd)"
     },
     "descriptions": {
       "embeddingBlurb": "Used for semantic similarity between concepts. Powers connection card quality. Separate from the LLM — Anthropic has no embedding model.",
@@ -472,7 +477,10 @@
       "privacyBlurb": "Trellis is local-first. All notes, flashcards, and sessions are stored only on this device. No Trellis server ever receives your data.",
       "aiConsentHint": "Allow questions to be sent to your configured AI provider",
       "generationCap": "Max posts per concept per day",
-      "bonusCap": "Extra posts after all concepts explored"
+      "bonusCap": "Extra posts after all concepts explored",
+      "podcastDefaultLength": "Length used when auto-generating",
+      "podcastDefaultStyle": "Style used when auto-generating",
+      "ttsModel": "Higher quality costs more; standard works on all OpenAI endpoints"
     },
     "providerLabels": {
       "openai": "OpenAI",
@@ -644,7 +652,9 @@
       "conceptsDuration": "{{count}} concepts · {{duration}}",
       "cancelDelete": "Cancel delete",
       "confirmDelete": "Confirm delete",
-      "deleteTitle": "Delete podcast"
+      "deleteTitle": "Delete podcast",
+      "optionsBadge": "Cached: {{length}} · {{style}}",
+      "playbackRateLabel": "Speed {{rate}}x"
     },
     "generateCard": {
       "failedTitle": "Podcast generation failed",
@@ -669,7 +679,19 @@
       "conceptAddedToList": "Concept added to review list.",
       "audioUnavailable": "Audio unavailable — try regenerating."
     },
-    "filteredBy": "Filtered by {{concept}}"
+    "filteredBy": "Filtered by {{concept}}",
+    "options": {
+      "lengthLabel": "Length",
+      "brief": "Brief",
+      "standard": "Standard",
+      "deep": "Deep",
+      "extended": "Extended",
+      "styleLabel": "Style",
+      "focused": "Focused",
+      "conversational": "Conversational",
+      "review": "Review Drill",
+      "regenerateWithNew": "Regenerate with new options"
+    }
   },
   "posts": {
     "title": "Posts",
