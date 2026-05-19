@@ -171,7 +171,7 @@ Plans:
 
 **Wave 0**
 
-- [ ] 52-01-PLAN.md — Wave 0: PodcastOptions types + podcast-prompt.ts (prompt assembly + options hash) + prompt tests (PODCAST-01, PODCAST-02, PODCAST-04)
+- [x] 52-01-PLAN.md — Wave 0: PodcastOptions types + podcast-prompt.ts (prompt assembly + options hash) + prompt tests (PODCAST-01, PODCAST-02, PODCAST-04)
 
 **Wave 1** *(blocked on Wave 0 completion)*
 
@@ -244,7 +244,7 @@ Phases execute in numeric order: 47 → 48 → 49 → 50 → 51 → 52 → 53
 | 49. Graph Correction UI | 5/6 | Complete    | 2026-05-18 |
 | 50. Retrieval and Library Foundation | 13/13 | Complete   | 2026-05-18 |
 | 51. Concept Dashboard and Recovery Surfaces | 1/1 | Complete    | 2026-05-19 |
-| 52. Podcast Quality Defaults and Learner Controls | 0/3 | Not started | - |
+| 52. Podcast Quality Defaults and Learner Controls | 1/3 | In Progress|  |
 | 53. Engagement Guardrails + Provider Privacy | TBD | Not started | - |
 
 ---
