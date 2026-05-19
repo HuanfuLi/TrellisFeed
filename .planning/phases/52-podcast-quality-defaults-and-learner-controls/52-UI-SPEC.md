@@ -33,11 +33,11 @@ Declared values (must be multiples of 4) based on existing `index.css`:
 |-------|-------|-------|
 | xs | 4px | Icon gaps, inline padding |
 | sm | 8px | Compact element spacing |
-| md | 12px | Small element spacing |
 | lg | 16px | Default element spacing |
-| xl | 20px | Component padding |
 | 2xl | 24px | Section gap/padding |
 | 3xl | 32px | Layout gaps |
+| 4xl | 48px | Large layout gaps |
+| 5xl | 64px | Extra large spacing |
 
 Exceptions: none
 
@@ -50,7 +50,7 @@ Values derived from existing `index.css`:
 | Role | Size | Weight | Line Height |
 |------|------|--------|-------------|
 | Body | 16px | 400 | 1.5 |
-| Label | 14px | 500 | 1.5 |
+| Label | 14px | 600 | 1.5 |
 | Heading | 24px | 600 | 1.4 |
 | Display | 32px | 600 | 1.3 |
 
