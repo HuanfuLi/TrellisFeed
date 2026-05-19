@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Loader2, MessageSquare, RefreshCw, Sparkles } from 'lucide-react';
+import { ArrowLeft, ChevronRight, Loader2, MessageSquare, RefreshCw, Sparkles } from 'lucide-react';
 import i18n from '../locales';
 import { DetailMenu } from '../components/DetailMenu';
 import { Header, HEADER_HEIGHT } from '../components/ui/Header';
@@ -487,6 +487,34 @@ export function PostDetailScreen() {
     if (!post?.sourceQuestionIds?.length) return null;
     return resolveAnchorId(post.sourceQuestionIds[0]);
   }, [post?.sourceQuestionIds]);
+
+  // Resolve the anchor's display title so the deep-link chip shows the
+  // CONCEPT NAME ("Photosynthesis") instead of the content-type label
+  // ("VIDEO") which is semantically unrelated to the navigation target
+  // (operator-flagged 2026-05-19).
+  const conceptAnchorName = useMemo(() => {
+    if (!conceptAnchorId) return null;
+    const anchor = questionService.getAll({ includeFlagged: true }).find(q => q.id === conceptAnchorId);
+    const name = anchor?.title?.trim() || anchor?.content?.slice(0, 40)?.trim() || null;
+    return name;
+  }, [conceptAnchorId]);
+
+  // Tap handler for the concept-anchor chip. Uses the proven Capacitor-
+  // on-device pattern (Phase 51 Bug 6 follow-ups, VineProgress fireConceptTap):
+  // <div role="button"> + onPointerUp + capture-phase click swallow.
+  // The swallow listener intercepts the browser-synthesized click that
+  // follows pointerup so it does not penetrate to any underlying handler
+  // before navigation commits. { once: true } auto-removes after one fire;
+  // 300ms setTimeout safety net for keyboard activation paths.
+  const fireAnchorChipTap = useCallback((anchorId: string) => {
+    const swallowClick = (ev: Event) => {
+      ev.stopPropagation();
+      ev.preventDefault();
+    };
+    document.addEventListener('click', swallowClick, { capture: true, once: true });
+    setTimeout(() => document.removeEventListener('click', swallowClick, true), 300);
+    navigate(`/anchor/${anchorId}`);
+  }, [navigate]);
 
   const connectionMeta = connectionMetaRef.current;
   const isConnection = post?.sourceType === 'connection';
@@ -1003,37 +1031,58 @@ export function PostDetailScreen() {
           WebkitTouchCallout: 'default',
         }}
       >
-        {/* Phase 51-01: contextLabel is a deep-link to the concept anchor
-            when sourceQuestionIds[0] resolves; static text otherwise.
-            The narrativeMode suffix stays static. */}
-        <p style={{ fontSize: '0.68rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--muted-foreground)', marginBottom: '8px' }}>
-          {conceptAnchorId ? (
-            <>
-              <button
-                type="button"
-                onClick={() => navigate(`/anchor/${conceptAnchorId}`)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  padding: 0,
-                  margin: 0,
-                  color: 'var(--primary-40)',
-                  fontWeight: 600,
-                  fontSize: 'inherit',
-                  letterSpacing: 'inherit',
-                  textTransform: 'inherit',
-                  cursor: 'pointer',
-                  fontFamily: 'inherit',
-                }}
-              >
-                {normalizedContextLabel}
-              </button>
-              {' · '}{post.narrativeMode}
-            </>
-          ) : (
-            <>{normalizedContextLabel} · {post.narrativeMode}</>
+        {/* Phase 51-01 (revised 2026-05-19): the deep-link is the concept
+            anchor CHIP — semantically what tapping navigates to. The old
+            design put the deep-link on the content-type label ("VIDEO" /
+            "NEWS" / "Daily post"), which was semantically mismatched
+            (tapping "VIDEO" took you to "Photosynthesis"). Now the chip
+            shows the actual anchor name and the content-type label sits
+            beside it as static metadata.
+            Tap pattern matches VineProgress.fireConceptTap — proven on
+            Android Capacitor WebView (Phase 51 Bug 6 follow-ups). */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
+          {conceptAnchorId && conceptAnchorName && (
+            <div
+              role="button"
+              tabIndex={0}
+              aria-label={`View concept ${conceptAnchorName}`}
+              data-no-swipe-nav="true"
+              onPointerUp={(e) => {
+                e.stopPropagation();
+                fireAnchorChipTap(conceptAnchorId);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  fireAnchorChipTap(conceptAnchorId);
+                }
+              }}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '4px 12px',
+                borderRadius: '100px',
+                backgroundColor: 'color-mix(in srgb, var(--primary-40) 14%, var(--surface))',
+                color: 'var(--primary-40)',
+                fontSize: '0.78rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                touchAction: 'manipulation',
+                WebkitTapHighlightColor: 'transparent',
+                userSelect: 'none',
+                WebkitUserSelect: 'none',
+                border: '1px solid color-mix(in srgb, var(--primary-40) 24%, transparent)',
+              }}
+            >
+              {conceptAnchorName}
+              <ChevronRight size={12} strokeWidth={2.5} />
+            </div>
           )}
-        </p>
+          <span style={{ fontSize: '0.68rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--muted-foreground)' }}>
+            {normalizedContextLabel}{post.narrativeMode ? ` · ${post.narrativeMode}` : ''}
+          </span>
+        </div>
         <h1 style={{ fontSize: '1.55rem', lineHeight: 1.12, marginBottom: '12px', textWrap: 'balance' }}>{normalizedTitle}</h1>
         {post.sourceType !== 'video' && (post.whyCare || onEnterMeta?.whyCare) && (
           <p style={{ fontSize: '0.98rem', lineHeight: 1.62, color: 'var(--foreground)', marginBottom: '16px' }}>{post.whyCare || onEnterMeta?.whyCare}</p>
