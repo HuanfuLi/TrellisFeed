@@ -17,6 +17,7 @@
 
 import { Capacitor } from '@capacitor/core';
 import { App as CapApp } from '@capacitor/app';
+import type { PodcastOptions } from '../types';
 import { settingsService } from './settings.service';
 import { podcastService } from './podcast.service';
 import { plannerAutoGenService } from './plannerAutoGen.service';
@@ -84,7 +85,14 @@ async function checkPodcast(): Promise<void> {
   toast(t('common.toast.generatingDailyPodcast'), 'info');
 
   try {
-    await podcastService.generatePodcast(today());
+    // Phase 52 D-13/D-14: pass user-configured defaults with silent fallback to 'standard' /
+    // 'conversational'. Scheduler reads settings, never writes them — selection-time overrides
+    // remain ephemeral (D-12).
+    const defaultOptions: PodcastOptions = {
+      length: settings.podcast.defaultLength ?? 'standard',
+      style: settings.podcast.defaultStyle ?? 'conversational',
+    };
+    await podcastService.generatePodcast(today(), undefined, defaultOptions);
   } catch (err) {
     console.warn('[Scheduler] Podcast generation failed:', err);
   }

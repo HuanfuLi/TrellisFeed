@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { DailyPodcast, ServiceError } from '../types';
+import type { DailyPodcast, ServiceError, PodcastOptions } from '../types';
 import { podcastService } from '../services/podcast.service';
 import { eventBus } from '../lib/event-bus';
 
@@ -10,7 +10,7 @@ interface UsePodcastReturn {
   generationProgress: number;
   error: ServiceError | null;
   getPodcastForDate: (date: string) => DailyPodcast | undefined;
-  generatePodcast: (date: string, conceptIds?: string[]) => Promise<void>;
+  generatePodcast: (date: string, conceptIds?: string[], options?: PodcastOptions) => Promise<void>;
   deletePodcast: (podcastId: string) => Promise<void>;
   getAudioPath: (podcastId: string) => string | null;
   reload: () => Promise<void>;
@@ -77,11 +77,11 @@ export function usePodcast(): UsePodcastReturn {
     [podcasts],
   );
 
-  const generatePodcast = useCallback(async (date: string, conceptIds?: string[]) => {
+  const generatePodcast = useCallback(async (date: string, conceptIds?: string[], options?: PodcastOptions) => {
     setIsGenerating(true);
     setGenerationProgress(0);
     setError(null);
-    const result = await podcastService.generatePodcast(date, conceptIds);
+    const result = await podcastService.generatePodcast(date, conceptIds, options);
     if (result.success && result.data) {
       setPodcasts((prev) => {
         const exists = prev.find((p) => p.id === result.data!.id);
