@@ -6,6 +6,7 @@
     "delete": "Eliminar",
     "undo": "Deshacer",
     "back": "Atrás",
+    "clear": "Borrar",
     "greeting": {
       "morning": "Buenos días",
       "afternoon": "Buenas tardes",
@@ -321,12 +322,26 @@
       "qaCount": "{{count}} preguntas",
       "flashcardCount": "{{count}} fichas",
       "flashcardsButton": "Fichas",
+      "reviewNow": "Repasar Ahora",
       "learnAsPostButton": "Aprender como publicación",
       "learnAsPostTitle": "Entendiendo {{concept}}: una guía completa",
       "summaryHeading": "Resumen del conocimiento",
       "qaHeading": "Preguntas y respuestas",
       "viewDetails": "Ver detalles",
-      "notFound": "Ancla no encontrada."
+      "notFound": "Ancla no encontrada.",
+      "appearsIn": "Aparece en",
+      "appearsInSaved": "{{count}} guardados",
+      "appearsInCollections": "{{count}} en colecciones",
+      "appearsInPodcasts": "{{count}} podcasts",
+      "leafState": {
+        "bud": "Nuevo",
+        "green": "Saludable",
+        "dying": "Necesita repaso",
+        "falling": "Atrasado",
+        "dead": "Inactivo",
+        "blossom": "Dominado",
+        "fruit": "Listo para cosechar"
+      }
     },
     "cluster": {
       "title": "Clúster de conocimiento",
@@ -650,7 +665,8 @@
       "conceptAddedToPodcast": "Concepto añadido al podcast de hoy. Regenera para actualizar el guion.",
       "conceptAddedToList": "Concepto añadido a la lista de repaso.",
       "audioUnavailable": "Audio no disponible — prueba a regenerar."
-    }
+    },
+    "filteredBy": "Filtrado por {{concept}}"
   },
   "posts": {
     "title": "Publicaciones",
