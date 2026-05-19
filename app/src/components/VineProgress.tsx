@@ -409,12 +409,28 @@ function VineProgressImpl({
           </div>
         )}
         {uncoveredConcepts.map(concept => (
-          <div
+          // UAT Bug 6 (verify-work, 2026-05-19): converted from
+          // `<div role="listitem" onClick>` to `<button>` because
+          // div+onClick is unreliable on Android Chromium WebView
+          // when nested inside a translateZ(0)/stacking-context
+          // ancestor (SwipeTabContainer slot) plus a fixed-position
+          // backdrop sibling. Buttons handle pointer events more
+          // robustly. Added touchAction:manipulation +
+          // WebkitTapHighlightColor:transparent for the standard
+          // device-tap-delay defense (Phase 33 / Capacitor pattern).
+          // stopPropagation prevents the backdrop's setExpanded(false)
+          // from firing when the tap bubbles up through the stacking
+          // context.
+          <button
             key={concept.id}
-            role="listitem"
-            onClick={() => onConceptTap?.(concept.id)}
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onConceptTap?.(concept.id);
+            }}
             style={{
               height: '36px',
+              width: '100%',
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
@@ -425,6 +441,11 @@ function VineProgressImpl({
               fontWeight: 400,
               color: 'var(--foreground)',
               borderRadius: '6px',
+              background: 'transparent',
+              border: 'none',
+              textAlign: 'left',
+              touchAction: 'manipulation',
+              WebkitTapHighlightColor: 'transparent',
             }}
           >
             <div style={{
@@ -435,7 +456,7 @@ function VineProgressImpl({
               flexShrink: 0,
             }} />
             {concept.name}
-          </div>
+          </button>
         ))}
       </div>
     </div>

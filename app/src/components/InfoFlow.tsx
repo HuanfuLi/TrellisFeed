@@ -11,6 +11,8 @@ import { SuggestionCard } from './SuggestionCard';
 import { resolveAnchorId } from '../lib/anchor-resolution';
 import { computeLeafState } from '../services/trellis-state.service';
 import { questionService } from '../services/question.service';
+import { flashcardService } from '../services/flashcard.service';
+import type { ReviewSchedule } from '../types';
 
 // Defensive chip-title filter (2026-05-12). The concept-tag chip renders
 // post.sourceQuestionTitles[0]; upstream paths in concept-feed.service.ts have
@@ -32,15 +34,71 @@ function isLikelyInternalId(title: string | undefined): boolean {
 // Runs per-badge per-render. For a 32-tile masonry feed × ≤2 badges each,
 // that's ≤64 localStorage parses → ~2-5ms total on mobile. No memoization
 // added — the cost is well below the 16ms frame budget.
-function getBadgeLeafSignal(qaId: string | undefined): 'attention' | 'normal' {
-  if (!qaId) return 'normal';
-  const anchorId = resolveAnchorId(qaId);
+//
+// UAT (verify-work, 2026-05-19): two device-parity fixes:
+//  (1) Pass fcMap to computeLeafState so the badge dot agrees with the
+//      AnchorDetailScreen LeafStateBadge and PlannerScreen vine. Without
+//      fcMap, resolveReview falls back to Question.reviewSchedule which
+//      is often stale at initial values (trellis-state.service.ts:39-43);
+//      concepts that AnchorDetailScreen showed as "Need review" via
+//      flashcard data appeared green/bud on feed badges.
+//  (2) Accept a conceptTitle fallback so legacy posts whose
+//      sourceQuestionIds was written empty (pre-Phase-41 L1 provenance,
+//      saveDiscoverPost legacy data) can still resolve to an anchor by
+//      matching the badge title against anchor.title / anchor.content.
+//      Without this, badges rendered but were inert AND showed no dot
+//      because qaId was undefined.
+function buildFcMapForBadge(): Map<string, ReviewSchedule> {
+  const map = new Map<string, ReviewSchedule>();
+  try {
+    const cards = flashcardService.getAll();
+    for (const card of cards) {
+      if (!card.nodeId) continue;
+      const existing = map.get(card.nodeId);
+      if (!existing || card.reviewSchedule.reviewCount > existing.reviewCount) {
+        map.set(card.nodeId, card.reviewSchedule);
+      }
+    }
+  } catch {
+    /* flashcard service unavailable — fall back to Question-level data */
+  }
+  return map;
+}
+
+function resolveAnchorForBadge(
+  qaId: string | undefined,
+  conceptTitle: string | undefined,
+): string | null {
+  if (qaId) {
+    const fromId = resolveAnchorId(qaId);
+    if (fromId) return fromId;
+  }
+  if (!conceptTitle || isLikelyInternalId(conceptTitle)) return null;
+  // Title fallback: legacy posts wrote empty sourceQuestionIds but kept
+  // a usable sourceQuestionTitles[0]. Match anchor by title/content.
+  const all = questionService.getAll({ includeFlagged: true });
+  const t = conceptTitle.trim().toLowerCase();
+  const matched = all.find(
+    (q) =>
+      q.isAnchorNode &&
+      ((q.title ?? '').trim().toLowerCase() === t ||
+        (q.content ?? '').trim().toLowerCase() === t),
+  );
+  return matched?.id ?? null;
+}
+
+function getBadgeLeafSignal(
+  qaId: string | undefined,
+  conceptTitle?: string,
+): 'attention' | 'normal' {
+  const anchorId = resolveAnchorForBadge(qaId, conceptTitle);
   if (!anchorId) return 'normal';
   const all = questionService.getAll({ includeFlagged: true });
   const anchor = all.find((q) => q.id === anchorId);
   if (!anchor) return 'normal';
   const qaChildren = all.filter((q) => q.parentId === anchorId && !q.isAnchorNode);
-  const ls = computeLeafState(anchor, qaChildren);
+  const fcMap = buildFcMapForBadge();
+  const ls = computeLeafState(anchor, qaChildren, undefined, fcMap);
   return ls === 'dying' || ls === 'falling' || ls === 'dead' ? 'attention' : 'normal';
 }
 
@@ -301,8 +359,10 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive: _isActive, onO
               // idx wouldn't line up with sourceQuestionIds when an internal-ID
               // entry is dropped from the head (see 51-REVIEW.md CR-02).
               const qaId = post.sourceQuestionIds?.[originalIdx];
-              const anchorId = qaId ? resolveAnchorId(qaId) : null;
-              const leafSignal = getBadgeLeafSignal(qaId);
+              // UAT Bug 5: resolveAnchorForBadge accepts a title fallback
+              // when sourceQuestionIds is empty/missing (legacy posts).
+              const anchorId = resolveAnchorForBadge(qaId, title);
+              const leafSignal = getBadgeLeafSignal(qaId, title);
               return (
                 <button
                   key={originalIdx}
@@ -321,6 +381,11 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive: _isActive, onO
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '6px',
+                    // UAT (device fix): bypass the 300ms tap delay on
+                    // Android WebView and suppress the default tap
+                    // highlight so the badge behaves like a native button.
+                    touchAction: 'manipulation',
+                    WebkitTapHighlightColor: 'transparent',
                   }}
                 >
                   {leafSignal === 'attention' && (
@@ -504,8 +569,10 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive: _isActive, onO
               // idx wouldn't line up with sourceQuestionIds when an internal-ID
               // entry is dropped from the head (see 51-REVIEW.md CR-02).
               const qaId = post.sourceQuestionIds?.[originalIdx];
-              const anchorId = qaId ? resolveAnchorId(qaId) : null;
-              const leafSignal = getBadgeLeafSignal(qaId);
+              // UAT Bug 5: title fallback for legacy posts with empty
+              // sourceQuestionIds — see resolveAnchorForBadge doc-block.
+              const anchorId = resolveAnchorForBadge(qaId, title);
+              const leafSignal = getBadgeLeafSignal(qaId, title);
               return (
                 <button
                   key={originalIdx}
@@ -531,6 +598,10 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive: _isActive, onO
                     alignItems: 'center',
                     gap: '6px',
                     fontFamily: 'inherit',
+                    // UAT (device fix): bypass 300ms tap delay + suppress
+                    // default tap highlight on Android WebView.
+                    touchAction: 'manipulation',
+                    WebkitTapHighlightColor: 'transparent',
                   }}
                 >
                   {leafSignal === 'attention' && (
