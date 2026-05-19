@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Play, Pause, Radio, RefreshCw, RotateCcw, RotateCw, ChevronRight, Trash2, Check, X, List, BookOpen } from 'lucide-react';
@@ -47,6 +47,39 @@ export function PodcastScreen() {
   const moveState = parseMoveNavigationState(location.state);
   const [insertConcept, setInsertConcept] = useState<Question | null>(null);
   const [insertHandled, setInsertHandled] = useState(false);
+
+  // Phase 51-01: optional concept filter from AnchorDetailScreen Appears-in
+  // footer. When set, the All Podcasts list is narrowed to entries whose
+  // questionIds intersect the supplied qaIds. A small banner above the list
+  // shows the concept name + a Clear button.
+  const [conceptFilter, setConceptFilter] = useState<{ qaIds: Set<string>; title: string } | null>(null);
+  useEffect(() => {
+    const state = location.state as { conceptFilterQaIds?: string[]; conceptTitle?: string } | null;
+    if (state?.conceptFilterQaIds && state?.conceptTitle) {
+      setConceptFilter({ qaIds: new Set(state.conceptFilterQaIds), title: state.conceptTitle });
+      // Auto-open the All Podcasts view so the filter has an immediate
+      // visible effect — otherwise the user lands on today's player and
+      // doesn't see the filtered list until they tap History.
+      setShowAllPodcasts(true);
+    }
+    // Don't blanket-clear here — moveState (Planner concept-insertion) also
+    // lives on location.state and is read by an unrelated effect below.
+    // Only strip the conceptFilter* fields and preserve the rest.
+    if (state && (state.conceptFilterQaIds || state.conceptTitle)) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { conceptFilterQaIds: _qa, conceptTitle: _ct, ...rest } = state;
+      navigate(location.pathname, { replace: true, state: Object.keys(rest).length > 0 ? rest : null });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Phase 51-01: filtered podcast list. Identity-stable when conceptFilter
+  // is null so the existing podcasts.map paths keep their referential
+  // equality on identical re-renders.
+  const visiblePodcasts = useMemo(() => {
+    if (!conceptFilter) return podcasts;
+    return podcasts.filter((p) => p.questionIds.some((id) => conceptFilter.qaIds.has(id)));
+  }, [podcasts, conceptFilter]);
 
   const todayPodcast = getPodcastForDate(today());
   const selected: DailyPodcast | null = selectedId
@@ -276,13 +309,46 @@ export function PodcastScreen() {
         </button>
         <h2 style={{ marginBottom: '16px' }}>{t('podcast.allPodcasts')}</h2>
 
+        {/* Phase 51-01: concept-filter banner with Clear button. Renders
+            when conceptFilter is active. Tapping Clear resets the filter
+            and re-shows the full list — back-button or navigation away
+            also discards it (state lives on the component, not the URL). */}
+        {conceptFilter && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '8px 12px',
+            backgroundColor: 'var(--surface-variant)',
+            borderRadius: 'var(--radius-xl)',
+            marginBottom: '12px',
+            fontSize: '0.85rem',
+          }}>
+            <span>{t('podcast.filteredBy', { concept: conceptFilter.title })}</span>
+            <button
+              type="button"
+              onClick={() => setConceptFilter(null)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--primary-40)',
+                cursor: 'pointer',
+                fontWeight: 600,
+                padding: '4px 8px',
+              }}
+            >
+              {t('common.clear')}
+            </button>
+          </div>
+        )}
+
         {isLoading ? (
           <p style={{ color: 'var(--muted-foreground)' }}>{t('podcast.loading')}</p>
-        ) : podcasts.length === 0 ? (
+        ) : visiblePodcasts.length === 0 ? (
           <p style={{ color: 'var(--muted-foreground)', fontSize: '0.875rem' }}>{t('podcast.emptyList')}</p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {podcasts.map((pod) => (
+            {visiblePodcasts.map((pod) => (
               <Card
                 key={pod.id}
                 onClick={() => {
