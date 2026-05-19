@@ -24,25 +24,25 @@ export function AnchorDetailScreen() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { t } = useTranslation();
-  // `questions` is intentionally NOT destructured (WR-04): we read qaChildren
-  // from questionService.getAll() instead so the children of older anchors
-  // (past the useQuestions recent-50 cap) are not undercounted.
-  const { getById, isLoading } = useQuestions();
-
-  const anchor = id ? getById(id) : undefined;
+  // We only need `isLoading` from useQuestions for the initial-load skeleton.
+  // Anchor lookup and qaChildren both go through questionService.getAll()
+  // below so we bypass the hook's getRecent(50) cap — older anchors (past
+  // the most-recent 50 questions) were silently invisible to `getById`
+  // and rendered the not-found shell (UAT Bug 2 — same root cause family
+  // as WR-04, which only fixed the secondary qaChildren undercount).
+  const { isLoading } = useQuestions();
 
   // ── Phase 51-01: force re-render on data changes ─────────────────────────
-  // Hooks must run on every render — declared BEFORE the early-return so
-  // mounting → not-found → resolved doesn't trip the Rules of Hooks (the
-  // useQuestions hook reloads questions over time, so `anchor` flips
-  // undefined → defined on the same component instance). Capacitor mobile =
-  // no refresh (CLAUDE.md "no-refresh-assumption"); we listen to every event
-  // that can mutate the data the recovery surfaces below read.
+  // Hooks must run on every render — declared BEFORE any conditional return
+  // so mounting → not-found → resolved doesn't trip the Rules of Hooks
+  // (anchor flips undefined → defined on the same component instance as
+  // questionService data lands). Capacitor mobile = no refresh (CLAUDE.md
+  // "no-refresh-assumption"); we listen to every event that can mutate
+  // the data the recovery surfaces below read.
   //
-  // `tick` is exposed (not discarded as a `_`) so the WR-01 fcMap memo and
-  // any future per-tick memoization can depend on it — fcMap re-reads
-  // flashcardService.getAll() when FLASHCARDS_CREATED / REVIEW_COMPLETED
-  // fires (both bump `tick`).
+  // `tick` is exposed (not discarded as a `_`) so the anchor lookup, the
+  // WR-01 fcMap memo, and any future per-tick memoization can depend on
+  // it — values re-read on each event-bus event.
   const [tick, setTick] = useState(0);
   useEffect(() => {
     const bump = () => setTick((tick) => tick + 1);
@@ -56,6 +56,18 @@ export function AnchorDetailScreen() {
     ];
     return () => unsubs.forEach((u) => u());
   }, []);
+
+  // UAT Bug 2 fix: anchor lookup bypasses the recent-50 cap by reading
+  // questionService.getAll directly (same accessor WR-04 already chose for
+  // qaChildren and InfoFlow.tsx:39 already chose for the badge leaf-state).
+  // Without this, every entry point Phase 51 added (feed-tile badges,
+  // PostDetail contextLabel/pills, Appears-in footer link-outs) silently
+  // 404'd for any anchor older than the most-recent 50 questions.
+  const anchor = useMemo(() => {
+    void tick;
+    if (!id) return undefined;
+    return questionService.getAll({ includeFlagged: true }).find((q) => q.id === id);
+  }, [id, tick]);
 
   // WR-01 (Phase 51 code review): build the FlashCard review lookup the
   // same way useTrellisData does and pass it to computeLeafState. Without

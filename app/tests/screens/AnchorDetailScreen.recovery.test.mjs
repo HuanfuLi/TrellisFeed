@@ -214,3 +214,27 @@ describe('AnchorDetailScreen — preserved identity (Phase 51-01)', () => {
     );
   });
 });
+
+describe('AnchorDetailScreen — anchor lookup bypasses recent-50 cap (UAT Bug 2)', () => {
+  // useQuestions() loads via questionService.getRecent(50) — so its getById
+  // misses anchors created earlier than the latest 50 questions. Phase 51
+  // adds new entry points (feed-tile badges, PostDetail contextLabel/pills,
+  // Appears-in footer link-outs) that navigate to /anchor/:id; any of those
+  // landing on an old anchor used to render "Anchor not found." Mirror the
+  // WR-04 + InfoFlow.tsx switch to questionService.getAll for the primary
+  // anchor lookup.
+  it('does NOT destructure getById from useQuestions', () => {
+    assert.ok(
+      !/useQuestions\(\)[\s\S]{0,80}\bgetById\b/.test(source),
+      'AnchorDetailScreen.tsx must NOT pull getById from useQuestions — that hook caps at recent-50 and silently 404s old anchors.',
+    );
+  });
+
+  it('resolves the anchor by id via questionService.getAll().find()', () => {
+    assert.match(
+      source,
+      /questionService\.getAll\([\s\S]{0,80}\)\.find\(\s*\([^)]*\)\s*=>\s*[^.]+\.id\s*===\s*id\s*\)/,
+      'AnchorDetailScreen.tsx must resolve the anchor by id via questionService.getAll(...).find(q => q.id === id) so anchors older than the recent-50 cap still load.',
+    );
+  });
+});
