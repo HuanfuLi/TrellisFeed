@@ -85,7 +85,18 @@ test('InfoFlow chip renderers filter sourceQuestionTitles through isLikelyIntern
   // Both the news-card chip (1-item slice) and the standard chip block (2-item
   // slice) must run the filter so neither leaks an internal ID even if a
   // future regression at any upstream call site reintroduces the bug.
-  const matches = infoFlow.match(/\.filter\(t\s*=>\s*!isLikelyInternalId\(t\)\)/g) || [];
+  //
+  // CR-02 fix (Phase 51 code review) changed the filter callback signature:
+  // - Old (regression-prone): .filter(t => !isLikelyInternalId(t))
+  // - New (parallel-index-preserving): map to { title, originalIdx } pairs
+  //   FIRST, then .filter(({ title }) => !isLikelyInternalId(title)). This
+  //   keeps the pre-filter index across the filter so the post.sourceQuestionIds
+  //   lookup parallels the unfiltered titles array. See 51-REVIEW.md CR-02.
+  //
+  // Accept either callback shape — what we're enforcing here is the
+  // "isLikelyInternalId guard runs on each chip's title" invariant, not the
+  // specific destructure form.
+  const matches = infoFlow.match(/\.filter\((?:t\s*=>\s*!isLikelyInternalId\(t\)|\(\{\s*title\s*\}\)\s*=>\s*!isLikelyInternalId\(title\))\)/g) || [];
   assert.ok(
     matches.length >= 2,
     `expected ≥2 chip filters through isLikelyInternalId, found ${matches.length}`,
