@@ -108,16 +108,36 @@ export function PostDetailScreen() {
 
   // --- Reading detectors (Phase 30, D-04/D-05/D-06) ---
   const [resolvedAnchorId, setResolvedAnchorId] = useState<string | null>(null);
+  const [resolvedAnchorName, setResolvedAnchorName] = useState<string | null>(null);
   const hasEmittedRef = useRef(false);
   const scrollSentinelRef = useRef<HTMLDivElement>(null);
   const dwellTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Resolve anchor ID for the current post
+  // Resolve anchor ID + display name for the current post.
+  // 2026-05-19: name resolution moved INTO this effect (was a useMemo
+  // that didn't subscribe to question-store loading). On device, the
+  // store is sometimes empty at first render and the useMemo silently
+  // returned null. useEffect runs after commit and re-runs on post
+  // changes — the lookup now sees a populated store. Fallback chain:
+  // anchor.title → anchor.content slice → post.sourceQuestionTitles[0]
+  // (always present for video/news posts) — so the chip always has a
+  // display string even if the anchor record itself is unresolvable.
   useEffect(() => {
-    if (!post) { setResolvedAnchorId(null); return; }
+    if (!post) {
+      setResolvedAnchorId(null);
+      setResolvedAnchorName(null);
+      return;
+    }
     const allQ = questionService.getAll({ includeFlagged: true });
     const byId = new Map(allQ.map(q => [q.id, q]));
-    setResolvedAnchorId(getAnchorIdForPost(post, byId));
+    const anchorId = getAnchorIdForPost(post, byId);
+    setResolvedAnchorId(anchorId);
+    const anchor = anchorId ? allQ.find(q => q.id === anchorId) : undefined;
+    const name = anchor?.title?.trim()
+      || anchor?.content?.slice(0, 40)?.trim()
+      || post.sourceQuestionTitles?.[0]?.trim()
+      || null;
+    setResolvedAnchorName(name);
   }, [post?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Reset emit guard when post changes
@@ -482,22 +502,19 @@ export function PostDetailScreen() {
   // Phase 51-01: resolve the post's primary concept anchor + connection
   // anchors so the contextLabel and connection pills can deep-link to the
   // concept dashboard when the underlying Q&A → anchor walk succeeds.
-  // Static text fallback when unresolvable — no broken navigation.
-  const conceptAnchorId = useMemo(() => {
-    if (!post?.sourceQuestionIds?.length) return null;
-    return resolveAnchorId(post.sourceQuestionIds[0]);
-  }, [post?.sourceQuestionIds]);
-
-  // Resolve the anchor's display title so the deep-link chip shows the
-  // CONCEPT NAME ("Photosynthesis") instead of the content-type label
-  // ("VIDEO") which is semantically unrelated to the navigation target
-  // (operator-flagged 2026-05-19).
-  const conceptAnchorName = useMemo(() => {
-    if (!conceptAnchorId) return null;
-    const anchor = questionService.getAll({ includeFlagged: true }).find(q => q.id === conceptAnchorId);
-    const name = anchor?.title?.trim() || anchor?.content?.slice(0, 40)?.trim() || null;
-    return name;
-  }, [conceptAnchorId]);
+  // Anchor resolution lives in the useEffect above (resolvedAnchorId +
+  // resolvedAnchorName) — it correctly handles the async question-store
+  // load on Capacitor. Connection-pill anchor ids stay sync because
+  // connectionMetaRef is already populated when the post mounts.
+  const connectionMeta = connectionMetaRef.current;
+  const isConnection = post?.sourceType === 'connection';
+  const connectionAnchorIds = useMemo<[string | null, string | null]>(() => {
+    if (!isConnection || !connectionMeta) return [null, null];
+    return [
+      resolveAnchorId(connectionMeta.questionA.id),
+      resolveAnchorId(connectionMeta.questionB.id),
+    ];
+  }, [isConnection, connectionMeta]);
 
   // Tap handler for the concept-anchor chip. Uses the proven Capacitor-
   // on-device pattern (Phase 51 Bug 6 follow-ups, VineProgress fireConceptTap):
@@ -515,16 +532,6 @@ export function PostDetailScreen() {
     setTimeout(() => document.removeEventListener('click', swallowClick, true), 300);
     navigate(`/anchor/${anchorId}`);
   }, [navigate]);
-
-  const connectionMeta = connectionMetaRef.current;
-  const isConnection = post?.sourceType === 'connection';
-  const connectionAnchorIds = useMemo<[string | null, string | null]>(() => {
-    if (!isConnection || !connectionMeta) return [null, null];
-    return [
-      resolveAnchorId(connectionMeta.questionA.id),
-      resolveAnchorId(connectionMeta.questionB.id),
-    ];
-  }, [isConnection, connectionMeta]);
 
   const handleAsk = async (content: string) => {
     if (!content.trim() || !post || !session) return;
@@ -1041,43 +1048,58 @@ export function PostDetailScreen() {
             Tap pattern matches VineProgress.fireConceptTap — proven on
             Android Capacitor WebView (Phase 51 Bug 6 follow-ups). */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
-          {conceptAnchorId && conceptAnchorName && (
-            <div
-              role="button"
-              tabIndex={0}
-              aria-label={`View concept ${conceptAnchorName}`}
-              data-no-swipe-nav="true"
-              onPointerUp={(e) => {
-                e.stopPropagation();
-                fireAnchorChipTap(conceptAnchorId);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  fireAnchorChipTap(conceptAnchorId);
-                }
-              }}
-              style={{
+          {resolvedAnchorName && (
+            resolvedAnchorId ? (
+              <div
+                role="button"
+                tabIndex={0}
+                aria-label={`View concept ${resolvedAnchorName}`}
+                data-no-swipe-nav="true"
+                onPointerUp={(e) => {
+                  e.stopPropagation();
+                  fireAnchorChipTap(resolvedAnchorId);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    fireAnchorChipTap(resolvedAnchorId);
+                  }
+                }}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '4px 12px',
+                  borderRadius: '100px',
+                  backgroundColor: 'rgba(67, 160, 71, 0.12)',
+                  color: 'var(--primary-40)',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  touchAction: 'manipulation',
+                  WebkitTapHighlightColor: 'transparent',
+                  userSelect: 'none',
+                  WebkitUserSelect: 'none',
+                  border: '1px solid rgba(67, 160, 71, 0.28)',
+                }}
+              >
+                {resolvedAnchorName}
+                <ChevronRight size={12} strokeWidth={2.5} />
+              </div>
+            ) : (
+              <span style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '4px',
                 padding: '4px 12px',
                 borderRadius: '100px',
-                backgroundColor: 'color-mix(in srgb, var(--primary-40) 14%, var(--surface))',
-                color: 'var(--primary-40)',
+                backgroundColor: 'var(--surface-variant)',
+                color: 'var(--muted-foreground)',
                 fontSize: '0.78rem',
                 fontWeight: 600,
-                cursor: 'pointer',
-                touchAction: 'manipulation',
-                WebkitTapHighlightColor: 'transparent',
-                userSelect: 'none',
-                WebkitUserSelect: 'none',
-                border: '1px solid color-mix(in srgb, var(--primary-40) 24%, transparent)',
-              }}
-            >
-              {conceptAnchorName}
-              <ChevronRight size={12} strokeWidth={2.5} />
-            </div>
+              }}>
+                {resolvedAnchorName}
+              </span>
+            )
           )}
           <span style={{ fontSize: '0.68rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--muted-foreground)' }}>
             {normalizedContextLabel}{post.narrativeMode ? ` · ${post.narrativeMode}` : ''}
