@@ -402,3 +402,141 @@ test('Warning #2: calling detach(qaId, { signal }) then aborting BEFORE classify
     'classify did NOT complete to its final patchQuestion after abort (short-circuit)',
   );
 });
+
+// ════════════════════════════════════════════════════════════════════════
+// Phase 49-06 follow-up — cascade cleanup of emptied anchor/cluster
+// ════════════════════════════════════════════════════════════════════════
+
+test('detach cascade: emptied anchor parent is soft-deleted (flagged=true, no prunedFromTrellis)', async () => {
+  await resetAll();
+  const { _resetStore, _getStore } = await import('./_actions-mock-question.mjs');
+  _resetStore([
+    makeNode({
+      id: 'anchor-A',
+      isAnchorNode: true,
+      title: 'Kanji',
+      qaCount: 1,
+      branchLabel: 'Linguistics',
+      clusterLabel: 'Japanese Writing System',
+      clusterNodeId: 'cluster-A',
+    }),
+    makeNode({ id: 'cluster-A', isClusterNode: true, branchLabel: 'Linguistics', clusterLabel: 'Japanese Writing System' }),
+    makeNode({ id: 'qa-1', parentId: 'anchor-A', branchLabel: 'Linguistics', clusterLabel: 'Japanese Writing System', clusterNodeId: 'cluster-A' }),
+    // A sibling anchor under same cluster prevents cluster cascade in THIS test.
+    makeNode({ id: 'anchor-B', isAnchorNode: true, title: 'Hiragana', qaCount: 0, branchLabel: 'Linguistics', clusterLabel: 'Japanese Writing System', clusterNodeId: 'cluster-A' }),
+  ]);
+
+  const { graphCommandService } = await import('../../src/services/graph-command.service.ts');
+  const result = await graphCommandService.detach('qa-1');
+  assert.equal(result.success, true);
+
+  const store = _getStore();
+  const anchorA = store.find((q) => q.id === 'anchor-A');
+  const clusterA = store.find((q) => q.id === 'cluster-A');
+  assert.equal(anchorA?.flagged, true, 'emptied anchor flagged');
+  assert.notEqual(anchorA?.prunedFromTrellis, true, 'cascade-cleanup MUST NOT set prunedFromTrellis (would surface in pruned archive)');
+  assert.notEqual(clusterA?.flagged, true, 'cluster NOT cascaded — sibling anchor-B keeps it alive');
+});
+
+test('detach cascade: emptied cluster is cascade-deleted when last anchor went empty', async () => {
+  await resetAll();
+  const { _resetStore, _getStore } = await import('./_actions-mock-question.mjs');
+  _resetStore([
+    makeNode({
+      id: 'anchor-A',
+      isAnchorNode: true,
+      qaCount: 1,
+      branchLabel: 'Linguistics',
+      clusterLabel: 'Japanese Writing System',
+      clusterNodeId: 'cluster-A',
+    }),
+    makeNode({ id: 'cluster-A', isClusterNode: true, branchLabel: 'Linguistics', clusterLabel: 'Japanese Writing System' }),
+    makeNode({ id: 'qa-1', parentId: 'anchor-A', branchLabel: 'Linguistics', clusterLabel: 'Japanese Writing System', clusterNodeId: 'cluster-A' }),
+    // No sibling anchors under cluster-A — cluster should cascade.
+  ]);
+
+  const { graphCommandService } = await import('../../src/services/graph-command.service.ts');
+  const result = await graphCommandService.detach('qa-1');
+  assert.equal(result.success, true);
+
+  const store = _getStore();
+  const anchorA = store.find((q) => q.id === 'anchor-A');
+  const clusterA = store.find((q) => q.id === 'cluster-A');
+  assert.equal(anchorA?.flagged, true, 'emptied anchor flagged');
+  assert.equal(clusterA?.flagged, true, 'empty cluster also flagged (cascade up)');
+});
+
+test('detach cascade: journal stashes cascadedEmptyAnchorId + cascadedEmptyClusterId for undo', async () => {
+  await resetAll();
+  const { _resetStore } = await import('./_actions-mock-question.mjs');
+  _resetStore([
+    makeNode({ id: 'anchor-A', isAnchorNode: true, qaCount: 1, branchLabel: 'B', clusterLabel: 'C', clusterNodeId: 'cluster-A' }),
+    makeNode({ id: 'cluster-A', isClusterNode: true, branchLabel: 'B', clusterLabel: 'C' }),
+    makeNode({ id: 'qa-1', parentId: 'anchor-A', branchLabel: 'B', clusterLabel: 'C', clusterNodeId: 'cluster-A' }),
+  ]);
+
+  const { graphCommandService } = await import('../../src/services/graph-command.service.ts');
+  await graphCommandService.detach('qa-1');
+
+  const { graphEditJournal } = await import('../../src/services/graph-edit-journal.service.ts');
+  const entries = graphEditJournal.list();
+  assert.equal(entries.length, 1);
+  const before = entries[0].before;
+  assert.equal(before.cascadedEmptyAnchorId, 'anchor-A');
+  assert.equal(before.cascadedEmptyClusterId, 'cluster-A');
+});
+
+test('detach cascade: undo flips flagged back to false on both cascaded records', async () => {
+  await resetAll();
+  const { _resetStore, _getStore } = await import('./_actions-mock-question.mjs');
+  _resetStore([
+    makeNode({ id: 'anchor-A', isAnchorNode: true, qaCount: 1, branchLabel: 'B', clusterLabel: 'C', clusterNodeId: 'cluster-A' }),
+    makeNode({ id: 'cluster-A', isClusterNode: true, branchLabel: 'B', clusterLabel: 'C' }),
+    makeNode({ id: 'qa-1', parentId: 'anchor-A', branchLabel: 'B', clusterLabel: 'C', clusterNodeId: 'cluster-A' }),
+  ]);
+
+  const { graphCommandService } = await import('../../src/services/graph-command.service.ts');
+  await graphCommandService.detach('qa-1');
+
+  // Pre-undo: both cascaded records flagged.
+  let store = _getStore();
+  assert.equal(store.find((q) => q.id === 'anchor-A')?.flagged, true);
+  assert.equal(store.find((q) => q.id === 'cluster-A')?.flagged, true);
+
+  const undo = await graphCommandService.undo();
+  assert.equal(undo.success, true);
+
+  // Post-undo: flagged flipped back; QA re-parented under anchor-A.
+  store = _getStore();
+  const anchorA = store.find((q) => q.id === 'anchor-A');
+  const clusterA = store.find((q) => q.id === 'cluster-A');
+  const qa1 = store.find((q) => q.id === 'qa-1');
+  assert.notEqual(anchorA?.flagged, true, 'anchor un-flagged');
+  assert.notEqual(clusterA?.flagged, true, 'cluster un-flagged');
+  assert.equal(qa1?.parentId, 'anchor-A', 'QA re-parented');
+});
+
+test('detach cascade: emits EXACTLY one GRAPH_UPDATED even when cascade fires (single-emit per D-17)', async () => {
+  await resetAll();
+  const { _resetStore } = await import('./_actions-mock-question.mjs');
+  _resetStore([
+    makeNode({ id: 'anchor-A', isAnchorNode: true, qaCount: 1, branchLabel: 'B', clusterLabel: 'C', clusterNodeId: 'cluster-A' }),
+    makeNode({ id: 'cluster-A', isClusterNode: true, branchLabel: 'B', clusterLabel: 'C' }),
+    makeNode({ id: 'qa-1', parentId: 'anchor-A', branchLabel: 'B', clusterLabel: 'C', clusterNodeId: 'cluster-A' }),
+  ]);
+
+  const { eventBus } = await import('../../src/lib/event-bus.ts');
+  const events = [];
+  const unsub = eventBus.subscribe('GRAPH_UPDATED', (e) => events.push(e));
+
+  const { graphCommandService } = await import('../../src/services/graph-command.service.ts');
+  await graphCommandService.detach('qa-1');
+  unsub();
+
+  assert.equal(events.length, 1, 'exactly ONE GRAPH_UPDATED from cascading detach');
+  assert.equal(events[0].payload?.kind, 'detach');
+  assert.ok(
+    events[0].payload?.affectedIds?.includes('cluster-A'),
+    'affectedIds includes cascaded cluster',
+  );
+});

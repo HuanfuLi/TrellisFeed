@@ -306,3 +306,90 @@ test('move writes one journal entry with cmd="move", targetIds=[id], before snap
 
   assert.equal(entry.after.parentId, 'cluster-B', 'after captures NEW parentId');
 });
+
+// ════════════════════════════════════════════════════════════════════════
+// Phase 49-06 follow-up — cascade cleanup of emptied parents on move
+// ════════════════════════════════════════════════════════════════════════
+
+test('move cascade: QA leaves last-QA anchor empty → anchor flagged + cluster cascaded when no siblings', async () => {
+  await resetAll();
+  const { _resetStore, _getStore } = await import('./_actions-mock-question.mjs');
+  _resetStore([
+    makeNode({ id: 'anchor-old', isAnchorNode: true, qaCount: 1, branchLabel: 'B', clusterLabel: 'C-old', clusterNodeId: 'cluster-old' }),
+    makeNode({ id: 'cluster-old', isClusterNode: true, branchLabel: 'B', clusterLabel: 'C-old' }),
+    makeNode({ id: 'anchor-new', isAnchorNode: true, qaCount: 0, branchLabel: 'B', clusterLabel: 'C-new', clusterNodeId: 'cluster-new' }),
+    makeNode({ id: 'cluster-new', isClusterNode: true, branchLabel: 'B', clusterLabel: 'C-new' }),
+    makeNode({ id: 'qa-1', parentId: 'anchor-old', branchLabel: 'B', clusterLabel: 'C-old', clusterNodeId: 'cluster-old' }),
+  ]);
+
+  const { graphCommandService } = await import('../../src/services/graph-command.service.ts');
+  const r = await graphCommandService.move('qa-1', 'anchor-new');
+  assert.equal(r.success, true);
+
+  const store = _getStore();
+  assert.equal(store.find((q) => q.id === 'anchor-old')?.flagged, true, 'emptied anchor flagged');
+  assert.equal(store.find((q) => q.id === 'cluster-old')?.flagged, true, 'orphaned cluster flagged');
+});
+
+test('move cascade: anchor leaves last-anchor cluster empty → cluster flagged', async () => {
+  await resetAll();
+  const { _resetStore, _getStore } = await import('./_actions-mock-question.mjs');
+  _resetStore([
+    makeNode({ id: 'cluster-old', isClusterNode: true, qaCount: 1, branchLabel: 'B', clusterLabel: 'C-old' }),
+    makeNode({ id: 'cluster-new', isClusterNode: true, qaCount: 0, branchLabel: 'B', clusterLabel: 'C-new' }),
+    makeNode({ id: 'anchor-1', isAnchorNode: true, parentId: 'cluster-old', branchLabel: 'B', clusterLabel: 'C-old', clusterNodeId: 'cluster-old' }),
+  ]);
+
+  const { graphCommandService } = await import('../../src/services/graph-command.service.ts');
+  const r = await graphCommandService.move('anchor-1', 'cluster-new');
+  assert.equal(r.success, true);
+
+  const store = _getStore();
+  assert.equal(store.find((q) => q.id === 'cluster-old')?.flagged, true, 'emptied cluster flagged');
+});
+
+test('move cascade: undo flips flagged back to false on cascaded records', async () => {
+  await resetAll();
+  const { _resetStore, _getStore } = await import('./_actions-mock-question.mjs');
+  _resetStore([
+    makeNode({ id: 'anchor-old', isAnchorNode: true, qaCount: 1, branchLabel: 'B', clusterLabel: 'C-old', clusterNodeId: 'cluster-old' }),
+    makeNode({ id: 'cluster-old', isClusterNode: true, branchLabel: 'B', clusterLabel: 'C-old' }),
+    makeNode({ id: 'anchor-new', isAnchorNode: true, qaCount: 0, branchLabel: 'B', clusterLabel: 'C-new', clusterNodeId: 'cluster-new' }),
+    makeNode({ id: 'cluster-new', isClusterNode: true, branchLabel: 'B', clusterLabel: 'C-new' }),
+    makeNode({ id: 'qa-1', parentId: 'anchor-old', branchLabel: 'B', clusterLabel: 'C-old', clusterNodeId: 'cluster-old' }),
+  ]);
+
+  const { graphCommandService } = await import('../../src/services/graph-command.service.ts');
+  await graphCommandService.move('qa-1', 'anchor-new');
+  await graphCommandService.undo();
+
+  const store = _getStore();
+  assert.notEqual(store.find((q) => q.id === 'anchor-old')?.flagged, true, 'anchor un-flagged');
+  assert.notEqual(store.find((q) => q.id === 'cluster-old')?.flagged, true, 'cluster un-flagged');
+  assert.equal(store.find((q) => q.id === 'qa-1')?.parentId, 'anchor-old', 'QA re-parented');
+});
+
+test('move cascade: emits EXACTLY one GRAPH_UPDATED with affectedIds containing cascaded ids', async () => {
+  await resetAll();
+  const { _resetStore } = await import('./_actions-mock-question.mjs');
+  _resetStore([
+    makeNode({ id: 'anchor-old', isAnchorNode: true, qaCount: 1, branchLabel: 'B', clusterLabel: 'C-old', clusterNodeId: 'cluster-old' }),
+    makeNode({ id: 'cluster-old', isClusterNode: true, branchLabel: 'B', clusterLabel: 'C-old' }),
+    makeNode({ id: 'anchor-new', isAnchorNode: true, qaCount: 0, branchLabel: 'B', clusterLabel: 'C-new', clusterNodeId: 'cluster-new' }),
+    makeNode({ id: 'cluster-new', isClusterNode: true, branchLabel: 'B', clusterLabel: 'C-new' }),
+    makeNode({ id: 'qa-1', parentId: 'anchor-old', branchLabel: 'B', clusterLabel: 'C-old', clusterNodeId: 'cluster-old' }),
+  ]);
+
+  const { eventBus } = await import('../../src/lib/event-bus.ts');
+  const events = [];
+  const unsub = eventBus.subscribe('GRAPH_UPDATED', (e) => events.push(e));
+
+  const { graphCommandService } = await import('../../src/services/graph-command.service.ts');
+  await graphCommandService.move('qa-1', 'anchor-new');
+  unsub();
+
+  assert.equal(events.length, 1, 'exactly ONE GRAPH_UPDATED from cascading move');
+  const ids = events[0].payload?.affectedIds ?? [];
+  assert.ok(ids.includes('anchor-old'), 'affectedIds includes cascaded anchor');
+  assert.ok(ids.includes('cluster-old'), 'affectedIds includes cascaded cluster');
+});

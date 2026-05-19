@@ -4,6 +4,8 @@ import {
   buildCandidateContextPack,
   buildDailyReviewMap,
   decideIngestionOutcome,
+  extractClustersUnderBranch,
+  extractUniqueBranches,
   getDueProjectedFlashcards,
   projectQuestionToKnowledgeNode,
 } from '../src/services/canonical-knowledge.service.ts';
@@ -100,4 +102,73 @@ test('getDueProjectedFlashcards and buildDailyReviewMap stay synchronized on nod
   assert.equal(map.revealedCount, 1);
   assert.equal(map.roots[0].branches[0].clusters[0].leaves[0].nodeId, 'q-1');
   assert.equal(map.roots[0].branches[0].clusters[0].leaves[0].state, 'active');
+});
+
+// ════════════════════════════════════════════════════════════════════════
+// Phase 49-06 follow-up — extractors must see cluster/anchor nodes too
+// ════════════════════════════════════════════════════════════════════════
+//
+// UAT 2026-05-19: detaching the only QA under a cluster left the cluster
+// node alive in storage but invisible to extractClustersUnderBranch (which
+// previously only consulted QA-leaf placement labels), forcing the LLM at
+// step 2 of the by-layer pipeline to propose a NEW near-duplicate cluster
+// name (e.g. "Japanese Writing Systems" with a trailing s). The fix
+// removes the isClusterNode/isAnchorNode skips so the structural truth of
+// the graph is the prompt the LLM sees.
+
+test('extractUniqueBranches: returns branchLabel from cluster nodes (no QAs reference it)', () => {
+  const questions = [
+    makeQuestion({ id: 'cluster-1', isClusterNode: true, branchLabel: 'Linguistics', clusterLabel: 'Japanese Writing System' }),
+  ];
+  const branches = extractUniqueBranches(questions);
+  assert.ok(branches.includes('Linguistics'), 'cluster node\'s branchLabel surfaces');
+});
+
+test('extractUniqueBranches: returns branchLabel from anchor nodes (no QAs reference it)', () => {
+  const questions = [
+    makeQuestion({ id: 'anchor-1', isAnchorNode: true, branchLabel: 'Linguistics', clusterLabel: 'Japanese Writing System' }),
+  ];
+  const branches = extractUniqueBranches(questions);
+  assert.ok(branches.includes('Linguistics'));
+});
+
+test('extractUniqueBranches: skips flagged records (cascade-cleanup soft-deletes hide)', () => {
+  const questions = [
+    makeQuestion({ id: 'anchor-1', isAnchorNode: true, branchLabel: 'GhostBranch', flagged: true }),
+  ];
+  const branches = extractUniqueBranches(questions);
+  assert.ok(!branches.includes('GhostBranch'), 'flagged-out cascade-cleaned branch stays hidden');
+});
+
+test('extractClustersUnderBranch: returns clusterLabel from a cluster node with no QAs', () => {
+  // Reproduce the UAT scenario: a cluster whose only QA was just detached
+  // (QA.branchLabel/clusterLabel now undefined). The cluster node still
+  // lives in storage carrying the labels.
+  const questions = [
+    makeQuestion({ id: 'cluster-1', isClusterNode: true, branchLabel: 'Linguistics', clusterLabel: 'Japanese Writing System' }),
+    // Stripped-QA — labels undefined.
+    makeQuestion({ id: 'qa-1' /* no branchLabel/clusterLabel */ }),
+  ];
+  const clusters = extractClustersUnderBranch(questions, 'Linguistics');
+  assert.ok(
+    clusters.includes('Japanese Writing System'),
+    'cluster node label surfaces even when no QA carries it (regression: pre-fix returned [])',
+  );
+});
+
+test('extractClustersUnderBranch: returns clusterLabel from anchor nodes too', () => {
+  const questions = [
+    makeQuestion({ id: 'anchor-1', isAnchorNode: true, branchLabel: 'L', clusterLabel: 'C' }),
+  ];
+  const clusters = extractClustersUnderBranch(questions, 'L');
+  assert.ok(clusters.includes('C'));
+});
+
+test('extractClustersUnderBranch: still filters by branchLabel', () => {
+  const questions = [
+    makeQuestion({ id: 'cluster-a', isClusterNode: true, branchLabel: 'BranchA', clusterLabel: 'C1' }),
+    makeQuestion({ id: 'cluster-b', isClusterNode: true, branchLabel: 'BranchB', clusterLabel: 'C2' }),
+  ];
+  const clusters = extractClustersUnderBranch(questions, 'BranchA');
+  assert.deepEqual(clusters, ['C1'], 'C2 from BranchB excluded');
 });

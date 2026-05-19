@@ -236,7 +236,10 @@ export const graphCommandService = {
       }
 
       // Snapshot pre-image for journal (compact placement fields per R2).
-      const before = {
+      // Phase 49-06 follow-up — typed as a mutable record so cascade-cleanup
+      // ids (cascadedEmptyAnchorId / cascadedEmptyClusterId) can be enriched
+      // after the old-parent decrement runs and discovers an emptied node.
+      const before: Record<string, unknown> = {
         parentId: target.parentId,
         clusterNodeId: target.clusterNodeId,
         branchLabel: target.branchLabel,
@@ -269,6 +272,7 @@ export const graphCommandService = {
 
       // ── OLD parent side effects ──
       const oldParentId = target.parentId;
+      const cascadedAffectedIds: string[] = [];
       if (oldParentId) {
         const oldParent = store.find((q) => q.id === oldParentId);
         if (oldParent) {
@@ -283,6 +287,41 @@ export const graphCommandService = {
             oldPatch.nodeSummary = filtered;
           }
           questionService.patchQuestion(oldParentId, oldPatch);
+
+          // Phase 49-06 follow-up — cascade soft-delete an emptied anchor
+          // parent (last QA moved away) OR an emptied cluster parent (last
+          // anchor moved away). Mirrors detach's cascade. Soft-delete via
+          // flagged=true keeps the command-boundary GRAPH_UPDATED emit as
+          // the SINGLE emit per D-17 (patchQuestion is silent).
+          if (newOldQaCount === 0 && oldParent.isAnchorNode === true) {
+            before.cascadedEmptyAnchorId = oldParentId;
+            cascadedAffectedIds.push(oldParentId);
+            const siblingAnchors = store.filter((q) =>
+              q.isAnchorNode === true
+              && q.id !== oldParentId
+              && q.flagged !== true
+              && q.branchLabel === oldParent.branchLabel
+              && q.clusterLabel === oldParent.clusterLabel,
+            );
+            if (siblingAnchors.length === 0 && oldParent.clusterNodeId) {
+              const clusterNode = store.find(
+                (q) => q.id === oldParent.clusterNodeId && q.isClusterNode === true,
+              );
+              if (clusterNode) {
+                before.cascadedEmptyClusterId = clusterNode.id;
+                cascadedAffectedIds.push(clusterNode.id);
+              }
+            }
+            questionService.patchQuestion(oldParentId, { flagged: true });
+            if (before.cascadedEmptyClusterId) {
+              questionService.patchQuestion(before.cascadedEmptyClusterId as string, { flagged: true });
+            }
+          } else if (newOldQaCount === 0 && oldParent.isClusterNode === true) {
+            // Anchor moved out, this cluster is now empty.
+            before.cascadedEmptyClusterId = oldParentId;
+            cascadedAffectedIds.push(oldParentId);
+            questionService.patchQuestion(oldParentId, { flagged: true });
+          }
         }
       }
 
@@ -315,8 +354,10 @@ export const graphCommandService = {
         after,
       });
 
-      // D-17 — single typed emit from command boundary.
-      const affectedIds = [id, newParentId, ...(oldParentId ? [oldParentId] : [])];
+      // D-17 — single typed emit from command boundary. cascadedAffectedIds
+      // includes any anchor/cluster that was cascade-deleted in the old-
+      // parent cleanup so subscribers re-render those nodes out.
+      const affectedIds = [id, newParentId, ...(oldParentId ? [oldParentId] : []), ...cascadedAffectedIds];
       eventBus.emit({
         type: 'GRAPH_UPDATED',
         payload: { kind: 'move', anchorId: id, affectedIds },
@@ -705,19 +746,11 @@ export const graphCommandService = {
         return;
       }
 
-      // Snapshot pre-image per D-04.
-      const before = {
-        parentId: target.parentId,
-        branchLabel: target.branchLabel,
-        clusterLabel: target.clusterLabel,
-        clusterNodeId: target.clusterNodeId,
-        nodeSummary: target.nodeSummary,
-        placementReason: target.placementReason,
-      };
-
       // Old parent side effects (mirror move's old-parent update).
       const oldParentId = target.parentId;
       const oldParent = store.find((q) => q.id === oldParentId);
+      let cascadedEmptyAnchorId: string | undefined;
+      let cascadedEmptyClusterId: string | undefined;
       if (oldParent) {
         const newOldQaCount = Math.max(0, (oldParent.qaCount ?? 1) - 1);
         const oldPatch: Partial<Question> = { qaCount: newOldQaCount };
@@ -729,6 +762,40 @@ export const graphCommandService = {
           oldPatch.nodeSummary = filtered;
         }
         questionService.patchQuestion(oldParentId, oldPatch);
+
+        // Phase 49-06 follow-up — cascade soft-delete the old parent if it's
+        // an anchor that just lost its last QA. Soft-delete via flagged=true
+        // (silent — patchQuestion does not emit) so the command-boundary
+        // GRAPH_UPDATED below remains the SINGLE emit per D-17. Cascade up
+        // to the cluster node if that anchor was the cluster's last anchor.
+        // Branches are derived from labels (no isBranchNode flag), so they
+        // fall out of extractUniqueBranches automatically when nothing
+        // references their label.
+        //
+        // We deliberately do NOT set prunedFromTrellis here so getPrunedQuestions
+        // (anchor pruned-archive) does not surface these as user-pruned. Undo
+        // resurrects by flipping flagged back to false (no full-record stash
+        // needed — the row stays in localStorage, just hidden).
+        if (newOldQaCount === 0 && oldParent.isAnchorNode === true) {
+          cascadedEmptyAnchorId = oldParentId;
+          const siblingAnchors = store.filter((q) =>
+            q.isAnchorNode === true
+            && q.id !== oldParentId
+            && q.flagged !== true
+            && q.branchLabel === oldParent.branchLabel
+            && q.clusterLabel === oldParent.clusterLabel,
+          );
+          if (siblingAnchors.length === 0 && oldParent.clusterNodeId) {
+            const clusterNode = store.find(
+              (q) => q.id === oldParent.clusterNodeId && q.isClusterNode === true,
+            );
+            if (clusterNode) cascadedEmptyClusterId = clusterNode.id;
+          }
+          questionService.patchQuestion(oldParentId, { flagged: true });
+          if (cascadedEmptyClusterId) {
+            questionService.patchQuestion(cascadedEmptyClusterId, { flagged: true });
+          }
+        }
       }
 
       // Clear placement on the target.
@@ -741,6 +808,19 @@ export const graphCommandService = {
         placementReason: undefined,
       });
 
+      // Snapshot pre-image per D-04. Cascade-cleanup ids are stashed so undo
+      // can flip flagged back to false on the emptied anchor + cluster.
+      const before: Record<string, unknown> = {
+        parentId: target.parentId,
+        branchLabel: target.branchLabel,
+        clusterLabel: target.clusterLabel,
+        clusterNodeId: target.clusterNodeId,
+        nodeSummary: target.nodeSummary,
+        placementReason: target.placementReason,
+      };
+      if (cascadedEmptyAnchorId) before.cascadedEmptyAnchorId = cascadedEmptyAnchorId;
+      if (cascadedEmptyClusterId) before.cascadedEmptyClusterId = cascadedEmptyClusterId;
+
       // Journal entry — one per command per D-17.
       graphEditJournal.append({
         cmd: 'detach',
@@ -750,13 +830,17 @@ export const graphCommandService = {
       });
 
       // D-17 — single typed emit from THIS command. Downstream classify's
-      // emit is its own command per R7.
+      // emit is its own command per R7. affectedIds includes cascaded nodes
+      // so subscribers re-read their visible state.
+      const affectedIds: string[] = [qaId];
+      if (oldParentId) affectedIds.push(oldParentId);
+      if (cascadedEmptyClusterId) affectedIds.push(cascadedEmptyClusterId);
       eventBus.emit({
         type: 'GRAPH_UPDATED',
         payload: {
           kind: 'detach',
           anchorId: qaId,
-          affectedIds: [qaId, ...(oldParentId ? [oldParentId] : [])],
+          affectedIds,
         },
       });
 
@@ -991,6 +1075,15 @@ export const graphCommandService = {
             result = fail<UndoData>('NOT_FOUND', 'Original record no longer exists.', false);
             return;
           }
+          // Phase 49-06 follow-up — un-flag cascaded empty anchor/cluster
+          // BEFORE re-patching the target so the old parent is visible when
+          // the target reattaches. Soft-delete keeps the row in storage, so
+          // undo is a flag flip rather than a full record resurrect.
+          const cascadedAnchorId = before.cascadedEmptyAnchorId as string | undefined;
+          const cascadedClusterId = before.cascadedEmptyClusterId as string | undefined;
+          if (cascadedClusterId) questionService.patchQuestion(cascadedClusterId, { flagged: false });
+          if (cascadedAnchorId) questionService.patchQuestion(cascadedAnchorId, { flagged: false });
+
           const oldParentId = before.parentId as string | undefined;
           const newParentId = (entry.after as Record<string, unknown>).parentId as string | undefined;
           // Restore the target's placement to the pre-move state.
@@ -1005,9 +1098,13 @@ export const graphCommandService = {
           // forward move incremented new + decremented old; the inverse
           // decrements new + increments old). Mirror move's side-effect
           // logic but in reverse — these are deterministic recomputes per
-          // R2, not stored in the journal.
+          // R2, not stored in the journal. Re-read with includeFlagged so
+          // a just-un-flagged old parent is findable.
+          const refreshed = (cascadedAnchorId || cascadedClusterId)
+            ? questionService.getAll({ includeFlagged: true })
+            : store;
           if (newParentId) {
-            const newParent = store.find((q) => q.id === newParentId);
+            const newParent = refreshed.find((q) => q.id === newParentId);
             if (newParent) {
               const decrementedQa = Math.max(0, (newParent.qaCount ?? 1) - 1);
               const newParentPatch: Partial<Question> = { qaCount: decrementedQa };
@@ -1022,7 +1119,7 @@ export const graphCommandService = {
             }
           }
           if (oldParentId) {
-            const oldParent = store.find((q) => q.id === oldParentId);
+            const oldParent = refreshed.find((q) => q.id === oldParentId);
             if (oldParent) {
               const incrementedQa = (oldParent.qaCount ?? 0) + 1;
               const oldParentPatch: Partial<Question> = { qaCount: incrementedQa };
@@ -1097,6 +1194,16 @@ export const graphCommandService = {
             result = fail<UndoData>('NOT_FOUND', 'Original record no longer exists.', false);
             return;
           }
+          // Phase 49-06 follow-up — un-flag the cascaded empty anchor/cluster
+          // BEFORE re-patching the QA's parentId, so the parent is visible
+          // when the QA reattaches. Soft-delete forward path set flagged=true
+          // (no row removal), so undo is a simple flag flip — no full-record
+          // resurrection needed.
+          const cascadedAnchorId = before.cascadedEmptyAnchorId as string | undefined;
+          const cascadedClusterId = before.cascadedEmptyClusterId as string | undefined;
+          if (cascadedClusterId) questionService.patchQuestion(cascadedClusterId, { flagged: false });
+          if (cascadedAnchorId) questionService.patchQuestion(cascadedAnchorId, { flagged: false });
+
           // D-13 inline note — undo restores placement AND SKIPS
           // re-classification. The fire-and-forget classifyAndAnchorIncremental
           // from the original detach already ran (or aborted); we do NOT
@@ -1112,9 +1219,13 @@ export const graphCommandService = {
           });
           // Restore old parent's qaCount + nodeSummary line (mirror move's
           // old-parent restoration). Forward detach decremented + stripped;
-          // inverse increments + re-appends.
+          // inverse increments + re-appends. Re-read with includeFlagged so
+          // a just-un-flagged old parent is findable.
           if (oldParentId) {
-            const oldParent = store.find((q) => q.id === oldParentId);
+            const refreshed = cascadedAnchorId
+              ? questionService.getAll({ includeFlagged: true })
+              : store;
+            const oldParent = refreshed.find((q) => q.id === oldParentId);
             if (oldParent) {
               const incrementedQa = (oldParent.qaCount ?? 0) + 1;
               const oldParentPatch: Partial<Question> = { qaCount: incrementedQa };

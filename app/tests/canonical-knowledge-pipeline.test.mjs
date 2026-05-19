@@ -92,7 +92,13 @@ test('buildStepPrompt: anchor level with object candidates uses names', () => {
 
 // ─── extractUniqueBranches ─────────────────────────────────────────────────
 
-test('extractUniqueBranches: filters out flagged, cluster, anchor nodes', () => {
+test('extractUniqueBranches: filters out only flagged; cluster + anchor nodes ARE included', () => {
+  // Phase 49-06 follow-up — the prior implementation skipped cluster +
+  // anchor nodes, which hid an entire branch from the LLM whenever its last
+  // QA was detached (the detached QA's branchLabel goes undefined, the
+  // anchor + cluster nodes retain it but were filtered out). The fix unions
+  // all three kinds so the structural truth of the graph is what the LLM
+  // sees at step 1 of the by-layer pipeline.
   const questions = [
     makeQuestion({ branchLabel: 'Psychology' }),
     makeQuestion({ branchLabel: 'Psychology' }),
@@ -104,8 +110,8 @@ test('extractUniqueBranches: filters out flagged, cluster, anchor nodes', () => 
   const branches = extractUniqueBranches(questions);
   assert.ok(branches.includes('Psychology'));
   assert.ok(branches.includes('Computer Science'));
-  assert.ok(!branches.includes('Physics'), 'cluster nodes excluded');
-  assert.ok(!branches.includes('Biology'), 'anchor nodes excluded');
+  assert.ok(branches.includes('Physics'), 'cluster node\'s branchLabel surfaces post-fix');
+  assert.ok(branches.includes('Biology'), 'anchor node\'s branchLabel surfaces post-fix');
   // Unique check
   assert.equal(branches.filter(b => b === 'Psychology').length, 1);
 });
@@ -122,7 +128,9 @@ test('extractUniqueBranches: excludes vague labels', () => {
 
 // ─── extractClustersUnderBranch ────────────────────────────────────────────
 
-test('extractClustersUnderBranch: returns unique clusters for matching branch', () => {
+test('extractClustersUnderBranch: returns unique clusters for matching branch; anchor + cluster nodes ARE included', () => {
+  // Phase 49-06 follow-up — same fix-direction as extractUniqueBranches.
+  // Cluster + anchor nodes are now first-class label sources.
   const questions = [
     makeQuestion({ branchLabel: 'Psychology', clusterLabel: 'Learning Theory' }),
     makeQuestion({ branchLabel: 'Psychology', clusterLabel: 'Learning Theory' }),
@@ -135,7 +143,7 @@ test('extractClustersUnderBranch: returns unique clusters for matching branch', 
   assert.ok(clusters.includes('Learning Theory'));
   assert.ok(clusters.includes('Memory'));
   assert.ok(!clusters.includes('Algorithms'), 'wrong branch excluded');
-  assert.ok(!clusters.includes('Perception'), 'anchor nodes excluded');
+  assert.ok(clusters.includes('Perception'), 'anchor node\'s clusterLabel surfaces post-fix');
   assert.equal(clusters.filter(c => c === 'Learning Theory').length, 1, 'unique');
 });
 

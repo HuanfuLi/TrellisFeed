@@ -612,11 +612,18 @@ export function parseClusterAnchorResponse(raw: string): { cluster?: string; anc
 }
 
 export function extractUniqueBranches(allQuestions: Question[]): string[] {
+  // Phase 49-06 follow-up — include branch labels from ALL kinds: cluster
+  // nodes, anchor nodes, AND Q&A leaves. The prior implementation skipped
+  // cluster + anchor nodes and only consulted QA placement metadata; that
+  // hid an entire branch from the LLM whenever its last QA was detached
+  // (the QA's branchLabel flips to undefined inside detach, so the branch
+  // collapses out of the prompt and the LLM is forced to propose a NEW
+  // duplicate). Cluster + anchor nodes carry branchLabel at creation time
+  // (canonical-knowledge.service.ts:843, 918), so unioning all three is the
+  // structurally honest list.
   const seen = new Set<string>();
   for (const q of allQuestions) {
     if (q.flagged === true) continue;
-    if (q.isClusterNode === true) continue;
-    if (q.isAnchorNode === true) continue;
     const branch = q.branchLabel?.trim();
     if (branch && !VAGUE_LABELS.has(branch)) {
       seen.add(branch);
@@ -626,11 +633,14 @@ export function extractUniqueBranches(allQuestions: Question[]): string[] {
 }
 
 export function extractClustersUnderBranch(allQuestions: Question[], branchLabel: string): string[] {
+  // Same rationale as extractUniqueBranches above — cluster nodes (set at
+  // 844) and anchor nodes (set at 919) carry clusterLabel. The prior
+  // QA-only derivation hid clusters whose only QA had its labels stripped
+  // by detach, forcing the LLM to create near-duplicates ("Japanese Writing
+  // Systems" with trailing s).
   const seen = new Set<string>();
   for (const q of allQuestions) {
     if (q.flagged === true) continue;
-    if (q.isClusterNode === true) continue;
-    if (q.isAnchorNode === true) continue;
     if (q.branchLabel !== branchLabel) continue;
     const cluster = q.clusterLabel?.trim();
     if (cluster && !VAGUE_LABELS.has(cluster)) {
