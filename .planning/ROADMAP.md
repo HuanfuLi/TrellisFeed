@@ -25,7 +25,7 @@ There is **no foundation phase**. The prior agent's FOUND-01..05 scaffolding (cr
 - [x] **Phase 49: Graph Correction UI** — Selected-node correction controls in GraphScreen; preview/confirm for high-impact actions; durability across reload. (completed 2026-05-18)
 - [x] **Phase 50: Retrieval and Library Foundation** — Bounded archive search; local-first tags/bookmarks. (completed 2026-05-18)
 - [x] **Phase 51: Concept Dashboard and Recovery Surfaces** — Per-concept dashboard joining Q&A, archive, review, podcast, tag, weak/due signals. (completed 2026-05-19)
-- [ ] **Phase 52: Podcast Quality Defaults and Learner Controls** — Educational defaults; bounded length/style controls; option identity; TTS safety checks.
+- [x] **Phase 52: Podcast Quality Defaults and Learner Controls** — Educational defaults; bounded length/style controls; option identity; TTS safety checks. (completed 2026-05-19)
 - [ ] **Phase 53: Engagement Guardrails + Provider Privacy** — Goals, stop cues, sparse reflection prompts, cue controls; provider payload sanitizer ships with the new fields it protects.
 
 ## Phase Details
@@ -179,7 +179,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 52-03-PLAN.md — Wave 2: PodcastScreen option chips + player badges + regenerate button + SettingsFeaturesScreen defaults + SettingsAIScreen TTS model + i18n bundles (PODCAST-02, PODCAST-03, PODCAST-05)
+- [x] 52-03-PLAN.md — Wave 2: PodcastScreen option chips + player badges + regenerate button + SettingsFeaturesScreen defaults + SettingsAIScreen TTS model + i18n bundles (PODCAST-02, PODCAST-03, PODCAST-05)
 
 **UI hint**: yes
 
@@ -244,7 +244,7 @@ Phases execute in numeric order: 47 → 48 → 49 → 50 → 51 → 52 → 53
 | 49. Graph Correction UI | 5/6 | Complete    | 2026-05-18 |
 | 50. Retrieval and Library Foundation | 13/13 | Complete   | 2026-05-18 |
 | 51. Concept Dashboard and Recovery Surfaces | 1/1 | Complete    | 2026-05-19 |
-| 52. Podcast Quality Defaults and Learner Controls | 2/3 | In Progress|  |
+| 52. Podcast Quality Defaults and Learner Controls | 3/3 | Complete   | 2026-05-19 |
 | 53. Engagement Guardrails + Provider Privacy | TBD | Not started | - |
 
 ---
