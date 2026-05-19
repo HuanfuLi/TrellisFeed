@@ -197,9 +197,23 @@ export interface DailyPodcast {
   progress?: number;
   error?: string;
   createdAt: number;
+  options?: PodcastOptions; // Phase 52 PODCAST-03
+  optionsHash?: string; // Phase 52 PODCAST-03
 }
 
 export type PodcastStatus = 'pending' | 'generating' | 'ready' | 'failed';
+
+/** Phase 52 PODCAST-02 (D-01): four bounded length presets. */
+export type PodcastLength = 'brief' | 'standard' | 'deep' | 'extended';
+
+/** Phase 52 PODCAST-02 (D-02): three bounded style presets. */
+export type PodcastStyle = 'focused' | 'conversational' | 'review';
+
+/** Phase 52 PODCAST-02/03: bounded options passed to generatePodcast + hashed for cache invalidation. */
+export interface PodcastOptions {
+  length: PodcastLength;
+  style: PodcastStyle;
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SETTINGS DOMAIN
@@ -273,6 +287,7 @@ export interface TTSConfig {
   voice: string;
   speed: number;
   isConfigured: boolean;
+  model?: string; // Phase 52 PODCAST-05 (D-07): default 'tts-1', opt-in 'tts-1-hd'
 }
 
 export interface ZeroTierConfig {
@@ -285,6 +300,8 @@ export interface PodcastSettings {
   sleepTime: string;
   advanceMinutes: number;
   autoGenerate: boolean;
+  defaultLength?: PodcastLength; // Phase 52 — undefined falls back at read site (D-14)
+  defaultStyle?: PodcastStyle; // Phase 52 — undefined falls back at read site (D-14)
 }
 
 export interface ReviewSettings {
