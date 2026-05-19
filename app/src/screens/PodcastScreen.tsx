@@ -12,9 +12,15 @@ import { today, formatDateLabel, isToday } from '../lib/date';
 import { toast } from '../lib/toast';
 import { questionService } from '../services/question.service';
 import { podcastService } from '../services/podcast.service';
+import { settingsService } from '../services/settings.service';
+import { computeOptionsHash } from '../services/podcast-prompt';
+import { getCurrentLocale } from '../lib/i18n-leaf';
 import { parseMoveNavigationState } from '../lib/moveNavigator';
 import { eventBus } from '../lib/event-bus';
-import type { DailyPodcast, Question } from '../types';
+import type { DailyPodcast, Question, PodcastLength, PodcastStyle, SupportedLocale } from '../types';
+
+const LENGTH_CHIPS = ['brief', 'standard', 'deep', 'extended'] as const satisfies readonly PodcastLength[];
+const STYLE_CHIPS = ['focused', 'conversational', 'review'] as const satisfies readonly PodcastStyle[];
 
 export function PodcastScreen() {
   const navigate = useNavigate();
@@ -38,6 +44,19 @@ export function PodcastScreen() {
   const [showAllPodcasts, setShowAllPodcasts] = useState(false);
   const [confirmDeletePodcastId, setConfirmDeletePodcastId] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Phase 52: Length × Style chip selectors (D-11 + D-14 silent fallback)
+  const [selectedLength, setSelectedLength] = useState<PodcastLength>(() => {
+    const settings = settingsService.getSync();
+    return settings.podcast.defaultLength ?? 'standard';
+  });
+  const [selectedStyle, setSelectedStyle] = useState<PodcastStyle>(() => {
+    const settings = settingsService.getSync();
+    return settings.podcast.defaultStyle ?? 'conversational';
+  });
+  // Phase 52 D-08: YouTube-style playback rate cycle. Local UI state — NOT
+  // persisted, NOT part of optionsHash, NOT a provider call.
+  const [playbackRate, setPlaybackRate] = useState<1 | 1.5 | 2>(1);
 
   // Knowledge Today — concepts in today's podcast
   const [todayConcepts, setTodayConcepts] = useState<Question[]>([]);
@@ -85,6 +104,22 @@ export function PodcastScreen() {
   const selected: DailyPodcast | null = selectedId
     ? (podcasts.find((p) => p.id === selectedId) ?? null)
     : (todayPodcast ?? podcasts[0] ?? null);
+
+  // Phase 52 D-04: dirty-state derivation. The cached podcast carries the
+  // optionsHash it was generated with; we recompute the hash for the current
+  // chip selection and locale and surface a Regenerate CTA when they diverge.
+  const todayConceptIds = useMemo(() => todayConcepts.map((c) => c.id), [todayConcepts]);
+  const cachedHash = selected?.optionsHash;
+  const currentHash = useMemo(() => {
+    return computeOptionsHash(todayConceptIds, getCurrentLocale() as SupportedLocale, {
+      length: selectedLength,
+      style: selectedStyle,
+    });
+    // Re-derive when the underlying concept set or the chip selection changes.
+    // We stringify ids to keep the memo stable when membership is unchanged.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [todayConceptIds.join(','), selectedLength, selectedStyle]);
+  const isDirty = !!cachedHash && cachedHash !== currentHash;
 
   // Load concepts for Knowledge Today — always live SM-2 due list + Planner additions
   const loadConcepts = useCallback(async () => {
@@ -170,6 +205,12 @@ export function PodcastScreen() {
 
     const audio = new Audio(blobUrl);
     audioRef.current = audio;
+    // Phase 52 D-08: persist the user's chosen playback rate across podcast
+    // switches. Native HTML5 attribute — no provider call. We assign via
+    // audioRef.current (not the local `audio` alias) so the source-read
+    // invariant `audioRef.current.playbackRate =` matches at both the
+    // cycle button AND this mount-time sync site.
+    audioRef.current.playbackRate = playbackRate;
     setPlaybackProgress(0);
 
     audio.ontimeupdate = () => {
@@ -514,6 +555,74 @@ export function PodcastScreen() {
         </Card>
       )}
 
+      {/* Phase 52 PODCAST-02: Length × Style chip selectors. Always rendered
+          when today's podcast is missing OR pending/failed (pre-generation),
+          and also above the player when a ready podcast exists so the user
+          can change options before tapping the Regenerate CTA. Inline styles
+          with CSS variables (CLAUDE.md Style Conventions). */}
+      {(!todayPodcast || todayPodcast.status === 'pending' || todayPodcast.status === 'failed' || (selected && selected.status === 'ready')) && (
+        <Card style={{ marginBottom: '16px' }}>
+          <div style={{ marginBottom: '12px' }}>
+            <p style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
+              {t('podcast.options.lengthLabel')}
+            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+              {LENGTH_CHIPS.map((l) => {
+                const isSelected = selectedLength === l;
+                return (
+                  <button
+                    key={l}
+                    type="button"
+                    onClick={() => setSelectedLength(l)}
+                    style={{
+                      backgroundColor: isSelected ? 'var(--primary-40)' : 'var(--surface-variant)',
+                      color: isSelected ? 'white' : 'var(--foreground)',
+                      border: '1px solid var(--border)',
+                      borderRadius: 'var(--radius-pill)',
+                      padding: '6px 12px',
+                      fontSize: '0.875rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {t(`podcast.options.${l}`)}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div>
+            <p style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
+              {t('podcast.options.styleLabel')}
+            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+              {STYLE_CHIPS.map((s) => {
+                const isSelected = selectedStyle === s;
+                return (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => setSelectedStyle(s)}
+                    style={{
+                      backgroundColor: isSelected ? 'var(--primary-40)' : 'var(--surface-variant)',
+                      color: isSelected ? 'white' : 'var(--foreground)',
+                      border: '1px solid var(--border)',
+                      borderRadius: 'var(--radius-pill)',
+                      padding: '6px 12px',
+                      fontSize: '0.875rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {t(`podcast.options.${s}`)}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </Card>
+      )}
+
       {/* Selected Podcast Player */}
       {selected && selected.status === 'ready' && (
         <Card style={{ marginBottom: '24px', background: 'linear-gradient(135deg, var(--primary-90), var(--secondary-container))' }}>
@@ -525,6 +634,17 @@ export function PodcastScreen() {
               <h3 style={{ marginBottom: '4px' }}>{t('podcast.player.dailyRecap')}</h3>
               {selected.duration && (
                 <p style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>{formatDuration(selected.duration)}</p>
+              )}
+              {/* Phase 52 D-06: cached-options badge. Renders only when the
+                  cached podcast carries options (pre-Phase-52 podcasts have
+                  selected.options undefined and skip this entirely). */}
+              {selected.options && (
+                <p style={{ fontSize: '0.78rem', color: 'var(--muted-foreground)', marginTop: '4px' }}>
+                  {t('podcast.player.optionsBadge', {
+                    length: t(`podcast.options.${selected.options.length}`),
+                    style: t(`podcast.options.${selected.options.style}`),
+                  })}
+                </p>
               )}
             </div>
             <Radio size={32} color="var(--primary-40)" />
@@ -572,14 +692,52 @@ export function PodcastScreen() {
               <RotateCw size={20} />
               <span style={{ fontSize: '0.6rem', fontWeight: 600, lineHeight: 1 }}>10</span>
             </button>
+
+            {/* Phase 52 D-08: YouTube-style 1x → 1.5x → 2x → 1x cycle. Sets
+                the native HTML5 <audio>.playbackRate — no provider call, no
+                optionsHash impact, ephemeral local UI state. */}
+            <button
+              onClick={() => {
+                const next: 1 | 1.5 | 2 = playbackRate === 1 ? 1.5 : playbackRate === 1.5 ? 2 : 1;
+                setPlaybackRate(next);
+                if (audioRef.current) audioRef.current.playbackRate = next;
+              }}
+              title={t('podcast.player.playbackRateLabel', { rate: playbackRate })}
+              style={{
+                minWidth: '44px', height: '44px', borderRadius: 'var(--radius-pill)',
+                backgroundColor: 'transparent', color: 'var(--foreground)',
+                border: '1px solid var(--border)',
+                fontSize: '0.78rem', fontWeight: 600,
+                padding: '0 10px',
+                cursor: 'pointer',
+              }}
+            >
+              {playbackRate}x
+            </button>
           </div>
+
+          {/* Phase 52 D-04: explicit "Regenerate with new options" CTA. Visible
+              only when the chip selection diverges from the cached optionsHash.
+              No modal confirm — the explicit button IS the confirmation. */}
+          {isDirty && (
+            <div style={{ marginTop: '12px' }}>
+              <Button
+                size="sm"
+                variant="primary"
+                fullWidth
+                onClick={() => generatePodcast(selected.date, todayConceptIds, { length: selectedLength, style: selectedStyle })}
+              >
+                {t('podcast.options.regenerateWithNew')}
+              </Button>
+            </div>
+          )}
 
           {!hasAudio && (
             <div style={{ marginTop: '12px', textAlign: 'center' }}>
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={() => generatePodcast(selected.date, todayConcepts.map((c) => c.id))}
+                onClick={() => generatePodcast(selected.date, todayConceptIds, { length: selectedLength, style: selectedStyle })}
                 style={{ gap: '6px' } as React.CSSProperties}
               >
                 <RefreshCw size={14} /> {t('podcast.player.regenerateAudio')}
@@ -629,7 +787,7 @@ export function PodcastScreen() {
               <p style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>{t('podcast.generateCard.progressText', { progress: generationProgress })}</p>
             </div>
           ) : (
-            <Button onClick={() => generatePodcast(today(), todayConcepts.map((c) => c.id))} fullWidth>
+            <Button onClick={() => generatePodcast(today(), todayConceptIds, { length: selectedLength, style: selectedStyle })} fullWidth>
               {todayPodcast?.status === 'failed' ? t('podcast.generateCard.retryButton') : t('podcast.generateCard.generateButton')}
             </Button>
           )}

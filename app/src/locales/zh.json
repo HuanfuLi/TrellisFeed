@@ -435,7 +435,12 @@
       "postRetentionAll": "全部保留",
       "generationCap": "每日生成上限",
       "bonusCap": "额外内容上限",
-      "sendFeedback": "发送反馈"
+      "sendFeedback": "发送反馈",
+      "podcastDefaultLength": "默认播客长度",
+      "podcastDefaultStyle": "默认播客风格",
+      "ttsModel": "TTS 模型",
+      "ttsModelStandard": "标准（tts-1）",
+      "ttsModelHd": "高清（tts-1-hd）"
     },
     "descriptions": {
       "embeddingBlurb": "用于概念之间的语义相似度计算，为连接卡片质量提供支持。与 LLM 分开 — Anthropic 没有嵌入模型。",
@@ -472,7 +477,10 @@
       "privacyBlurb": "Trellis 采用本地优先策略。所有笔记、闪卡和会话都仅存储在本设备上。任何 Trellis 服务器都不会收到你的数据。",
       "aiConsentHint": "允许将问题发送到你配置的 AI 提供商",
       "generationCap": "每个概念每天最多生成数",
-      "bonusCap": "所有概念探索完后的额外内容数"
+      "bonusCap": "所有概念探索完后的额外内容数",
+      "podcastDefaultLength": "自动生成时使用的长度",
+      "podcastDefaultStyle": "自动生成时使用的风格",
+      "ttsModel": "更高质量需要更多费用；标准模式适用于所有 OpenAI 端点"
     },
     "providerLabels": {
       "openai": "OpenAI",
@@ -644,7 +652,9 @@
       "conceptsDuration": "{{count}} 个概念 · {{duration}}",
       "cancelDelete": "取消删除",
       "confirmDelete": "确认删除",
-      "deleteTitle": "删除播客"
+      "deleteTitle": "删除播客",
+      "optionsBadge": "缓存：{{length}} · {{style}}",
+      "playbackRateLabel": "速度 {{rate}}x"
     },
     "generateCard": {
       "failedTitle": "播客生成失败",
@@ -669,7 +679,19 @@
       "conceptAddedToList": "概念已加入复习列表。",
       "audioUnavailable": "音频不可用 — 请尝试重新生成。"
     },
-    "filteredBy": "筛选：{{concept}}"
+    "filteredBy": "筛选：{{concept}}",
+    "options": {
+      "lengthLabel": "长度",
+      "brief": "简短",
+      "standard": "标准",
+      "deep": "深入",
+      "extended": "加长",
+      "styleLabel": "风格",
+      "focused": "聚焦",
+      "conversational": "对话式",
+      "review": "复习训练",
+      "regenerateWithNew": "用新选项重新生成"
+    }
   },
   "posts": {
     "title": "帖子",

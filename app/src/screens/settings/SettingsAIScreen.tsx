@@ -402,6 +402,25 @@ export function SettingsAIScreen() {
             ]}
           />
         </SettingRow>
+        {/* Phase 52 PODCAST-05 + D-07: TTS model picker, OpenAI-only.
+            Default stays 'tts-1' (D-10 — defaults unchanged until device
+            UAT). gptsovits has no equivalent so the row is provider-gated. */}
+        {tts.provider === 'openai' && (
+          <SettingRow label={t('settings.fields.ttsModel')} description={t('settings.descriptions.ttsModel')}>
+            <SelectInput
+              value={tts.model ?? 'tts-1'}
+              onChange={(v) => {
+                const next = { ...tts, model: v };
+                setTts(next);
+                saveTts(next);
+              }}
+              options={[
+                { value: 'tts-1', label: t('settings.fields.ttsModelStandard') },
+                { value: 'tts-1-hd', label: t('settings.fields.ttsModelHd') },
+              ]}
+            />
+          </SettingRow>
+        )}
         <div style={{ display: 'flex', gap: '8px', paddingTop: '12px', alignItems: 'center' }}>
           <Button size="sm" onClick={() => { saveTts(); toast(t('settings.toast.ttsSaved'), 'success'); }} variant="primary">{t('settings.buttons.save')}</Button>
           <Button
