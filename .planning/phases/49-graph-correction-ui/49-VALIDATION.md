@@ -1,10 +1,11 @@
 ---
 phase: 49
 slug: graph-correction-ui
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: closed
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-05-17
+closed: 2026-05-19
 ---
 
 # Phase 49 — Validation Strategy
@@ -96,12 +97,31 @@ Wave 0 must create 14 new test files (3-8 tests each; ~60-100 new tests total):
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<acceptance_criteria>` with automated verify references OR Wave 0 dependency on the corresponding test file
-- [ ] Sampling continuity: no 3 consecutive tasks without an automated verify
-- [ ] Wave 0 covers all 14 NEW test files above
-- [ ] No watch-mode flags (`--watch`, `node --test --watch`, etc.)
-- [ ] Feedback latency <60s (full suite) / <2s (per-file)
-- [ ] i18n bundle parity green AFTER Sonnet translation step (subagent runs as a Wave 0 or Wave-final task before bundle-parity check)
-- [ ] `nyquist_compliant: true` set in frontmatter only after all checkboxes above are ticked
+- [x] All tasks have `<acceptance_criteria>` with automated verify references OR Wave 0 dependency on the corresponding test file
+- [x] Sampling continuity: no 3 consecutive tasks without an automated verify
+- [x] Wave 0 covers all 14 NEW test files above
+- [x] No watch-mode flags (`--watch`, `node --test --watch`, etc.)
+- [x] Feedback latency <60s (full suite) / <2s (per-file)
+- [x] i18n bundle parity green AFTER Sonnet translation step (subagent runs as a Wave 0 or Wave-final task before bundle-parity check)
+- [x] `nyquist_compliant: true` set in frontmatter only after all checkboxes above are ticked
 
-**Approval:** pending
+**Approval:** approved 2026-05-19 (UAT pass on Pixel 10 Pro; see 49-06-SUMMARY.md)
+
+---
+
+## Operator UAT result (2026-05-19, Pixel 10 Pro)
+
+| Test | Behavior | Status |
+|------|----------|--------|
+| 1 | Long-press → CorrectionCard; post-recognition drag transitions cleanly (no pan, no snap-back) | ✅ Pass after 49-06.2 (capture-phase pointermove + state-machine feed) |
+| 2 | Haptic feedback at 480ms recognition tick | ✅ Pass |
+| 3 | Viewport preservation on drop / undo at non-default zoom | ⚠️ **Known issue — DEFERRED to Phase 53.** Drop/undo currently resets to default 0.5× center. Four attempts (49-06.3 + 49-06.4 variants) failed; rolled back to 49-06.2. Root cause appears to be a StrictMode + MindElixir.init ordering hazard requiring on-device console.log instrumentation to diagnose. Documented at `c6ac6170`. |
+| 4 | PickMode banner persists across SwipeTabContainer tab swipe | ✅ Pass |
+| 5 | PickMode cancel restores CorrectionCard at ORIGINAL coords | ✅ Pass |
+| 6 | Reorg gate blocks gestures + re-enables after REORG_COMPLETED | ✅ Pass |
+| 7 | QA detach (with cascade-cleanup + extractor fixes) | ✅ Pass — surfaced two pre-existing design bugs in detach + re-classify (Phase 33 + Phase 48), both fixed inline at commit `2c296870`. Detach itself was always working. |
+| 8 | Rename undo | ✅ Pass — rename perf improvement at commit `c2f6b8c4` (fire-and-forget embed) |
+| 9 | Prune snackbar (with hierarchy preservation) | ✅ Pass — surfaced cascade-missing bug in trellisActionsService.prune, fixed at commit `8ea088c5` |
+| 10 | i18n locale switching | ✅ Pass |
+
+**Provenance:** Pixel 10 Pro · Android 14 · Capacitor 8 build `7aba5bd5...8ea088c5`
