@@ -715,39 +715,37 @@ export function ReviewScreen() {
         <ProgressBar value={progress} />
       </div>
 
-      {/* Gap B (Phase 51 UAT): show days-overdue badge when the active
-          card is past its scheduled review date. Pinned cards always
-          render the badge as 0-days-overdue (i.e., hidden) because they
-          come back every day by design — the "overdue" framing doesn't
-          apply to them. */}
+      {/* Flashcard with pin button. Gap B (Phase 51 UAT): the days-overdue
+          badge now renders INSIDE the card (top-left, balancing the top-right
+          pin) via the `badge` slot rather than as a left-aligned strip above
+          the card. Pinned cards report 0 overdue (badge hidden) because they
+          return every day by design — the "overdue" framing doesn't apply. */}
       {(() => {
         const overdue = currentItem.pinned ? 0 : daysOverdue(currentItem.reviewSchedule.nextReviewDate);
-        if (overdue <= 0) return null;
+        const badge = overdue > 0 ? (
+          <span style={{
+            display: 'inline-block',
+            padding: '3px 10px',
+            borderRadius: '999px',
+            fontSize: '0.7rem',
+            fontWeight: 600,
+            backgroundColor: overdue >= 14 ? 'var(--muted-foreground)' : overdue >= 7 ? '#ef4444' : '#f59e0b',
+            color: 'white',
+          }}>
+            {t('review.session.overdueBadge', { count: overdue })}
+          </span>
+        ) : undefined;
         return (
-          <div style={{ marginBottom: '8px' }}>
-            <span style={{
-              display: 'inline-block',
-              padding: '3px 10px',
-              borderRadius: '999px',
-              fontSize: '0.7rem',
-              fontWeight: 600,
-              backgroundColor: overdue >= 14 ? 'var(--muted-foreground)' : overdue >= 7 ? '#ef4444' : '#f59e0b',
-              color: 'white',
-            }}>
-              {t('review.session.overdueBadge', { count: overdue })}
-            </span>
-          </div>
+          <Flashcard
+            front={currentItem.front}
+            back={currentItem.back}
+            onRate={handleRate}
+            pinned={currentItem.pinned}
+            onTogglePin={() => togglePin(currentItem.id)}
+            badge={badge}
+          />
         );
       })()}
-
-      {/* Flashcard with pin button */}
-      <Flashcard
-        front={currentItem.front}
-        back={currentItem.back}
-        onRate={handleRate}
-        pinned={currentItem.pinned}
-        onTogglePin={() => togglePin(currentItem.id)}
-      />
 
       {currentItem.placementReason && (
         <p style={{ fontSize: '0.8rem', lineHeight: 1.55, color: 'var(--muted-foreground)' }}>

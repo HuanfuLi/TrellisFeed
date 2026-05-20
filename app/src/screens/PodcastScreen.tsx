@@ -394,7 +394,11 @@ export function PodcastScreen() {
   // ── All Podcasts sub-view ───────────────────────────────────────────────
   if (showAllPodcasts) {
     return (
-      <div style={{ paddingTop: '24px', paddingLeft: '16px', paddingRight: '16px', paddingBottom: 'calc(24px + var(--safe-area-bottom))', maxWidth: '448px', margin: '0 auto' }}>
+      // key + sub-screen-in so opening the All-Podcasts/History view animates in
+      // like a sub-screen (it's an in-component view swap, not a route change, so
+      // PageTransition doesn't fire). Audio lives on a detached `new Audio()` ref,
+      // not in this JSX, so the view swap never interrupts playback.
+      <div key="podcast-all" style={{ paddingTop: '24px', paddingLeft: '16px', paddingRight: '16px', paddingBottom: 'calc(24px + var(--safe-area-bottom))', maxWidth: '448px', margin: '0 auto', animation: 'sub-screen-in 0.2s ease' }}>
         <button
           onClick={() => setShowAllPodcasts(false)}
           style={{ background: 'none', border: 'none', padding: '12px', marginLeft: '-12px', color: 'var(--primary-40)', display: 'flex', alignItems: 'center', marginBottom: '24px' }}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Pin } from 'lucide-react';
@@ -11,9 +11,12 @@ interface FlashcardProps {
   onRate?: (rating: number) => void;
   pinned?: boolean;
   onTogglePin?: () => void;
+  /** Optional badge rendered inside the card's top-left corner (balances the
+   *  top-right pin button). Used by ReviewScreen for the days-overdue pill. */
+  badge?: ReactNode;
 }
 
-export function Flashcard({ front, back, onRate, pinned, onTogglePin }: FlashcardProps) {
+export function Flashcard({ front, back, onRate, pinned, onTogglePin, badge }: FlashcardProps) {
   const { t } = useTranslation();
   const [isFlipped, setIsFlipped] = useState(false);
 
@@ -82,6 +85,11 @@ export function Flashcard({ front, back, onRate, pinned, onTogglePin }: Flashcar
               boxShadow: 'var(--shadow-2)',
             }}
           >
+            {badge && (
+              <div style={{ position: 'absolute', top: '14px', left: '14px', zIndex: 1 }}>
+                {badge}
+              </div>
+            )}
             {onTogglePin && (
               <button
                 onClick={(e) => { e.stopPropagation(); onTogglePin(); }}
@@ -143,6 +151,11 @@ export function Flashcard({ front, back, onRate, pinned, onTogglePin }: Flashcar
               transform: 'rotateY(180deg)',
             }}
           >
+            {badge && (
+              <div style={{ position: 'absolute', top: '14px', left: '14px', zIndex: 1 }}>
+                {badge}
+              </div>
+            )}
             {onTogglePin && (
               <button
                 onClick={(e) => { e.stopPropagation(); onTogglePin(); }}
