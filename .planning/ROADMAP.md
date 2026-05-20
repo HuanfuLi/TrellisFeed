@@ -185,7 +185,7 @@ Plans:
 
 - [x] 52-04-PLAN.md — Wave 1: GAP-4 (blocker, fresh podcast won't play) + GAP-3 (major, player/empty-state dual-render) — extract pure podcast-view-model.ts (selection + render gates), deterministic select-on-generate, isDirty hash reconciliation, behavioral tests (PODCAST-03)
 - [x] 52-06-PLAN.md — Wave 1: GAP-5 (major, pre-existing, operator-approved fold-in) — provider switch wipes API key; add per-provider apiKeys memory on LLMConfig + EmbeddingConfig, restore-on-switch in SettingsAIScreen (PODCAST-05)
-- [ ] 52-05-PLAN.md — Wave 2: GAP-1 (drop 'brief' length per operator D-01 revision, "Review Drill"→"Review") + GAP-2 (collapsible config panel, repositioned) — depends on 52-04 (PodcastScreen.tsx) + 52-06 (types) (PODCAST-02)
+- [x] 52-05-PLAN.md — Wave 2: GAP-1 (drop 'brief' length per operator D-01 revision, "Review Drill"→"Review") + GAP-2 (collapsible config panel, repositioned) — depends on 52-04 (PodcastScreen.tsx) + 52-06 (types) (PODCAST-02)
 
 **UI hint**: yes
 
@@ -250,7 +250,7 @@ Phases execute in numeric order: 47 → 48 → 49 → 50 → 51 → 52 → 53
 | 49. Graph Correction UI | 5/6 | Complete    | 2026-05-18 |
 | 50. Retrieval and Library Foundation | 13/13 | Complete   | 2026-05-18 |
 | 51. Concept Dashboard and Recovery Surfaces | 1/1 | Complete    | 2026-05-19 |
-| 52. Podcast Quality Defaults and Learner Controls | 5/6 | In Progress|  |
+| 52. Podcast Quality Defaults and Learner Controls | 6/6 | Complete   | 2026-05-20 |
 | 53. Engagement Guardrails + Provider Privacy | TBD | Not started | - |
 
 ---
