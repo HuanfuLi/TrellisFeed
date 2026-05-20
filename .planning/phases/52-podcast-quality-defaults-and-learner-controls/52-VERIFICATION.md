@@ -1,8 +1,9 @@
 ---
 phase: 52-podcast-quality-defaults-and-learner-controls
 verified: 2026-05-19T20:30:00Z
-status: human_needed
+status: passed
 score: 5/5
+human_uat: passed 2026-05-20 (operator signed off all 7 device items — see 52-HUMAN-UAT.md)
 overrides_applied: 0
 re_verification:
   previous_status: human_needed
