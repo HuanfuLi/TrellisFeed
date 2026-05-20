@@ -681,6 +681,7 @@
     },
     "filteredBy": "筛选：{{concept}}",
     "options": {
+      "configHeading": "长度与风格",
       "lengthLabel": "长度",
       "standard": "标准",
       "deep": "深入",

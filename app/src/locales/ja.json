@@ -681,6 +681,7 @@
     },
     "filteredBy": "{{concept}}で絞り込み",
     "options": {
+      "configHeading": "長さとスタイル",
       "lengthLabel": "長さ",
       "standard": "標準",
       "deep": "詳細",

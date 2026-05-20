@@ -681,6 +681,7 @@
     },
     "filteredBy": "Filtrado por {{concept}}",
     "options": {
+      "configHeading": "Duración y estilo",
       "lengthLabel": "Duración",
       "standard": "Estándar",
       "deep": "Profundo",

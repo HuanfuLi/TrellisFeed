@@ -681,6 +681,7 @@
     },
     "filteredBy": "Filtered by {{concept}}",
     "options": {
+      "configHeading": "Length & style",
       "lengthLabel": "Length",
       "standard": "Standard",
       "deep": "Deep",
