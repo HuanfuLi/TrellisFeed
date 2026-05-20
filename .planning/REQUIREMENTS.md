@@ -111,11 +111,11 @@ Operator-managed memo for the professor; not tracked as requirements:
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FILTER-01 | Phase 47 | Pending |
-| FILTER-02 | Phase 47 | Pending |
-| FILTER-03 | Phase 47 | Pending |
-| FILTER-04 | Phase 47 | Pending |
-| FILTER-05 | Phase 47 | Pending |
+| FILTER-01 | Phase 47 | Complete (verified 2026-05-17) |
+| FILTER-02 | Phase 47 | Complete (verified 2026-05-17) |
+| FILTER-03 | Phase 47 | Complete (verified 2026-05-17) |
+| FILTER-04 | Phase 47 | Complete (verified 2026-05-17) |
+| FILTER-05 | Phase 47 | Complete (verified 2026-05-17) |
 | GRAPH-01 | Phase 48 | Validated (2026-05-17) |
 | GRAPH-02 | Phase 48 | Validated (2026-05-17) |
 | GRAPH-03 | Phase 48 | Validated (2026-05-17) |
@@ -127,11 +127,11 @@ Operator-managed memo for the professor; not tracked as requirements:
 | RETRIEVE-02 | Phase 50 | Done (Plan 50-03/06/07/08/10) |
 | RETRIEVE-03 | Phase 51 | Complete |
 | RETRIEVE-04 | Phase 51 | Complete |
-| PODCAST-01 | Phase 52 | Pending |
-| PODCAST-02 | Phase 52 | Pending |
-| PODCAST-03 | Phase 52 | Pending |
-| PODCAST-04 | Phase 52 | Pending |
-| PODCAST-05 | Phase 52 | Pending |
+| PODCAST-01 | Phase 52 | Complete (verified 2026-05-20) |
+| PODCAST-02 | Phase 52 | Complete (verified 2026-05-20) |
+| PODCAST-03 | Phase 52 | Complete (verified 2026-05-20) |
+| PODCAST-04 | Phase 52 | Complete (verified 2026-05-20) |
+| PODCAST-05 | Phase 52 | Complete (verified 2026-05-20) |
 | LEARN-04 | Phase 53 | Complete |
 | PRIVACY-01 | Phase 53 | Complete |
 
