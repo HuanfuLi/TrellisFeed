@@ -1,425 +1,293 @@
 # Pitfalls Research
 
-**Domain:** Trellis v1.6 Control, Graph Trust, Retrieval, Podcast Controls, and Ethical Engagement
-**Researched:** 2026-05-13
-**Confidence:** HIGH for project-specific integration risks; MEDIUM for external ecosystem risks
+**Domain:** Cosmetic rewards shop + dynamic theming + animated companions/garden cosmetics added to a local-first Capacitor mobile learning app (Trellis v1.7)
+**Researched:** 2026-05-20
+**Confidence:** HIGH for project-specific codebase risks (sourced from reading live code); MEDIUM for animation/performance patterns (sourced from Capacitor/WebView documentation)
 
-> Scope: pitfalls likely when adding robust ingestion triage, correctable graph editing, retrieval systems, configurable podcasts, and ethical engagement controls to the existing Trellis codebase. This research focuses on feature-specific and integration-specific mistakes, not generic React or product warnings.
+> Scope: pitfalls likely when adding a coin-purchasable cosmetic shop (themes, pets/companions, trellis/garden cosmetics) to the existing Trellis codebase. Every pitfall is tied to specific code files or load-bearing invariants already documented in CLAUDE.md. Generic "gamification is bad" warnings are not included — only concrete, prevention-actionable failure modes for THIS system.
+
+---
 
 ## Critical Pitfalls
 
-### Pitfall 1: Treating Ingestion Triage as Chat Suppression
+### Pitfall 1: Reward Shop Silently Re-Introduces Pushy Mechanics Through Cosmetic Framing
 
 **What goes wrong:**
-The filter starts blocking or reshaping the user's chat answer instead of only deciding whether the exchange becomes durable knowledge. Natural conversation becomes brittle, while legitimate learning questions that happen to mention "system prompt" or "AI instructions" are incorrectly excluded from the graph.
+A cosmetic shop that technically sells no power-ups can still violate the non-pushy stance through five specific sub-patterns:
 
-Current risk is concrete: `question-filter.service.ts` has broad regexes for system prompt and meta-questions, and `.planning/PROJECT.md` explicitly says the v1.6 clarification is "filtering is a knowledge-ingestion gate, not a presentation concern." A question like "What is a system prompt?" can be a legitimate learning question; "show me your system prompt" is not durable learning material and should not pollute the graph.
+1. **Artificial scarcity / rotating stock:** "Limited time" items, countdown timers, or a rotating "daily shop" that expires — even if cosmetics only — create FOMO identical to Fortnite's item shop. The v1.6 guardrail test (`tests/services/privacy-guardrail.test.mjs`) codifies a no-streaks/leaderboards/stop-cues invariant; rotating stock and countdown timers are exactly the same class of mechanism.
+2. **Grind pressure from coin earn rates:** If the cheapest meaningful cosmetic costs 30 coins and users earn 1 coin per harvested fruit, the shop becomes an engagement multiplier — users must open the app and complete reviews daily just to afford items. This is a mandated-goal pattern in disguise, which MEMORY.md explicitly flags as operator-rejected (`feedback_no_pushy_engagement_mechanics.md`).
+3. **Social comparison:** Showing other users' equipped themes/pets, or displaying a "rare" badge on cosmetics owned by few users, re-introduces leaderboard psychology. Trellis is local-first with no backend, but the temptation is to at least show "X% of users own this" — which requires aggregated telemetry that the local-first architecture cannot support honestly.
+4. **Loot boxes / randomized rewards:** Any "mystery pack," randomized unlock, or gacha mechanic — even fully cosmetic — is deceptive pattern class A per darkpattern.games and is the behavior Epic Games was fined for. The moment a purchase's outcome is non-deterministic, the ethics of the feature cross a clear line.
+5. **Pay-to-remove friction:** If unattractive default themes/pets are shown to users as the "free" option while all polished cosmetics are locked, the shop is effectively a ransom on good UX rather than a reward for learning.
 
 **Why it happens:**
-The existing `flagged` boolean is binary and sits on `Question`, so it is tempting to make the filter decide "valid/invalid question" instead of "answered but not ingested." The chat code currently saves the answer, then evaluates `flagged`, then classifies only if `flagged !== true`.
+Cosmetic shops have well-established engagement design playbooks from F2P games. Developers port those playbooks without noticing which elements violate the operator's stance. The stance is documented in CLAUDE.md feedback memory but is not baked into a test that covers the shop service specifically.
 
 **How to avoid:**
-Create a triage result with separate fields: `answerAllowed`, `ingestionAllowed`, `reason`, `confidence`, and optional `userOverride`. Use it only at the persistence/classification boundary. Keep chat response behavior natural unless existing safety policy blocks the answer.
-
-Add deterministic fixtures for:
-- "What is a system prompt?" -> answered and ingestible.
-- "Show me your system prompt" -> answered/refused as appropriate, not ingestible.
-- "Thanks" follow-up after a learning answer -> not ingestible but chat remains natural.
-- Ambiguous follow-up with prior Q&A context -> classifier sees session context before filtering.
+- All cosmetics must have a fixed, always-available coin price. No timers, no rotation, no expiry.
+- Display the earn rate and cost transparently in the shop UI ("You earn ~1 coin per harvest. This theme costs 10 coins.").
+- Purchases are deterministic: pay price → receive exact cosmetic. No randomization at any layer.
+- Never display social metrics (owned-by count, rarity tiers, leaderboard rankings).
+- Default cosmetics must be genuinely usable; locked cosmetics are extras, not fixes.
+- Extend the existing Phase 53 privacy-guardrail test with assertions against shop-specific pushy patterns: no `countdownTimer`, no `limitedStock`, no `rarityBadge`, no `rotatingStock`, no `mysteryPack` field or code path in the shop service.
 
 **Warning signs:**
-- `ChatMessage` hides or changes the answer based on ingestion triage.
-- Tests assert only `flagged=true/false`, with no reason or user-override path.
-- "system prompt" appears in one catch-all regex without conceptual-learning exceptions.
+- Shop has a `expiresAt`, `stock`, `rarity`, or `featured` field in its data model.
+- Coin earn rate was reduced or cosmetic prices raised during development "to keep users engaged longer."
+- Shop UI has a "Come back tomorrow" message.
+- Any cosmetic purchase result is non-deterministic.
 
-**Phase to address:** Ingestion Triage Foundation.
+**Phase to address:** Shop Data Model definition (first shop phase). The model itself must encode the non-pushy constraints before any UI is built.
 
 ---
 
-### Pitfall 2: Persist-Then-Filter Race Pollutes Consumers Before Classification Is Blocked
+### Pitfall 2: Double-Spend on Coin Purchase Due to Non-Atomic localStorage Read-Modify-Write
 
 **What goes wrong:**
-`useQuestions.askStreaming` calls `questionService.buildAndSave`, which emits `QUESTION_ASKED`, then runs `filterQuestion`, patches `flagged`, emits a corrected `QUESTION_ASKED`, and only then fires classification for unflagged questions. This already mitigates classification pollution, but v1.6 retrieval, dashboards, and graph controls may subscribe to the first unflagged event and index or display the question before the correction lands.
+The current `trellisCreditsService` reads balance, adds, and writes in a synchronous sequence (`readTotal() + count → writeTotal()`). A purchase flow that reads balance, checks `balance >= price`, deducts the price, and marks the cosmetic as owned across two separate localStorage writes is not atomic. If the device suspends, the tab is backgrounded, or any async function yields between the deduct-write and the ownership-write, the user can end up with the coins deducted but the cosmetic not granted — or, if the order is reversed, the cosmetic granted but no coins deducted.
 
-The danger is not just graph pollution. A new retrieval index, history dashboard, or ethical success metric could count a non-learning exchange as learning progress during the gap between first save and triage correction.
+This is not a theoretical risk: Capacitor/Android apps are suspended by the OS at any time, and on-app-reboot localStorage can be in the state of the last successful write. The Capacitor issues tracker documents cases where abrupt process death mid-write leaves localStorage inconsistent.
 
 **Why it happens:**
-The current event contract predates robust triage. `QUESTION_ASKED` means both "answer saved" and "candidate durable knowledge changed." Those are now separate events. Fire-and-forget embedding and classification add more windows where stale snapshots can win.
+Each service writes its own localStorage key independently. `trellisCreditsService` owns `trellis_fruit_credits`; a new cosmetics service would own `trellis_cosmetics_owned`. There is no cross-key transaction primitive in Web Storage.
 
 **How to avoid:**
-Split events and write order:
-- Persist the raw answer with `triageStatus: 'pending'` or compute triage before first durable save.
-- Emit `QUESTION_ANSWERED` for chat/history.
-- Emit `KNOWLEDGE_INGESTION_ACCEPTED` only after triage accepts durable ingestion.
-- Make classification, graph cache invalidation, retrieval indexing, dashboards, and podcast concept updates subscribe to the accepted-ingestion event, not raw chat.
+Write the purchase as a single atomic localStorage write to one key containing both the new balance and the updated ownership record. A single `localStorage.setItem(SHOP_STATE_KEY, JSON.stringify({ balance, owned }))` is atomic from the browser's perspective (either the full string is written or the old value remains). Never split a purchase across two `setItem` calls.
 
-If the code keeps `QUESTION_ASKED`, require every durable consumer to filter by `ingestionAllowed === true` or equivalent. Add a race test where a non-learning question emits the raw event and verify graph/retrieval/podcast consumers do not index it.
+Alternatively, perform an idempotent purchase: write ownership first, then deduct — so a crash after granting but before deducting results in a "free" cosmetic (acceptable) rather than a lost coin (unacceptable). Idempotency key: `transactionId` stored alongside the purchased item prevents re-granting the same transaction if replayed on reboot.
 
 **Warning signs:**
-- New code subscribes to `QUESTION_ASKED` and mutates graph, retrieval index, or metrics.
-- Tests only inspect final localStorage state and not the sequence of emitted events.
-- A non-learning exchange briefly appears in GraphScreen, Saved/History retrieval, or concept dashboards.
+- `purchaseCosmetic` calls `trellisCreditsService.add(-price)` in one line and `cosmeticsService.markOwned(id)` in a separate line.
+- Tests only simulate the happy path; no test suspends between the two writes.
+- Balance and owned inventory are stored in different localStorage keys.
 
-**Phase to address:** Ingestion Triage Foundation before Retrieval or Graph Editing.
+**Phase to address:** Shop Service foundation, before any purchase UI lands.
 
 ---
 
-### Pitfall 3: Overloading `flagged` for Off-Topic, Pruned, Hidden, Detached, and Corrected State
+### Pitfall 3: Equipped Cosmetic References a Cosmetic That No Longer Exists After Clear-All-Data
 
 **What goes wrong:**
-The same `Question.flagged` field already means "off-topic/meta-question" and is also used with `prunedFromTrellis` for explicit trellis pruning. If v1.6 uses `flagged` for manual detach, hide from graph, merge source cleanup, or ethical stop-cue suppression, features will conflict:
+The user equips a theme or pet, clears all data (Settings → Data → Clear All Data), then navigates to HomeScreen or PlannerScreen. The equipped cosmetic ID is stored in a `trellis_` key. After clear, all `trellis_` keys except `trellis_settings` are removed (see `SettingsDataScreen.tsx:55`). If the equipped cosmetic ID survives in `trellis_settings` (because settings are preserved through Clear-All-Data), the cosmetics service tries to resolve the cosmetic definition but finds no record and either throws or silently renders a blank.
 
-- pruned nodes can appear in the wrong archive;
-- off-topic chat can be treated as user-pruned knowledge;
-- graph edits can accidentally make Q&As disappear from review and retrieval;
-- reorg can skip data that should remain reviewable.
+Conversely, if the equipped cosmetic ID is stored outside `trellis_settings`, it is wiped — and then the app renders with whatever the hard-coded default is, without any notification to the user that they lost their selection.
 
 **Why it happens:**
-`projectQuestionsToKnowledgeNodes`, review projection, and reorg all filter `flagged === true`. That is convenient but too coarse for v1.6 learner control.
+Clear-All-Data is implemented as a key prefix filter that preserves `trellis_settings`. New cosmetic keys added to the settings object survive, but new cosmetic keys stored separately are deleted. There is no reconciliation step that resets equipped cosmetics to defaults after a clear.
 
 **How to avoid:**
-Introduce explicit fields:
-- `ingestionStatus: 'accepted' | 'rejected' | 'pending' | 'manual_override'`
-- `graphVisibility: 'visible' | 'detached' | 'hidden'`
-- `graphExcludedReason?: 'small_talk' | 'prompt_leak_request' | 'user_detached' | 'pruned'`
+Store the equipped cosmetic ID inside `trellis_settings` under `preferences.equippedTheme` / `preferences.equippedPet` so it is semantically a preference (survives clear). The cosmetic definitions and ownership inventory live in a separate `trellis_cosmetics` key that IS cleared.
 
-Keep `prunedFromTrellis` for the existing prune archive or migrate it deliberately. Do not add any new meaning to `flagged` without a migration and source-reading tests over `projectQuestionToKnowledgeNode`, `getPrunedQuestions`, `buildAnchorReflectionTree`, and `reorganizeMindmap`.
+On boot — and on every navigation to a screen that renders a cosmetic — resolve the equipped ID against the ownership store. If the equipped item is no longer owned (cleared), silently fall back to the default cosmetic and do not throw. The fallback should be a valid cosmetic, not `undefined`.
+
+Add a test: run Clear-All-Data sequence, confirm the cosmetics service returns the default cosmetic for `resolveEquipped()`, and confirm no render error on PlannerScreen mount.
 
 **Warning signs:**
-- A patch like `patchQuestion(id, { flagged: true })` is added outside filter/prune code.
-- Feature code asks "should this show in graph?" by checking only `flagged`.
-- `getPrunedQuestions` starts returning ingestion-rejected small talk.
+- `resolveEquipped(id)` throws or returns `undefined` when `id` is not in the owned list.
+- There is no fallback-to-default path in the cosmetic resolver.
+- Clear-All-Data test does not cover the equipped-cosmetics surface.
 
-**Phase to address:** Ingestion Triage Foundation and Graph Correction Data Model.
+**Phase to address:** Shop Data Model and persistence strategy, before any rendering integration.
 
 ---
 
-### Pitfall 4: Graph UI Edits Mutate Mind Elixir State Instead of Trellis Canonical State
+### Pitfall 4: Purchased Theme Breaks the Header Positioning Invariant via `transform`/`will-change` on the Theme Root
 
 **What goes wrong:**
-Mind Elixir supports editing, moving, and data export/import APIs, and Trellis currently initializes it with `editable: false`, `draggable: true`, and custom click/touch handlers. Turning `editable: true` and trusting the library's internal tree will create edits that look right until the next `GRAPH_UPDATED` reload, then vanish or reappear incorrectly because GraphScreen is regenerated from `Question` records via `buildAnchorReflectionTree`.
+Trellis's Header positioning system depends on a strict rule: no `transform`, `will-change`, `filter`, `contain`, or `perspective` on any ancestor of a `Header` component (CLAUDE.md "Header positioning — Phase 32.1 load-bearing"). A purchased theme that achieves a visual effect by adding one of these properties to a wrapper div — for example, a "Northern Lights" theme with a `filter: hue-rotate()` on the app root, or a CSS `backdrop-filter` applied to the layout container — silently re-parents the fixed-position Header's containing block. The Header will flicker or appear at the wrong position in the viewport, especially on Android Chromium WebView.
+
+This regression already appeared five times in the commit history (`8df7980c`, `a7203a65`, `2dcef5d7`, `73d657a0`, `b4965feb`, `808c6e85`). Theme CSS is authored as a feature and the animation rule is buried in CLAUDE.md; a developer adding a "glowing" or "frosted glass" theme will not naturally know the constraint.
 
 **Why it happens:**
-GraphScreen's displayed tree is a projection, not the source of truth. Node IDs include synthetic root/branch IDs, real cluster IDs, anchor IDs, and Q&A IDs. Direct drag/drop edits in the rendered tree do not automatically update `parentId`, `clusterNodeId`, `rootLabel`, `branchLabel`, `clusterLabel`, `qaCount`, `nodeSummary`, review projection, or retrieval indexes.
+CSS `filter`, `backdrop-filter`, `transform`, and `will-change: transform` all create a new containing block for `position: fixed` descendants. This is specified behavior, not a bug. It is invisible in desktop Chrome but causes visible jank or incorrect positioning in Android WebView because that engine's fixed-positioning optimization has lower tolerance for containing-block changes mid-animation.
 
 **How to avoid:**
-Keep Mind Elixir as a view layer. Add explicit graph command methods in a single `graph-correction.service.ts`:
-- `renameAnchor(anchorId, title)`
-- `moveAnchor(anchorId, targetClusterId)`
-- `mergeAnchors(sourceAnchorId, targetAnchorId)`
-- `detachQuestion(questionId)`
-- `moveQuestionToAnchor(questionId, anchorId)`
+Define an explicit list of CSS properties that theme overrides may NOT use: `transform`, `will-change`, `filter`, `backdrop-filter`, `perspective`, `contain`. Document this in the theme authoring guide and enforce it in the theme schema validator.
 
-Each command must patch all derived fields and emit `GRAPH_UPDATED` exactly once after a fresh read-modify-write. If drag/drop is enabled later, treat the UI event as a command input and immediately re-render from Trellis state.
+Any visual effect that "needs" these properties must be implemented via a sibling element (same z-level as app content but not an ancestor of `Header`), an SVG background, or a pseudo-element below the Header z-level. The existing `sub-screen-in` keyframe comment in `index.css:486` shows this constraint already enforced for screen transition animations — theme CSS must follow the same rule.
+
+Add a theme validation test: for every registered theme, parse its CSS variable overrides and assert none of the forbidden properties are set.
 
 **Warning signs:**
-- `enableEdit`, `setNodeTopic`, `moveNodeIn`, or `getData` is used as persistence.
-- Graph edits pass UI tests but disappear after navigation.
-- Edit code updates `topic` but not `Question.title`/labels/parent fields.
+- A theme defines a CSS class applied to `<html>` or `<body>` or the App root `<div>` that includes `filter:`, `backdrop-filter:`, `will-change:`, or `transform:`.
+- Header jumps to top of viewport on Android when a particular theme is equipped.
+- Theme UAT only runs in desktop browser, not on an Android device.
 
-**Phase to address:** Graph Correction Data Model before Graph Editing UI.
+**Phase to address:** Theme data model and CSS authoring rules phase; also any phase that adds a new theme variant.
 
 ---
 
-### Pitfall 5: Partial Graph Corrections Leave Anchors, Clusters, and Q&A Fields Inconsistent
+### Pitfall 5: Purchased Theme Does Not Propagate to Always-Mounted Screens Because the Theme Event Is Not Re-Read on Navigation
 
 **What goes wrong:**
-A manual correction patches the field that is visible on screen but misses dependent fields. Examples:
+SwipeTabContainer mounts all five first-level screens (Home, Planner, Ask, Graph, Settings) once at boot. `useState(() => settingsService.getSync().preferences.equippedTheme)` initializers fire exactly once. If the user buys and equips a theme in the shop (a sub-screen), then navigates back to HomeScreen or PlannerScreen, those screens show the old theme because no re-read effect fired.
 
-- rename anchor changes `title` but not `content`, `summary`, aliases, or retrieval terms;
-- move anchor changes `clusterNodeId` but not `branchLabel`/`clusterLabel` on child Q&As;
-- merge anchors moves Q&As but does not recompute `qaCount` or `nodeSummary`;
-- detach Q&A clears `parentId` but leaves stale `clusterNodeId`;
-- delete anchor leaves child Q&As pointing to a missing parent.
-
-GraphScreen, ClusterDetailScreen, AnchorDetailScreen, ReviewScreen, planner suggestions, and podcast concept selection will then disagree.
+This is the canonical "always-mounted screen stale state" bug documented repeatedly in CLAUDE.md and MEMORY.md (`feedback_no_refresh_assumption.md`). It has hit review state, explored anchors, vine progress — and will hit equipped theme if the shop uses the same pattern.
 
 **Why it happens:**
-The current classification commit writes cluster nodes directly to localStorage in places and uses `questionService.patchQuestion` elsewhere. `graphService.moveToParent` only patches `parentId`. `buildAnchorReflectionTree` derives display from several fields, so no single field is authoritative today.
+`applyTheme()` sets `document.documentElement.classList.toggle('dark', ...)` which is DOM-global and propagates immediately. But any in-React theme state (e.g., a theme name stored in component state to conditionally render cosmetic assets) will be stale. The same applies to any screen that derives its rendering from a purchased cosmetic ID stored in service state.
 
 **How to avoid:**
-Make graph correction commands transactional at the application level:
-- always read fresh `trellis_questions`;
-- validate target IDs and node roles before writing;
-- patch parent and child records in one localStorage write where possible;
-- recompute `qaCount` and `nodeSummary` from child Q&As after every move/merge/detach;
-- persist affected records to SQLite or document localStorage-primary limits;
-- emit one `GRAPH_UPDATED` at the end.
+Two layers of defense:
 
-Add invariant tests:
-- every non-hidden Q&A `parentId` points to an existing anchor or is explicitly detached;
-- every anchor `clusterNodeId` points to an existing cluster;
-- every cluster `qaCount` equals sum of child anchor `qaCount`;
-- every anchor `qaCount` equals attached Q&A count;
-- no structural node has a due review date before `9999-12-31`.
+1. **DOM layer (already works for light/dark):** Keep the `applyTheme` pattern — theme classes set on `document.documentElement` propagate instantly to all CSS.
+2. **React state layer (must be added):** For any React state that is derived from the equipped cosmetic (e.g., which pet SVG to render, which background asset to load), add a `[location.pathname]` resync effect on every always-mounted screen that renders cosmetics. Follow the HomeScreen canonical pattern (`useEffect(() => { syncCosmeticsFromService() }, [location.pathname])`).
+
+Additionally, emit a `COSMETICS_CHANGED` event from the shop service after every equip/unequip action, and have cosmetic-rendering components subscribe to it — same pattern as `LOCALE_CHANGED` → re-read in `useTrellisData`.
 
 **Warning signs:**
-- A graph edit uses `questionService.patchQuestion` directly from a component.
-- Tests assert only the edited node and not affected siblings/children.
-- Selected node card shows a different child count than ClusterDetailScreen.
+- Equipping a theme in the shop does not visually update PlannerScreen without navigating away and back twice.
+- The equipped pet renders the old pet SVG on HomeScreen after equipping a new one in the shop.
+- `useState(() => cosmeticsService.getEquipped())` in an always-mounted screen with no resync effect.
 
-**Phase to address:** Graph Correction Data Model and Graph Editing UI.
+**Phase to address:** Shop integration with screens — must be validated with navigation tests, not just shop-screen tests.
 
 ---
 
-### Pitfall 6: Manual Corrections Race With Fire-and-Forget Classification and Reorganization
+### Pitfall 6: Continuous Pet/Companion Animation Causes Jank on the PlannerScreen Because It Shares the Trellis Canvas's Already-Saturated Animation Budget
 
 **What goes wrong:**
-The user corrects an anchor while `classifyAndAnchorIncremental` or `reorganizeMindmap` is still in flight. The async classifier commits stale labels after the manual edit, or reorg writes a new structural store from a snapshot that predates the correction. The user loses trust because "I fixed it and Trellis changed it back."
+TrellisCanvas already runs framer-motion animations on leaf nodes. The existing perf guard (`AMBIENT_SWAY_THRESHOLD = 20`, `TAP_ANIMATION_THRESHOLD = 30` in `trellis-perf-mask.ts`) was designed to cap animations per the known canvas leaf count. An animated pet or garden ornament added as a separate layer on the same PlannerScreen adds a continuous animation that was not accounted for in those thresholds.
 
-The code already contains race lessons: `buildAndSave` avoids stale pre-LLM snapshots, and reorg reconciles deletes/new Q&As after a 10-30 second LLM window. Manual graph corrections are another concurrent mutation class and need the same treatment.
+On low-end Android devices, the WebView Chromium compositor has a limited number of GPU composite layers it can manage efficiently. Each `will-change: transform` or framer-motion `motion.div` creates a new composite layer. Adding a continuously-animating pet SVG on top of the trellis canvas can push the compositor over its threshold, causing the entire screen to drop frames.
 
 **Why it happens:**
-Current race defenses track existence of IDs, not structural revision. A manual correction changes structure while preserving IDs, so existing reconciliation sees the node as current and can still overwrite its labels.
+Pet animations seem isolated — "it's just one SVG." But the GPU layer budget is shared across the entire screen. The trellis canvas's leaf animations, the BottomNavigation, and the Header already consume composite layers. A pet with `animation: idle 2s ease-in-out infinite` running 60fps competes with all of them.
 
 **How to avoid:**
-Add structural revision metadata before manual editing:
-- `graphRevision` or per-node `structuralUpdatedAt`;
-- `manualStructuralLock?: true` or `lastCorrectedAt`;
-- classifier/reorg commits must re-read the current node and skip overwriting fields changed after their snapshot.
-
-For graph-wide reorg, either block manual edit commands while `_reorgInProgress` is true, or queue them and replay after reorg. For classification, allow it to attach new Q&As but never overwrite manually corrected anchor/cluster labels without explicit user confirmation.
+- Animate pets using CSS `opacity` and `transform: translate/scale` only — these are the two properties that run on the compositor thread without triggering layout or paint.
+- Never animate `width`, `height`, `top`, `left`, `border`, `color`, or `background-color` on a continuously-running pet animation.
+- Gate continuous animation using the same `AMBIENT_SWAY_THRESHOLD` pattern from `trellis-perf-mask.ts`: if `leafCount > AMBIENT_SWAY_THRESHOLD`, reduce or disable pet ambient animation to preserve the leaf sway budget.
+- Add a user preference to disable cosmetic animations (accessible for users with vestibular disorders and low-end devices).
+- Extend the existing `trellis-perf-mask.ts` module to account for a pet/ornament animation slot, so the threshold logic is centralized.
 
 **Warning signs:**
-- A correction is followed by a `GRAPH_UPDATED` from classification and the correction disappears.
-- Reorg result includes nodes edited after reorg started.
-- Tests simulate correction only when no async classification is active.
+- Pet component uses framer-motion `motion.div` with `animate={{ y: [0, -5, 0] }}` and `transition={{ repeat: Infinity }}` with no leaf-count gate.
+- PlannerScreen frame rate drops visibly on Android when both the trellis canvas and pet are animating simultaneously.
+- Developer tested animation on iOS simulator (smooth at 120fps metal) but not on a mid-range Android device.
 
-**Phase to address:** Graph Correction Data Model before enabling manual edits.
+**Phase to address:** Cosmetics rendering architecture, before building the pet animation system.
 
 ---
 
-### Pitfall 7: LocalStorage Schema Changes Are Additive in Types but Not in Loaders
+### Pitfall 7: A Pet or Garden Ornament Container With `transform`/`will-change` Is an Ancestor of a Header — Identical to the Theme Pitfall But Harder to See
 
 **What goes wrong:**
-v1.6 adds new local-first fields for triage, graph corrections, retrieval tags, podcast options, goals, or ethical cue preferences. TypeScript compiles because fields are optional, but old persisted payloads load with missing fields and new code assumes arrays/objects exist. Conversely, a migration rewrites large `trellis_questions`, `trellis_post_history`, or `trellis_podcasts` payloads synchronously and blocks the UI.
+This is a second instance of the Header containing-block re-parenting bug (Pitfall 4), but caused by the animated cosmetic element's wrapper rather than a theme class. If a pet component uses `will-change: transform` on a wrapper `<div>` that is placed in the PlannerScreen subtree above the route `<Outlet>` — which contains the sub-screen Header — the fixed Header for that sub-screen will flicker or jump.
+
+Even if the pet wrapper is a sibling of the Outlet, a `transform: scale(1)` initial value on the pet wrapper still creates a containing block. `transform: scale(1)` is a common "prevent animation pop" trick that becomes a Header-positioning trap in this codebase.
 
 **Why it happens:**
-Most services parse localStorage and cast directly. Some loaders validate shape (`post-history.service.ts`, `engagement.service.ts`), but others trust JSON more broadly. Browser Web Storage is synchronous and limited; MDN documents that `localStorage` operations block JS execution and Web Storage is limited to about 10 MiB per origin.
+PlannerScreen is a first-level swipe-tab screen with an always-mounted slot. Sub-screens (settings sub-pages, AnchorDetailScreen, PostDetailScreen) render in the `<Outlet>` overlay (zIndex 50). If any element in the PlannerScreen subtree acquires a stacking context via `transform`, it can affect sub-screen Headers that portal to `document.body` differently than ones that depend on the slot's `translateZ(0)` containing block. The exact failure mode depends on z-index stacking, but it surfaces as Header appearing at the wrong position on Android.
 
 **How to avoid:**
-For each new store or field:
-- add a version field only when a real migration is required;
-- prefer additive optional fields plus load-time normalization;
-- validate arrays/objects in `loadState` before returning;
-- keep large/audio/blob/vector data out of localStorage;
-- migrate lazily by record on read or command execution, not via one giant boot rewrite.
+Pet and ornament components must never have `transform`, `will-change`, `filter`, `perspective`, or `contain` on their outer wrapper element when placed in a first-level swipe-tab screen. Animations must be on inner elements only, and those inner elements must not be ancestors of any `Header` render site.
 
-Use IndexedDB or SQLite for larger indexes/snapshots. Trellis already uses IndexedDB for podcast audio and SQLite as a cold backup for questions, so follow that precedent.
+Add a rule to the cosmetics architecture doc: "Cosmetic wrappers in swipe-tab screens: animate inner children only. Outer wrapper: `position: relative`, `overflow: visible`, no transform, no will-change."
 
 **Warning signs:**
-- `JSON.parse(raw) as SomeNewType` followed by direct `.map` on newly added fields.
-- A boot-time migration loops through every question and writes the whole store before first render.
-- New retrieval index duplicates full post bodies in localStorage.
+- `PlannerScreen` renders a `<motion.div>` wrapping a pet component as a sibling of `<TrellisHero>`.
+- AnchorDetailScreen Header appears in the middle of the screen after opening while a pet is animating.
+- Pet component uses `initial={{ scale: 0 }}` on the outermost element.
 
-**Phase to address:** Data Migration and Persistence Foundation, before feature-specific UI phases.
+**Phase to address:** Cosmetics rendering architecture, with an explicit render-tree audit before shipping any pet/ornament.
 
 ---
 
-### Pitfall 8: Retrieval Becomes Another Feed Instead of a Recovery Tool
+### Pitfall 8: Balance Desync When a Screen Reads Credits From a Stale State Initializer
 
 **What goes wrong:**
-Search, tags, bookmarks, history, and dashboards are implemented as another infinite stream ranked by recency or engagement. The user gets a second discovery feed, not a way to find, resume, review, or compare prior learning. Ethical engagement goals are undermined because "retrieval" increases scrolling surface area.
+`PlannerScreen` initializes `credits` with `useState<number>(() => trellisCreditsService.getTotal())`. This fires once at mount (app boot). The shop sub-screen deducts coins on purchase. When the user navigates back to PlannerScreen, the displayed coin balance is stale — it shows the pre-purchase total because the initializer already ran.
+
+The same applies to HomeScreen's `creditAwardedRef` pattern: the shop's coin deduction does not emit a `HARVEST_COMPLETED` event (that event means "coins were earned"), so HomeScreen's credit display will not update.
 
 **Why it happens:**
-SavedScreen already consolidates Saved, Liked, and History. It is easy to add search and filters into that same archive as a browseable stream. Existing scorer code includes feed engagement as a ranking signal, so retrieval can accidentally prioritize what was clicked over what needs recalling.
+This is the always-mounted stale-state pattern again, but specifically on the credits counter. Unlike explored anchors, which have a dedicated resync effect, the credits counter has no event or resync path other than `HARVEST_COMPLETED`.
 
 **How to avoid:**
-Separate retrieval modes by intent:
-- exact search over Q&A, anchors, post titles, summaries, and tags;
-- concept dashboard for one anchor/cluster;
-- review/retrieval-practice entry points;
-- archive filters for saved/liked/history;
-- bounded "recently viewed" lists without infinite recommendations.
+Introduce a `CREDITS_CHANGED` event (or extend `HARVEST_COMPLETED` to cover deductions with a `delta` field — negative for purchases, positive for harvests). Every always-mounted screen that displays a credit balance must subscribe to this event and re-read from `trellisCreditsService.getTotal()` on receipt.
 
-Rank retrieval by relevance, concept match, review need, and user tags, not by feed popularity alone. Add empty states that point to Ask/Review, not "generate more posts."
+Alternatively, if the credit display is only in PlannerScreen's header counter, add a `[location.pathname]` resync effect there alongside the `CREDITS_CHANGED` event subscription.
 
 **Warning signs:**
-- Retrieval screen has endless scroll and no query/filter state.
-- Search results include generated recommendations that were never viewed or saved.
-- User cannot answer "where did I save that concept?" without scrolling.
+- PlannerScreen coin counter shows the purchase-time balance after buying a cosmetic and navigating back.
+- There is no `CREDITS_CHANGED` (or equivalent) event in `AppEvent` types.
+- The shop service calls `trellisCreditsService.add(-price)` without emitting any event.
 
-**Phase to address:** Retrieval Foundation and Concept Dashboard.
+**Phase to address:** Shop service foundation, alongside the atomic purchase design (Pitfall 2).
 
 ---
 
-### Pitfall 9: Bookmark/Tag Retrieval Stores IDs Only, Then Loses the Content It Promised to Preserve
+### Pitfall 9: New Shop Locale Keys Missing From Non-English Bundles Blocks the PR
 
 **What goes wrong:**
-Saved and liked posts currently store IDs in `trellis_engagement_v1` and resolve full posts through `postHistoryService`. This is lean and works because saved/liked IDs are pinned against history purge. v1.6 tags/bookmarks can break if they store only IDs for content that is not guaranteed to exist in `trellis_post_history`, `trellis_daily_posts`, video/news caches, or generated essay caches.
+The `bundle-parity.test.mjs` test asserts that `en.json`, `zh.json`, `es.json`, and `ja.json` have identical key sets. Adding shop strings to `en.json` without simultaneously adding them to all three other bundles causes the test to fail and blocks the PR. Because the shop has many strings (item names, descriptions, shop section headers, purchase confirmations, empty states), the translation gap is large and easy to overlook.
 
-Result: a saved/tagged item appears in counts but opens to missing content, or search finds a tag whose post body was purged.
+Additionally, cosmetic item names ("Autumn Garden", "Winter Frost", "Sakura Theme") may be tempting to translate literally — but per the i18n workflow, proper nouns and branded names must NOT be translated. "Trellis" itself must not appear differently in non-English bundles. Item names that are conceptually branded should follow the same rule.
 
 **Why it happens:**
-Trellis has multiple post stores and patch paths. `post-essay.service.ts` already had to patch `trellis_post_history` along with daily/video/news caches so streamed essays remain openable from archive surfaces. Retrieval features will multiply these references.
+Shop development happens in English first. Translations are added as a separate step that is easy to defer. `bundle-parity.test.mjs` is unforgiving — even one missing key blocks CI.
 
 **How to avoid:**
-Define a retrieval record shape:
-- ID and content type;
-- title, source concept IDs, context label, generatedAt/date;
-- minimal searchable text snapshot;
-- pointer to full post if available;
-- tag/bookmark metadata;
-- retention policy.
+Follow the EN-first workflow from CLAUDE.md exactly:
+1. Add all shop keys to `en.json` first.
+2. Before opening a PR, run the Sonnet subagent (`app/scripts/translate-locales.md`) for `zh`, `es`, `ja`.
+3. Human-review for: proper nouns not translated (Trellis, Autumn Garden if it's a product name), interpolation placeholders (`{{count}}`, `{{price}}`), Spanish length (+20%).
+4. Commit all 4 bundles in the same PR.
 
-Do not duplicate large essays unnecessarily, but do store enough snapshot data for search results and archive rows to remain meaningful after cache eviction. Extend purge tests so saved/liked/tagged/bookmarked content survives as promised.
+For cosmetic item names specifically: decide at the data model level whether item names are i18n keys (localized display names) or identifier strings (non-translated). Choosing i18n keys for item names adds 4x the bundle entries. Choosing identifier strings means item names appear in English in all locales. Either is acceptable — but the decision must be explicit.
 
 **Warning signs:**
-- Tag service stores `{ tag: string, postIds: string[] }` only.
-- Search result opens `/posts/:id` but that ID is absent from all cache stores.
-- History purge tests are not updated for tags/bookmarks.
+- `bundle-parity.test.mjs` fails after adding shop strings to `en.json`.
+- A cosmetic item's display name is stored as a raw string in the item definition rather than a `t()` key.
+- Chinese or Japanese UI shows English cosmetic names because translations were deferred.
 
-**Phase to address:** Retrieval Persistence before Retrieval UI.
+**Phase to address:** First shop UI phase that adds user-visible strings.
 
 ---
 
-### Pitfall 10: Podcast Length/Style Controls Are Raw Prompt Strings With No Cache Identity
+### Pitfall 10: Dynamic Theme Causes Flash-of-Unstyled-Content on App Boot
 
 **What goes wrong:**
-The user asks for a shorter, longer, calmer, or more technical podcast, but Trellis returns the existing ready podcast because `generatePodcast` skips generation when today's ready audio blob exists. Or a new style setting changes the script prompt but not the stored podcast identity, so the UI shows stale duration/script under the new controls. If controls are passed as raw prompt text, educational coverage degrades or the model emits stage directions that TTS reads aloud.
+The existing `applyTheme()` runs inside a `useEffect` in `App.tsx`, which fires after the first render. For light/dark mode this is fine because the default `:root` CSS variables are the light theme, and the `.dark` class is applied synchronously before first paint via Capacitor's WebView preload. But a purchased theme that applies additional CSS variable overrides via JavaScript after mount will show a flash: the user sees the default theme for a frame, then the purchased theme. On Android WebView, which has slower first-paint characteristics than desktop, this flash is perceivable and looks like a bug.
 
 **Why it happens:**
-Current `DailyPodcast` has no options field. `podcast.service.ts` stores one podcast per date and skips ready regeneration if audio exists. The script prompt is fixed at "90-second spoken podcast recap. Conversational radio style."
+CSS custom property overrides applied via `element.style.setProperty` execute on the JS thread, after the browser has already composited the first frame from static CSS. Any theme initialization that runs in a `useEffect` is guaranteed to arrive one frame late.
 
 **How to avoid:**
-Add a typed `PodcastOptions` and an `optionsHash` to `DailyPodcast`:
-- `length: 'brief' | 'standard' | 'deep'`
-- `style: 'calm' | 'conversational' | 'quiz' | 'story'`
-- `voice/speed` if relevant.
+Apply purchased theme CSS variable overrides in the `<head>` as a `<style>` tag injected synchronously during the HTML loading phase, or as inline `style` attributes on `<html>` before React hydrates. In Capacitor, this means the `index.html` should read `localStorage.getItem('trellis_settings')` in a `<script>` tag in `<head>` (not deferred) and apply theme classes synchronously.
 
-Only reuse a ready podcast when date, concept IDs, locale, and optionsHash match. Prompt style controls as bounded instructions, with non-negotiable quality constraints: cover every selected concept, no invented references, no stage directions, no music cues, spoken-friendly formatting. Regeneration must clear old audio/script and revoke blob URLs.
+Alternatively, confine purchased themes to a CSS class on `<html>` (e.g., `class="theme-autumn"`) and define all theme variables inside `.theme-autumn {}` blocks in `index.css`. The class application can then be done in the same synchronous script block as the dark/light toggle, eliminating the flash.
 
 **Warning signs:**
-- `PodcastSettings` grows new fields but `DailyPodcast` does not.
-- `generatePodcast` still has only `(date, conceptIds?)`.
-- "Style" is a freeform textarea sent into the system prompt.
+- A noticeable 1-2 frame flash of the default green theme before the purchased theme renders on app open.
+- Theme initialization code is inside `useEffect(() => { ... }, [])` with no synchronous predecessor.
+- Purchased theme CSS variables are set with `document.documentElement.style.setProperty` after mount.
 
-**Phase to address:** Podcast Controls Data Model before Podcast UI.
+**Phase to address:** Theme CSS architecture phase (ahead of any purchased theme being shippable).
 
 ---
 
-### Pitfall 11: Podcast Generation Has No Per-Options Concurrency Guard
+### Pitfall 11: Cosmetic Inventory Bloats localStorage and Hits Quota
 
 **What goes wrong:**
-The user changes length/style and taps regenerate while a previous generation is running. Two fire-and-forget async jobs patch the same podcast ID. The slower older job can overwrite the newer script/audio and emit `PODCAST_GENERATION_COMPLETED` after the UI already shows the new options.
+If cosmetic definitions (item catalog) are stored in localStorage alongside ownership records, and catalog items include image data, SVG strings, or large description blobs, the `trellis_cosmetics` key can grow large. The Web Storage spec limits localStorage to approximately 10 MiB per origin (`QuotaExceededError`). The existing `trellis-credits.service.ts` already handles quota errors silently with a `try/catch` — but silent failure on a purchase means the coin is deducted but the cosmetic data is not written.
 
 **Why it happens:**
-`podcastService.generatePodcast` starts a background async IIFE, writes `status: 'generating'`, and patches by podcast ID. There is no generation token, abort controller, or options hash check before final `patchPodcast`.
+It is convenient to store the full cosmetic definition (including rendered SVG or base64 thumbnail) alongside the ownership record. Each new theme or pet adds another blob to localStorage.
 
 **How to avoid:**
-For every generation, create `generationId` and store it on the podcast. Every progress/final patch must first verify the current podcast still has that generationId and optionsHash. If not, drop the stale result. Add abort support for LLM/TTS where provider APIs allow it; otherwise stale-result dropping is mandatory.
+Store only the item catalog identifiers and ownership flags in localStorage. Keep catalog definitions (SVG markup, theme variable maps, description text) as static imports bundled with the app or in IndexedDB for larger assets. The ownership record needs only: `{ ownedIds: string[], equippedTheme: string, equippedPet: string }`. Never store image data or SVG strings in localStorage.
 
-Also add a UI disabled/loading state scoped to the selected options, not a single global `isGenerating` that can hide which version is in flight.
-
-**Warning signs:**
-- Progress events carry only `podcastId` and `progress`.
-- Final completion overwrites by ID without checking current options.
-- Rapid regenerate tests are absent.
-
-**Phase to address:** Podcast Controls Data Model and Podcast Generation Reliability.
-
----
-
-### Pitfall 12: Ethical Engagement Cues Become Nagging or Another Reward Loop
-
-**What goes wrong:**
-Goals, stop cues, reflection prompts, and learning metrics fire too often, use guilt language, or become another streak/credit mechanic. Users learn to dismiss them reflexively. Worse, "ethical" cues can still optimize for more sessions, more posts, or more generated content instead of learning quality.
-
-**Why it happens:**
-Trellis already has feed engagement, likes, saves, dismisses, vine progress, credits, planner suggestions, and review metrics. Adding cues as toasts or modal interruptions reuses the most intrusive surfaces. W3C Ethical Web Principles call out user control, privacy, verification, and avoiding addictive/manipulative patterns; v1.6 should not implement "healthy engagement" with coercive engagement mechanics.
-
-**How to avoid:**
-Make cues user-controlled and sparse:
-- user sets goals and quiet hours;
-- cue frequency has snooze/disable;
-- stop cues are informational and non-blocking;
-- reflection prompts are tied to meaningful transitions, not every scroll threshold;
-- success metrics emphasize retrieval, review completion, concept correction, and user-stated goals, not session length or feed volume.
-
-Do not award credits for dismissing stop cues or continuing after them. Track cue fatigue: dismiss-without-action rate, repeated snoozes, immediate app exit after cue.
+Measure localStorage usage in `SettingsDataScreen` cache stats after adding cosmetics — the existing `cacheStats` i18n namespace suggests this screen already shows some size metrics.
 
 **Warning signs:**
-- Cue copy says "keep going" more often than "pause" or "review."
-- Stop cue has no snooze/disable.
-- Metrics dashboard celebrates posts viewed more prominently than recall/review outcomes.
+- `trellis_cosmetics` grows by more than ~200 bytes per item.
+- Cosmetic catalog definitions are fetched from the service at runtime rather than from static imports.
+- Purchase sometimes silently fails on a device that has used the app heavily (large question store).
 
-**Phase to address:** Ethical Engagement Foundation and Metrics UI.
-
----
-
-### Pitfall 13: New Controls Ignore Always-Mounted Screen Resync Rules
-
-**What goes wrong:**
-Graph corrections, retrieval tags, podcast options, goals, or dismiss/undismiss changes update services while another first-level screen is foregrounded. Because first-level screens remain mounted, the destination screen shows stale state when the user navigates back.
-
-This is a repeated Trellis failure mode already documented in `.planning/PROJECT.md`: always-mounted screens consuming mutable services need `[location.pathname]` resync effects. SavedScreen is not always-mounted and can rely on mount cleanup; HomeScreen and GraphScreen are always-mounted surfaces.
-
-**Why it happens:**
-Event-bus subscriptions feel sufficient during same-screen interactions, but navigation back to an already-mounted screen does not remount or rerun initial state. Bulk resets may intentionally emit no per-item events.
-
-**How to avoid:**
-For every v1.6 service mutation, define:
-- semantic event for live same-screen updates;
-- `[location.pathname]` re-read for always-mounted consumers;
-- bulk reset behavior;
-- source-reading test that the relevant screen re-reads on navigation.
-
-GraphScreen should reload on `GRAPH_UPDATED` and also revalidate selected node after corrections/deletes. HomeScreen retrieval/ethical widgets should mirror the Phase 36/43 sibling-effect pattern.
-
-**Warning signs:**
-- State initializer reads a service and no navigation resync exists.
-- Bulk reset emits no events and no screen re-read covers it.
-- Back navigation shows stale selected node, stale saved/tag state, or old goal progress.
-
-**Phase to address:** Cross-Cutting State/Event Foundation before UI-heavy phases.
-
----
-
-### Pitfall 14: Retrieval Indexing Pulls Dynamic Graph Context Back Into the Byte-Stable Ask Prompt
-
-**What goes wrong:**
-To improve retrieval, a developer injects richer graph/search context into the Ask system prompt. This regresses the Phase 35 load-bearing invariant: the system prompt must remain byte-stable across turns, with per-turn graph context in a tail assistant message and strict user/assistant alternation for local models like Qwen via LM Studio.
-
-**Why it happens:**
-Retrieval feels like prompt context, and system prompts feel authoritative. But Trellis already paid for this lesson: dynamic system prompt bytes broke provider KV-cache behavior and local chat templates.
-
-**How to avoid:**
-Retrieval context belongs in the existing tail context message pattern or in a separate retrieval result message that preserves strict alternation. Do not interpolate query-specific retrieval results into `systemPrompt`. Extend `useQuestions-system-prompt-stability.test.mjs` if new retrieval context is added.
-
-**Warning signs:**
-- `systemPrompt` references search results, tags, bookmarks, dashboard summaries, or `formatCandidateContextPack`.
-- New retrieval context is inserted as assistant-before-user without the constant user ack.
-- Source-reading prompt-stability tests are edited only to make them pass.
-
-**Phase to address:** Retrieval Foundation and Ask Integration.
-
----
-
-### Pitfall 15: Privacy Boundary Drift When Retrieval, Graph Trust, and Ethical Metrics Are Added
-
-**What goes wrong:**
-Local-first retrieval indexes, correction history, goals, and engagement metrics quietly become prompt context or provider payloads. A user who consented to AI answers may not expect saved/liked history, goals, or correction logs to be transmitted for every Ask or podcast generation.
-
-**Why it happens:**
-Trellis has a single `aiConsentGiven` preference and multiple providers. New features will be tempted to "improve personalization" by passing broader local context into LLM calls. Current code uses localStorage/SQLite as primary local stores and only transmits specific prompts to configured providers.
-
-**How to avoid:**
-Add context categories and provider-boundary tests:
-- ask question text;
-- graph candidate summaries;
-- retrieval result snippets;
-- saved/liked/tag metadata;
-- goals/reflection notes;
-- correction history.
-
-Each LLM call site must document which categories it sends. Default to minimal context; require user-visible settings for broader personalization. Keep retrieval search local unless user explicitly requests web/current information.
-
-**Warning signs:**
-- A helper called `buildFullUserContext` is used by Ask, podcasts, retrieval, and planner.
-- Goals/reflections appear in podcast or Ask prompts without a setting.
-- Tests mock provider calls but do not assert payload exclusions.
-
-**Phase to address:** Privacy/Context Boundary Gate before Retrieval and Ethical Metrics.
+**Phase to address:** Shop Service data model, before catalog is authored.
 
 ---
 
@@ -429,89 +297,78 @@ Shortcuts that seem reasonable but create long-term problems.
 
 | Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
 |----------|-------------------|----------------|-----------------|
-| Reuse `flagged` for every graph exclusion | Fast implementation | Off-topic, prune, detach, and manual hide collide | Never for new v1.6 states |
-| Patch graph fields directly from components | Fewer service methods | Inconsistent anchors/clusters and missing events | Never beyond throwaway prototype |
-| Store retrieval index as full duplicated post/question blobs in localStorage | Easy search implementation | Quota, sync blocking, stale copies | Only tiny derived metadata; large bodies in existing stores/IDB/SQLite |
-| Use raw prompt text for podcast styles | Flexible UI | Quality drift, prompt injection, stale cache identity | Never; use bounded enum controls |
-| Use `QUESTION_ASKED` as durable-ingestion event | Avoids event type additions | Race between answer save, triage, classification, retrieval indexing | Only for chat/history display |
-| Add cue toasts for every ethical nudge | Quick visible feature | Nagging and cue fatigue | Only for rare confirmations/errors, not ongoing habit design |
-| Source-reading tests that only assert "call exists" | Cheap regression guard | False confidence about scope/order | Acceptable only with scoped regions and counterweights |
+| Separate localStorage keys for balance and ownership | Simple services | Double-spend risk on purchase; see Pitfall 2 | Never for a purchase that deducts and grants atomically |
+| Cosmetic item names as raw strings (not i18n keys) | Saves bundle work | English names in all locales; hard to localize later | Acceptable if item names are intentionally branded/untranslated |
+| Applying purchased theme CSS vars in `useEffect` | Easy to implement | Flash-of-unstyled-content on boot; see Pitfall 10 | Never; always apply synchronously before first paint |
+| Animating pets with `motion.div` at the outer wrapper level | Quick framer-motion integration | Header positioning regressions + composite layer budget exceeded; see Pitfalls 6, 7 | Never on the outer cosmetic wrapper in swipe-tab screens |
+| Storing full SVG or catalog definitions in localStorage | Single source, offline-ready | localStorage quota exceeded; purchase fails silently; see Pitfall 11 | Never for large blobs |
+| Re-using `HARVEST_COMPLETED` event for coin deductions | Avoids new event type | Credit counter shows wrong balance after purchase; see Pitfall 8 | Never — semantics are incompatible (earned vs. spent) |
+| Grind-tuned coin earn rates to "keep users engaged" | Temporarily higher engagement | Violates operator's non-pushy stance; operator has rejected this category of mechanic multiple times | Never |
+| Time-limited rotating shop items | Drives daily engagement | FOMO dark pattern; identical to Fortnite item shop mechanics the operator explicitly rejects | Never |
+
+---
 
 ## Integration Gotchas
 
-Common mistakes when connecting v1.6 features to existing systems.
+Common mistakes when connecting the shop to existing Trellis systems.
 
 | Integration | Common Mistake | Correct Approach |
 |-------------|----------------|------------------|
-| Ask -> triage -> graph | Save emits untriaged `QUESTION_ASKED` and durable consumers index it | Split chat-answer events from ingestion-accepted events or require durable consumers to filter triage status |
-| Triage -> classifier | Classifier checks only `flagged !== true` | Classifier consumes explicit `ingestionStatus === 'accepted'` |
-| GraphScreen -> Mind Elixir | Enable library editing and persist exported tree | Use explicit graph commands; re-render from `Question` source of truth |
-| Manual graph edits -> reorg/classification | Async LLM commits overwrite user corrections | Structural revisions/locks; stale commit detection |
-| Retrieval -> SavedScreen | Add infinite browse results to archive tabs | Keep retrieval intent-specific: search, filters, concept dashboard, review entry |
-| Tags/bookmarks -> history purge | Store only IDs and assume post remains | Pin or snapshot enough searchable/openable metadata |
-| Podcast settings -> generation | Add settings but reuse one ready podcast per date | Add optionsHash/generationId and invalidate stale script/audio |
-| Ethical cues -> engagement service | Treat cue dismissal as engagement/exploration | Separate cue telemetry from learning progress and feed exploration |
-| Force-New-Day -> new services | Reset old services only | Every date-scoped service has reset semantics and tests |
-| LLM prompt context -> privacy | Send goals/tags/corrections in every personalization prompt | Document context categories and assert exclusions at provider boundaries |
+| Shop purchase → credits balance | Split write across two localStorage keys | Single atomic write to one key containing both balance and ownership; or idempotent write (ownership first, deduct second) |
+| Shop equip → always-mounted screens | Assume CSS propagation is sufficient for React state | Emit `COSMETICS_CHANGED` event; add `[location.pathname]` resync effects on PlannerScreen, HomeScreen |
+| Purchased theme → dark mode interplay | Theme overrides only light-mode CSS vars | Each purchased theme must define both `:root.theme-X {}` and `:root.theme-X.dark {}` variable sets, or provide explicit dark-mode adjustments |
+| Pet animation → trellis canvas perf guard | Pet animates independently of leaf count | Gate pet ambient animation on the same `AMBIENT_SWAY_THRESHOLD` from `trellis-perf-mask.ts`; add pet budget to the threshold calculation |
+| Shop theme CSS → Header positioning | Theme applies `filter` or `will-change` to app root | Theme CSS restricted to color/font/border-radius vars only; forbidden properties list enforced at schema validation |
+| Clear-All-Data → cosmetic ownership | Equipped preference survives in `trellis_settings`, owned inventory wiped in `trellis_cosmetics` | Resolver must fall back to default cosmetic gracefully when owned inventory is empty |
+| Shop locale keys → bundle parity | EN keys added without running Sonnet translate subagent | Run translate workflow before PR; add all 4 bundles in one commit |
+| Privacy guardrail test → shop service | New shop code not covered by Phase 53 guardrail | Extend guardrail test to assert no pushy patterns (countdownTimer, rotatingStock, lootBox) in shop service code paths |
+
+---
 
 ## Performance Traps
 
-Patterns that work at small scale but fail as usage grows.
+Patterns that work in development but fail on real Android devices.
 
 | Trap | Symptoms | Prevention | When It Breaks |
 |------|----------|------------|----------------|
-| Rebuilding full retrieval index on every keystroke | Search input jank | Precompute small metadata index, debounce, worker/IDB for larger index | Hundreds of posts/questions |
-| Large synchronous localStorage migrations | Slow boot, blank screen | Lazy migrations and load-time normalization | Thousands of Q&As or long post history |
-| Graph invariant recompute inside every render | GraphScreen drag lag returns | Compute in service command and reload on `GRAPH_UPDATED` | 100+ anchors/Q&As |
-| Podcast regenerate without stale-job dropping | Older audio overwrites newer settings | generationId/optionsHash guard | Two rapid regenerations |
-| Semantic retrieval over all embeddings in UI thread | Search feels frozen | Pre-filter lexical/tag results, cap vector scans, consider worker | 500+ stored vectors |
-| Cue metrics update on every scroll tick | Battery/scroll regressions | Event-level logging only at meaningful transitions | Masonry feed rapid scroll |
-| Mind Elixir editable drag events persisted live | Frequent localStorage writes during drag | Persist only explicit confirmed command | Any mobile drag interaction |
+| Continuous pet animation with no leaf-count gate | PlannerScreen drops below 30fps on mid-range Android when trellis canvas has 15+ leaves | Gate on `AMBIENT_SWAY_THRESHOLD`; animate opacity/transform only | Any device where WebView compositor is constrained (most Android mid-range) |
+| `will-change: transform` on pet wrapper element | Header flicker; composite layer count exceeds GPU budget | Restrict `will-change` to inner animation targets only; outer wrapper has no transform property | Immediately on first Android test |
+| Purchased theme CSS var overrides applied in `useEffect` | 1-2 frame flash of default theme on cold start | Apply theme class synchronously in `<head>` script before React mounts | Every cold start on low-end Android (slower first-paint) |
+| Cosmetic SVG/image assets stored as base64 in localStorage | `QuotaExceededError` on purchase; silent data loss | Store only IDs in localStorage; bundle assets statically or use IndexedDB | After ~50 owned cosmetics, or sooner if questions store is large |
+| Polling `trellisCreditsService.getTotal()` in a render function | Unnecessary localStorage reads on every render of the credits counter | Read once in state + resync on `CREDITS_CHANGED` event | High-frequency re-renders (e.g., during harvest animation) |
 
-## Security Mistakes
-
-Domain-specific security and privacy issues beyond general web security.
-
-| Mistake | Risk | Prevention |
-|---------|------|------------|
-| Treat "system prompt" keyword as always malicious | Blocks legitimate AI literacy learning | Triage intent with examples and session context |
-| Let user-supplied podcast style text enter system prompt | Prompt injection and low-quality audio | Bounded style enum with fixed prompt templates |
-| Send retrieval archive/goals to LLM by default | Privacy boundary surprise | Minimal-context defaults and provider payload tests |
-| Store API-derived audio/transcripts only in localStorage | Quota errors and potential data loss | IndexedDB for audio blobs; localStorage only metadata |
-| Direct graph edit to synthetic branch/root IDs | Corrupt hierarchy and orphan Q&As | Validate node role and target role before command |
-| Correction history has no revert/audit | User cannot recover from bad merge | Revert snapshot for graph edit batches, similar to reorg snapshot |
-| Web/current retrieval mixed with local retrieval silently | Unwanted network calls | Separate local search from explicit web search toggle |
+---
 
 ## UX Pitfalls
 
-Common user experience mistakes in this domain.
+Common user experience mistakes for this specific feature domain.
 
 | Pitfall | User Impact | Better Approach |
 |---------|-------------|-----------------|
-| Triage labels user chat as "invalid" | User feels judged | "Answered, not added to your map" with override |
-| Graph edit controls expose every operation at once | Fear of breaking graph | Contextual actions: rename, move, merge, detach with preview/revert |
-| Merge has no preview of affected Q&As | Trust loss | Show source/target anchors, Q&A counts, and resulting title/summary |
-| Retrieval screen resembles Home feed | More scrolling, less recovery | Search-first interface with filters and concept dashboards |
-| Podcast style options promise entertainment over learning | Lower educational quality | Style as delivery tone; concept coverage remains fixed |
-| Stop cues interrupt active review | Annoyance and dismissal | Trigger at feed/session boundaries, never mid-answer or mid-review card |
-| Metrics celebrate time spent | Reinforces addictive loop | Celebrate recall, corrections, reviews, and user-set goals |
+| Shop requires many taps to reach a cosmetic | Users don't discover or use the shop | Place shop entry point on PlannerScreen near the credits counter; cosmetics apply to visible trellis |
+| Equipped cosmetic looks identical to default on small screens | Users feel purchases are worthless | Ensure each cosmetic has perceptible visual distinction at PlannerScreen's SVG canvas scale |
+| No preview before purchase | User buys wrong item, feels cheated | Show a live preview of the cosmetic applied to the trellis canvas before coin deduction |
+| Insufficient coin earn rate transparency | Users grind without understanding when they can afford anything | Show estimated earn rate ("~1 coin/day if you harvest regularly") alongside shop prices |
+| Dark mode + purchased light theme conflicts | Theme looks broken in dark mode | Each theme must specify dark-mode-compatible variable overrides; test in both modes before shipping |
+| Shop empty state when user has 0 coins | Feels like a dead end, discourages learning | Empty state should explain how coins are earned (harvest ripe anchors on Planner) and link there |
+
+---
 
 ## "Looks Done But Isn't" Checklist
 
-- [ ] **Ingestion triage:** Non-learning chat is answered but not indexed; legitimate learning about AI/system prompts is ingestible.
-- [ ] **Event ordering:** Durable graph/retrieval/podcast consumers do not subscribe blindly to untriaged `QUESTION_ASKED`.
-- [ ] **Flag migration:** New graph exclusion states do not reuse `flagged` without explicit migration tests.
-- [ ] **Graph commands:** Rename/move/merge/detach recompute child labels, `parentId`, `clusterNodeId`, `qaCount`, `nodeSummary`, and emit one `GRAPH_UPDATED`.
-- [ ] **Manual correction race:** In-flight classification/reorg cannot overwrite corrections made after its snapshot.
-- [ ] **Mind Elixir:** UI edits are command inputs; library internal tree is never treated as source of truth.
-- [ ] **Retrieval persistence:** Saved/tagged/bookmarked results remain searchable/openable after history purge or cache eviction.
-- [ ] **Retrieval ranking:** Search/dashboard ranking is not primarily feed engagement or recency.
-- [ ] **Podcast options:** Date + concept IDs + locale + optionsHash determine reuse; old audio is revoked on regeneration.
-- [ ] **Podcast concurrency:** Stale generation jobs cannot patch current podcast state.
-- [ ] **Ethical cues:** Every cue has snooze/disable or frequency limits; metrics avoid time-spent/feed-volume celebration.
-- [ ] **Navigation resync:** Always-mounted screens re-read relevant services on `[location.pathname]`.
-- [ ] **Provider privacy:** Tests assert which context categories are sent to LLM/TTS providers.
-- [ ] **Migration:** Old localStorage payloads with missing v1.6 fields load without throwing.
+- [ ] **Atomic purchase:** Balance deduction and ownership grant happen in a single `localStorage.setItem` call (or idempotent ownership-first order). No scenario leaves coins deducted without ownership granted.
+- [ ] **Clear-All-Data fallback:** After clearing data, all cosmetic-rendering screens show a valid default cosmetic with no error thrown.
+- [ ] **Stale balance:** PlannerScreen coin counter updates on navigation back from shop (has `[location.pathname]` resync or `CREDITS_CHANGED` event subscription).
+- [ ] **Always-mounted equip propagation:** Equipping a theme or pet in the shop is reflected on HomeScreen and PlannerScreen immediately on navigation back — tested with navigation, not just shop-screen render.
+- [ ] **Header positioning intact:** Android WebView Header does not flicker after purchasing any theme or when a pet is actively animating. Verified on a real Android device, not simulator.
+- [ ] **No forbidden CSS properties:** Every purchased theme's CSS variable block is free of `transform`, `will-change`, `filter`, `backdrop-filter`, `perspective`, `contain` on `html`/`body`/App-root ancestors.
+- [ ] **Dark mode per-theme:** Every theme has variable definitions for both light and dark variants. Equipping a theme while dark mode is active shows correct colors.
+- [ ] **Pet animation gated:** Pet ambient animation is disabled or reduced when `leafCount > AMBIENT_SWAY_THRESHOLD`. PlannerScreen with 20+ leaves and an animated pet stays above 45fps on a mid-range Android test device.
+- [ ] **Bundle parity:** `bundle-parity.test.mjs` passes after all shop strings are added. All 4 locale bundles committed in the same PR.
+- [ ] **Non-pushy invariants:** Extended guardrail test asserts no `countdownTimer`, `expiresAt`, `rarity`, `rotatingStock`, or `lootBox` field exists in shop service code paths.
+- [ ] **No boot flash:** Cold-starting the app with a purchased theme equipped shows the purchased theme on the first frame with no flash of the default green theme.
+
+---
 
 ## Recovery Strategies
 
@@ -519,15 +376,15 @@ When pitfalls occur despite prevention, how to recover.
 
 | Pitfall | Recovery Cost | Recovery Steps |
 |---------|---------------|----------------|
-| Over-broad triage excluded valid learning questions | MEDIUM | Add `ingestionStatus` reasons, let user review rejected items, reclassify accepted items, add fixtures |
-| Graph pollution from non-learning chat | MEDIUM | Identify rejected reasons, set ingestion rejected, remove orphan anchors/clusters with zero valid Q&As, rebuild counts |
-| Manual merge corrupts anchors | HIGH | Restore from graph edit/reorg snapshot; otherwise recompute anchors from Q&A parent links and ask user to confirm |
-| Classification overwrites correction | MEDIUM | Add structural revision; replay correction from edit log; add stale-commit test |
-| Retrieval IDs open missing posts | MEDIUM | Backfill retrieval snapshots from available caches/history; mark missing records with repair/delete UI |
-| Podcast stale job overwrites current audio | LOW-MEDIUM | Add generationId guard; clear affected podcast audio/script and regenerate |
-| Ethical cues cause fatigue | LOW | Lower default frequency, add snooze/disable, rewrite copy, remove reward coupling |
-| localStorage migration blocks boot | HIGH | Ship lazy migration patch; avoid full-store rewrite; add corrupted/old-payload loader tests |
-| Privacy context over-send | HIGH | Stop sending broad context, add payload tests, surface release note/settings reset if shipped |
+| Double-spend left coins deducted without cosmetic granted | LOW | Write a one-time boot migration that checks for negative balance or missing cosmetic grant; on mismatch, re-grant cosmetic (accept the "free" recovery) |
+| Cosmetic ownership lost after Clear-All-Data | LOW | Expected behavior for a clear; show "Cosmetics cleared" in Clear-All-Data toast alongside existing "Data cleared" message; no recovery needed if fallback-to-default is implemented |
+| Header flicker introduced by a theme's CSS | MEDIUM | Identify the forbidden property in the theme's variable block; replace with a non-creating-block alternative (SVG, pseudo-element, sibling overlay) |
+| PlannerScreen jank from pet animation | LOW-MEDIUM | Add leaf-count gate to pet animation immediately; reduce animation to opacity-only as a fallback |
+| Bundle parity failure blocked a PR | LOW | Run Sonnet translate subagent for missing locales; add keys; push to branch |
+| Flash-of-unstyled-content on boot | MEDIUM | Move theme class application from `useEffect` to synchronous `<head>` script |
+| localStorage quota exceeded on purchase | MEDIUM | Ship patch that moves cosmetic SVG/catalog definitions to static imports; migration strips stored blobs |
+
+---
 
 ## Pitfall-to-Phase Mapping
 
@@ -535,47 +392,45 @@ How roadmap phases should address these pitfalls.
 
 | Pitfall | Prevention Phase | Verification |
 |---------|------------------|--------------|
-| Triage as chat suppression | Ingestion Triage Foundation | Fixture matrix for answer vs ingestion decisions |
-| Persist-then-filter race | Ingestion Triage Foundation | Event sequence test with durable consumers attached |
-| `flagged` overload | Data Model/Migration | Source-reading + loader tests over filter/prune/graph projection |
-| Mind Elixir as source of truth | Graph Correction Data Model | Negative test: no persistence from `getData`/library edit state |
-| Partial graph corrections | Graph Correction Commands | Invariant suite for parent/cluster/count/summary consistency |
-| Manual edit vs async LLM races | Graph Trust Reliability | Revision/stale commit tests for classification and reorg |
-| LocalStorage schema drift | Data Migration Foundation | Old payload and corrupted payload load tests |
-| Retrieval becomes feed | Retrieval IA/Foundation | UAT: user can find saved concept without scrolling feed |
-| ID-only retrieval loss | Retrieval Persistence | Purge/cache eviction tests for tagged/bookmarked/saved items |
-| Podcast controls stale cache | Podcast Controls Data Model | optionsHash reuse/invalidation tests |
-| Podcast generation races | Podcast Generation Reliability | Rapid regenerate stale-result test |
-| Ethical cues nag | Ethical Engagement Foundation | Cue frequency/snooze tests and copy review |
-| Always-mounted stale state | Cross-Cutting Event/Resync | `[location.pathname]` source-reading tests per screen |
-| Prompt stability regression | Retrieval Ask Integration | Extend Phase 35 prompt-stability tests |
-| Privacy boundary drift | Privacy/Context Boundary Gate | Provider payload exclusion tests |
+| Pushy shop mechanics (FOMO, grind, loot boxes) | Shop Data Model + Privacy Guardrail Extension | Guardrail test asserts no countdown/rotation/rarity/loot fields; coin earn rate and price balance reviewed by operator |
+| Double-spend on purchase | Shop Service Foundation | Purchase test with simulated mid-write suspension; balance + ownership verified in single key |
+| Cosmetic lost after Clear-All-Data | Shop Service Foundation | Test: clear all data, call `cosmeticsService.resolveEquipped()`, assert returns valid default |
+| Theme breaks Header positioning | Theme CSS Architecture | Theme validation test: no forbidden properties; Android WebView Header regression test |
+| Equipped theme not propagating to always-mounted screens | Shop-to-Screen Integration | Navigation test: equip in shop → navigate to PlannerScreen → assert new theme class on root |
+| Pet animation jank on Android | Cosmetics Rendering Architecture | PlannerScreen perf test: 20 leaves + pet animation; gate logic coverage in `trellis-perf-mask.ts` |
+| Pet wrapper is Header ancestor via `transform` | Cosmetics Rendering Architecture | Render-tree audit before shipping any pet; Header position test on Android |
+| Balance desync on always-mounted screens | Shop Service + CREDITS_CHANGED event | Source-reading test: PlannerScreen subscribes to `CREDITS_CHANGED`; balance matches after purchase |
+| Missing locale bundles | First Shop UI Phase | `bundle-parity.test.mjs` must pass in CI |
+| Boot FOUC for purchased themes | Theme CSS Architecture | Cold-start test on Android: no frame with default theme visible before purchased theme |
+| localStorage quota exceeded | Shop Data Model | Size budget test: owned cosmetics record stays under 5 KB regardless of catalog size |
+
+---
 
 ## Sources
 
-**Project sources (HIGH confidence):**
-- `.planning/PROJECT.md` — v1.6 goal, filter-as-ingestion-gate clarification, local-first decisions, prior race/resync lessons.
-- `.planning/STATE.md` — current milestone state and accepted v1.5 baselines.
-- `app/src/services/question-filter.service.ts` — current regex/LLM hybrid filter and broad system-prompt/meta patterns.
-- `app/src/state/useQuestions.ts` — answer persistence, filter patch, corrected event rebroadcast, fire-and-forget classification, byte-stable prompt invariant.
-- `app/src/services/question.service.ts` — localStorage-primary question store, SQLite backup, buildAndSave event emission, fresh read-modify-write race defenses.
-- `app/src/services/canonical-knowledge.service.ts` — classification commit, anchor/cluster structure, reorg snapshot/reconciliation, projection helpers.
-- `app/src/screens/GraphScreen.tsx` — Mind Elixir projection layer, `editable: false`, event reloads, Android drag layer constraints.
-- `app/src/services/graph.service.ts` — existing direct `moveToParent`/edge helpers and their limited patch behavior.
-- `app/src/services/podcast.service.ts` and `app/src/state/usePodcast.ts` — one-podcast-per-date cache, IndexedDB audio storage, async generation events.
-- `app/src/screens/PodcastScreen.tsx` — current podcast UI, concept insertion, regenerate path.
-- `app/src/screens/SavedScreen.tsx`, `app/src/services/engagement.service.ts`, `app/src/services/post-history.service.ts` — Saved/Liked/History retrieval foundation and ID-to-history resolution.
-- `app/src/services/settings.service.ts`, `app/src/services/legacy-migration.service.ts`, `app/src/services/db.service.ts` — settings schema, Trellis key migration, SQLite/localStorage split.
-- Existing regression tests under `app/tests/` for prompt stability, engagement anti-wire, GraphScreen performance layer, SavedScreen, Force-New-Day, and canonical knowledge classification.
+**Codebase sources (HIGH confidence):**
+- `app/src/services/trellis-credits.service.ts` — Current non-atomic read-modify-write for credits; quote source for Pitfall 2.
+- `app/src/lib/theme.ts` + `app/src/App.tsx:342-364` — `applyTheme` runs in `useEffect`; `document.documentElement.classList.toggle`; Pitfalls 5 and 10.
+- `app/src/index.css:486-493` — Load-bearing comment "Opacity-only — DO NOT add transform here. The wrapper that runs this animation hosts position:fixed Header descendants"; Pitfalls 4 and 7.
+- `app/src/components/trellis/TrellisCanvas.tsx` — `AMBIENT_SWAY_THRESHOLD = 20`, framer-motion leaf animations; Pitfall 6.
+- `app/src/services/trellis-perf-mask.ts` — `TAP_ANIMATION_THRESHOLD = 30`, `leafAnimationMask`; Pitfall 6.
+- `app/src/screens/settings/SettingsDataScreen.tsx:52-71` — Clear-All-Data removes all `trellis_` keys except `trellis_settings`; Pitfall 3.
+- `app/src/screens/HomeScreen.tsx:655,670,756-759` — `creditAwardedRef`, resync effect pattern, `trellisCreditsService.add`; Pitfall 8.
+- `app/src/screens/PlannerScreen.tsx:38` — `useState(() => trellisCreditsService.getTotal())` stale initializer; Pitfall 8.
+- `app/src/components/trellis/TrellisStatusPanel.tsx:46-53` — `handleHarvest` non-atomic add + event emit; Pitfall 2 analogue.
+- `app/src/types/index.ts:728-794` — `AppEvent` union; confirms no `CREDITS_CHANGED` or `COSMETICS_CHANGED` event exists yet; Pitfall 8.
+- `CLAUDE.md` — "Header positioning Phase 32.1 load-bearing" (Pitfalls 4, 7); "Always-mounted screens must explicitly re-read service state" (Pitfalls 5, 8); "No-refresh assumption" (Pitfalls 5, 8); "i18n Workflow" (Pitfall 9); "bundle-parity.test.mjs" (Pitfall 9).
+- `~/.claude/projects/-Users-Code-EchoLearn/memory/MEMORY.md` — `feedback_no_pushy_engagement_mechanics.md` (Pitfall 1); `feedback_no_refresh_assumption.md` (Pitfalls 5, 8).
 
-**External sources (MEDIUM-HIGH confidence):**
-- MDN Web Storage API: `localStorage`/`sessionStorage` are synchronous and can block JS; IndexedDB is recommended for larger/performance-sensitive data. https://developer.mozilla.org/en-US/docs/Web/API/Web_Storage_API
-- MDN Storage quotas and eviction criteria: Web Storage is limited to about 10 MiB per origin and throws `QuotaExceededError` at limit. https://developer.mozilla.org/en-US/docs/Web/API/Storage_API/Storage_quotas_and_eviction_criteria
-- MDN IndexedDB API: IndexedDB is a transactional object database for keyed structured-clone objects. https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API
-- React docs, Synchronizing with Effects: Effects need cleanup for subscriptions/async work and Strict Mode remounts stress-test cleanup. https://react.dev/learn/synchronizing-with-effects
-- Mind Elixir API docs: options include `editable`, `draggable`, `contextMenu`, and methods include edit/move/data APIs; Trellis must treat these as view-layer inputs unless mapped to canonical commands. https://docs.mind-elixir.com/docs/api/mind-elixir.options and https://docs.mind-elixir.com/docs/api/mind-elixir.methods
-- W3C Ethical Web Principles: emphasizes privacy, verification, user control, and avoiding manipulative/addictive patterns. https://www.w3.org/TR/ethical-web-principles/
+**External sources (MEDIUM confidence):**
+- [darkpattern.games — Artificial Scarcity](https://www.darkpattern.games/pattern/27/artificial-scarcity.html) — Documents countdown timers, fake stock, rotating shops as artificial scarcity; Pitfall 1.
+- [ACM fines Epic for targeting children (Stibbe)](https://www.stibbe.com/publications-and-insights/game-over-for-dark-patterns-acm-fines-epic-for-unfairly-targeting) — Regulatory action on cosmetic shop FOMO mechanics including limited-time countdowns; Pitfall 1.
+- [Ultimate Guide to Animation Performance in Capacitor Apps (Capgo)](https://capgo.app/blog/ultimate-guide-to-animation-performance-in-capacitor-apps/) — WebView overhead per frame, `will-change` overuse overhead, opacity/transform as safe GPU-accelerated properties, continuous animation battery drain; Pitfalls 6 and 7.
+- [Improving CSS performance of Cordova/Capacitor apps (blog.hao.dev)](https://blog.hao.dev/improving-css-performance-of-cordova-apps-on-android-tvs/) — composite layer limits, translateZ(0) forcing composite layers, memory pressure on mobile GPU; Pitfall 7.
+- [MDN Web Storage API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Storage_API) — localStorage is synchronous, can block JS; Pitfall 11.
+- [MDN Storage quotas and eviction criteria](https://developer.mozilla.org/en-US/docs/Web/API/Storage_API/Storage_quotas_and_eviction_criteria) — ~10 MiB per origin limit, `QuotaExceededError`; Pitfall 11.
+- [localStorage lost on Capacitor reboot — ionic-team/capacitor issue #636](https://github.com/ionic-team/capacitor/issues/636) — Confirms abrupt process death can leave localStorage in partial-write state; Pitfall 2.
 
 ---
-*Pitfalls research for: Trellis v1.6 Control, Graph Trust, Retrieval, Podcast Controls, and Ethical Engagement*
-*Researched: 2026-05-13*
+*Pitfalls research for: Trellis v1.7 cosmetic rewards shop, dynamic theming, and animated companion/garden cosmetics on local-first Capacitor mobile app*
+*Researched: 2026-05-20*
