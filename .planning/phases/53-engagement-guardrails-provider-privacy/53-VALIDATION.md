@@ -1,8 +1,8 @@
 ---
 phase: 53
 slug: engagement-guardrails-provider-privacy
-status: draft
-nyquist_compliant: false
+status: planned
+nyquist_compliant: true
 wave_0_complete: false
 created: 2026-05-20
 ---
@@ -38,24 +38,24 @@ created: 2026-05-20
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| TBD | TBD | 0 | — | — | in-memory localStorage shim for goldens (leaf-safe) | helper | n/a (support file) | ❌ W0 | ⬜ pending |
-| TBD | TBD | 1 | PRIVACY-01 | T-53-01 | TTS payload (`input`) excludes tags/saved/liked/journal sentinels | golden (fetch-stub) | `node --test tests/providers/privacy-payload-tts.test.mjs` | ❌ W0 | ⬜ pending |
-| TBD | TBD | 1 | PRIVACY-01 | T-53-01 | LLM payload (`messages[].content`) excludes private sentinels across openAI/claude/gemini | golden (fetch-stub) | `node --test tests/providers/privacy-payload-llm.test.mjs` | ❌ W0 | ⬜ pending |
-| TBD | TBD | 1 | PRIVACY-01 | T-53-02 | provider chokepoints + prompt call-sites do not read private svcs; reorg = documented scoped exception | structural source-read | `node --test tests/providers/privacy-callsite-structural.test.mjs` | ❌ W0 | ⬜ pending |
-| TBD | TBD | 1 | LEARN-04 | T-53-03 | no streak/leaderboard/stop-cue/mandated-goal/public-like construct in `src/`; hidden `liked` signal allowed | negative-invariant source-read | `node --test tests/learn-04-no-pushy-mechanics.test.mjs` | ❌ W0 | ⬜ pending |
+| 53-01-T1 | 53-01 | 1 | PRIVACY-01 | T-53-01 | in-memory localStorage shim for goldens (leaf-safe) | helper | n/a (support file; `node -e` roundtrip) | ❌ pending | ⬜ pending |
+| 53-03-T1 | 53-03 | 1 | PRIVACY-01 | T-53-02 | provider chokepoints + prompt call-sites do not read private svcs; reorg = documented scoped exception | structural source-read | `node --test tests/providers/privacy-callsite-structural.test.mjs` | ❌ pending | ⬜ pending |
+| 53-03-T2 | 53-03 | 1 | LEARN-04 | T-53-03 | no streak/leaderboard/stop-cue/mandated-goal/public-like construct in `src/`; hidden `liked` signal allowed | negative-invariant source-read | `node --test tests/learn-04-no-pushy-mechanics.test.mjs` | ❌ pending | ⬜ pending |
+| 53-02-T1 | 53-02 | 2 | PRIVACY-01 | T-53-01 | TTS payload (`input`) excludes tags/saved/liked/journal sentinels | golden (fetch-stub) | `node --test tests/providers/privacy-payload-tts.test.mjs` | ❌ pending | ⬜ pending |
+| 53-02-T2 | 53-02 | 2 | PRIVACY-01 | T-53-01 | LLM payload (`messages[].content`) excludes private sentinels across openAI/claude/gemini | golden (fetch-stub) | `node --test tests/providers/privacy-payload-llm.test.mjs` | ❌ pending | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
-*Task IDs are filled in by the planner once PLAN.md files exist.*
+*Wave 1: 53-01 (shim) + 53-03 (source-read guards, no runtime dependency) run together. Wave 2: 53-02 goldens depend on the 53-01 shim.*
 
 ---
 
 ## Wave 0 Requirements
 
-- [ ] `tests/providers/privacy-payload-tts.test.mjs` — TTS golden (PRIVACY-01)
-- [ ] `tests/providers/privacy-payload-llm.test.mjs` — LLM golden, 3 cloud providers (PRIVACY-01)
-- [ ] `tests/providers/privacy-callsite-structural.test.mjs` — structural assertion incl. the reorg scoped exception (PRIVACY-01)
-- [ ] `tests/learn-04-no-pushy-mechanics.test.mjs` — negative-invariant guard (LEARN-04)
-- [ ] Tiny in-memory `Map`-backed `localStorage` shim for goldens (private services call `localStorage`; `node --test` has no DOM). Reuse an existing test helper if present; keep leaf-safe.
+- [ ] `app/tests/helpers/memory-localstorage.mjs` — leaf-safe Map-backed localStorage shim (Plan 53-01)
+- [ ] `tests/providers/privacy-payload-tts.test.mjs` — TTS golden (PRIVACY-01) (Plan 53-02)
+- [ ] `tests/providers/privacy-payload-llm.test.mjs` — LLM golden, 3 cloud providers (PRIVACY-01) (Plan 53-02)
+- [ ] `tests/providers/privacy-callsite-structural.test.mjs` — structural assertion incl. the reorg scoped exception (PRIVACY-01) (Plan 53-03)
+- [ ] `tests/learn-04-no-pushy-mechanics.test.mjs` — negative-invariant guard (LEARN-04) (Plan 53-03)
 - Framework install: none needed.
 
 ---
@@ -70,11 +70,11 @@ created: 2026-05-20
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 30s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 30s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** planned

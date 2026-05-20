@@ -199,7 +199,12 @@ Plans:
   1. Provider-bound LLM and TTS payload tests confirm tags, saved/liked/history, and graph correction logs are excluded from outbound provider requests by default.
   2. A guardrail test asserts the codebase introduces no public likes, leaderboards, streak pressure, stop-cue interstitials, mandated daily goals, or engagement-maximizing loops.
 
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 53-01-PLAN.md — Wave 1: leaf-safe in-memory localStorage shim helper for privacy goldens (PRIVACY-01)
+- [ ] 53-03-PLAN.md — Wave 1: structural call-site assertion (reorg scoped exception) + LEARN-04 non-pushy negative-invariant guard (PRIVACY-01, LEARN-04)
+- [ ] 53-02-PLAN.md — Wave 2: TTS + LLM payload privacy goldens across openAI/claude/gemini (PRIVACY-01)
 **UI hint**: no
 
 > **Rescoped 2026-05-20.** Was "Engagement Guardrails + Provider Privacy" with LEARN-01/02/03 (mandated goal, stop cue, forced reflection prompts). The operator rejected that premise: Trellis reviews are reward-based, never pushy, and the existing opt-in loop already answers the engagement-vs-learning question. Those three requirements moved to Out of Scope in REQUIREMENTS.md. PRIVACY-01 narrowed to the private fields that exist today (no goal/reflection fields to protect).
