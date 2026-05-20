@@ -194,6 +194,14 @@ export const podcastService = {
 
     const id = existing?.id ?? newPodcastId();
 
+    // Phase 52-04 GAP-4 (close the hash loop): questionIds on BOTH the generating
+    // shell (here) and the completed object below MUST be the SAME conceptIdList,
+    // and optionsHash MUST be computed over that same list. The screen's
+    // currentHash is computed over selected.questionIds, so this is what lets a
+    // freshly generated, unchanged-chip podcast reconcile to isDirty===false.
+    // Note: the generating shell intentionally does NOT carry optionsHash — a
+    // mid-flight podcast must not report a hash (optionsHash is set only on the
+    // completed object below). Do not refactor these apart.
     const pod: DailyPodcast = {
       id,
       date,

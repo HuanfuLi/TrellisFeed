@@ -13,7 +13,12 @@ import { toast } from '../lib/toast';
 import { questionService } from '../services/question.service';
 import { podcastService } from '../services/podcast.service';
 import { settingsService } from '../services/settings.service';
-import { computeOptionsHash } from '../services/podcast-prompt';
+import {
+  deriveSelectedPodcast,
+  isEmptyStateVisible,
+  isPlayerVisible,
+  computeCurrentHashForSelected,
+} from '../services/podcast-view-model';
 import { getCurrentLocale } from '../lib/i18n-leaf';
 import { parseMoveNavigationState } from '../lib/moveNavigator';
 import { eventBus } from '../lib/event-bus';
@@ -101,24 +106,32 @@ export function PodcastScreen() {
   }, [podcasts, conceptFilter]);
 
   const todayPodcast = getPodcastForDate(today());
-  const selected: DailyPodcast | null = selectedId
-    ? (podcasts.find((p) => p.id === selectedId) ?? null)
-    : (todayPodcast ?? podcasts[0] ?? null);
+  // Phase 52-04 GAP-3/GAP-4: derive the player's podcast via the leaf module.
+  // NO podcasts[0] fallback — the main player only shows TODAY's podcast; old
+  // podcasts are reached via the History sub-view (which sets selectedId on tap).
+  const selected: DailyPodcast | null = deriveSelectedPodcast({ selectedId, podcasts, todayPodcast });
 
   // Phase 52 D-04: dirty-state derivation. The cached podcast carries the
   // optionsHash it was generated with; we recompute the hash for the current
   // chip selection and locale and surface a Regenerate CTA when they diverge.
   const todayConceptIds = useMemo(() => todayConcepts.map((c) => c.id), [todayConcepts]);
   const cachedHash = selected?.optionsHash;
+  // Phase 52-04 GAP-4: hash over the SERVICE-resolved id list stored on the
+  // completed podcast (selected.questionIds), NOT the screen's divergent
+  // todayConceptIds. The service computes optionsHash over the same list it
+  // writes to questionIds, so a freshly generated, unchanged-chip podcast
+  // reconciles to isDirty===false (no phantom permanent Regenerate CTA).
+  const selectedQuestionIdsKey = (selected?.questionIds ?? []).join(',');
   const currentHash = useMemo(() => {
-    return computeOptionsHash(todayConceptIds, getCurrentLocale() as SupportedLocale, {
+    return computeCurrentHashForSelected(selected, getCurrentLocale() as SupportedLocale, {
       length: selectedLength,
       style: selectedStyle,
     });
-    // Re-derive when the underlying concept set or the chip selection changes.
-    // We stringify ids to keep the memo stable when membership is unchanged.
+    // Re-derive when the selected podcast's concept set or the chip selection
+    // changes. We stringify ids to keep the memo stable when membership is
+    // unchanged.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [todayConceptIds.join(','), selectedLength, selectedStyle]);
+  }, [selectedQuestionIdsKey, selectedLength, selectedStyle]);
   const isDirty = !!cachedHash && cachedHash !== currentHash;
 
   // Load concepts for Knowledge Today — always live SM-2 due list + Planner additions
@@ -151,6 +164,23 @@ export function PodcastScreen() {
     const unsub = eventBus.subscribe('QUESTION_ASKED', () => { void loadConcepts(); });
     return unsub;
   }, [loadConcepts]);
+
+  // Phase 52-04 GAP-4 deterministic select-on-generate. When a generation
+  // completes for TODAY, bind the player to the just-generated podcast id so
+  // the audio-wiring effect re-runs with selected.id === the new id and
+  // getAudioPath(selected.id) returns the fresh blob (play no longer hits the
+  // !audio early-return). Reuses the existing PODCAST_GENERATION_COMPLETED
+  // signal — no new event type (CLAUDE.md one-signal-per-event). This is the
+  // CLAUDE.md no-refresh reactive re-read: the screen can be foregrounded while
+  // generation finishes, so it must re-bind from the event, not a remount.
+  useEffect(() => {
+    const unsub = eventBus.subscribe('PODCAST_GENERATION_COMPLETED', (e) => {
+      if (e.payload.date === today()) {
+        setSelectedId(e.payload.id);
+      }
+    });
+    return unsub;
+  }, []);
 
   // Handle incoming concept insertion from Planner
   useEffect(() => {
@@ -560,7 +590,7 @@ export function PodcastScreen() {
           and also above the player when a ready podcast exists so the user
           can change options before tapping the Regenerate CTA. Inline styles
           with CSS variables (CLAUDE.md Style Conventions). */}
-      {(!todayPodcast || todayPodcast.status === 'pending' || todayPodcast.status === 'failed' || (selected && selected.status === 'ready')) && (
+      {(isEmptyStateVisible({ todayPodcast }) || isPlayerVisible({ selected })) && (
         <Card style={{ marginBottom: '16px' }}>
           <div style={{ marginBottom: '12px' }}>
             <p style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
@@ -624,7 +654,7 @@ export function PodcastScreen() {
       )}
 
       {/* Selected Podcast Player */}
-      {selected && selected.status === 'ready' && (
+      {isPlayerVisible({ selected }) && selected && (
         <Card style={{ marginBottom: '24px', background: 'linear-gradient(135deg, var(--primary-90), var(--secondary-container))' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '12px' }}>
             <div>
@@ -770,7 +800,7 @@ export function PodcastScreen() {
       )}
 
       {/* Generate Today's Podcast */}
-      {(!todayPodcast || todayPodcast.status === 'pending' || todayPodcast.status === 'failed') && (
+      {isEmptyStateVisible({ todayPodcast }) && (
         <Card style={{ marginBottom: '24px', textAlign: 'center' }}>
           <Radio size={32} color="var(--primary-40)" style={{ margin: '0 auto 12px' }} />
           <h4 style={{ marginBottom: '8px' }}>
