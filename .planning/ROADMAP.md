@@ -204,8 +204,8 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 53-01-PLAN.md — Wave 1: leaf-safe in-memory localStorage shim helper for privacy goldens (PRIVACY-01)
-- [ ] 53-03-PLAN.md — Wave 1: structural call-site assertion (reorg scoped exception) + LEARN-04 non-pushy negative-invariant guard (PRIVACY-01, LEARN-04)
+- [x] 53-01-PLAN.md — Wave 1: leaf-safe in-memory localStorage shim helper for privacy goldens (PRIVACY-01)
+- [x] 53-03-PLAN.md — Wave 1: structural call-site assertion (reorg scoped exception) + LEARN-04 non-pushy negative-invariant guard (PRIVACY-01, LEARN-04)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -258,7 +258,7 @@ Phases execute in numeric order: 47 → 48 → 49 → 50 → 51 → 52 → 53
 | 50. Retrieval and Library Foundation | 13/13 | Complete   | 2026-05-18 |
 | 51. Concept Dashboard and Recovery Surfaces | 1/1 | Complete    | 2026-05-19 |
 | 52. Podcast Quality Defaults and Learner Controls | 6/6 | Complete   | 2026-05-20 |
-| 53. Provider Privacy + Non-Pushy Guardrail | TBD | Not started | - |
+| 53. Provider Privacy + Non-Pushy Guardrail | 2/3 | In Progress|  |
 
 ---
 *Roadmap created: 2026-05-13*
