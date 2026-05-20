@@ -115,9 +115,57 @@ Living document. Each milestone close-out appends a new section before "Cross-Mi
 
 ---
 
+## Milestone: v1.6 — Control, Graph Trust, Retrieval, and Ethical Engagement
+
+**Shipped:** 2026-05-20
+**Phases:** 7 (47-53) | **Plans:** 39 plan files / 39 summary files / 72 tasks
+
+### What Was Built
+
+- Filter redesign: regex pattern library replaced with a hybrid narrow-regex + dual-vector embedding classifier behind a pre-LLM gate, plus structural input bracketing.
+- Graph command service (seven verbs, mutex-serialized, journaled, one typed `GRAPH_UPDATED` per mutation) and a gesture-driven correction UI with preview/confirm and persistent Undo.
+- Retrieval + library (collections, saved/liked/history, debounced search) and concept dashboard / recovery surfaces reading the live canonical graph.
+- Podcast quality defaults with bounded length × style controls, options-hash caching, and TTS safety fallback.
+- Provider-privacy payload goldens + a non-pushy-engagement negative-invariant guard (test-only phase).
+
+### What Worked
+
+- The leaf-module + source-reading test patterns scaled cleanly into a new domain: Phase 53 enforced both a runtime payload boundary (fetch-stub goldens) and a structural call-site assertion with zero source changes.
+- The verifier's mutation-testing habit (inject a leak → confirm red → restore) gave high confidence the guards are non-vacuous, not green-by-accident.
+- Catching the operator's design objection early in Phase 53 discuss-phase prevented building coercive engagement mechanics (mandated goals/stop-cues/reflection) that conflicted with the product's reward-based stance — a rescope, not rework after the fact.
+- Worktree-isolated parallel execution with central merge + post-merge full-suite gate kept the 1471-test suite green across every wave.
+
+### What Was Inefficient
+
+- Three phases (49, 50, 52) reached the milestone audit with verification paper-trail gaps — 49 had no VERIFICATION.md (UAT-only), 50 was stuck at `human_needed`, 52's VALIDATION.md was a stale draft. Functionally complete, but the audit had to spawn three reconciliation agents to close the records.
+- Phase 50 again needed a large UAT-driven gap-closure tail (13 plans), echoing v1.5's Phase 43.
+- The `milestone complete` CLI again produced a noisy auto-extracted accomplishment list (per-plan fragments incl. review-fix lines), requiring a full manual rewrite of the MILESTONES.md entry — same class of issue as v1.4/v1.5.
+
+### Patterns Established
+
+- **Provider-boundary privacy goldens**: seed sentinels into live storage keys, stub fetch, assert the captured request body excludes them — a reusable shape for any "private data must not leave the device" guarantee.
+- **Documented scoped exceptions in structural guards**: an allowlist (e.g. `reorganizeMindmap` reads the graph-edit journal) keeps a negative-invariant test honest without weakening it everywhere.
+- **Discuss-phase as a design gate**: surfacing a premise conflict to the operator and rescoping before planning, rather than after execution.
+
+### Key Lessons
+
+1. Verification records should be advanced to their terminal state when a UAT closes the human items — otherwise `human_needed`/missing VERIFICATION.md silently accrues and surfaces only at milestone audit.
+2. A passing phase verifier does not imply a finalized VALIDATION.md; the Nyquist record needs its own post-execution reconcile.
+3. Single-file `tsc` checks can produce false errors out of project context (the Phase 49 verifier's SavedScreen.tsx claim) — always confirm against a project-level `tsc -b --noEmit`.
+4. CLI-generated milestone summaries remain unreliable; budget for a manual rewrite at every close.
+
+### Cost Observations
+
+- Model mix: Opus planning/execution + Sonnet verification/integration/nyquist (per config).
+- Sessions: high — 7 phases plus a milestone audit that fanned out to integration + 3 reconciliation agents.
+- Notable: the test-only Phase 53 was cheap to execute but high-leverage — it converted a privacy/ethics design stance into durable regression guards.
+
+---
+
 ## Cross-Milestone Trends
 
-- **Leaf modules are now a standing architecture pattern.** v1.4 discovered the pattern for testability; v1.5 applied it systematically to i18n, source diversity, and news metadata mapping.
-- **Source-reading tests are powerful but need maintenance.** They caught load-bearing invariants across v1.4/v1.5, but helper extraction and import-shape changes require paired test updates.
-- **UAT finds interaction bugs that unit tests miss.** v1.4 Force-New-Day and v1.5 engagement/masonry flows both needed human-visible retest loops.
-- **Archive tooling needs verification.** Both v1.4 and v1.5 close-outs required manual review/repair of CLI-generated milestone summaries.
+- **Leaf modules are now a standing architecture pattern.** v1.4 discovered it for testability; v1.5 applied it to i18n/source-diversity/news metadata; v1.6 extended it to filter classification, podcast view-models, and privacy goldens.
+- **Source-reading + structural tests are powerful but need maintenance.** They caught load-bearing invariants across v1.4–v1.6; helper extraction and import-shape changes require paired test updates.
+- **UAT finds interaction bugs that unit tests miss.** v1.4 Force-New-Day, v1.5 engagement/masonry, and v1.6 graph-correction/retrieval flows all needed human-visible retest loops.
+- **Verification paper-trail drifts from functional reality.** v1.5 left stale Nyquist metadata (38/40/41); v1.6 left three phases (49/50/52) with missing/stale verification records despite passing UATs — reconcile records when UATs close, not at milestone audit.
+- **Archive tooling needs verification.** v1.4, v1.5, and v1.6 close-outs all required manual review/repair of CLI-generated milestone summaries.

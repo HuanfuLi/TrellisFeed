@@ -12,41 +12,33 @@ The platform prioritizes a high-quality, native-first mobile experience built wi
 
 Enable learners to transform fragmented information into structured knowledge through AI-driven Q&A, visual mapping, and adaptive spaced repetition — all while maintaining complete local-first privacy.
 
-## Current State: v1.5 Shipped
+## Current State: v1.6 Shipped
 
-v1.5 Curiosity Feed v2 + Tech-Debt Hardening shipped on 2026-05-13. The milestone delivered Pinterest-style masonry feed, richer essays, source diversity, citation rendering, local-first engagement signals, v1.4 carry-over cleanup, dependency/version hardening, code-quality evidence, and Phase 46's CONTENT-03 queued-news prefetch multi-source closure.
+v1.6 Control, Graph Trust, Retrieval, and Ethical Engagement shipped on 2026-05-20. The milestone turned Trellis from a compelling learning feed into a more trustworthy, learner-controlled system: a redesigned off-topic/malicious-prompt filter (pre-LLM gate), a validated graph command service with a correction UI, retrieval/library/concept-dashboard recovery surfaces, podcast quality defaults + learner controls, and a provider-privacy boundary backed by a non-pushy-engagement guardrail.
 
-Audit status: `tech_debt` — all 21 active v1.5 requirements satisfied and integration passed. Accepted non-blocking debt: stale `tests/concept-feed.test.mjs` `buildFallbackPosts` contract, known lint/build/audit baselines, and partial validation metadata for phases 38/40/41.
+Audit status: `passed` — 23/23 requirements satisfied, cross-phase integration 6/6 WIRED, full suite green (1471 tests), `tsc` clean. (Initial audit was `tech_debt` over three verification paper-trail gaps in phases 49/50/52; all reconciled the same day.)
 
-## Current Milestone: v1.6 Control, Graph Trust, Retrieval, and Ethical Engagement
+## Current Milestone: None
 
-**Goal:** Turn Trellis from a compelling learning feed into a more trustworthy learner-controlled system: a redesigned filter that keeps malicious and off-topic prompts out, correctable graph structure, recoverable retrieval, higher-quality podcasts, and ethical engagement guardrails.
+No milestone is currently in progress. Run `/gsd:new-milestone` to scope the next one (questioning → research → requirements → roadmap). `.planning/REQUIREMENTS.md` is intentionally absent until the next milestone defines fresh requirements.
 
-**Target features (7 phases, 26 requirements):**
-- **Phase 47 (filter redesign):** Replace the regex-based off-topic classifier with a more robust strategy (LLM-only / embedding-similarity / hybrid — chosen during phase research). Pre-LLM gate that blocks malicious prompts from the LLM request entirely. Structural prompt-injection bracketing at the provider boundary as defense in depth. Held-out eval set; per-question override.
-- **Phases 48–49 (graph trust + correction UI):** Validated graph command service (rename, move, merge, detach, prune/delete, undo); selected-node correction controls in GraphScreen with preview/confirm.
-- **Phases 50–51 (retrieval + concept dashboards):** Bounded archive search; local-first tags/bookmarks; per-concept dashboard joining Q&A, archive, review, podcast, tag, weak/due signals.
-- **Phase 52 (podcast):** Better educational defaults; bounded length/style controls; option identity in cache; TTS safety checks.
-- **Phase 53 (engagement + privacy):** Daily learning goals, stop cues, sparse reflection prompts, cue snooze/disable; provider payload sanitizer ships with the new private fields it protects.
-
-**Key context:** v1.6 answers 5 questions a professor asked after a Trellis demo. **Three are product features** (Q3 podcast controls, Q4 engagement vs learning, Q5 retrieval). **Two are mixed:** Q1 (mind-map generation) splits into a private-answer half (how it's generated — explained to the professor in writeup, NOT a user-facing pipeline-transparency feature) and a product-feature half (edit/correct). Q2 (filter) splits into a private-answer half (the regex approach is brittle — diagnosis explained to the professor) and a product-feature half (filter redesign).
-
-**Explicit non-goals:**
-- No user-facing mind-map generation transparency. Generation is explained privately, not surfaced in product.
-- No four-state ingestion triage UI. The two failure modes (small-talk false-negatives, legitimate-LLM-question false-positives) are precision/recall problems on the existing classifier, not missing categories.
-- No regex tuning of the existing pattern library. v1.6 replaces the classifier approach.
-- No foundation phase. The original milestone draft included one (FOUND-01..05); the 2026-05-15 overhaul dissolved it — optional `?:` fields don't need migration scaffolding, events already carry needed payloads, and the sanitizer ships with the fields it protects (Phase 53).
-- No separate "learning metrics" tracking system. Professor Q4 asked about engagement-vs-learning *balance*, not a metrics dashboard.
+**Carried-forward deferred items (from v1.6 close):** 2 debug sessions (`feed-not-auto-populating-after-force-new-day`, `vine-chip-not-clearing-after-force-new-day`) + 2 todos (cosine-similarity threshold cache-miss, auto-gen podcast device verification). See STATE.md Deferred Items.
 
 ## Active Requirements
 
-v1.6 requirements are being defined in `.planning/REQUIREMENTS.md`.
+None — between milestones. Defined per-milestone in `.planning/REQUIREMENTS.md`.
 
 ## Validated Requirements
 
-### v1.6 (in progress)
+### v1.6
 
-- RETRIEVE-03, RETRIEVE-04 — concept-level home (AnchorDetailScreen) joins local learning artifacts via thin enrichment and routes them toward recovery/review/retrieval. Validated in Phase 51.
+- FILTER-01..05 — regex filter replaced with hybrid narrow-regex + dual-vector embedding classifier; pre-LLM gate blocks malicious prompts before any provider call; structural input bracketing as defense in depth. Validated in Phase 47.
+- GRAPH-01..04 — seven-verb graph command service with edit journal, unified `GRAPH_UPDATED`, and reorg-prompt correction-preservation. Validated in Phase 48.
+- GRAPHUI-01..03 — gesture-driven graph correction UI with preview/confirm for high-impact actions, persistent Undo, and reload-survival. Validated in Phase 49 (via UAT + reconciled VERIFICATION).
+- RETRIEVE-01, RETRIEVE-02 — local-first collections, saved/liked/history, and debounced search over the canonical graph. Validated in Phase 50.
+- RETRIEVE-03, RETRIEVE-04 — concept-level home (AnchorDetailScreen) joins local learning artifacts via thin enrichment toward recovery/review/retrieval. Validated in Phase 51.
+- PODCAST-01..05 — bounded length × style controls, educational defaults, options-hash caching, TTS-model safety fallback. Validated in Phase 52.
+- LEARN-04, PRIVACY-01 — payload goldens prove private fields stay out of LLM/TTS bodies; guardrail test codifies the no-streaks/likes/leaderboards/stop-cues stance. Validated in Phase 53.
 
 ### v1.5
 
@@ -62,6 +54,8 @@ v1.6 requirements are being defined in `.planning/REQUIREMENTS.md`.
 - **v1.2** — phases 10-19 (Planner auto-suggestions, knowledge graph classification, token optimization, feed expansion, web search)
 - **v1.3 (pre-release)** — phases 20-27 (orchestration, streaming, swipe nav, incremental classification, Trellis, harvest actions, i18n/L10n)
 - **v1.4** — phases 28-36 (UI/UX polish + curiosity feed redesign + Ask-chat KV-cache prefix preservation + concept feed pipeline gap closure + EchoLearn → Trellis rebrand) — see `.planning/milestones/v1.4-MILESTONE-AUDIT.md`
+- **v1.5** — phases 37-46 (Curiosity Feed v2 masonry + engagement signals + essay/content pipeline hardening + dependency/code-quality sweep) — see `.planning/milestones/v1.5-MILESTONE-AUDIT.md`
+- **v1.6** — phases 47-53 (filter redesign + graph command service & correction UI + retrieval/library/concept-dashboard + podcast quality controls + provider privacy & non-pushy guardrail) — see `.planning/milestones/v1.6-MILESTONE-AUDIT.md`
 
 ## Key Decisions
 
@@ -74,6 +68,10 @@ v1.6 requirements are being defined in `.planning/REQUIREMENTS.md`.
 - **Always-mounted screen state-resync principle (v1.4 / Phase 36-14):** SwipeTabContainer mounts all 5 first-level screens once at boot; any screen reading from a service whose state can change while another screen is in foreground MUST add a `[location.pathname]` `useEffect` to re-sync on navigation. HomeScreen is the canonical pattern (vine progress + warm-start re-fallback). Documented in CLAUDE.md.
 - **Leaf-module pattern for testability (v1.4 / Phase 36):** Services that pull `src/locales/index.ts` transitively can't load under `node --test` (Vite-only `import.meta.env.DEV`). Pure-logic helpers extracted into leaf modules (`feed-spread.ts`, `refill-mutex.ts`) so tests can exercise behavior without dragging in the i18n chain. Pattern carried to v1.5 for systemic i18n cleanup.
 - **Test runner architecture (v1.4 audit):** `npm test` chains `test:main; test:actions`. The latter registers `_actions-mock-loader.mjs` via `--import` for trellis-actions tests (heavy LLM/SQLite/i18n stubs). Cannot register globally because that breaks `web-search.test.mjs` (needs real settings.service).
+- **Filter is a pre-LLM gate, not a post-hoc flag (v1.6 / Phase 47):** ✓ Good. The classifier runs BEFORE `chatStream`; malicious prompts return a `BLOCKED_MALICIOUS` ServiceResult and never reach the provider or `embedText`. Hybrid narrow-regex (Layer 1) + dual-vector embedding-similarity (Layer 2); no LLM in the classifier path. Malicious is scored against the raw content vector, off/on-topic against the D-11 contextualized vector, to deny buried-payload jailbreaks contextual cover. See CLAUDE.md "Question filter — dual-vector scoring."
+- **Graph mutations go through one command service + one event (v1.6 / Phase 48):** ✓ Good. `graphCommandService` is the sole mutation boundary (rename/move/merge/detach/prune/delete/undo), per-process mutex-serialized, each command writing one journal entry and emitting one typed `GRAPH_UPDATED`. `reorganizeMindmap` reads the journal so the LLM preserves manual corrections (GRAPH-04).
+- **Reward-based, non-pushy engagement is load-bearing design (v1.6 / Phase 53):** ✓ Good. Reviews are reward-based, never mandated — NO streaks, leaderboards, mandated daily goals, stop cues, or public likes. The operator rescoped Phase 53 to drop LEARN-01/02/03 (mandated goal, stop cue, forced reflection) as conflicting with this stance. Codified as a negative-invariant guard test. Hidden `liked` recommendation signal is allowed (not displayed).
+- **Provider privacy is enforced by tests, not a runtime scrubber (v1.6 / Phase 53):** ✓ Good. Payload goldens seed sentinels into the live private storage keys and assert none reach LLM/TTS request bodies; a structural source-read assertion bans private-service reads at provider/prompt call-sites, with `reorganizeMindmap`'s journal read as the one documented scoped exception (concept titles the user explicitly asked to reorganize, not private engagement data).
 
 ## Evolution
 
@@ -149,4 +147,4 @@ _Last updated: 2026-05-19 — Phase 51 complete (RETRIEVE-03 + RETRIEVE-04 via t
 **Phase 46 complete (2026-05-13, verifier 8/8):** v1.5 milestone-audit gap closure closed CONTENT-03 on the queued-news prefetch path. `PreFetchCache.news` now stores filtered top-source arrays, direct and queued-prefetch news paths share `selectNewsTopSources`, and `mapNewsSourcesToNewsMeta` maps up to three sources with stable 1-based indexes before `generateNewsEssay` consumes `sources.slice(0, 3)`. The targeted CONTENT-03 regression passes 17/17 and final build/lint/test evidence is recorded in `46-VERIFY.md`; the only aggregate test caveat remains the known-deferred `tests/concept-feed.test.mjs` `buildFallbackPosts` baseline from Phase 45. Milestone v1.5 is ready for re-audit and archive.
 
 ---
-*Last updated: 2026-05-13 — v1.6 milestone started: Control, Graph Trust, Retrieval, and Ethical Engagement.*
+*Last updated: 2026-05-20 — v1.6 milestone shipped (Control, Graph Trust, Retrieval, and Ethical Engagement; audit passed, 23/23 requirements). Awaiting next milestone.*

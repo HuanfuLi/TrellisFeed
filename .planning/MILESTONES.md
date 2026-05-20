@@ -1,5 +1,37 @@
 # Milestones
 
+## v1.6 Control, Graph Trust, Retrieval, and Ethical Engagement (Shipped: 2026-05-20)
+
+**Timeline:** 2026-05-13 → 2026-05-20 (7 days)
+**Phases:** 7 (47-53)
+**Plans:** 39 plan files / 39 summary files / 72 tasks
+**Git range:** `3d11b5f8..v1.6`
+**Diff:** 537 files / +76,412 / −8,367
+
+**Key accomplishments:**
+
+- **Filter redesigned (Phase 47, FILTER-01..05)** — Replaced the brittle regex pattern library with a hybrid narrow-regex + dual-vector embedding classifier, added a pre-LLM gate that rejects malicious prompts before any provider call (zero tokens), and structural input bracketing as defense in depth.
+- **Graph command service + trust invariants (Phase 48, GRAPH-01..04)** — Seven-verb command boundary (rename/move/merge/detach/prune/delete/undo) with a per-process mutex, an append-only edit journal, exactly-one typed `GRAPH_UPDATED` per mutation, and reorg-prompt injection so the LLM preserves manual corrections.
+- **Graph correction UI (Phase 49, GRAPHUI-01..03)** — iOS-style tap/long-press/drag correction controls in GraphScreen, preview/confirmation for high-impact actions (merge/delete), a persistent journal-derived Undo, and reload-survival of corrections.
+- **Retrieval + library + concept dashboard (Phases 50–51, RETRIEVE-01..04)** — Local-first collections, saved/liked/history, debounced search with highlight, and concept dashboard + recovery surfaces — all reading the same canonical graph the corrections mutate, refreshing on `GRAPH_UPDATED`/`COLLECTIONS_CHANGED`.
+- **Podcast quality defaults + learner controls (Phase 52, PODCAST-01..05)** — Bounded length × style controls with educational defaults, deterministic options-hash caching, TTS-model safety fallback, and 4-locale UI.
+- **Provider privacy + non-pushy guardrail (Phase 53, LEARN-04 + PRIVACY-01)** — Payload goldens proving tags/collections, saved/liked/history, and graph-correction-log data never reach LLM/TTS request bodies, plus a guardrail test codifying the no-streaks/likes/leaderboards/stop-cues stance.
+
+**Audit status:** `passed` — 23/23 requirements satisfied; cross-phase integration 6/6 WIRED; full suite green (1471 tests); `tsc` clean. Initial audit landed as `tech_debt` over three verification paper-trail gaps (phases 49/50/52); all three reconciled the same day (commit `c987a587`).
+
+**Rescope note:** Phase 53 was narrowed from "Engagement Guardrails (LEARN-01..04)" to LEARN-04 + PRIVACY-01 — mandated daily goals, stop cues, and forced reflection prompts were dropped to Out of Scope as conflicting with the reward-based, non-pushy design (26 → 23 requirements).
+
+**Known deferred items at close:** 4 (see STATE.md Deferred Items) — 2 debug sessions + 2 todos from May 7–9, none v1.6 requirement gaps.
+
+**Archive:**
+
+- Roadmap: `.planning/milestones/v1.6-ROADMAP.md`
+- Requirements: `.planning/milestones/v1.6-REQUIREMENTS.md`
+- Audit: `.planning/milestones/v1.6-MILESTONE-AUDIT.md`
+- Phases: `.planning/milestones/v1.6-phases/`
+
+---
+
 ## v1.5 Curiosity Feed v2 + Tech-Debt Hardening (Shipped: 2026-05-13)
 
 **Timeline:** 2026-05-08 → 2026-05-13 (5 days)

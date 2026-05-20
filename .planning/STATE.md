@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: milestone
-status: milestone_complete
-stopped_at: Milestone complete (Phase 53 was final phase)
-last_updated: 2026-05-20T08:34:54.179Z
-last_activity: 2026-05-20 -- Phase 53 execution started
+status: Awaiting next milestone
+stopped_at: Phase 53 rescoped + context gathered
+last_updated: "2026-05-20T09:57:59.936Z"
+last_activity: 2026-05-20 — Milestone v1.6 completed and archived
 progress:
   total_phases: 7
-  completed_phases: 6
+  completed_phases: 7
   total_plans: 39
   completed_plans: 39
-  percent: 86
+  percent: 100
 ---
 
 # Project State: v1.6 ROADMAP OVERHAULED — 2026-05-15
@@ -60,17 +60,10 @@ Plus the earlier 2026-05-15 corrections (during the same session, before the ful
 
 ## Current Position
 
-Phase: 53
-Plan: Not started
-Next: /gsd:plan-phase 51
-Last activity: 2026-05-20
-Prior: Phase 50 (Retrieval + Library Foundation) CLOSED 2026-05-18. 13 plans executed (9 original + 4 gap closures from UAT). RETRIEVE-01..02 addressed. UAT 7/8 pass + 1 skipped + 12/15 gaps fixed (G10 + G11 deferred to Phase 51). secure-phase clean (threats_open: 0). validate-phase clean (score 4/4, status human_needed satisfied via on-device UAT).
-
-Progress: 4 / 7 phases complete
-
-```
-[############################----------------------] 57%
-```
+Phase: Milestone v1.6 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-05-20 — Milestone v1.6 completed and archived
 
 ## Milestone Shape
 
@@ -120,6 +113,17 @@ None recorded for v1.6 yet. The two pre-existing pending todos (cosine similarit
 
 None.
 
+## Deferred Items
+
+Items acknowledged and deferred at v1.6 milestone close on 2026-05-20. None are v1.6 requirement gaps (milestone audit: 23/23 satisfied) — they are older loose threads (May 7–9) carried forward to the next milestone's backlog.
+
+| Category | Item | Status |
+|----------|------|--------|
+| debug | feed-not-auto-populating-after-force-new-day | investigating |
+| debug | vine-chip-not-clearing-after-force-new-day | diagnosed |
+| todo | 2026-05-07-fix-cosine-similarity-threshold-cache-miss | pending |
+| todo | 2026-05-09-inspect-auto-gen-podcast-working-or-not-and-debug | pending |
+
 ## Session Continuity
 
 Last session: 2026-05-20T07:19:58.559Z
@@ -150,3 +154,7 @@ Key Phase 47 artifacts:
 - Verification: `47-VERIFICATION.md`
 - Load-bearing CLAUDE.md sections added: "Question filter — dual-vector scoring (Phase 47 UAT-5)"
 - Critical commits: 47-04 wire-through (`79efe98f`), 47-06 D-06 re-fire (`067cde0a`), UAT-5 dual-vector fix (`122cda59`)
+
+## Operator Next Steps
+
+- Start the next milestone with /gsd-new-milestone
