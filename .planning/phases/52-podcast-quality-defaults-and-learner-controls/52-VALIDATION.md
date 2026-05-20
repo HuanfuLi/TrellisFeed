@@ -1,10 +1,11 @@
 ---
 phase: 52
 slug: podcast-quality-defaults-and-learner-controls
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: verified
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-05-19
+updated: 2026-05-20
 ---
 
 # Phase 52 — Validation Strategy
@@ -38,12 +39,12 @@ created: 2026-05-19
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 52-01-01 | 01 | 0 | PODCAST-01, PODCAST-02 | — | N/A | unit | `cd app && node --test tests/services/podcast-prompt.test.mjs` | ❌ W0 | ⬜ pending |
-| 52-01-02 | 01 | 0 | PODCAST-04 | — | optionsHash deterministic | unit | `cd app && node --test tests/services/podcast-options.test.mjs` | ❌ W0 | ⬜ pending |
-| 52-02-01 | 02 | 1 | PODCAST-03 | — | Cache invalidation on hash mismatch | unit | `cd app && node --test tests/services/podcast-options.test.mjs` | ❌ W0 | ⬜ pending |
-| 52-02-02 | 02 | 1 | PODCAST-05 | — | TTS fallback safe on unsupported model | unit | `cd app && node --test tests/services/podcast-options.test.mjs` | ❌ W0 | ⬜ pending |
-| 52-03-01 | 03 | 2 | PODCAST-02, PODCAST-03 | — | UI option selection persists into generation | unit | `cd app && node --test tests/screens/PodcastScreen.options.test.mjs` | ❌ W0 | ⬜ pending |
-| 52-03-02 | 03 | 2 | PODCAST-02 | — | i18n bundle parity preserved | unit | `cd app && node --test tests/locales/bundle-parity.test.mjs` | ✅ | ⬜ pending |
+| 52-01-01 | 01 | 0 | PODCAST-01, PODCAST-02 | — | N/A | unit | `cd app && node --test tests/services/podcast-prompt.test.mjs` | ✅ | ✅ green |
+| 52-01-02 | 01 | 0 | PODCAST-04 | — | optionsHash deterministic | unit | `cd app && node --test tests/services/podcast-options.test.mjs` | ✅ | ✅ green |
+| 52-02-01 | 02 | 1 | PODCAST-03 | — | Cache invalidation on hash mismatch | unit | `cd app && node --test tests/services/podcast-options.test.mjs` | ✅ | ✅ green |
+| 52-02-02 | 02 | 1 | PODCAST-05 | — | TTS fallback safe on unsupported model | unit | `cd app && node --test tests/services/podcast-options.test.mjs` | ✅ | ✅ green |
+| 52-03-01 | 03 | 2 | PODCAST-02, PODCAST-03 | — | UI option selection persists into generation | unit | `cd app && node --test tests/screens/PodcastScreen.options.test.mjs` | ✅ | ✅ green |
+| 52-03-02 | 03 | 2 | PODCAST-02 | — | i18n bundle parity preserved | unit | `cd app && node --test tests/locales/bundle-parity.test.mjs` | ✅ | ✅ green |
 
 > Task IDs are placeholders — final IDs assigned by gsd-planner. Per-task entries are upserted by the planner during plan generation. Wave 0 entries are tests created in Wave 0; ✅ entries reference existing tests.
 
@@ -53,9 +54,9 @@ created: 2026-05-19
 
 ## Wave 0 Requirements
 
-- [ ] `app/tests/services/podcast-prompt.test.mjs` — ~12 tests covering 4 lengths × 3 styles + coverage constraint + section names + default fallback (PODCAST-01, PODCAST-02)
-- [ ] `app/tests/services/podcast-options.test.mjs` — ~8 tests covering optionsHash determinism, cache skip, cache invalidate, undefined-options fallback, retry preserves options, addConcept invalidates (PODCAST-03, PODCAST-04)
-- [ ] `app/tests/screens/PodcastScreen.options.test.mjs` — ~6 tests covering chip render, selection state, generate passes options, ready shows badges, regenerate button visibility, default from settings (PODCAST-02, PODCAST-03)
+- [x] `app/tests/services/podcast-prompt.test.mjs` — 17 tests covering 4 lengths × 3 styles + coverage constraint + section names + default fallback (PODCAST-01, PODCAST-02) — 17/17 pass
+- [x] `app/tests/services/podcast-options.test.mjs` — 9 tests covering optionsHash determinism, cache skip, cache invalidate, undefined-options fallback, retry preserves options, addConcept invalidates (PODCAST-03, PODCAST-04) — 9/9 pass
+- [x] `app/tests/screens/PodcastScreen.options.test.mjs` — 19 tests covering chip render, selection state, generate passes options, ready shows badges, regenerate button visibility, default from settings (PODCAST-02, PODCAST-03) — 19/19 pass
 
 ---
 
@@ -71,11 +72,11 @@ created: 2026-05-19
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 30s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 30s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** approved 2026-05-20 — all 6 per-task automated commands re-run green (47/47 tests pass: podcast-prompt 17, podcast-options 9, PodcastScreen.options 19, bundle-parity 2). Manual-only verifications (PODCAST-04 content quality, PODCAST-05 device TTS/playback) remain manual; covered by passed 52-VERIFICATION.md.
