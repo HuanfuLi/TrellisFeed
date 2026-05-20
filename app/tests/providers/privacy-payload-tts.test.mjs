@@ -99,6 +99,10 @@ globalThis.localStorage.setItem(
 let captured;
 const fakeFetch = async (_url, init) => {
   captured = JSON.parse(init.body);
+  // The provider attaches a 60s timeout AbortSignal to fetch. Since this fake
+  // fetch resolves synchronously, dispatch abort to trigger the provider's
+  // timeout cleanup listener and keep the golden fast under node --test.
+  init.signal?.dispatchEvent?.(new Event('abort'));
   return {
     ok: true,
     status: 200,
