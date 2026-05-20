@@ -167,7 +167,7 @@ Plans:
   4. Podcast output preserves required concept coverage across length/style settings; style controls cannot degrade learning density into entertainment-only output.
   5. TTS model, voice, and speed changes have provider-safe fallback behavior and device UAT evidence before defaults change.
 
-**Plans**: 3 plans
+**Plans**: 6 plans (3 original + 3 gap-closure from UAT)
 
 **Wave 0**
 
@@ -180,6 +180,12 @@ Plans:
 **Wave 2** *(blocked on Wave 1 completion)*
 
 - [x] 52-03-PLAN.md — Wave 2: PodcastScreen option chips + player badges + regenerate button + SettingsFeaturesScreen defaults + SettingsAIScreen TTS model + i18n bundles (PODCAST-02, PODCAST-03, PODCAST-05)
+
+**Gap closure (post-UAT, 2026-05-19)** — 5 UAT gaps diagnosed and routed into 3 plans:
+
+- [ ] 52-04-PLAN.md — Wave 1: GAP-4 (blocker, fresh podcast won't play) + GAP-3 (major, player/empty-state dual-render) — extract pure podcast-view-model.ts (selection + render gates), deterministic select-on-generate, isDirty hash reconciliation, behavioral tests (PODCAST-03)
+- [ ] 52-06-PLAN.md — Wave 1: GAP-5 (major, pre-existing, operator-approved fold-in) — provider switch wipes API key; add per-provider apiKeys memory on LLMConfig + EmbeddingConfig, restore-on-switch in SettingsAIScreen (PODCAST-05)
+- [ ] 52-05-PLAN.md — Wave 2: GAP-1 (drop 'brief' length per operator D-01 revision, "Review Drill"→"Review") + GAP-2 (collapsible config panel, repositioned) — depends on 52-04 (PodcastScreen.tsx) + 52-06 (types) (PODCAST-02)
 
 **UI hint**: yes
 
