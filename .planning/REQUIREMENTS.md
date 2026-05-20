@@ -78,33 +78,33 @@ Which phases cover which requirements. Populated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| POLISH-01 | TBD | Pending |
-| POLISH-02 | TBD | Pending |
-| POLISH-03 | TBD | Pending |
-| DOCS-01 | TBD | Pending |
-| DOCS-02 | TBD | Pending |
-| TECHDEBT-13 | TBD | Pending |
-| TECHDEBT-14 | TBD | Pending |
-| QUALITY-01 | TBD | Pending |
-| QUALITY-02 | TBD | Pending |
-| QUALITY-03 | TBD | Pending |
-| TUNE-01 | TBD | Pending |
-| TUNE-02 | TBD | Pending |
-| REWARDS-01 | TBD | Pending |
-| REWARDS-02 | TBD | Pending |
-| REWARDS-03 | TBD | Pending |
-| REWARDS-04 | TBD | Pending |
-| REWARDS-05 | TBD | Pending |
-| REWARDS-06 | TBD | Pending |
-| REWARDS-07 | TBD | Pending |
-| REWARDS-08 | TBD | Pending |
-| REWARDS-09 | TBD | Pending |
+| QUALITY-01 | Phase 54 | Pending |
+| QUALITY-02 | Phase 54 | Pending |
+| QUALITY-03 | Phase 54 | Pending |
+| TECHDEBT-13 | Phase 54 | Pending |
+| TECHDEBT-14 | Phase 54 | Pending |
+| TUNE-01 | Phase 55 | Pending |
+| TUNE-02 | Phase 55 | Pending |
+| POLISH-01 | Phase 56 | Pending |
+| POLISH-02 | Phase 56 | Pending |
+| POLISH-03 | Phase 56 | Pending |
+| DOCS-01 | Phase 56 | Pending |
+| DOCS-02 | Phase 56 | Pending |
+| REWARDS-08 | Phase 57 | Pending |
+| REWARDS-01 | Phase 58 | Pending |
+| REWARDS-02 | Phase 58 | Pending |
+| REWARDS-03 | Phase 58 | Pending |
+| REWARDS-04 | Phase 58 | Pending |
+| REWARDS-07 | Phase 58 | Pending |
+| REWARDS-09 | Phase 58 | Pending |
+| REWARDS-05 | Phase 59 | Pending |
+| REWARDS-06 | Phase 59 | Pending |
 
 **Coverage:**
 - v1 requirements: 21 total
-- Mapped to phases: 0 (pending roadmap)
-- Unmapped: 21 ⚠️
+- Mapped to phases: 21 ✓
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-05-20*
-*Last updated: 2026-05-20 after initial definition*
+*Last updated: 2026-05-20 — traceability populated by roadmap (Phases 54–59)*
