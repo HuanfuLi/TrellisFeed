@@ -3,7 +3,8 @@ status: complete
 phase: 52-podcast-quality-defaults-and-learner-controls
 source: [52-01-SUMMARY.md, 52-02-SUMMARY.md, 52-03-SUMMARY.md]
 started: 2026-05-20T02:01:39Z
-updated: 2026-05-20T02:35:00Z
+updated: 2026-05-20T03:42:00Z
+gaps_resolved_by: [52-04, 52-05, 52-06]
 ---
 
 ## Current Test
@@ -72,7 +73,7 @@ gaps: 5
 ## Gaps
 
 - truth: "The Length × Style config panel reads cleanly without chip overflow."
-  status: failed
+  status: resolved
   reason: "Operator (Test 2): LENGTH (4 chips) and STYLE (3 chips) both wrap to two lines — looks cluttered. Directed fix: remove the 'Brief' length option (Standard is already short) leaving 3 lengths (Standard/Deep/Extended); rename style label 'Review Drill' → 'Review'. NOTE: removing Brief revises locked decision D-01 (operator had chosen 4 lengths over researcher's 3) — operator is the decision authority and is now revising it during UAT."
   severity: minor
   test: 2
@@ -80,7 +81,7 @@ gaps: 5
   missing: []
 
 - truth: "A freshly generated podcast plays back: progress advances, duration shows, audio is audible."
-  status: failed
+  status: resolved
   reason: "Operator (Test 3): generation succeeded but playback is dead — play toggles to pause, no progress, no duration, no sound. DIAGNOSED (debug session .planning/debug/phase-52-podcast-playback-and-dual-render.md): the audio-element code is byte-identical pre/post-52. Real cause is twofold and upstream of the audio wiring: (1) the `selected` fallback at PodcastScreen.tsx:104-106 (`selectedId ? find : todayPodcast ?? podcasts[0] ?? null`) can bind the player to a stale podcast id, so the wiring effect (lines 200-239, bails at 204 unless selected.status==='ready' AND getAudioPath(selected.id) returns a blob) leaves audioRef.current null; tapping play hits the `if (!audio)` early-return at lines 243-246 — flips isPlaying, touches no element → exact symptom. (2) `isDirty` permanent-true loop: currentHash (lines 111-122) is computed over todayConceptIds (SM-2 due + planner extras) while the service computes optionsHash over the questions IT resolves (podcast.service.ts:178, with getRecent(5) fallback at 173-176); when the id-lists diverge, selected.optionsHash !== currentHash forever → fresh podcast is treated dirty and Regenerate fires against selected.date (possibly the stale Apr-21 date)."
   severity: blocker
   test: 3
@@ -90,7 +91,7 @@ gaps: 5
   missing: ["behavioral/render test: after generation, selected is today's podcast and getAudioPath(selected.id) is non-null (play does not hit !audio branch)", "test: freshly generated podcast with unchanged chips yields isDirty===false (currentHash === service optionsHash incl. getRecent(5) fallback)"]
 
 - truth: "The podcast config panel is unobtrusive for a low-frequency action."
-  status: failed
+  status: resolved
   reason: "Operator (Test 2): the config panel should be an expandable section, collapsed by default (length/style is not changed often). It should also be repositioned BELOW the podcast player / 'no podcast yet' panel and ABOVE the Knowledge Today panel — currently it sits at the top above the player."
   severity: minor
   test: 2
@@ -98,7 +99,7 @@ gaps: 5
   missing: []
 
 - truth: "Exactly one of {podcast player, 'No podcast for today' empty state} renders at a time."
-  status: failed
+  status: resolved
   reason: "Operator (Test 2): player (stale Apr-21 'Daily Recap') AND 'No podcast for today' empty-state render simultaneously. DIAGNOSED: the two blocks key off DIFFERENT state and were never mutually exclusive — player renders on `selected && selected.status === 'ready'` (PodcastScreen.tsx:627) where `selected` falls back to podcasts[0] (line 104-106), while the empty/generate block renders on `!todayPodcast || ...` (line 773). This dual-render is a LATENT pre-52 bug (both conditions byte-identical at eb6f3d81^:518/615); Phase 52 made it operator-visible by adding the always-on Length×Style chip Card at line 563 (condition includes `|| (selected && selected.status === 'ready')`), so the screen now stacks chips + stale player + empty-state."
   severity: major
   test: 2
@@ -108,7 +109,7 @@ gaps: 5
   missing: ["render test: todayPodcast undefined + stale ready podcasts[0] → player and 'No podcast for today' empty-state are NOT both rendered"]
 
 - truth: "An entered provider API key survives switching providers and switching back."
-  status: failed
+  status: resolved
   reason: "Operator (Test 8): switching the AI provider loses the entered API key — the user must reconfigure. Root cause confirmed at SettingsAIScreen.tsx:138-147: the provider onChange spreads a `defaults[p]` object that hard-sets `apiKey: ''`, and the config stores a single `apiKey` slot (not per-provider), so switching away blanks it and switching back does not restore it. PRE-EXISTING — introduced in commit 6bdd3f4a (iOS-style Settings redesign), NOT Phase 52 (Phase 52's only SettingsAIScreen change was the TTS Model row, 44a5fdc4). OUT OF PHASE 52 SCOPE. Routing decision pending: fold into the Phase 52 gap-closure batch, or track as its own bug/phase. Proper fix would store per-provider keys (e.g. apiKeys: Record<provider, string>) so each provider remembers its own."
   severity: major
   test: 8

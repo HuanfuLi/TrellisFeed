@@ -1,8 +1,9 @@
 ---
-status: investigating
+status: resolved
 trigger: "Diagnose two Phase 52 PodcastScreen regressions: (A) freshly generated podcast won't play (button toggles, no progress/duration/sound); (B) player + empty-state render simultaneously. Diagnose only, do not fix."
 created: 2026-05-19
-updated: 2026-05-19
+updated: 2026-05-20
+resolved_by: 52-04
 ---
 
 ## Current Focus
