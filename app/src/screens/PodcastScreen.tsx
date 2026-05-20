@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Play, Pause, Radio, RefreshCw, RotateCcw, RotateCw, ChevronRight, Trash2, Check, X, List, BookOpen } from 'lucide-react';
+import { ArrowLeft, Play, Pause, Radio, RefreshCw, RotateCcw, RotateCw, ChevronRight, ChevronDown, Trash2, Check, X, List, BookOpen } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { ProgressBar } from '../components/ui/ProgressBar';
@@ -24,7 +24,7 @@ import { parseMoveNavigationState } from '../lib/moveNavigator';
 import { eventBus } from '../lib/event-bus';
 import type { DailyPodcast, Question, PodcastLength, PodcastStyle, SupportedLocale } from '../types';
 
-const LENGTH_CHIPS = ['brief', 'standard', 'deep', 'extended'] as const satisfies readonly PodcastLength[];
+const LENGTH_CHIPS = ['standard', 'deep', 'extended'] as const satisfies readonly PodcastLength[];
 const STYLE_CHIPS = ['focused', 'conversational', 'review'] as const satisfies readonly PodcastStyle[];
 
 export function PodcastScreen() {
@@ -48,6 +48,10 @@ export function PodcastScreen() {
   const [showScript, setShowScript] = useState(false);
   const [showAllPodcasts, setShowAllPodcasts] = useState(false);
   const [confirmDeletePodcastId, setConfirmDeletePodcastId] = useState<string | null>(null);
+  // Phase 52 UAT GAP-2: the Length × Style config is a low-frequency action.
+  // Collapsed by default — ephemeral local UI state (no service read, no
+  // persistence). Toggled by the section header below.
+  const [showConfig, setShowConfig] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Phase 52: Length × Style chip selectors (D-11 + D-14 silent fallback)
@@ -585,74 +589,6 @@ export function PodcastScreen() {
         </Card>
       )}
 
-      {/* Phase 52 PODCAST-02: Length × Style chip selectors. Always rendered
-          when today's podcast is missing OR pending/failed (pre-generation),
-          and also above the player when a ready podcast exists so the user
-          can change options before tapping the Regenerate CTA. Inline styles
-          with CSS variables (CLAUDE.md Style Conventions). */}
-      {(isEmptyStateVisible({ todayPodcast }) || isPlayerVisible({ selected })) && (
-        <Card style={{ marginBottom: '16px' }}>
-          <div style={{ marginBottom: '12px' }}>
-            <p style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
-              {t('podcast.options.lengthLabel')}
-            </p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-              {LENGTH_CHIPS.map((l) => {
-                const isSelected = selectedLength === l;
-                return (
-                  <button
-                    key={l}
-                    type="button"
-                    onClick={() => setSelectedLength(l)}
-                    style={{
-                      backgroundColor: isSelected ? 'var(--primary-40)' : 'var(--surface-variant)',
-                      color: isSelected ? 'white' : 'var(--foreground)',
-                      border: '1px solid var(--border)',
-                      borderRadius: 'var(--radius-pill)',
-                      padding: '6px 12px',
-                      fontSize: '0.875rem',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {t(`podcast.options.${l}`)}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-          <div>
-            <p style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
-              {t('podcast.options.styleLabel')}
-            </p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-              {STYLE_CHIPS.map((s) => {
-                const isSelected = selectedStyle === s;
-                return (
-                  <button
-                    key={s}
-                    type="button"
-                    onClick={() => setSelectedStyle(s)}
-                    style={{
-                      backgroundColor: isSelected ? 'var(--primary-40)' : 'var(--surface-variant)',
-                      color: isSelected ? 'white' : 'var(--foreground)',
-                      border: '1px solid var(--border)',
-                      borderRadius: 'var(--radius-pill)',
-                      padding: '6px 12px',
-                      fontSize: '0.875rem',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {t(`podcast.options.${s}`)}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </Card>
-      )}
-
       {/* Selected Podcast Player */}
       {isPlayerVisible({ selected }) && selected && (
         <Card style={{ marginBottom: '24px', background: 'linear-gradient(135deg, var(--primary-90), var(--secondary-container))' }}>
@@ -831,6 +767,97 @@ export function PodcastScreen() {
           <p style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)', marginTop: '8px' }}>
             {t('podcast.generateCard.progressSuffix', { progress: todayPodcast.progress ?? generationProgress })}
           </p>
+        </Card>
+      )}
+
+      {/* Phase 52 PODCAST-02 / UAT GAP-2: Length × Style config — now a
+          collapsible section, COLLAPSED by default (low-frequency action),
+          REPOSITIONED below the player / empty-state and above Knowledge
+          Today. Same gate as before (empty-state OR player visible) so it
+          appears in the same states, just lower on the page. Inline styles
+          with CSS variables (CLAUDE.md Style Conventions). showConfig is
+          ephemeral local UI state — no service read needed. */}
+      {(isEmptyStateVisible({ todayPodcast }) || isPlayerVisible({ selected })) && (
+        <Card style={{ marginBottom: '24px' }}>
+          <button
+            type="button"
+            onClick={() => setShowConfig((prev) => !prev)}
+            aria-expanded={showConfig}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              width: '100%', background: 'none', border: 'none', cursor: 'pointer',
+              padding: 0, color: 'var(--foreground)',
+            }}
+          >
+            <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              {t('podcast.options.configHeading')}
+            </span>
+            {showConfig
+              ? <ChevronDown size={18} color="var(--muted-foreground)" />
+              : <ChevronRight size={18} color="var(--muted-foreground)" />}
+          </button>
+          {showConfig && (
+            <>
+              <div style={{ marginTop: '12px', marginBottom: '12px' }}>
+                <p style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
+                  {t('podcast.options.lengthLabel')}
+                </p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  {LENGTH_CHIPS.map((l) => {
+                    const isSelected = selectedLength === l;
+                    return (
+                      <button
+                        key={l}
+                        type="button"
+                        onClick={() => setSelectedLength(l)}
+                        style={{
+                          backgroundColor: isSelected ? 'var(--primary-40)' : 'var(--surface-variant)',
+                          color: isSelected ? 'white' : 'var(--foreground)',
+                          border: '1px solid var(--border)',
+                          borderRadius: 'var(--radius-pill)',
+                          padding: '6px 12px',
+                          fontSize: '0.875rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {t(`podcast.options.${l}`)}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <div>
+                <p style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
+                  {t('podcast.options.styleLabel')}
+                </p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  {STYLE_CHIPS.map((s) => {
+                    const isSelected = selectedStyle === s;
+                    return (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => setSelectedStyle(s)}
+                        style={{
+                          backgroundColor: isSelected ? 'var(--primary-40)' : 'var(--surface-variant)',
+                          color: isSelected ? 'white' : 'var(--foreground)',
+                          border: '1px solid var(--border)',
+                          borderRadius: 'var(--radius-pill)',
+                          padding: '6px 12px',
+                          fontSize: '0.875rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {t(`podcast.options.${s}`)}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          )}
         </Card>
       )}
 

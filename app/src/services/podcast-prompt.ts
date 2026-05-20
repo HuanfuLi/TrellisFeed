@@ -45,8 +45,6 @@ const COVERAGE_CONSTRAINT =
   'IMPORTANT: You MUST mention every concept listed below. Do not skip any. Coverage is non-negotiable; depth scales with the length target.';
 
 const LENGTH_MAP: Record<PodcastLength, string> = {
-  'brief':
-    'Keep it concise: target ~150 words (~60 seconds spoken). Shorten each section proportionally; do not omit any.',
   'standard':
     'Target ~225 words (~90 seconds spoken). Cover all five sections evenly.',
   'deep':

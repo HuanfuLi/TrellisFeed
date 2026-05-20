@@ -203,8 +203,8 @@ export interface DailyPodcast {
 
 export type PodcastStatus = 'pending' | 'generating' | 'ready' | 'failed';
 
-/** Phase 52 PODCAST-02 (D-01): four bounded length presets. */
-export type PodcastLength = 'brief' | 'standard' | 'deep' | 'extended';
+/** Phase 52 PODCAST-02 (D-01): three bounded length presets (Phase 52 UAT GAP-1: operator dropped 'brief'). */
+export type PodcastLength = 'standard' | 'deep' | 'extended';
 
 /** Phase 52 PODCAST-02 (D-02): three bounded style presets. */
 export type PodcastStyle = 'focused' | 'conversational' | 'review';

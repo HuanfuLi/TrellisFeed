@@ -11,7 +11,7 @@
 // 2. buildPodcastPrompt assembles a system prompt with all five section
 //    names (RECAP / CONNECTIONS / MISCONCEPTION / RETRIEVAL QUESTIONS /
 //    NEXT ACTION) AND the coverage constraint, for every combination of
-//    4 lengths × 3 styles (12 cases).
+//    3 lengths × 3 styles (9 cases).
 // 3. Each length's LENGTH_MAP entry surfaces the expected word-count
 //    target so prompt size can be visually verified.
 // 4. The user prompt half includes every concept name fed in (coverage
@@ -58,7 +58,7 @@ describe('podcast-prompt.ts leaf-module rule (Phase 52 i18n leaf invariant)', ()
 });
 
 describe('buildPodcastPrompt assembles five-section + coverage prompt', () => {
-  const LENGTHS = ['brief', 'standard', 'deep', 'extended'];
+  const LENGTHS = ['standard', 'deep', 'extended'];
   const STYLES = ['focused', 'conversational', 'review'];
   const lines =
     '- Concept Alpha: short summary\n- Concept Beta: short summary\n- Concept Gamma: short summary';
@@ -86,12 +86,6 @@ describe('buildPodcastPrompt assembles five-section + coverage prompt', () => {
 describe('buildPodcastPrompt LENGTH_MAP surfaces target word counts', () => {
   const lines = '- X: y';
 
-  it('brief contains 150 words target', async () => {
-    const { buildPodcastPrompt } = await import('../../src/services/podcast-prompt.ts');
-    const { system } = buildPodcastPrompt(lines, { length: 'brief', style: 'focused' });
-    assert.match(system, /150 words/);
-  });
-
   it('standard contains 225 words target', async () => {
     const { buildPodcastPrompt } = await import('../../src/services/podcast-prompt.ts');
     const { system } = buildPodcastPrompt(lines, { length: 'standard', style: 'conversational' });
@@ -116,7 +110,7 @@ describe('buildPodcastPrompt user prompt surfaces every concept (PODCAST-04 cove
     const { buildPodcastPrompt } = await import('../../src/services/podcast-prompt.ts');
     const names = ['Concept Alpha', 'Concept Beta', 'Concept Gamma'];
     const lines = names.map((c) => `- ${c}: summary`).join('\n');
-    const { user } = buildPodcastPrompt(lines, { length: 'brief', style: 'review' });
+    const { user } = buildPodcastPrompt(lines, { length: 'standard', style: 'review' });
     for (const name of names) {
       assert.ok(user.includes(name), `user prompt must include "${name}"`);
     }

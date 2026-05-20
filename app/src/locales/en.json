@@ -681,15 +681,15 @@
     },
     "filteredBy": "Filtered by {{concept}}",
     "options": {
+      "configHeading": "Length & style",
       "lengthLabel": "Length",
-      "brief": "Brief",
       "standard": "Standard",
       "deep": "Deep",
       "extended": "Extended",
       "styleLabel": "Style",
       "focused": "Focused",
       "conversational": "Conversational",
-      "review": "Review Drill",
+      "review": "Review",
       "regenerateWithNew": "Regenerate with new options"
     }
   },

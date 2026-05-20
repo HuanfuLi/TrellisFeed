@@ -79,7 +79,6 @@ export function SettingsFeaturesScreen() {
             value={podcastDefaultLength}
             onChange={(v) => setPodcastDefaultLength(v as PodcastLength)}
             options={[
-              { value: 'brief', label: t('podcast.options.brief') },
               { value: 'standard', label: t('podcast.options.standard') },
               { value: 'deep', label: t('podcast.options.deep') },
               { value: 'extended', label: t('podcast.options.extended') },
