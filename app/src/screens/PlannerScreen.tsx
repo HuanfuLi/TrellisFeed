@@ -1,5 +1,5 @@
-import { useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   RefreshCw, Loader2,
@@ -31,12 +31,29 @@ function EmptySectionHint({ text }: { text: string }) {
 
 export function PlannerScreen() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { t } = useTranslation();
   const { moves: autoMoves, isRefreshing, accept: acceptMove, dismiss: dismissMove, skipAll, refresh: refreshMoves } = usePlannerAutoGen();
   useDailyRefresh(); // Mount to activate PODCAST_GENERATION_COMPLETED → refresh subscription
   const { layout } = useTrellisData();
   const [credits, setCredits] = useState<number>(() => trellisCreditsService.getTotal());
   const counterRef = useRef<HTMLSpanElement>(null);
+
+  // 54-02 (QUALITY-01) — canonical [location.pathname] resync. PlannerScreen is an
+  // always-mounted SwipeTabContainer slot, so the `credits` useState initializer
+  // runs ONCE at app boot and never on navigate('/planner'). The balance can change
+  // while Planner is off-screen — most concretely when the user finishes the daily
+  // vine on HomeScreen, which calls trellisCreditsService.add(1). Re-read the balance
+  // on every /planner navigation so the displayed count is fresh. No new event: the
+  // add() call site stays the sole credit mutator (CLAUDE.md "one signal per
+  // semantic event" + "always-mounted screens must re-read service state on
+  // navigation"). See .planning/phases/54-code-quality-bugs-tech-debt/54-BUG-AUDIT.md
+  // Cluster 2 / OQ#3.
+  useEffect(() => {
+    if (location.pathname === '/planner') {
+      setCredits(trellisCreditsService.getTotal());
+    }
+  }, [location.pathname]);
   const [showAutoMoves, setShowAutoMoves] = useState(true);
   const [showAllSuggestions, setShowAllSuggestions] = useState(false);
 
