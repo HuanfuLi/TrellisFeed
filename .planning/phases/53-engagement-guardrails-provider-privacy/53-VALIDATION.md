@@ -1,10 +1,11 @@
 ---
 phase: 53
 slug: engagement-guardrails-provider-privacy
-status: planned
+status: verified
 nyquist_compliant: true
-wave_0_complete: false
+wave_0_complete: true
 created: 2026-05-20
+updated: 2026-05-20
 ---
 
 # Phase 53 — Validation Strategy
@@ -20,8 +21,10 @@ created: 2026-05-20
 | **Framework** | Node built-in `node --test` + esbuild tsx loader |
 | **Config file** | none — runner invoked via npm scripts (`test:main` / `test:actions`); new files live in `test:main` |
 | **Quick run command** | `node --test tests/<new-file>.test.mjs` (from `app/`) |
+| **Phase focused command** | `node --test tests/providers/privacy-payload-tts.test.mjs tests/providers/privacy-payload-llm.test.mjs tests/providers/privacy-callsite-structural.test.mjs tests/learn-04-no-pushy-mechanics.test.mjs` |
+| **Main suite command** | `npm run test:main` |
 | **Full suite command** | `npm test` (runs `test:main` then `test:actions`) |
-| **Estimated runtime** | ~ a few seconds per file; full suite dominated by existing tests |
+| **Estimated runtime** | Phase focused suite ~0.1s after the 2026-05-20 timeout-cleanup fix; `npm run test:main` ~61s; full `npm test` is longer because it also runs action tests |
 
 ---
 
@@ -30,7 +33,7 @@ created: 2026-05-20
 - **After every task commit:** Run `node --test tests/<the-file-touched>.test.mjs`
 - **After every plan wave:** Run `npm run test:main`
 - **Before `/gsd:verify-work`:** `npm test` must be green
-- **Max feedback latency:** < 30 seconds
+- **Phase-focused max feedback latency:** < 30 seconds
 
 ---
 
@@ -38,11 +41,11 @@ created: 2026-05-20
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 53-01-T1 | 53-01 | 1 | PRIVACY-01 | T-53-01 | in-memory localStorage shim for goldens (leaf-safe) | helper | n/a (support file; `node -e` roundtrip) | ❌ pending | ⬜ pending |
-| 53-03-T1 | 53-03 | 1 | PRIVACY-01 | T-53-02 | provider chokepoints + prompt call-sites do not read private svcs; reorg = documented scoped exception | structural source-read | `node --test tests/providers/privacy-callsite-structural.test.mjs` | ❌ pending | ⬜ pending |
-| 53-03-T2 | 53-03 | 1 | LEARN-04 | T-53-03 | no streak/leaderboard/stop-cue/mandated-goal/public-like construct in `src/`; hidden `liked` signal allowed | negative-invariant source-read | `node --test tests/learn-04-no-pushy-mechanics.test.mjs` | ❌ pending | ⬜ pending |
-| 53-02-T1 | 53-02 | 2 | PRIVACY-01 | T-53-01 | TTS payload (`input`) excludes tags/saved/liked/journal sentinels | golden (fetch-stub) | `node --test tests/providers/privacy-payload-tts.test.mjs` | ❌ pending | ⬜ pending |
-| 53-02-T2 | 53-02 | 2 | PRIVACY-01 | T-53-01 | LLM payload (`messages[].content`) excludes private sentinels across openAI/claude/gemini | golden (fetch-stub) | `node --test tests/providers/privacy-payload-llm.test.mjs` | ❌ pending | ⬜ pending |
+| 53-01-T1 | 53-01 | 1 | PRIVACY-01 | T-53-01 | in-memory localStorage shim for goldens (leaf-safe) | helper | `node -e` roundtrip from `app/` | ✅ found | ✅ green |
+| 53-03-T1 | 53-03 | 1 | PRIVACY-01 | T-53-02 | provider chokepoints + prompt call-sites do not read private svcs; reorg = documented scoped exception | structural source-read | `node --test tests/providers/privacy-callsite-structural.test.mjs` | ✅ found | ✅ green |
+| 53-03-T2 | 53-03 | 1 | LEARN-04 | T-53-03 | no streak/leaderboard/stop-cue/mandated-goal/public-like construct in `src/`; hidden `liked` signal allowed | negative-invariant source-read | `node --test tests/learn-04-no-pushy-mechanics.test.mjs` | ✅ found | ✅ green |
+| 53-02-T1 | 53-02 | 2 | PRIVACY-01 | T-53-01 | TTS payload (`input`) excludes tags/saved/liked/journal sentinels | golden (fetch-stub) | `node --test tests/providers/privacy-payload-tts.test.mjs` | ✅ found | ✅ green |
+| 53-02-T2 | 53-02 | 2 | PRIVACY-01 | T-53-01 | LLM payload (`messages[].content`) excludes private sentinels across openAI/claude/gemini | golden (fetch-stub) | `node --test tests/providers/privacy-payload-llm.test.mjs` | ✅ found | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 *Wave 1: 53-01 (shim) + 53-03 (source-read guards, no runtime dependency) run together. Wave 2: 53-02 goldens depend on the 53-01 shim.*
@@ -51,11 +54,11 @@ created: 2026-05-20
 
 ## Wave 0 Requirements
 
-- [ ] `app/tests/helpers/memory-localstorage.mjs` — leaf-safe Map-backed localStorage shim (Plan 53-01)
-- [ ] `tests/providers/privacy-payload-tts.test.mjs` — TTS golden (PRIVACY-01) (Plan 53-02)
-- [ ] `tests/providers/privacy-payload-llm.test.mjs` — LLM golden, 3 cloud providers (PRIVACY-01) (Plan 53-02)
-- [ ] `tests/providers/privacy-callsite-structural.test.mjs` — structural assertion incl. the reorg scoped exception (PRIVACY-01) (Plan 53-03)
-- [ ] `tests/learn-04-no-pushy-mechanics.test.mjs` — negative-invariant guard (LEARN-04) (Plan 53-03)
+- [x] `app/tests/helpers/memory-localstorage.mjs` — leaf-safe Map-backed localStorage shim (Plan 53-01)
+- [x] `tests/providers/privacy-payload-tts.test.mjs` — TTS golden (PRIVACY-01) (Plan 53-02)
+- [x] `tests/providers/privacy-payload-llm.test.mjs` — LLM golden, 3 cloud providers (PRIVACY-01) (Plan 53-02)
+- [x] `tests/providers/privacy-callsite-structural.test.mjs` — structural assertion incl. the reorg scoped exception (PRIVACY-01) (Plan 53-03)
+- [x] `tests/learn-04-no-pushy-mechanics.test.mjs` — negative-invariant guard (LEARN-04) (Plan 53-03)
 - Framework install: none needed.
 
 ---
@@ -68,13 +71,30 @@ created: 2026-05-20
 
 ---
 
+## Validation Audit 2026-05-20
+
+| Metric | Count |
+|--------|-------|
+| Gaps found | 1 |
+| Resolved | 1 |
+| Escalated | 0 |
+
+### Audit Evidence
+
+- Helper roundtrip from `app/`: `HELPER-ROUNDTRIP-OK`.
+- `node --test tests/providers/privacy-payload-tts.test.mjs tests/providers/privacy-payload-llm.test.mjs tests/providers/privacy-callsite-structural.test.mjs tests/learn-04-no-pushy-mechanics.test.mjs`: 38 tests passed, 0 failed, duration ~105ms.
+- `npm run test:main`: 1471 tests passed, 0 failed, duration ~61s.
+- Gap resolved: the two provider payload goldens previously passed but held the Node process open for the provider 60s timeout timer. Their fake fetch shims now dispatch the timeout signal cleanup event after capturing the outbound body, preserving the privacy assertion while restoring sub-second feedback.
+
+---
+
 ## Validation Sign-Off
 
 - [x] All tasks have `<automated>` verify or Wave 0 dependencies
 - [x] Sampling continuity: no 3 consecutive tasks without automated verify
 - [x] Wave 0 covers all MISSING references
 - [x] No watch-mode flags
-- [x] Feedback latency < 30s
+- [x] Phase-focused feedback latency < 30s
 - [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** planned
+**Approval:** verified 2026-05-20
