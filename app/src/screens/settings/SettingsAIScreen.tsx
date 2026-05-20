@@ -144,7 +144,12 @@ export function SettingsAIScreen() {
                 local: { model: 'llama3', baseUrl: 'http://localhost:11434/v1', apiKey: '' },
                 lmstudio: { model: 'local-model', baseUrl: 'http://localhost:1234', apiKey: '' },
               };
-              const next = { ...llm, provider: p, ...defaults[p] } as LLMConfig;
+              // Phase 52 GAP-5: stash the currently-entered key under the OLD
+              // provider, then restore the NEW provider's saved key. Override
+              // apiKey AFTER the defaults spread (defaults[p] sets apiKey:'').
+              const savedKeys = { ...(llm.apiKeys ?? {}), [llm.provider]: llm.apiKey ?? '' };
+              const restoredKey = savedKeys[p] ?? '';
+              const next = { ...llm, provider: p, ...defaults[p], apiKey: restoredKey, apiKeys: savedKeys } as LLMConfig;
               setLlm(next);
               saveLlm(next);
             }}
@@ -162,7 +167,8 @@ export function SettingsAIScreen() {
             <TextInput
               type="password"
               value={llm.apiKey ?? ''}
-              onChange={(v) => setLlm((prev) => ({ ...prev, apiKey: v }))}
+              // Phase 52 GAP-5: remember the entered key under the current provider so a switch-away-and-back restores it.
+              onChange={(v) => setLlm((prev) => ({ ...prev, apiKey: v, apiKeys: { ...(prev.apiKeys ?? {}), [prev.provider]: v } }))}
               onBlur={() => saveLlm()}
               placeholder={
                 llm.provider === 'claude' ? t('settings.placeholders.claudeKey') :
@@ -229,7 +235,10 @@ export function SettingsAIScreen() {
                 local:     { model: 'nomic-embed-text', baseUrl: 'http://localhost:11434', apiKey: '' },
                 lmstudio:  { model: 'nomic-embed-text', baseUrl: 'http://localhost:1234', apiKey: '' },
               };
-              const next = { ...embedding, provider: p, ...defaults[p] } as EmbeddingConfig;
+              // Phase 52 GAP-5: same per-provider key memory as the LLM selector.
+              const savedKeys = { ...(embedding.apiKeys ?? {}), [embedding.provider]: embedding.apiKey ?? '' };
+              const restoredKey = savedKeys[p] ?? '';
+              const next = { ...embedding, provider: p, ...defaults[p], apiKey: restoredKey, apiKeys: savedKeys } as EmbeddingConfig;
               setEmbedding(next);
               saveEmbedding(next);
             }}
@@ -246,7 +255,8 @@ export function SettingsAIScreen() {
             <TextInput
               type="password"
               value={embedding.apiKey ?? ''}
-              onChange={(v) => setEmbedding((prev) => ({ ...prev, apiKey: v }))}
+              // Phase 52 GAP-5: remember the entered key under the current provider so a switch-away-and-back restores it.
+              onChange={(v) => setEmbedding((prev) => ({ ...prev, apiKey: v, apiKeys: { ...(prev.apiKeys ?? {}), [prev.provider]: v } }))}
               onBlur={() => saveEmbedding()}
               placeholder={embedding.provider === 'google' ? t('settings.placeholders.geminiKey') : t('settings.placeholders.apiKey')}
             />
@@ -347,6 +357,10 @@ export function SettingsAIScreen() {
             value={tts.provider}
             onChange={(v) => {
               const p = v as TTSConfig['provider'];
+              // Phase 52 GAP-5: intentionally NO apiKeys map on TTSConfig. TTS has
+              // no multi-provider key-loss problem worth the complexity — OpenAI TTS
+              // falls back to the LLM key via effectiveTtsApiKey, and gptsovits uses
+              // baseUrl, not apiKey. Do NOT "consistency-fix" this to add apiKeys.
               const next: TTSConfig = {
                 ...tts,
                 provider: p,
