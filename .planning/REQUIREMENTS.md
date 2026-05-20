@@ -59,13 +59,13 @@ The current `app/src/services/question-filter.service.ts` is a regex pattern lib
 
 ### LEARN — Ethical engagement guardrail (Phase 53)
 
-- [ ] **LEARN-04** Trellis does not introduce public likes, leaderboards, streak pressure, stop-cue interstitials, mandated daily goals, or engagement-maximizing loops. A guardrail test codifies the non-pushy stance so future work cannot quietly add these mechanics.
+- [x] **LEARN-04** Trellis does not introduce public likes, leaderboards, streak pressure, stop-cue interstitials, mandated daily goals, or engagement-maximizing loops. A guardrail test codifies the non-pushy stance so future work cannot quietly add these mechanics.
 
 > **Rescoped 2026-05-20:** LEARN-01 (mandated daily goal), LEARN-02 (stop cue), and LEARN-03 (sparse reflection prompts) were dropped — they conflict with the operator's reward-based, non-pushy design. The existing opt-in, reward-framed review/trellis loop is itself the answer to the engagement-vs-learning question; no counter-mechanics are added. See Out of Scope. LEARN-04's "snooze/disable cues" clause is moot once there are no cues, so it reduces to the negative guardrail above.
 
 ### PRIVACY — Provider payload boundary (Phase 53)
 
-- [ ] **PRIVACY-01** Provider-bound LLM and TTS payload tests confirm tags, saved/liked/history, and graph correction logs are excluded from outbound provider requests by default. Goldens cover the private fields that actually exist today (tags from RETRIEVE, saved/liked/history from the engagement service, graph correction logs from the graph-edit journal) — goal/reflection fields are out of scope because they are not being built.
+- [x] **PRIVACY-01** Provider-bound LLM and TTS payload tests confirm tags, saved/liked/history, and graph correction logs are excluded from outbound provider requests by default. Goldens cover the private fields that actually exist today (tags from RETRIEVE, saved/liked/history from the engagement service, graph correction logs from the graph-edit journal) — goal/reflection fields are out of scope because they are not being built.
 
 ## Future Requirements
 
@@ -132,8 +132,8 @@ Operator-managed memo for the professor; not tracked as requirements:
 | PODCAST-03 | Phase 52 | Pending |
 | PODCAST-04 | Phase 52 | Pending |
 | PODCAST-05 | Phase 52 | Pending |
-| LEARN-04 | Phase 53 | Pending |
-| PRIVACY-01 | Phase 53 | Pending |
+| LEARN-04 | Phase 53 | Complete |
+| PRIVACY-01 | Phase 53 | Complete |
 
 **Coverage:**
 

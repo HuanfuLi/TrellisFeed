@@ -258,7 +258,7 @@ Phases execute in numeric order: 47 → 48 → 49 → 50 → 51 → 52 → 53
 | 50. Retrieval and Library Foundation | 13/13 | Complete   | 2026-05-18 |
 | 51. Concept Dashboard and Recovery Surfaces | 1/1 | Complete    | 2026-05-19 |
 | 52. Podcast Quality Defaults and Learner Controls | 6/6 | Complete   | 2026-05-20 |
-| 53. Provider Privacy + Non-Pushy Guardrail | 3/3 | Complete   | 2026-05-20 |
+| 53. Provider Privacy + Non-Pushy Guardrail | 3/3 | Complete    | 2026-05-20 |
 
 ---
 *Roadmap created: 2026-05-13*
