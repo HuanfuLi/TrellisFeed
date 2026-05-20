@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: milestone
 status: ready_to_plan
-stopped_at: Phase 52 podcast quality defaults complete (3/3 plans, 1406/1406 tests green, awaiting device UAT)
-last_updated: "2026-05-20T03:17:04.937Z"
+stopped_at: Phase 53 rescoped + context gathered
+last_updated: "2026-05-20T07:19:58.564Z"
 last_activity: 2026-05-20 -- Phase 52 execution started
 progress:
   total_phases: 7
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 36
-  completed_plans: 33
-  percent: 71
+  completed_plans: 36
+  percent: 86
 ---
 
 # Project State: v1.6 ROADMAP OVERHAULED — 2026-05-15
@@ -122,8 +122,8 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-05-19T18:19:45.778Z
-Stopped at: Phase 52 podcast quality defaults complete (3/3 plans, 1406/1406 tests green, awaiting device UAT)
+Last session: 2026-05-20T07:19:58.559Z
+Stopped at: Phase 53 rescoped + context gathered
 Earlier 2026-05-18T15:39:48Z — Completed 50-13-PLAN.md
 Earlier 2026-05-17 — Phase 49 plan-phase complete. 5 plans written across 3 waves. Plan-checker iterated 2 times: iter 1 flagged 8 blockers (B-1 detach D-12 needs new anchorId but Phase 48 service returns void; B-2 questionService.getAll() shape mismatch x5 sites; B-3 merge/delete signature mismatches; B-4 useLocation not imported; B-5 UndoButton reads undoneCmd instead of summary; B-6 getActionsForNode edge cases; B-7 Wave 1 plans concurrently edit GraphScreen.tsx; B-8 Wave-0 scaffolds use describe.skip instead of failing tests) + 6 warnings. Planner revision applied all fixes; iter 2 PASS.
 
@@ -140,7 +140,7 @@ Critical resolution: detach D-12 (re-anchored vs no-op toast variants) implement
 
 Wave 1 ordering: 49-02 declares `depends_on: ["49-01"]` to serialize edits on GraphScreen.tsx within Wave 1. Executor sees Wave 1 = sequential [49-01 → 49-02].
 
-Resume file: .planning/phases/52-podcast-quality-defaults-and-learner-controls/52-VERIFICATION.md
+Resume file: .planning/phases/53-engagement-guardrails-provider-privacy/53-CONTEXT.md
 
 Prior — Phase 48 (Graph Command Service) COMPLETE on 2026-05-17. Verifier 16/16 must-haves verified. Service signatures: rename(id, newTitle), move(id, newParentId), merge(loserId, survivorId) → ServiceResult<{ reparentedCount, newSurvivorQaCount }>, detach(qaId) → ServiceResult<void>, prune(id), delete(id) → ServiceResult<{ cascadedChildIds: string[] }>, undo() → ServiceResult<{ undoneCmd, targetIds, summary }>. questionService.getAll(opts?: { includeFlagged?: boolean }) returns Question[] directly. Critical inversion preserved: undo writes inverse journal entry with SAME cmd, swapped before/after.
 
