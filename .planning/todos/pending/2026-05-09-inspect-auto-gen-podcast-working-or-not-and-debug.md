@@ -2,6 +2,7 @@
 created: 2026-05-09T06:16:16.657Z
 title: Inspect auto-gen podcast working or not and debug
 area: general
+resolves_phase: 54
 files:
   - app/src/services/podcast.service.ts
   - app/src/state/usePodcast.ts

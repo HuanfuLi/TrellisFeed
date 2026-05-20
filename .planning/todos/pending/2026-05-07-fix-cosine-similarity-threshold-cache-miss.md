@@ -2,6 +2,7 @@
 created: 2026-05-07T09:45:44.620Z
 title: Fix cosine similarity threshold & cache miss
 area: general
+resolves_phase: 55
 files:
   - app/src/services/canonical-knowledge.service.ts
   - app/src/providers/embedding/index.ts
