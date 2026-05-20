@@ -261,6 +261,7 @@ export interface AppSettings {
 export interface EmbeddingConfig {
   provider: 'openai' | 'google' | 'local' | 'lmstudio';
   apiKey?: string;
+  apiKeys?: Record<string, string>; // Phase 52 GAP-5 — per-provider key memory; undefined for pre-GAP-5 stored settings (read-site fallback, no migration per CLAUDE.md feedback_no_normalize_for_optional_fields)
   model: string;
   baseUrl?: string;
   dimensions?: number;
@@ -275,6 +276,7 @@ export interface EmbeddingDebugConfig {
 export interface LLMConfig {
   provider: 'openai' | 'claude' | 'gemini' | 'local' | 'lmstudio';
   apiKey?: string;
+  apiKeys?: Record<string, string>; // Phase 52 GAP-5 — per-provider key memory; undefined for pre-GAP-5 stored settings (read-site fallback, no migration per CLAUDE.md feedback_no_normalize_for_optional_fields)
   baseUrl?: string;
   model: string;
   isConfigured: boolean;
