@@ -107,8 +107,7 @@ Scope in REQUIREMENTS.md. Do NOT plan goals, stop cues, or reflection prompts.
 <deferred>
 ## Deferred Ideas
 
-- **Opt-in, non-interrupting reflection/retrieval prompts** — could return as a future requirement (LEARN-F-style) ONLY if the operator later wants them and only if non-pushy and opt-in. Not in v1.6.
-- **Daily learning goal / stop cue** — rejected for v1.6 as conflicting with reward-based design. Not deferred for re-litigation; recorded as Out of Scope.
+- **Daily learning goal / stop cue / reflection prompts (was LEARN-01/02/03)** — rejected as conflicting with the reward-based, non-pushy design. Recorded as Out of Scope in REQUIREMENTS.md, NOT parked for re-litigation. Do not re-introduce.
 
 ### Reviewed Todos (not folded)
 - `2026-05-07-fix-cosine-similarity-threshold-cache-miss.md` — filter/embedding threshold tuning; unrelated to privacy/guardrail scope.

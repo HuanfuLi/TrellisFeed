@@ -53,5 +53,4 @@ cost. Guarantee structurally instead.
 
 ## Deferred Ideas
 
-- Opt-in, non-interrupting reflection/retrieval prompts — possible future requirement only if the operator later wants them and only if non-pushy/opt-in.
-- Daily learning goal / stop cue — recorded as Out of Scope (not for re-litigation).
+- Daily learning goal / stop cue / reflection prompts (was LEARN-01/02/03) — recorded as Out of Scope (not for re-litigation). Not parked as a future idea.
