@@ -856,6 +856,25 @@ export function PodcastScreen() {
                   })}
                 </div>
               </div>
+              {/* UAT follow-up (post-52-05): the Regenerate CTA must sit WITH the
+                  chips that make the selection dirty. GAP-2 moved the config into
+                  this collapsible panel below the player, leaving the player-card
+                  CTA spatially disconnected — changing a chip surfaced a button
+                  off-screen at the top. Mirror it here so it appears where the
+                  user just changed options. `selected` is non-null whenever
+                  isDirty (isDirty requires selected.optionsHash). */}
+              {isDirty && selected && (
+                <div style={{ marginTop: '16px' }}>
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    fullWidth
+                    onClick={() => generatePodcast(selected.date, todayConceptIds, { length: selectedLength, style: selectedStyle })}
+                  >
+                    {t('podcast.options.regenerateWithNew')}
+                  </Button>
+                </div>
+              )}
             </>
           )}
         </Card>
