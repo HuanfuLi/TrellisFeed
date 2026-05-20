@@ -684,8 +684,11 @@ export function PodcastScreen() {
 
           {/* Phase 52 D-04: explicit "Regenerate with new options" CTA. Visible
               only when the chip selection diverges from the cached optionsHash.
-              No modal confirm — the explicit button IS the confirmation. */}
-          {isDirty && (
+              No modal confirm — the explicit button IS the confirmation.
+              Shown here ONLY when the config panel is collapsed; when it's
+              expanded the panel renders its own co-located CTA next to the chips
+              (post-52-05 UAT) — mutually exclusive so the button never doubles. */}
+          {isDirty && !showConfig && (
             <div style={{ marginTop: '12px' }}>
               <Button
                 size="sm"
@@ -860,9 +863,11 @@ export function PodcastScreen() {
                   chips that make the selection dirty. GAP-2 moved the config into
                   this collapsible panel below the player, leaving the player-card
                   CTA spatially disconnected — changing a chip surfaced a button
-                  off-screen at the top. Mirror it here so it appears where the
-                  user just changed options. `selected` is non-null whenever
-                  isDirty (isDirty requires selected.optionsHash). */}
+                  off-screen at the top. This panel CTA renders only while the
+                  panel is expanded; the player-card CTA renders only while it's
+                  collapsed (`!showConfig`) — mutually exclusive, exactly one
+                  button at a time. `selected` is non-null whenever isDirty
+                  (isDirty requires selected.optionsHash). */}
               {isDirty && selected && (
                 <div style={{ marginTop: '16px' }}>
                   <Button
