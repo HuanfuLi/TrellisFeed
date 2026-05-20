@@ -26,7 +26,7 @@ There is **no foundation phase**. The prior agent's FOUND-01..05 scaffolding (cr
 - [x] **Phase 50: Retrieval and Library Foundation** — Bounded archive search; local-first tags/bookmarks. (completed 2026-05-18)
 - [x] **Phase 51: Concept Dashboard and Recovery Surfaces** — Per-concept dashboard joining Q&A, archive, review, podcast, tag, weak/due signals. (completed 2026-05-19)
 - [x] **Phase 52: Podcast Quality Defaults and Learner Controls** — Educational defaults; bounded length/style controls; option identity; TTS safety checks. (completed 2026-05-19)
-- [ ] **Phase 53: Engagement Guardrails + Provider Privacy** — Goals, stop cues, sparse reflection prompts, cue controls; provider payload sanitizer ships with the new fields it protects.
+- [ ] **Phase 53: Provider Privacy + Non-Pushy Guardrail** — Provider payload goldens prove private fields (tags, saved/liked/history, graph correction logs) stay out of LLM/TTS requests; a guardrail test codifies the no-streaks/likes/leaderboards/stop-cues stance. (Rescoped 2026-05-20: mandated goals, stop cues, and forced reflection prompts dropped — reward-based design already balances engagement.)
 
 ## Phase Details
 
@@ -189,21 +189,20 @@ Plans:
 
 **UI hint**: yes
 
-### Phase 53: Engagement Guardrails + Provider Privacy
+### Phase 53: Provider Privacy + Non-Pushy Guardrail
 
-**Goal**: Users can shape feed progress around learning outcomes, receive sparse recovery-oriented cues, and control those cues without pressure loops; new private fields (goals, reflection responses) ship with provider payload sanitization.
+**Goal**: Private user data (tags, saved/liked/history, graph correction logs) is provably excluded from outbound LLM and TTS payloads by default, and a guardrail test codifies Trellis's non-pushy stance so future work cannot quietly add coercive mechanics.
 **Depends on**: Phase 52
-**Requirements**: LEARN-01, LEARN-02, LEARN-03, LEARN-04, PRIVACY-01
+**Requirements**: LEARN-04, PRIVACY-01
 **Success Criteria** (what must be TRUE):
 
-  1. User can set or accept a lightweight daily learning goal based on concepts learned, reviewed, reflected on, or corrected.
-  2. User sees a stop cue after a meaningful threshold, with routes to review, reflection, podcast, planner, or closing the app.
-  3. User receives sparse retrieval/reflection prompts after meaningful engagement clusters without being interrupted on every post.
-  4. User can snooze or disable ethical cues, and Trellis does not add public likes, leaderboards, streak pressure, or engagement-maximizing loops.
-  5. Provider-bound LLM and TTS payload tests confirm the new private fields (goals, reflection responses, tags, saved/liked/history, graph correction logs) are excluded from outbound provider requests by default.
+  1. Provider-bound LLM and TTS payload tests confirm tags, saved/liked/history, and graph correction logs are excluded from outbound provider requests by default.
+  2. A guardrail test asserts the codebase introduces no public likes, leaderboards, streak pressure, stop-cue interstitials, mandated daily goals, or engagement-maximizing loops.
 
 **Plans**: TBD
-**UI hint**: yes
+**UI hint**: no
+
+> **Rescoped 2026-05-20.** Was "Engagement Guardrails + Provider Privacy" with LEARN-01/02/03 (mandated goal, stop cue, forced reflection prompts). The operator rejected that premise: Trellis reviews are reward-based, never pushy, and the existing opt-in loop already answers the engagement-vs-learning question. Those three requirements moved to Out of Scope in REQUIREMENTS.md. PRIVACY-01 narrowed to the private fields that exist today (no goal/reflection fields to protect).
 
 ## Requirement Coverage
 
@@ -230,13 +229,10 @@ Plans:
 | PODCAST-03 | Phase 52 |
 | PODCAST-04 | Phase 52 |
 | PODCAST-05 | Phase 52 |
-| LEARN-01 | Phase 53 |
-| LEARN-02 | Phase 53 |
-| LEARN-03 | Phase 53 |
 | LEARN-04 | Phase 53 |
 | PRIVACY-01 | Phase 53 |
 
-**Coverage:** 26 / 26 active v1.6 requirements mapped. No orphaned requirements. No duplicate mappings.
+**Coverage:** 23 / 23 active v1.6 requirements mapped. No orphaned requirements. No duplicate mappings. (LEARN-01/02/03 rescoped to Out of Scope 2026-05-20.)
 
 ## Progress
 
@@ -251,7 +247,7 @@ Phases execute in numeric order: 47 → 48 → 49 → 50 → 51 → 52 → 53
 | 50. Retrieval and Library Foundation | 13/13 | Complete   | 2026-05-18 |
 | 51. Concept Dashboard and Recovery Surfaces | 1/1 | Complete    | 2026-05-19 |
 | 52. Podcast Quality Defaults and Learner Controls | 6/6 | Complete   | 2026-05-20 |
-| 53. Engagement Guardrails + Provider Privacy | TBD | Not started | - |
+| 53. Provider Privacy + Non-Pushy Guardrail | TBD | Not started | - |
 
 ---
 *Roadmap created: 2026-05-13*

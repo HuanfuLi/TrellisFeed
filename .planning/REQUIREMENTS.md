@@ -57,16 +57,15 @@ The current `app/src/services/question-filter.service.ts` is a regex pattern lib
 - [ ] **PODCAST-04** Podcast generation preserves required concept coverage across length/style settings; style controls cannot degrade learning density into entertainment-only output.
 - [ ] **PODCAST-05** TTS configuration supports provider-safe model/voice/speed improvements where available, with fallback behavior and device UAT evidence before changing defaults.
 
-### LEARN — Ethical engagement guardrails (Phase 53)
+### LEARN — Ethical engagement guardrail (Phase 53)
 
-- [ ] **LEARN-01** User can set or accept a lightweight daily learning goal that frames feed progress around concepts learned, reviewed, reflected on, or corrected rather than posts consumed.
-- [ ] **LEARN-02** When the learner reaches a meaningful threshold, Trellis shows a stop cue that routes to review, reflection, podcast, planner, or closing the app instead of endless scrolling.
-- [ ] **LEARN-03** After meaningful engagement such as saved/liked/deep-read clusters, Trellis offers sparse retrieval/reflection prompts without interrupting every post.
-- [ ] **LEARN-04** Ethical cues are user-controllable with snooze/disable behavior and Trellis does not introduce public likes, leaderboards, streak pressure, or engagement-maximizing loops.
+- [ ] **LEARN-04** Trellis does not introduce public likes, leaderboards, streak pressure, stop-cue interstitials, mandated daily goals, or engagement-maximizing loops. A guardrail test codifies the non-pushy stance so future work cannot quietly add these mechanics.
+
+> **Rescoped 2026-05-20:** LEARN-01 (mandated daily goal), LEARN-02 (stop cue), and LEARN-03 (sparse reflection prompts) were dropped — they conflict with the operator's reward-based, non-pushy design. The existing opt-in, reward-framed review/trellis loop is itself the answer to the engagement-vs-learning question; no counter-mechanics are added. See Out of Scope. LEARN-04's "snooze/disable cues" clause is moot once there are no cues, so it reduces to the negative guardrail above.
 
 ### PRIVACY — Provider payload boundary (Phase 53)
 
-- [ ] **PRIVACY-01** Provider-bound LLM and TTS payload tests confirm goals, reflection responses, tags, saved/liked/history, and graph correction logs are excluded from outbound provider requests by default. Goldens ship in the same phase as the LEARN fields they protect (no upfront sanitizer for fields that don't exist yet).
+- [ ] **PRIVACY-01** Provider-bound LLM and TTS payload tests confirm tags, saved/liked/history, and graph correction logs are excluded from outbound provider requests by default. Goldens cover the private fields that actually exist today (tags from RETRIEVE, saved/liked/history from the engagement service, graph correction logs from the graph-edit journal) — goal/reflection fields are out of scope because they are not being built.
 
 ## Future Requirements
 
@@ -88,7 +87,8 @@ The current `app/src/services/question-filter.service.ts` is a regex pattern lib
 | Four-state ingestion triage UI (`Added to map` / `Chat only` / `Needs review` / `Security blocked`) | The two failure modes are precision/recall problems on the existing classifier, not missing categories. A richer state machine would multiply the same misclassifications across more buckets. |
 | Prompt-leak intent classifier (verb-detector for "show/reveal/print system prompt") | Intent classification on safe verbs misclassifies legitimate learning questions about LLMs. Injection prevention is structural (FILTER-03 bracketing) plus the pre-LLM gate (FILTER-02), not behavioral. |
 | Foundation phase with cross-cutting schema/migration/event/payload-boundary scaffolding | Optional `?:` fields don't need a migration framework; events already carry needed payloads; sanitizer ships with the fields it protects (PRIVACY-01 in Phase 53). Each feature phase adds its own optional fields. |
-| Separate "learning metrics" tracking system distinct from engagement signals | Professor Q4 asked about balancing engagement vs learning (stop cues, goals, reflection) — not about a separate metrics dashboard. The prior agent's LEARN-04 ("metrics stay separate") was inferred, not requested. |
+| Separate "learning metrics" tracking system distinct from engagement signals | Professor Q4 asked about balancing engagement vs learning — not about a separate metrics dashboard. The prior agent's original LEARN-04 ("metrics stay separate") was inferred, not requested. |
+| Mandated daily learning goals, stop-cue interstitials, and forced reflection/retrieval prompts (was LEARN-01/02/03) | Rescoped out 2026-05-20. Conflicts with the operator's reward-based, non-pushy design: reviews exist to reward, not to mandate or measure behavior, and Trellis shows no "time to stop" cues. The non-pushy design IS the answer to professor Q4 — a prior agent over-translated the question into coercive product machinery (same pattern as the Q1 graph-transparency over-translation). Opt-in, non-interrupting reflection could return as a future requirement if ever desired. |
 | Regex tuning of the existing question-filter pattern library | Operator: the current regex approach is "TOO reliant on regex" and "very ineffective." v1.6 replaces the approach (FILTER-01), not its thresholds. |
 | Blocking harmless off-topic chat at presentation time | The problem is durable graph pollution, not whether chat can answer greetings or app-meta questions. |
 | MindElixir as canonical graph persistence | Trellis graph state lives in `Question` records; MindElixir should remain a renderer/input surface. |
@@ -132,18 +132,16 @@ Operator-managed memo for the professor; not tracked as requirements:
 | PODCAST-03 | Phase 52 | Pending |
 | PODCAST-04 | Phase 52 | Pending |
 | PODCAST-05 | Phase 52 | Pending |
-| LEARN-01 | Phase 53 | Pending |
-| LEARN-02 | Phase 53 | Pending |
-| LEARN-03 | Phase 53 | Pending |
 | LEARN-04 | Phase 53 | Pending |
 | PRIVACY-01 | Phase 53 | Pending |
 
 **Coverage:**
 
-- v1.6 requirements: 26 total
-- Mapped to phases: 26
+- v1.6 requirements: 23 total
+- Mapped to phases: 23
 - Unmapped: 0
 
 ---
 *Requirements defined: 2026-05-13*
 *Overhauled: 2026-05-15 — dropped invented FOUNDATION phase (FOUND-01..05 dissolved); replaced INGEST-01..04 (regex-tuning framing) with FILTER-01..05 (replace-the-approach + pre-LLM gate + structural bracketing); dropped LEARN-04 (separate-metrics, invented); renumbered LEARN-05 → LEARN-04; added PRIVACY-01 (sanitizer ships with fields it protects). Mind-map generation transparency moved to Out of Scope (private answer). Total requirements: 30 → 26. Phase count: 8 → 7.*
+*Rescoped 2026-05-20 — dropped LEARN-01 (mandated daily goal), LEARN-02 (stop cue), LEARN-03 (forced reflection prompts) to Out of Scope: they conflict with the operator's reward-based, non-pushy design. Phase 53 narrows to LEARN-04 (no-pushy-mechanics guardrail test) + PRIVACY-01 (provider payload goldens over existing private fields only). Total requirements: 26 → 23.*
