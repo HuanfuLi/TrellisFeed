@@ -682,14 +682,13 @@
     "filteredBy": "筛选：{{concept}}",
     "options": {
       "lengthLabel": "长度",
-      "brief": "简短",
       "standard": "标准",
       "deep": "深入",
       "extended": "加长",
       "styleLabel": "风格",
       "focused": "聚焦",
       "conversational": "对话式",
-      "review": "复习训练",
+      "review": "复习",
       "regenerateWithNew": "用新选项重新生成"
     }
   },

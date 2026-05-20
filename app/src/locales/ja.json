@@ -682,14 +682,13 @@
     "filteredBy": "{{concept}}で絞り込み",
     "options": {
       "lengthLabel": "長さ",
-      "brief": "短め",
       "standard": "標準",
       "deep": "詳細",
       "extended": "長尺",
       "styleLabel": "スタイル",
       "focused": "重点",
       "conversational": "対話風",
-      "review": "復習特訓",
+      "review": "復習",
       "regenerateWithNew": "新しいオプションで再生成"
     }
   },

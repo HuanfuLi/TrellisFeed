@@ -24,7 +24,7 @@ import { parseMoveNavigationState } from '../lib/moveNavigator';
 import { eventBus } from '../lib/event-bus';
 import type { DailyPodcast, Question, PodcastLength, PodcastStyle, SupportedLocale } from '../types';
 
-const LENGTH_CHIPS = ['brief', 'standard', 'deep', 'extended'] as const satisfies readonly PodcastLength[];
+const LENGTH_CHIPS = ['standard', 'deep', 'extended'] as const satisfies readonly PodcastLength[];
 const STYLE_CHIPS = ['focused', 'conversational', 'review'] as const satisfies readonly PodcastStyle[];
 
 export function PodcastScreen() {

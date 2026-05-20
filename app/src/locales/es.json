@@ -682,14 +682,13 @@
     "filteredBy": "Filtrado por {{concept}}",
     "options": {
       "lengthLabel": "Duración",
-      "brief": "Breve",
       "standard": "Estándar",
       "deep": "Profundo",
       "extended": "Extendido",
       "styleLabel": "Estilo",
       "focused": "Enfocado",
       "conversational": "Conversacional",
-      "review": "Repaso intensivo",
+      "review": "Repaso",
       "regenerateWithNew": "Regenerar con nuevas opciones"
     }
   },
