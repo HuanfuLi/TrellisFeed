@@ -26,7 +26,7 @@ There is **no foundation phase**. The prior agent's FOUND-01..05 scaffolding (cr
 - [x] **Phase 50: Retrieval and Library Foundation** — Bounded archive search; local-first tags/bookmarks. (completed 2026-05-18)
 - [x] **Phase 51: Concept Dashboard and Recovery Surfaces** — Per-concept dashboard joining Q&A, archive, review, podcast, tag, weak/due signals. (completed 2026-05-19)
 - [x] **Phase 52: Podcast Quality Defaults and Learner Controls** — Educational defaults; bounded length/style controls; option identity; TTS safety checks. (completed 2026-05-19)
-- [ ] **Phase 53: Provider Privacy + Non-Pushy Guardrail** — Provider payload goldens prove private fields (tags, saved/liked/history, graph correction logs) stay out of LLM/TTS requests; a guardrail test codifies the no-streaks/likes/leaderboards/stop-cues stance. (Rescoped 2026-05-20: mandated goals, stop cues, and forced reflection prompts dropped — reward-based design already balances engagement.)
+- [x] **Phase 53: Provider Privacy + Non-Pushy Guardrail** — Provider payload goldens prove private fields (tags, saved/liked/history, graph correction logs) stay out of LLM/TTS requests; a guardrail test codifies the no-streaks/likes/leaderboards/stop-cues stance. (Rescoped 2026-05-20: mandated goals, stop cues, and forced reflection prompts dropped — reward-based design already balances engagement.) (completed 2026-05-20)
 
 ## Phase Details
 
@@ -209,7 +209,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 53-02-PLAN.md — Wave 2: TTS + LLM payload privacy goldens across openAI/claude/gemini (PRIVACY-01)
+- [x] 53-02-PLAN.md — Wave 2: TTS + LLM payload privacy goldens across openAI/claude/gemini (PRIVACY-01)
 
 **UI hint**: no
 
@@ -258,7 +258,7 @@ Phases execute in numeric order: 47 → 48 → 49 → 50 → 51 → 52 → 53
 | 50. Retrieval and Library Foundation | 13/13 | Complete   | 2026-05-18 |
 | 51. Concept Dashboard and Recovery Surfaces | 1/1 | Complete    | 2026-05-19 |
 | 52. Podcast Quality Defaults and Learner Controls | 6/6 | Complete   | 2026-05-20 |
-| 53. Provider Privacy + Non-Pushy Guardrail | 2/3 | In Progress|  |
+| 53. Provider Privacy + Non-Pushy Guardrail | 3/3 | Complete   | 2026-05-20 |
 
 ---
 *Roadmap created: 2026-05-13*
