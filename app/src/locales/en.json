@@ -654,7 +654,9 @@
       "confirmDelete": "Confirm delete",
       "deleteTitle": "Delete podcast",
       "optionsBadge": "Cached: {{length}} · {{style}}",
-      "playbackRateLabel": "Speed {{rate}}x"
+      "playbackRateLabel": "Speed {{rate}}x",
+      "saveTitle": "Save podcast",
+      "unsaveTitle": "Remove from saved"
     },
     "generateCard": {
       "failedTitle": "Podcast generation failed",
@@ -784,7 +786,8 @@
       "likedBody": "Long-press any tile to like a post",
       "collectionsTitle": "No collections yet",
       "collectionsBody": "Save a post to create your first collection"
-    }
+    },
+    "podcastsHeading": "Podcasts"
   },
   "library": {
     "search": {

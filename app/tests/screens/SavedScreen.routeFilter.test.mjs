@@ -105,11 +105,17 @@ describe('SavedScreen — route-state concept filter consume + clear (Phase 51-0
   });
 
   it('accepts every valid Tab value when openTab is supplied', () => {
-    // The validation guard must list all four tabs.
+    // The validation guard must list all current tabs (Liked was removed —
+    // likes are now a hidden recommendation signal).
     assert.match(
       source,
-      /state\.openTab\s*===\s*['"]saved['"][\s\S]{0,200}state\.openTab\s*===\s*['"]liked['"][\s\S]{0,200}state\.openTab\s*===\s*['"]history['"][\s\S]{0,200}state\.openTab\s*===\s*['"]collections['"]/,
-      'SavedScreen.tsx must validate state.openTab against all four Tab values.',
+      /state\.openTab\s*===\s*['"]saved['"][\s\S]{0,200}state\.openTab\s*===\s*['"]history['"][\s\S]{0,200}state\.openTab\s*===\s*['"]collections['"]/,
+      'SavedScreen.tsx must validate state.openTab against all current Tab values (saved/history/collections).',
+    );
+    assert.doesNotMatch(
+      source,
+      /state\.openTab\s*===\s*['"]liked['"]/,
+      "openTab validation must no longer accept 'liked' (Liked tab removed).",
     );
     // CR-01 fix changed the call to setActiveTab(nextTab) where nextTab is
     // narrowed from state.openTab via a Tab-typed local. Accept either

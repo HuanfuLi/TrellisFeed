@@ -654,7 +654,9 @@
       "confirmDelete": "Confirmar eliminación",
       "deleteTitle": "Eliminar podcast",
       "optionsBadge": "En caché: {{length}} · {{style}}",
-      "playbackRateLabel": "Velocidad {{rate}}x"
+      "playbackRateLabel": "Velocidad {{rate}}x",
+      "saveTitle": "Guardar pódcast",
+      "unsaveTitle": "Quitar de guardados"
     },
     "generateCard": {
       "failedTitle": "Falló la generación del podcast",
@@ -784,7 +786,8 @@
       "likedBody": "Mantén pulsada una tarjeta para indicar que te gusta",
       "collectionsTitle": "Aún no hay colecciones",
       "collectionsBody": "Guarda una publicación para crear tu primera colección"
-    }
+    },
+    "podcastsHeading": "Pódcasts"
   },
   "library": {
     "search": {

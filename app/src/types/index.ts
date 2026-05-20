@@ -755,7 +755,7 @@ export type AppEvent =
   | { type: 'HARVEST_COMPLETED'; payload: { count: number } }
   | { type: 'CONCEPT_EXPLORED'; payload: { anchorId: string } }
   | { type: 'ANCHOR_DISMISSED'; payload: { anchorId: string } }
-  | { type: 'ENGAGEMENT_CHANGED'; payload: { kind: 'save' | 'unsave' | 'like' | 'unlike' | 'undismiss'; id: string } }
+  | { type: 'ENGAGEMENT_CHANGED'; payload: { kind: 'save' | 'unsave' | 'like' | 'unlike' | 'undismiss' | 'save-podcast' | 'unsave-podcast'; id: string } }
   // Phase 50 D-03 + Claude's Discretion in 50-CONTEXT.md. One signal per
   // semantic event (CLAUDE.md §"Event bus — unified GRAPH_UPDATED"): a single
   // COLLECTIONS_CHANGED event with a discriminating `kind` payload covers

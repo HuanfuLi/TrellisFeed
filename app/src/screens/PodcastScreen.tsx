@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Play, Pause, Radio, RefreshCw, RotateCcw, RotateCw, ChevronRight, ChevronDown, Trash2, Check, X, List, BookOpen } from 'lucide-react';
+import { ArrowLeft, Play, Pause, Radio, RefreshCw, RotateCcw, RotateCw, ChevronRight, ChevronDown, Trash2, Check, X, List, BookOpen, Bookmark, BookmarkCheck } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { ProgressBar } from '../components/ui/ProgressBar';
@@ -12,6 +12,7 @@ import { today, formatDateLabel, isToday } from '../lib/date';
 import { toast } from '../lib/toast';
 import { questionService } from '../services/question.service';
 import { podcastService } from '../services/podcast.service';
+import { engagementService } from '../services/engagement.service';
 import { settingsService } from '../services/settings.service';
 import {
   deriveSelectedPodcast,
@@ -66,6 +67,10 @@ export function PodcastScreen() {
   // Phase 52 D-08: YouTube-style playback rate cycle. Local UI state — NOT
   // persisted, NOT part of optionsHash, NOT a provider call.
   const [playbackRate, setPlaybackRate] = useState<1 | 1.5 | 2>(1);
+  // Side feature: bookmark (save) the current podcast into the Saved screen.
+  // Reactive saved-state — re-read on ENGAGEMENT_CHANGED so the icon stays in
+  // sync if the same podcast is unsaved from the Saved screen (no-refresh rule).
+  const [isCurrentSaved, setIsCurrentSaved] = useState(false);
 
   // Knowledge Today — concepts in today's podcast
   const [todayConcepts, setTodayConcepts] = useState<Question[]>([]);
@@ -185,6 +190,20 @@ export function PodcastScreen() {
     });
     return unsub;
   }, []);
+
+  // Side feature: keep the bookmark icon in sync with engagement storage for the
+  // currently-selected podcast. Re-reads on selection change AND on any
+  // save/unsave-podcast event (the Saved screen can unsave while this is open).
+  useEffect(() => {
+    const sync = () =>
+      setIsCurrentSaved(selected ? engagementService.isPodcastSaved(selected.id) : false);
+    sync();
+    const unsub = eventBus.subscribe('ENGAGEMENT_CHANGED', (e) => {
+      if (e.payload.kind === 'save-podcast' || e.payload.kind === 'unsave-podcast') sync();
+    });
+    return unsub;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected?.id]);
 
   // Handle incoming concept insertion from Planner
   useEffect(() => {
@@ -619,6 +638,33 @@ export function PodcastScreen() {
           <ProgressBar value={playbackProgress} style={{ marginBottom: '16px' } as React.CSSProperties} />
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '24px' }}>
+            {/* Side feature: bookmark/save the current podcast. Leftmost control
+                so the 5-element row keeps play/pause centered (bookmark · rewind
+                · play · forward · speed). */}
+            <button
+              onClick={() => {
+                if (!selected) return;
+                if (isCurrentSaved) {
+                  engagementService.removeSavedPodcast(selected.id);
+                  toast(t('engagement.toast.unsaved'), 'success');
+                } else {
+                  engagementService.savePodcast(selected.id);
+                  toast(t('engagement.toast.saved'), 'success');
+                }
+              }}
+              title={isCurrentSaved ? t('podcast.player.unsaveTitle') : t('podcast.player.saveTitle')}
+              aria-pressed={isCurrentSaved}
+              style={{
+                width: '44px', height: '44px', borderRadius: '50%',
+                backgroundColor: 'transparent',
+                color: isCurrentSaved ? 'var(--primary-40)' : 'var(--foreground)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                border: 'none', cursor: 'pointer',
+              }}
+            >
+              {isCurrentSaved ? <BookmarkCheck size={20} /> : <Bookmark size={20} />}
+            </button>
+
             <button
               onClick={() => handleSeek(-10)}
               title={t('podcast.player.rewindTitle')}

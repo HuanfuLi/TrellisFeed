@@ -1,8 +1,10 @@
 // Phase 43 plan 43-04 — source-reading invariants for SavedScreen (SV-01..SV-04).
 // 2026-05-12 — consolidation: SavedScreen absorbed the standalone post-history
-// surface and now serves three tabs (Saved | Liked | History) from a single
-// archive entry point. The legacy PostHistoryScreen.tsx + /history route were
-// deleted; their row layout was preserved verbatim in the new History tab.
+// surface. The legacy PostHistoryScreen.tsx + /history route were deleted; their
+// row layout was preserved verbatim in the new History tab.
+// Side feature (2026-05-20): the Liked tab was removed (likes are now a hidden
+// recommendation signal, not a user-facing list). Tabs are now Saved | History |
+// Collections, and the Saved tab also surfaces bookmarked podcasts.
 //
 // Filled in from the Wave-0 scaffold (Plan 43-01) per the established
 // Phase 39/40/41/42/43 anti-wire / structural-invariant test discipline:
@@ -33,7 +35,7 @@ test('SV-01: /saved route registered in App.tsx with PageTransition wrapper', ()
   );
 });
 
-test('SV-03/04: SavedScreen exports default + reads saved/liked from engagementService', () => {
+test('SV-03/04: SavedScreen exports default + reads saved posts + saved podcasts from engagementService', () => {
   const src = readSrc('src/screens/SavedScreen.tsx');
   assert.match(src, /export default function SavedScreen/, 'default export present');
   assert.match(
@@ -43,8 +45,24 @@ test('SV-03/04: SavedScreen exports default + reads saved/liked from engagementS
   );
   assert.match(
     src,
+    /engagementService\.getSavedPodcastIds\(\)/,
+    'Saved tab also surfaces saved podcasts via engagementService.getSavedPodcastIds()',
+  );
+});
+
+test('Side feature: Liked tab removed — likes are now a hidden recommendation signal', () => {
+  const src = readSrc('src/screens/SavedScreen.tsx');
+  // The user-facing Liked list is gone. The Tab union must not contain 'liked'
+  // and the screen must not read getLikedPosts() for display.
+  assert.doesNotMatch(
+    src,
+    /type Tab = [^\n]*'liked'/,
+    "Tab union must not include 'liked' (Liked tab removed)",
+  );
+  assert.doesNotMatch(
+    src,
     /engagementService\.getLikedPosts\(\)/,
-    'Liked tab data source: engagementService.getLikedPosts()',
+    'SavedScreen must not read getLikedPosts() — likes are no longer displayed',
   );
 });
 
@@ -62,7 +80,7 @@ test('Archive consolidation 2026-05-12: History tab reads postHistoryService.get
   );
 });
 
-test("SV-04: tabs use local useState (not route param) + 4 empty-state i18n keys", () => {
+test("SV-04: tabs use local useState (not route param) + saved/history empty-state i18n keys", () => {
   const src = readSrc('src/screens/SavedScreen.tsx');
   assert.match(
     src,
@@ -70,11 +88,23 @@ test("SV-04: tabs use local useState (not route param) + 4 empty-state i18n keys
     'Tab state via useState<Tab> (local component state, not route param)',
   );
   assert.match(src, /saved\.tabs\.saved/, 'i18n key saved.tabs.saved referenced');
-  assert.match(src, /saved\.tabs\.liked/, 'i18n key saved.tabs.liked referenced');
   assert.match(src, /saved\.empty\.savedTitle/, 'i18n key saved.empty.savedTitle referenced');
-  assert.match(src, /saved\.empty\.likedTitle/, 'i18n key saved.empty.likedTitle referenced');
   assert.match(src, /saved\.empty\.savedBody/, 'i18n key saved.empty.savedBody referenced');
-  assert.match(src, /saved\.empty\.likedBody/, 'i18n key saved.empty.likedBody referenced');
+});
+
+test('Side feature: saved podcasts render in the Saved tab (heading + unsave wiring)', () => {
+  const src = readSrc('src/screens/SavedScreen.tsx');
+  assert.match(src, /saved\.podcastsHeading/, 'i18n key saved.podcastsHeading referenced for the podcast section');
+  assert.match(
+    src,
+    /engagementService\.removeSavedPodcast\(/,
+    'podcast row exposes an unsave affordance via removeSavedPodcast()',
+  );
+  assert.match(
+    src,
+    /navigate\(\s*['"`]\/podcast['"`]\s*\)/,
+    'tapping a saved podcast navigates to /podcast',
+  );
 });
 
 test('SV: ENGAGEMENT_CHANGED subscription for in-place re-sync', () => {

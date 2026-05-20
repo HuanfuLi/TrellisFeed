@@ -31,13 +31,14 @@ import { collectionService } from './collection.service.ts';
 const STORAGE_KEY = 'trellis_engagement_v1';
 
 interface EngagementState {
-  saved: string[];      // postIds
-  liked: string[];      // postIds
-  dismissed: string[];  // anchorIds
+  saved: string[];          // postIds
+  liked: string[];          // postIds (recommendation signal — NOT displayed)
+  dismissed: string[];      // anchorIds
+  savedPodcasts: string[];  // podcast IDs — surfaced in the Saved tab alongside posts
 }
 
 function freshState(): EngagementState {
-  return { saved: [], liked: [], dismissed: [] };
+  return { saved: [], liked: [], dismissed: [], savedPodcasts: [] };
 }
 
 function loadState(): EngagementState {
@@ -51,6 +52,8 @@ function loadState(): EngagementState {
       saved: Array.isArray(p.saved) ? p.saved : [],
       liked: Array.isArray(p.liked) ? p.liked : [],
       dismissed: Array.isArray(p.dismissed) ? p.dismissed : [],
+      // Additive field (no migration — pre-feature payloads load with []).
+      savedPodcasts: Array.isArray(p.savedPodcasts) ? p.savedPodcasts : [],
     };
   } catch {
     return freshState();
@@ -164,6 +167,39 @@ export const engagementService = {
   /** Resolve liked IDs to full DailyPost objects via postHistoryService. */
   getLikedPosts(): DailyPost[] {
     return resolvePostsByIds(loadState().liked);
+  },
+
+  // ─── Saved podcasts ────────────────────────────────────────────────────────
+  //
+  // Podcasts are saved by ID only (leaf discipline — this module must NOT import
+  // the heavy podcast.service, which would break node --test loadability). The
+  // SavedScreen resolves IDs to DailyPodcast objects via podcastService.getAll()
+  // at read time, mirroring the post-resolution pattern.
+
+  /** Save a podcast (idempotent — no-op + no event if already saved). */
+  savePodcast(podcastId: string): void {
+    const state = loadState();
+    if (state.savedPodcasts.includes(podcastId)) return;
+    state.savedPodcasts.push(podcastId);
+    saveState(state);
+    eventBus.emit({ type: 'ENGAGEMENT_CHANGED', payload: { kind: 'save-podcast', id: podcastId } });
+  },
+
+  /** Remove a saved podcast (idempotent — no-op + no event if not saved). */
+  removeSavedPodcast(podcastId: string): void {
+    const state = loadState();
+    if (!state.savedPodcasts.includes(podcastId)) return;
+    state.savedPodcasts = state.savedPodcasts.filter(id => id !== podcastId);
+    saveState(state);
+    eventBus.emit({ type: 'ENGAGEMENT_CHANGED', payload: { kind: 'unsave-podcast', id: podcastId } });
+  },
+
+  isPodcastSaved(podcastId: string): boolean {
+    return loadState().savedPodcasts.includes(podcastId);
+  },
+
+  getSavedPodcastIds(): string[] {
+    return [...loadState().savedPodcasts];
   },
 
   // ─── Dismissed anchors ───────────────────────────────────────────────────

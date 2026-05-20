@@ -654,7 +654,9 @@
       "confirmDelete": "确认删除",
       "deleteTitle": "删除播客",
       "optionsBadge": "缓存：{{length}} · {{style}}",
-      "playbackRateLabel": "速度 {{rate}}x"
+      "playbackRateLabel": "速度 {{rate}}x",
+      "saveTitle": "保存播客",
+      "unsaveTitle": "从已收藏中移除"
     },
     "generateCard": {
       "failedTitle": "播客生成失败",
@@ -784,7 +786,8 @@
       "likedBody": "长按任意卡片即可喜欢帖子",
       "collectionsTitle": "还没有收藏夹",
       "collectionsBody": "保存帖子以创建你的第一个收藏夹"
-    }
+    },
+    "podcastsHeading": "播客"
   },
   "library": {
     "search": {

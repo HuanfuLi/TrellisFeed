@@ -654,7 +654,9 @@
       "confirmDelete": "削除を確認",
       "deleteTitle": "ポッドキャストを削除",
       "optionsBadge": "キャッシュ：{{length}} · {{style}}",
-      "playbackRateLabel": "速度 {{rate}}x"
+      "playbackRateLabel": "速度 {{rate}}x",
+      "saveTitle": "ポッドキャストを保存",
+      "unsaveTitle": "保存から削除"
     },
     "generateCard": {
       "failedTitle": "ポッドキャスト生成に失敗",
@@ -784,7 +786,8 @@
       "likedBody": "タイルを長押しして投稿にいいね",
       "collectionsTitle": "まだコレクションがありません",
       "collectionsBody": "投稿を保存して最初のコレクションを作成しましょう"
-    }
+    },
+    "podcastsHeading": "ポッドキャスト"
   },
   "library": {
     "search": {

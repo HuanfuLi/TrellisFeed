@@ -152,7 +152,38 @@ describe('engagementService — Phase 39', () => {
     engagementService.likePost('p2');
     engagementService.dismissAnchor('a1');
     const raw = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    assert.deepEqual(raw, { saved: ['p1'], liked: ['p2'], dismissed: ['a1'] });
+    assert.deepEqual(raw, { saved: ['p1'], liked: ['p2'], dismissed: ['a1'], savedPodcasts: [] });
+  });
+
+  it("savePodcast / removeSavedPodcast / isPodcastSaved round-trip with kind 'save-podcast'/'unsave-podcast'", () => {
+    engagementService.savePodcast('pod1');
+    assert.equal(engagementService.isPodcastSaved('pod1'), true);
+    assert.deepEqual(engagementService.getSavedPodcastIds(), ['pod1']);
+    assert.equal(engagementEvents.at(-1)?.payload.kind, 'save-podcast');
+    assert.equal(engagementEvents.at(-1)?.payload.id, 'pod1');
+
+    // Idempotent — re-saving does not re-emit.
+    const beforeLen = engagementEvents.length;
+    engagementService.savePodcast('pod1');
+    assert.equal(engagementEvents.length, beforeLen, 're-save must not re-emit');
+
+    engagementService.removeSavedPodcast('pod1');
+    assert.equal(engagementService.isPodcastSaved('pod1'), false);
+    assert.deepEqual(engagementService.getSavedPodcastIds(), []);
+    assert.equal(engagementEvents.at(-1)?.payload.kind, 'unsave-podcast');
+  });
+
+  it('removeSavedPodcast on never-saved podcast is a no-op (no event emitted)', () => {
+    const beforeLen = engagementEvents.length;
+    engagementService.removeSavedPodcast('pod-nope');
+    assert.equal(engagementEvents.length, beforeLen);
+  });
+
+  it('savedPodcasts is independent of saved posts (separate arrays)', () => {
+    engagementService.savePost('p1');
+    engagementService.savePodcast('pod1');
+    assert.deepEqual(engagementService.getSavedPostIds(), ['p1']);
+    assert.deepEqual(engagementService.getSavedPodcastIds(), ['pod1']);
   });
 
   it('reset() clears all three collections AND emits NOTHING (D-08)', () => {

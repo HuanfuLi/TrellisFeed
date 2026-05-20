@@ -14,10 +14,14 @@
 // pattern — see Header.tsx insideSwipeTab discrimination).
 //
 // Data sources:
-//   - Saved tab        → engagementService.getSavedPosts()
-//   - Liked tab        → engagementService.getLikedPosts()
+//   - Saved tab        → engagementService.getSavedPosts() (posts) PLUS saved
+//                        podcasts resolved from engagementService.getSavedPodcastIds()
+//                        via podcastService.getAll() (rendered as a section atop posts)
 //   - History tab      → postHistoryService.getPostsByDay() — day-grouped Map
 //   - Collections tab  → collectionService.getCollections()
+//
+// The former "Liked" tab was removed: likes remain recorded by engagementService
+// purely as a hidden recommendation signal (no longer a user-facing list).
 //
 // Tab state is local useState (operator-locked at SV-04 — owned by the screen,
 // NOT a route param). Tap toggle, no swipe gesture. Phase 50 D-15: URL stays
@@ -37,8 +41,9 @@
 //     `minWidth: 0`, Android WebView refuses to shrink the input below
 //     intrinsic content width and the Clear-X button overflows off-screen.
 //   - Fuse index is built inside `useMemo` keyed on [activeTab, savedPosts,
-//     likedPosts, historyGroups] (RESEARCH §Pitfall 3). NEVER inside render
-//     body or onChange handler.
+//     historyGroups] (RESEARCH §Pitfall 3). NEVER inside render
+//     body or onChange handler. (Saved podcasts are NOT in the Fuse corpus —
+//     they render as a separate section and have no searchable body.)
 //   - onChange debounces via `clearTimeout` + `setTimeout` ~200ms (CONTEXT.md
 //     Claude's Discretion). Input echo is instant via `inputDraft`; Fuse
 //     re-search waits 200ms idle.
@@ -64,13 +69,14 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   Bookmark,
-  Heart,
+  BookmarkCheck,
   Clock,
   AlertCircle,
   Search,
   X,
   Folder,
   ChevronRight,
+  Radio,
 } from 'lucide-react';
 import Fuse, { type FuseResult, type FuseResultMatch } from 'fuse.js';
 import { Header, HEADER_HEIGHT } from '../components/ui/Header';
@@ -82,6 +88,7 @@ import { engagementService } from '../services/engagement.service';
 import { postHistoryService } from '../services/post-history.service';
 import { collectionService } from '../services/collection.service';
 import { questionService } from '../services/question.service';
+import { podcastService } from '../services/podcast.service';
 import {
   FUSE_OPTIONS,
   capQuery,
@@ -91,11 +98,28 @@ import {
   type DateFilterPreset,
 } from '../services/library-search.service';
 import { eventBus } from '../lib/event-bus';
-import { today } from '../lib/date';
+import { today, formatDateLabel, isToday } from '../lib/date';
 import { toast } from '../lib/toast';
-import type { DailyPost, Collection } from '../types';
+import type { DailyPost, Collection, DailyPodcast } from '../types';
 
-type Tab = 'saved' | 'liked' | 'history' | 'collections';
+type Tab = 'saved' | 'history' | 'collections';
+
+// Resolve saved podcast IDs to DailyPodcast objects, preserving the user's
+// save-action order. Mirrors engagement's post resolution but lives here so the
+// engagement leaf service never imports the heavy podcast.service. Podcasts not
+// found (deleted) are silently dropped.
+function resolveSavedPodcasts(): DailyPodcast[] {
+  const ids = engagementService.getSavedPodcastIds();
+  if (ids.length === 0) return [];
+  const byId = new Map<string, DailyPodcast>();
+  for (const p of podcastService.getAll()) byId.set(p.id, p);
+  const out: DailyPodcast[] = [];
+  for (const id of ids) {
+    const p = byId.get(id);
+    if (p) out.push(p);
+  }
+  return out;
+}
 
 // ─── SavedRow ────────────────────────────────────────────────────────────────
 // Search-result variant: when `searchMatch` is provided, the title renders via
@@ -256,27 +280,21 @@ function EmptyState({
   const Icon =
     tab === 'saved'
       ? Bookmark
-      : tab === 'liked'
-        ? Heart
-        : tab === 'collections'
-          ? Folder
-          : Clock;
+      : tab === 'collections'
+        ? Folder
+        : Clock;
   const titleKey =
     tab === 'saved'
       ? 'saved.empty.savedTitle'
-      : tab === 'liked'
-        ? 'saved.empty.likedTitle'
-        : tab === 'collections'
-          ? 'library.collections.emptyTitle'
-          : 'home.history.emptyTitle';
+      : tab === 'collections'
+        ? 'library.collections.emptyTitle'
+        : 'home.history.emptyTitle';
   const bodyKey =
     tab === 'saved'
       ? 'saved.empty.savedBody'
-      : tab === 'liked'
-        ? 'saved.empty.likedBody'
-        : tab === 'collections'
-          ? 'library.collections.emptyBody'
-          : 'home.history.emptyBody';
+      : tab === 'collections'
+        ? 'library.collections.emptyBody'
+        : 'home.history.emptyBody';
   return (
     <div
       style={{
@@ -432,8 +450,11 @@ export default function SavedScreen() {
   const [savedPosts, setSavedPosts] = useState<DailyPost[]>(() =>
     engagementService.getSavedPosts(),
   );
-  const [likedPosts, setLikedPosts] = useState<DailyPost[]>(() =>
-    engagementService.getLikedPosts(),
+  // Saved podcasts surface in the Saved tab alongside posts (bookmarked from the
+  // PodcastScreen player). Resolved here so the engagement leaf service stays
+  // free of the heavy podcast.service import.
+  const [savedPodcasts, setSavedPodcasts] = useState<DailyPodcast[]>(() =>
+    resolveSavedPodcasts(),
   );
   const [historyGroups, setHistoryGroups] = useState<Map<string, DailyPost[]>>(() => {
     try {
@@ -484,7 +505,6 @@ export default function SavedScreen() {
     let nextTab: Tab | null = null;
     if (
       state.openTab === 'saved' ||
-      state.openTab === 'liked' ||
       state.openTab === 'history' ||
       state.openTab === 'collections'
     ) {
@@ -540,7 +560,7 @@ export default function SavedScreen() {
 
   const refresh = useCallback(() => {
     setSavedPosts(engagementService.getSavedPosts());
-    setLikedPosts(engagementService.getLikedPosts());
+    setSavedPodcasts(resolveSavedPodcasts());
     try {
       setHistoryGroups(postHistoryService.getPostsByDay());
       setHistoryError(false);
@@ -549,8 +569,9 @@ export default function SavedScreen() {
     }
   }, []);
 
-  // ENGAGEMENT_CHANGED subscription — keeps Saved/Liked/History in-sync when
-  // the user un-saves / un-likes from a parallel surface.
+  // ENGAGEMENT_CHANGED subscription — keeps Saved (posts + podcasts) / History
+  // in-sync when the user un-saves from a parallel surface (LongPressMenu,
+  // PostDetailScreen, or the PodcastScreen player bookmark).
   useEffect(() => {
     const unsub = eventBus.subscribe('ENGAGEMENT_CHANGED', () => refresh());
     return unsub;
@@ -611,12 +632,11 @@ export default function SavedScreen() {
   const corpusForTab = useCallback(
     (tab: Tab): DailyPost[] => {
       if (tab === 'saved') return savedPosts;
-      if (tab === 'liked') return likedPosts;
       if (tab === 'history')
         return Array.from(historyGroups.values()).flat();
       return []; // collections tab has no Fuse search
     },
-    [savedPosts, likedPosts, historyGroups],
+    [savedPosts, historyGroups],
   );
 
   // Fuse index — useMemo keyed on activeTab + corpus identity (RESEARCH
@@ -651,7 +671,7 @@ export default function SavedScreen() {
     return true;
   });
 
-  const isFlatTab = activeTab === 'saved' || activeTab === 'liked';
+  const isFlatTab = activeTab === 'saved';
   const searchActive = trimmed.length >= 2;
   const anyFilterActive =
     filterConcept !== null || filterSource !== null || filterDate !== 'all';
@@ -659,8 +679,7 @@ export default function SavedScreen() {
 
   // Empty / no-match logic.
   const tabEmpty = (() => {
-    if (activeTab === 'saved') return savedPosts.length === 0;
-    if (activeTab === 'liked') return likedPosts.length === 0;
+    if (activeTab === 'saved') return savedPosts.length === 0 && savedPodcasts.length === 0;
     if (activeTab === 'history') return historyGroups.size === 0 && !historyError;
     return collections.length === 0;
   })();
@@ -678,7 +697,7 @@ export default function SavedScreen() {
     } catch {
       return [];
     }
-  }, [collections, savedPosts, likedPosts]);
+  }, [collections, savedPosts]);
 
   const sourceOptions = useMemo<FilterPickerOption[]>(() => {
     const labels = new Set<string>();
@@ -897,7 +916,8 @@ export default function SavedScreen() {
           )}
         </div>
 
-        {/* Tab bar — 4 tabs. */}
+        {/* Tab bar — 3 tabs (Liked removed: likes are now a hidden
+            recommendation signal, no longer a user-facing list). */}
         <div
           role="tablist"
           style={{
@@ -909,9 +929,6 @@ export default function SavedScreen() {
         >
           <TabButton active={activeTab === 'saved'} onClick={() => setActiveTab('saved')}>
             {t('saved.tabs.saved')}
-          </TabButton>
-          <TabButton active={activeTab === 'liked'} onClick={() => setActiveTab('liked')}>
-            {t('saved.tabs.liked')}
           </TabButton>
           <TabButton active={activeTab === 'history'} onClick={() => setActiveTab('history')}>
             {t('saved.tabs.history')}
@@ -984,7 +1001,6 @@ export default function SavedScreen() {
                 tab: t(
                   `saved.tabs.${activeTab}` as
                     | 'saved.tabs.saved'
-                    | 'saved.tabs.liked'
                     | 'saved.tabs.history'
                     | 'saved.tabs.collections',
                 ),
@@ -1026,10 +1042,95 @@ export default function SavedScreen() {
             ))}
           </div>
         ) : isFlatTab || searchActive || anyFilterActive ? (
-          /* Flat list — Saved, Liked, or History flattened when search/filter
-             is active (per UI-SPEC: "if filters/query active on History,
-             render as flat list"). */
+          /* Flat list — Saved, or History flattened when search/filter is
+             active (per UI-SPEC: "if filters/query active on History, render as
+             flat list"). */
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {/* Saved podcasts — surfaced atop the Saved tab, above posts. Not
+                part of the post Fuse corpus, so only shown when no search/filter
+                is active (podcasts have no searchable body / filter dimensions). */}
+            {activeTab === 'saved' && !searchActive && !anyFilterActive && savedPodcasts.length > 0 && (
+              <>
+                <div
+                  style={{
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    color: 'var(--muted-foreground)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                    padding: '4px 0',
+                  }}
+                >
+                  {t('saved.podcastsHeading')}
+                </div>
+                {savedPodcasts.map((pod) => (
+                  <div
+                    key={pod.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      padding: '12px',
+                      background: 'var(--surface-variant)',
+                      borderRadius: 'var(--radius)',
+                    }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => navigate('/podcast')}
+                      style={{
+                        flex: 1,
+                        minWidth: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        padding: 0,
+                      }}
+                    >
+                      <Radio size={20} color="var(--primary-40)" style={{ flexShrink: 0 }} />
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--foreground)' }}>
+                          {t('podcast.player.dailyRecap')}
+                        </div>
+                        <div style={{ fontSize: '13px', color: 'var(--muted-foreground)' }}>
+                          {isToday(pod.date) ? t('podcast.player.todayLabel') : formatDateLabel(pod.date)}
+                          {pod.options
+                            ? ` · ${t(`podcast.options.${pod.options.length}`)} · ${t(`podcast.options.${pod.options.style}`)}`
+                            : ''}
+                        </div>
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        engagementService.removeSavedPodcast(pod.id);
+                        toast(t('engagement.toast.unsaved'), 'success');
+                      }}
+                      title={t('podcast.player.unsaveTitle')}
+                      aria-label={t('podcast.player.unsaveTitle')}
+                      style={{
+                        width: '44px',
+                        height: '44px',
+                        flexShrink: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        color: 'var(--primary-40)',
+                      }}
+                    >
+                      <BookmarkCheck size={20} />
+                    </button>
+                  </div>
+                ))}
+              </>
+            )}
             {filtered.map(({ item: post, matches }, idx) => (
               <SavedRow
                 key={post.id}
