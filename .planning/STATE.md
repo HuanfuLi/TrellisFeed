@@ -1,17 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.6
-milestone_name: milestone
-status: Awaiting next milestone
-stopped_at: Phase 53 rescoped + context gathered
-last_updated: "2026-05-20T09:57:59.936Z"
-last_activity: 2026-05-20 — Milestone v1.6 completed and archived
+milestone: v1.7
+milestone_name: Cleanup, Hardening & Rewards
+status: planning
+last_updated: "2026-05-20T12:13:58.003Z"
+last_activity: 2026-05-20
 progress:
-  total_phases: 7
-  completed_phases: 7
-  total_plans: 39
-  completed_plans: 39
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State: v1.6 ROADMAP OVERHAULED — 2026-05-15
@@ -60,10 +59,10 @@ Plus the earlier 2026-05-15 corrections (during the same session, before the ful
 
 ## Current Position
 
-Phase: Milestone v1.6 complete
+Phase: Not started (defining requirements)
 Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-05-20 — Milestone v1.6 completed and archived
+Status: Defining requirements
+Last activity: 2026-05-20 — Milestone v1.7 started
 
 ## Milestone Shape
 

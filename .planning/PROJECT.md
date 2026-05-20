@@ -18,15 +18,24 @@ v1.6 Control, Graph Trust, Retrieval, and Ethical Engagement shipped on 2026-05-
 
 Audit status: `passed` — 23/23 requirements satisfied, cross-phase integration 6/6 WIRED, full suite green (1471 tests), `tsc` clean. (Initial audit was `tech_debt` over three verification paper-trail gaps in phases 49/50/52; all reconciled the same day.)
 
-## Current Milestone: None
+## Current Milestone: v1.7 Cleanup, Hardening & Rewards
 
-No milestone is currently in progress. Run `/gsd:new-milestone` to scope the next one (questioning → research → requirements → roadmap). `.planning/REQUIREMENTS.md` is intentionally absent until the next milestone defines fresh requirements.
+**Goal:** Polish and harden the app after v1.6's heavy feature push, then add a cosmetic rewards shop that gives earned coins (fruit credits) a purpose.
 
-**Carried-forward deferred items (from v1.6 close):** 2 debug sessions (`feed-not-auto-populating-after-force-new-day`, `vine-chip-not-clearing-after-force-new-day`) + 2 todos (cosine-similarity threshold cache-miss, auto-gen podcast device verification). See STATE.md Deferred Items.
+**Target features:**
+- UI polish — sweep skipped/rough refinements, find missing animations, fix wrong navigation
+- Documentation cleanup — archive or update stale docs
+- Tech-debt cleanup — pay down debt accumulated across v1.4–v1.6
+- Code quality & bug audit — systematic review for bugs and quality issues
+- Algorithm tuning — fine-tune numeric thresholds (cosine similarity, etc.)
+- System mechanism tuning — test + tune filters, recommendations, feed randomizer, "like" algorithm
+- Rewards shop (full design + build) — coin-purchasable cosmetics: themes, pets/companions, trellis/garden cosmetics; no functional power-ups (preserves non-pushy stance)
+
+**Key context:** v1.6 shipped 2026-05-20. 2 carried-over todos fold into this milestone (cosine-similarity threshold cache-miss → algorithm tuning; auto-gen podcast device verification → bug audit) plus 2 deferred debug sessions. Coins already exist as `trellis_fruit_credits`; rewards reuse the trellis metaphor + CSS-var theming.
 
 ## Active Requirements
 
-None — between milestones. Defined per-milestone in `.planning/REQUIREMENTS.md`.
+Defined for v1.7 in `.planning/REQUIREMENTS.md`.
 
 ## Validated Requirements
 
@@ -147,4 +156,4 @@ _Last updated: 2026-05-19 — Phase 51 complete (RETRIEVE-03 + RETRIEVE-04 via t
 **Phase 46 complete (2026-05-13, verifier 8/8):** v1.5 milestone-audit gap closure closed CONTENT-03 on the queued-news prefetch path. `PreFetchCache.news` now stores filtered top-source arrays, direct and queued-prefetch news paths share `selectNewsTopSources`, and `mapNewsSourcesToNewsMeta` maps up to three sources with stable 1-based indexes before `generateNewsEssay` consumes `sources.slice(0, 3)`. The targeted CONTENT-03 regression passes 17/17 and final build/lint/test evidence is recorded in `46-VERIFY.md`; the only aggregate test caveat remains the known-deferred `tests/concept-feed.test.mjs` `buildFallbackPosts` baseline from Phase 45. Milestone v1.5 is ready for re-audit and archive.
 
 ---
-*Last updated: 2026-05-20 — v1.6 milestone shipped (Control, Graph Trust, Retrieval, and Ethical Engagement; audit passed, 23/23 requirements). Awaiting next milestone.*
+*Last updated: 2026-05-20 — v1.7 milestone started (Cleanup, Hardening & Rewards). Defining requirements.*
