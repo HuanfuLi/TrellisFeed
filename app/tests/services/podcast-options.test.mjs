@@ -44,7 +44,7 @@ describe('computeOptionsHash determinism (Phase 52 PODCAST-03 cache key)', () =>
 
   it('changes when length changes', async () => {
     const { computeOptionsHash } = await import('../../src/services/podcast-prompt.ts');
-    const a = computeOptionsHash([], 'en', { length: 'brief', style: 'focused' });
+    const a = computeOptionsHash([], 'en', { length: 'standard', style: 'focused' });
     const b = computeOptionsHash([], 'en', { length: 'deep', style: 'focused' });
     assert.notEqual(a, b);
   });

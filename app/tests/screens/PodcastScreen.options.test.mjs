@@ -95,7 +95,6 @@ describe('PodcastScreen length+style chips (Phase 52 PODCAST-02)', () => {
 describe('Locale bundles carry podcast.options.* keys (Phase 52 i18n)', () => {
   const REQUIRED_OPTION_KEYS = [
     'lengthLabel',
-    'brief',
     'standard',
     'deep',
     'extended',
