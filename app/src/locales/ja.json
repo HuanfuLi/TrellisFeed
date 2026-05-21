@@ -387,6 +387,7 @@
     },
     "sections": {
       "languageModel": "言語モデル",
+      "fastModel": "高速生成モデル",
       "embeddingModel": "埋め込みモデル",
       "tts": "音声合成・認識",
       "zerotier": "ZeroTier ネットワーク",
@@ -406,6 +407,7 @@
       "apiKey": "API キー",
       "baseUrl": "ベース URL",
       "model": "モデル",
+      "fastModelEnabled": "高速生成モデルを使用",
       "modelId": "モデル ID",
       "dimensions": "次元",
       "voice": "音声",
@@ -443,6 +445,9 @@
       "ttsModelHd": "HD（tts-1-hd）"
     },
     "descriptions": {
+      "fastModelBlurb": "任意。投稿の本文やフォローアップの回答を、推論を無効にした別の低遅延モデルでストリーミングするため、コンテンツが即座に表示されます。オフにするとメインモデルを使用します。",
+      "fastModelEnabled": "投稿本文・ニュース記事・投稿フォローアップをこのモデルで生成する",
+      "fastModelHint": "最速のストリーミングには、小型の非推論モデルを選んでください。",
       "embeddingBlurb": "概念間の意味的類似度に使用され、コネクションカードの品質を支えます。LLM とは別 — Anthropic に埋め込みモデルはありません。",
       "lmStudioServer": "LM Studio サーバー URL",
       "ollamaServer": "Ollama サーバー URL",
@@ -575,6 +580,7 @@
     },
     "toast": {
       "llmSaved": "LLM 設定を保存しました。",
+      "fastModelSaved": "高速生成モデルを保存しました。",
       "embeddingSaved": "埋め込みモデル設定を保存しました。",
       "ttsSaved": "音声合成設定を保存しました。",
       "zerotierSaved": "ZeroTier 設定を保存しました。",

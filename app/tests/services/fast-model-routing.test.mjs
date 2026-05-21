@@ -88,9 +88,13 @@ describe('per-provider thinking-disable plumbing (source guards)', () => {
     assert.ok(/thinkingConfig/.test(llmSource), 'Gemini path must keep thinkingConfig.thinkingBudget plumbing');
     const streamIdx = llmSource.indexOf('streamGenerateContent');
     assert.ok(streamIdx >= 0, 'geminiStream must exist');
-    const window = llmSource.slice(streamIdx, streamIdx + 600);
+    const window = llmSource.slice(streamIdx, streamIdx + 1200);
+    // The stream path's toGeminiPayload(...) call must forward options.disableThinking.
+    const callIdx = window.indexOf('toGeminiPayload(');
+    assert.ok(callIdx >= 0, 'geminiStream must call toGeminiPayload(...)');
+    const callWindow = window.slice(callIdx, callIdx + 300);
     assert.ok(
-      /toGeminiPayload\([\s\S]*disableThinking/.test(window),
+      /disableThinking/.test(callWindow),
       'geminiStream must forward options.disableThinking into toGeminiPayload',
     );
   });

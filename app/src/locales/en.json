@@ -387,6 +387,7 @@
     },
     "sections": {
       "languageModel": "Language Model",
+      "fastModel": "Fast Generation Model",
       "embeddingModel": "Embedding Model",
       "tts": "Text-to-Speech & Speech Recognition",
       "zerotier": "ZeroTier Network",
@@ -406,6 +407,7 @@
       "apiKey": "API Key",
       "baseUrl": "Base URL",
       "model": "Model",
+      "fastModelEnabled": "Use a fast generation model",
       "modelId": "Model ID",
       "dimensions": "Dimensions",
       "voice": "Voice",
@@ -443,6 +445,9 @@
       "ttsModelHd": "HD (tts-1-hd)"
     },
     "descriptions": {
+      "fastModelBlurb": "Optional. Streams post bodies and follow-up answers from a separate low-latency model with reasoning turned off, so content appears instantly. Leave off to use your main model.",
+      "fastModelEnabled": "Route post bodies, news essays, and post follow-ups through this model",
+      "fastModelHint": "Pick a small, non-reasoning model for the fastest streaming.",
       "embeddingBlurb": "Used for semantic similarity between concepts. Powers connection card quality. Separate from the LLM — Anthropic has no embedding model.",
       "lmStudioServer": "LM Studio server URL",
       "ollamaServer": "Ollama server URL",
@@ -575,6 +580,7 @@
     },
     "toast": {
       "llmSaved": "LLM settings saved.",
+      "fastModelSaved": "Fast generation model saved.",
       "embeddingSaved": "Embedding settings saved.",
       "ttsSaved": "TTS settings saved.",
       "zerotierSaved": "ZeroTier settings saved.",

@@ -387,6 +387,7 @@
     },
     "sections": {
       "languageModel": "语言模型",
+      "fastModel": "快速生成模型",
       "embeddingModel": "嵌入模型",
       "tts": "语音合成与识别",
       "zerotier": "ZeroTier 网络",
@@ -406,6 +407,7 @@
       "apiKey": "API 密钥",
       "baseUrl": "基础 URL",
       "model": "模型",
+      "fastModelEnabled": "使用快速生成模型",
       "modelId": "模型 ID",
       "dimensions": "维度",
       "voice": "语音",
@@ -443,6 +445,9 @@
       "ttsModelHd": "高清（tts-1-hd）"
     },
     "descriptions": {
+      "fastModelBlurb": "可选。使用一个单独的低延迟模型来生成帖子正文和追问回答，并关闭推理，使内容即时显示。关闭后则使用主模型。",
+      "fastModelEnabled": "让帖子正文、新闻短文和帖子追问通过该模型生成",
+      "fastModelHint": "选择一个小型的非推理模型以获得最快的流式输出。",
       "embeddingBlurb": "用于概念之间的语义相似度计算，为连接卡片质量提供支持。与 LLM 分开 — Anthropic 没有嵌入模型。",
       "lmStudioServer": "LM Studio 服务器 URL",
       "ollamaServer": "Ollama 服务器 URL",
@@ -575,6 +580,7 @@
     },
     "toast": {
       "llmSaved": "LLM 设置已保存。",
+      "fastModelSaved": "快速生成模型已保存。",
       "embeddingSaved": "嵌入模型设置已保存。",
       "ttsSaved": "语音合成设置已保存。",
       "zerotierSaved": "ZeroTier 设置已保存。",
