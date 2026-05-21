@@ -80,7 +80,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Goal**: Four regressions surfaced by on-device testing are root-caused and fixed: chat answers never cross sessions, persisted post content survives provider/locale switches intact, and the Ask-screen keyboard interaction is stable (no nav-bar flicker, send works on first tap).
 **Inserted**: 2026-05-21, after Phase 55, from a device-test session. Sits before Phase 56 because two of the four are correctness/blocker bugs (response leakage, can't-send-on-first-tap), not cosmetic polish.
 **Depends on**: Phase 55 (current code baseline)
-**Requirements**: BUGFIX-01, BUGFIX-02, BUGFIX-03, BUGFIX-04 (original); BUGFIX-05, BUGFIX-06, BUGFIX-07 (device-test follow-ons folded in via gap closure 2026-05-21)
+**Requirements**: BUGFIX-01, BUGFIX-02, BUGFIX-03, BUGFIX-04 (original); BUGFIX-05, BUGFIX-06, BUGFIX-07 (device-test follow-ons folded in via gap closure 2026-05-21); BUGFIX-08 (low-latency post-body model — new feature, gap closure round 4)
 **Success Criteria** (what must be TRUE):
 
   1. A streaming LLM answer is bound to the session it was requested for: the rapid ask → new-session → ask → new-session sequence never renders a prior session's response under a different session's question. The leak is root-caused (request→session binding in `useQuestions`/`session.service`, and/or aborting the in-flight stream on session switch) and covered by a regression test. (BUGFIX-01)
@@ -88,11 +88,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. On the Ask screen, opening the keyboard raises the input island smoothly with NO bottom-navigation-bar flicker (the nav bar does not animate up/down during the keyboard transition). Consistent with the existing SwipeTabContainer keyboard/resize and root-overflow invariants (CLAUDE.md). (BUGFIX-03)
   4. On the Ask screen, tapping Send while the keyboard is open sends the message on the FIRST tap — the tap is not consumed by keyboard dismissal (e.g. fire on pointer-down / preserve input focus so the send handler runs before blur). (BUGFIX-04)
   5. (Gap closure) The Ask-screen input bar animates smoothly to its keyboard-open position instead of teleporting, with the nav instant-hide fix preserved. (BUGFIX-05 / GAP-A)
-  6. (Gap closure) The Planner trellis is profiled at production scale and the measured bottleneck is fixed; it stays smooth on large graphs without changing leaf-state semantics. (BUGFIX-05 / GAP-B)
+  6. (Gap closure) The Planner trellis stays smooth on large graphs and with Trellis Dev Mode on — leaf framer-motion animations pause when the Planner is off-screen so they don't starve the compositor during cross-screen swipes; leaf-state semantics unchanged. (BUGFIX-05 / GAP-B, re-targeted round 4 — render/animation layer, not the build path)
   7. (Gap closure) The ~1-min cold-start first-LLM-response is instrumented, the measured stall localized and fixed; warm responses stay fast. (BUGFIX-06 / GAP-C)
   8. (Gap closure) The Home 'Nothing new today' empty-state no longer contradicts a populated feed (hidden or localized reword across all 4 bundles). (BUGFIX-07 / GAP-D)
+  9. (Gap closure, round 4) A separate user-configurable low-latency generation model can be set; when configured, the on-open one-shot generators (post body, news essay, post-context Q&A) stream from it with thinking/reasoning disabled so the body starts streaming immediately on tap-in; falls back to the main model when unset, and Ask Q&A keeps the main model. (BUGFIX-08 / GAP-E)
 
-**Plans**: 4 plans
+**Plans**: 11 plans
 
 - [x] 55.1-01-PLAN.md — BUGFIX-01: bind streaming answer to originating session (origin-gated persist + abort-on-switch)
 - [x] 55.1-02-PLAN.md — BUGFIX-02: stop provider/locale switch from truncating text-art posts (reject-empty gate + persist-merge guard + Gemini budget/thinkingConfig)
@@ -102,6 +103,9 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] 55.1-06-PLAN.md — GAP-B (BUGFIX-05): profile Planner trellis at scale FIRST, then fix the measured bottleneck (recompute throttle / memoized leaf state / batched blossom writes / memoized leaf render)
 - [x] 55.1-07-PLAN.md — GAP-C (BUGFIX-06): instrument cold-start first-ask FIRST, then fix the measured stall (boot warm-up of the dominant phase); byte-stable prompt + malicious gate preserved
 - [x] 55.1-08-PLAN.md — GAP-D (BUGFIX-07): fix Home empty-state contradiction (hide-when-feed-nonempty OR localized reword across 4 bundles)
+- [ ] 55.1-09-PLAN.md — GAP-B (BUGFIX-05) RE-TARGET: pause trellis leaf framer-motion animations when Planner is off-screen (shouldAnimateTrellis gate, render-layer fix; 55.1-06 optimized the bypassed build path)
+- [ ] 55.1-10-PLAN.md — GAP-E (BUGFIX-08) NEW: configurable low-latency generation model for on-open post-body/news/context-QA, thinking disabled per provider, falls back to main model; 4-bundle i18n
+- [ ] 55.1-11-PLAN.md — GAP-A (BUGFIX-05) ATTEMPT 2: drive ChatInput position continuously off visualViewport so the bar follows the keyboard frame-by-frame (decay approach from 55.1-05 rejected)
 
 **UI hint**: yes (issues 3 + 4 are Ask-screen keyboard/layout)
 
