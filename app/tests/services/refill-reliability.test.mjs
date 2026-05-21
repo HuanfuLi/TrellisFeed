@@ -67,28 +67,33 @@ describe('TUNE-03 under-refill reproduction (Phase 55-06 Task 1 — current beha
 
   // CAUSE (a): dequeue-before-refill shortfall (CONFIRMED DOMINANT CAUSE).
   // Queue holds fewer posts than the swipe batch (8) but is NOT empty, so the
-  // live `posts.length === 0` guard does NOT fire — refill is never awaited
-  // synchronously, and the swipe serves the short count (4) instead of 8.
-  it('(a) dequeue(8) on a 4-post queue serves only 4 and the pre-fix guard does NOT await a refill (THE BUG)', () => {
+  // PRE-FIX `posts.length === 0` guard does NOT fire — refill was never awaited
+  // synchronously, and the swipe served the short count (4) instead of 8.
+  //
+  // This case documents WHY the pre-fix guard was wrong (the empty-only branch
+  // never fires on a non-empty short pop) and confirms the shortfall predicate
+  // is the right trigger. The corrected end-to-end batch is asserted in the
+  // 'corrected swipe-for-more' suite below.
+  it('(a) the empty-only refill guard does NOT fire on a non-empty short pop, but a shortfall guard does (root-cause confirmation)', () => {
     postQueueService.enqueue(makePosts('a', 4));
     assert.equal(postQueueService.size(), 4, 'queue seeded with exactly 4 posts');
 
     const served = postQueueService.dequeue(SWIPE_BATCH);
-    assert.equal(served.length, 4, 'dequeue(8) returns only the 4 available posts (under-refill)');
+    assert.equal(served.length, 4, 'dequeue(8) returns only the 4 available posts (the raw under-refill)');
 
     // The pre-fix synchronous-refill branch is gated on an EMPTY pop, so with a
-    // non-empty 4-post pop it does NOT fire — the user sees 4 instead of 8.
+    // non-empty 4-post pop it does NOT fire — the user saw 4 instead of 8.
     assert.equal(
       preFixWouldAwaitRefill(served.length),
       false,
       'pre-fix guard (posts.length === 0) does NOT trigger a synchronous refill on a non-empty short pop — root cause of the 1/4/0 under-refill',
     );
 
-    // The shortfall guard Task 2 will install WOULD have fired here.
+    // The shortfall guard the Task-2 fix installs WOULD fire here.
     assert.equal(
       shortfallWouldAwaitRefill(served.length, SWIPE_BATCH),
       true,
-      'a shortfall guard (served < requested) WOULD await a refill — the Task-2 fix target',
+      'the shortfall guard (served < requested && needsRefill) DOES trigger a refill — the Task-2 fix predicate',
     );
   });
 
@@ -128,5 +133,79 @@ describe('TUNE-03 under-refill reproduction (Phase 55-06 Task 1 — current beha
     // maxSteps = Math.max(24*2, 4) = 48 — this is what bounds the walk, NOT len*2 (=8).
     // The GAP-B floor guarantees the walker can make at least one full pass; the
     // sub-24 result reflects genuine exhaustion, not an under-refill defect.
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Phase 55-06 Task 2 — corrected swipe-for-more behavior.
+//
+// generateMorePosts itself imports the i18n-tainted concept-feed module, so we
+// model its FIXED shortfall+top-up control flow against the REAL queue primitives
+// with a stubbed refill that enqueues real posts (standing in for refillQueue's
+// LLM body — its single-mutex body guarantee is irrelevant to the serving math).
+// This asserts the load-bearing contract: serve the full 8 when capacity exists,
+// the correct smaller count when the derived list is genuinely exhausted.
+// ---------------------------------------------------------------------------
+
+// Faithful port of the post-Task-2 generateMorePosts dequeue/refill control flow.
+// `refillStub(deficit)` simulates refillQueue: it enqueues up to `available` more
+// real posts (capped) and returns. `available` models the derived-list capacity.
+function fixedGenerateMore(count, refillStub) {
+  let posts = postQueueService.dequeue(count);
+  // Shortfall guard (the fix): refill + top-up when served fell short and a refill
+  // is warranted. Mirrors concept-feed.service.ts generateMorePosts.
+  if (posts.length < count && postQueueService.needsRefill()) {
+    refillStub();
+    const topUp = postQueueService.dequeue(count - posts.length);
+    posts = posts.concat(topUp);
+  }
+  return posts;
+}
+
+describe('TUNE-03 corrected swipe-for-more (Phase 55-06 Task 2 — fixed path)', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    postQueueService.loadQueue();
+  });
+
+  it('serves the full 8-post batch on a short (4-post) queue when the derived list still has unread capacity', () => {
+    postQueueService.enqueue(makePosts('a', 4)); // queue below the 8-batch but non-empty
+    assert.equal(postQueueService.size(), 4);
+
+    // Refill stub: derived list has plenty of capacity → a refill lands 20 more.
+    const refillStub = () => postQueueService.enqueue(makePosts('refill', 20));
+
+    const served = fixedGenerateMore(SWIPE_BATCH, refillStub);
+    assert.equal(served.length, SWIPE_BATCH, 'corrected path serves the full 8 (4 from queue + 4 topped up after refill)');
+    // No duplicate ids in the served batch.
+    assert.equal(new Set(served.map((p) => p.id)).size, SWIPE_BATCH, 'served batch has 8 unique posts');
+  });
+
+  it('serves the full 8 on a completely empty queue when capacity exists (empty is just the count===0 case of the shortfall guard)', () => {
+    assert.equal(postQueueService.size(), 0);
+    const refillStub = () => postQueueService.enqueue(makePosts('refill', 16));
+    const served = fixedGenerateMore(SWIPE_BATCH, refillStub);
+    assert.equal(served.length, SWIPE_BATCH, 'empty-queue swipe still tops up to the full 8');
+  });
+
+  it('serves the correct SMALLER count (no false 8) when the derived list is genuinely exhausted', () => {
+    postQueueService.enqueue(makePosts('a', 3)); // only 3 left
+    assert.equal(postQueueService.size(), 3);
+
+    // Exhausted vine: a refill lands NOTHING (refillQueue's walkDerivedList yields []).
+    const refillStub = () => { /* no-op: nothing left to generate */ };
+
+    const served = fixedGenerateMore(SWIPE_BATCH, refillStub);
+    assert.equal(served.length, 3, 'genuinely exhausted list yields the correct smaller count, not a false 8');
+    assert.ok(served.length < SWIPE_BATCH, 'no over-serving on an exhausted list');
+  });
+
+  it('does not loop forever when the queue is empty and the refill yields nothing (single refill attempt)', () => {
+    assert.equal(postQueueService.size(), 0);
+    let refillCalls = 0;
+    const refillStub = () => { refillCalls++; /* yields nothing */ };
+    const served = fixedGenerateMore(SWIPE_BATCH, refillStub);
+    assert.equal(served.length, 0, 'empty queue + empty refill serves 0 (correct "No more posts" path)');
+    assert.equal(refillCalls, 1, 'refill is attempted at most once per swipe — no top-up loop');
   });
 });

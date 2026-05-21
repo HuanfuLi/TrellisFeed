@@ -1345,19 +1345,19 @@ const _refillMutex = createPromiseMutex();
  * reassigns failures, generates posts, and enqueues results.
  */
 export async function refillQueue(questions: Question[]): Promise<void> {
+  // Phase 55-06 (TUNE-03) D-02 instrumentation — record when the cheap pre-check
+  // is about to short-circuit (queue at/above REFILL_THRESHOLD). Logged BEFORE the
+  // guard so the early-return statement below stays a single byte-stable line
+  // (refill-mutex.test.mjs source-asserts `if (!needsRefill()) return;`).
+  // Dev-gated, no shipped log noise.
+  if (typeof import.meta !== 'undefined' && import.meta.env?.DEV && !postQueueService.needsRefill()) {
+    console.info('[refillQueue] early-return: needsRefill=false', {
+      queueSize: postQueueService.size(),
+    });
+  }
   // Cheap pre-check: skip the mutex entirely if a refill isn't needed.
   // (The mutex's run() also short-circuits if a body is in-flight.)
-  if (!postQueueService.needsRefill()) {
-    // Phase 55-06 (TUNE-03) D-02 instrumentation — record the early-return so the
-    // operator can see when a refill is skipped because the queue is at/above the
-    // REFILL_THRESHOLD. Dev-gated, no shipped log noise.
-    if (typeof import.meta !== 'undefined' && import.meta.env?.DEV) {
-      console.info('[refillQueue] early-return: needsRefill=false', {
-        queueSize: postQueueService.size(),
-      });
-    }
-    return;
-  }
+  if (!postQueueService.needsRefill()) return;
 
   // Mutex.run captures the in-flight Promise; concurrent callers receive
   // the SAME Promise and await this exact execution. The mutex's internal
@@ -1841,12 +1841,32 @@ export const conceptFeedService = {
     // Drain from queue
     let posts = postQueueService.dequeue(count);
 
-    // If queue was empty, await refill then try again (BLOCKER 3 fix)
-    const emptyRefillBranchFired = posts.length === 0 && postQueueService.needsRefill();
-    if (emptyRefillBranchFired) {
+    // Phase 55-06 (TUNE-03) — SHORTFALL refill, not empty-only refill.
+    //
+    // Root cause of the intermittent 1/4/0 under-refill: the prior guard awaited a
+    // refill ONLY when the queue popped EXACTLY zero (`posts.length === 0`). When a
+    // swipe popped a NON-empty-but-short queue (e.g. dequeue(8) returning 4), the
+    // empty branch was skipped and the user was served the short count instead of
+    // the intended 8 — even though the derived list still had unread capacity. This
+    // was a dequeue-before-refill race: the background refill from the PREVIOUS swipe
+    // (fire-and-forget below) had not yet landed enough posts when the next swipe ran.
+    //
+    // Fix: await a refill whenever the served batch falls SHORT of the requested
+    // `count` AND a refill is warranted, then re-dequeue the remainder to top up to
+    // the intended batch. The `_refillMutex` single-body guarantee (refillQueue)
+    // means a concurrent background refill is awaited rather than re-run, so at most
+    // one extra LLM body per swipe. The `allExplored`/`bonusCap` early-returns above
+    // already short-circuit a genuinely exhausted vine, so a finished list still
+    // correctly yields fewer than `count` (that is NOT the bug) and refillQueue's own
+    // `walkDerivedList(...).length === 0` guard keeps the top-up from looping on an
+    // exhausted derived list.
+    const refillBranchFired = posts.length < count && postQueueService.needsRefill();
+    if (refillBranchFired) {
       await refillQueue(questions);
-      posts = postQueueService.dequeue(count);
+      const topUp = postQueueService.dequeue(count - posts.length);
+      posts = posts.concat(topUp);
     }
+    const emptyRefillBranchFired = refillBranchFired; // retained for instrumentation key compat
 
     // Phase 55-06 (TUNE-03) D-02 instrumentation — log the realized served count
     // AFTER the dequeue (+ optional empty-queue refill). A served < requested with
@@ -1856,7 +1876,7 @@ export const conceptFeedService = {
         requestedCount: count,
         served: posts.length,
         postPopQueueSize: postQueueService.size(),
-        emptyRefillBranchFired,
+        shortfallRefillFired: emptyRefillBranchFired,
         shortfall: posts.length < count,
       });
     }
