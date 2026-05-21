@@ -71,3 +71,65 @@ describe('text-art content tightener (Phase 42 UAT-6, 3B)', () => {
     );
   });
 });
+
+describe('text-art tightener reject-empty/fragment gate (Phase 55.1 BUGFIX-02)', () => {
+  // Root cause (BUGFIX-02): a Gemini thinking model + locale switch starved the
+  // 80-token budget, so the LLM returned a truncated fragment ("T", "Is your")
+  // that the tightener happily persisted, collapsing the card. The fix adds a
+  // reject branch so a too-short / non-sentence fragment returns null and the
+  // call site falls back to teaser.hook || title instead of persisting garbage.
+  //
+  // Source-reading guard (helper is private to concept-feed.service.ts): assert
+  // the tightener has a fragment-reject branch that returns null when the
+  // tightened result has no internal whitespace AND is shorter than a minimum
+  // word-length floor. The gate applies to textArtContent ONLY — never bodyMarkdown.
+
+  it('tightenTextArtContent has a too-short-fragment reject branch (no internal space AND length < floor)', () => {
+    // Extract the body of tightenTextArtContent so we don't false-match a reject
+    // branch from some other helper.
+    const fnStart = source.indexOf('function tightenTextArtContent');
+    assert.ok(fnStart >= 0, 'tightenTextArtContent must exist');
+    // Body runs until the next top-level `async function` / `function` decl.
+    const after = source.slice(fnStart + 'function tightenTextArtContent'.length);
+    const nextFn = after.search(/\n(?:async )?function /);
+    const body = nextFn >= 0 ? after.slice(0, nextFn) : after;
+
+    // The reject branch must (a) test for absence of internal whitespace and
+    // (b) compare length against a small floor (< ~8), then return null.
+    const hasNoInternalSpaceCheck =
+      /!\s*\/\\s\/\.test\(/.test(body) ||           // !/\s/.test(s)
+      /indexOf\(['"] ['"]\)\s*===?\s*-1/.test(body) || // s.indexOf(' ') === -1
+      /!\s*s\.includes\(['"] ['"]\)/.test(body);    // !s.includes(' ')
+    assert.ok(
+      hasNoInternalSpaceCheck,
+      'tightenTextArtContent must test for the absence of internal whitespace ' +
+      '(a single-word/dangling fragment like "T" or partial "Is your" with no terminator) ' +
+      'as part of the reject gate.',
+    );
+    const hasLengthFloorReject = /\.length\s*<\s*[1-9]\b/.test(body);
+    assert.ok(
+      hasLengthFloorReject,
+      'tightenTextArtContent must compare the tightened result length against a small ' +
+      'floor (e.g. `s.length < 8`) and return null below it, so fragments fall back to ' +
+      'teaser.hook || title rather than persisting.',
+    );
+    // The branch must return null (not the fragment).
+    assert.ok(
+      /return null/.test(body),
+      'the reject branch must `return null` so the call site uses the fallback.',
+    );
+  });
+
+  it('reject gate is scoped to textArtContent only — does NOT touch bodyMarkdown', () => {
+    // Negative invariant: the tightener body must not reference bodyMarkdown.
+    const fnStart = source.indexOf('function tightenTextArtContent');
+    const after = source.slice(fnStart + 'function tightenTextArtContent'.length);
+    const nextFn = after.search(/\n(?:async )?function /);
+    const body = nextFn >= 0 ? after.slice(0, nextFn) : after;
+    assert.ok(
+      !/bodyMarkdown/.test(body),
+      'tightenTextArtContent must never reference bodyMarkdown — the news defer-to-streamer ' +
+      'design (bodyMarkdown: "") is untouched by the text-art reject gate (CLAUDE.md News pipeline).',
+    );
+  });
+});

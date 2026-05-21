@@ -59,6 +59,14 @@ export interface CompletionOptions {
   jsonMode?: boolean;
   /** Caller-supplied abort signal (D-22 mid-stream cancellation on LOCALE_CHANGED). */
   signal?: AbortSignal;
+  /**
+   * Phase 55.1 BUGFIX-02: disable model "thinking" for short non-reasoning calls.
+   * On Gemini 2.5/3 thinking models, reasoning tokens count against maxOutputTokens,
+   * starving short calls (text-art headline) and returning empty/truncated text.
+   * When set, the Gemini path sends `generationConfig.thinkingConfig.thinkingBudget: 0`.
+   * No-op for non-Gemini providers.
+   */
+  disableThinking?: boolean;
 }
 
 export async function chatCompletion(messages: ChatMessage[], config: LLMConfig, options?: CompletionOptions): Promise<string> {
@@ -270,7 +278,7 @@ async function* claudeStream(messages: ChatMessage[], config: LLMConfig, options
 
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta';
 
-function toGeminiPayload(messages: ChatMessage[], maxTokens = 4096, jsonMode = false) {
+function toGeminiPayload(messages: ChatMessage[], maxTokens = 4096, jsonMode = false, disableThinking = false) {
   const system = messages.find((m) => m.role === 'system')?.content;
   const contents = messages
     .filter((m) => m.role !== 'system')
@@ -284,6 +292,13 @@ function toGeminiPayload(messages: ChatMessage[], maxTokens = 4096, jsonMode = f
     generationConfig: {
       maxOutputTokens: maxTokens,
       ...(jsonMode ? { responseMimeType: 'application/json' } : {}),
+      // Phase 55.1 BUGFIX-02: disable thinking for short non-reasoning calls so the
+      // model doesn't spend the budget on reasoning tokens and return empty/truncated
+      // text. Gemini v1beta generationConfig.thinkingConfig.thinkingBudget (0 = off).
+      // VERIFIED field shape against Gemini API docs (thinkingConfig.thinkingBudget,
+      // A2) — emitted ONLY when the caller opts in (text-art path) so non-thinking
+      // models / other call sites are unaffected.
+      ...(disableThinking ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
     },
   };
 }
@@ -293,7 +308,7 @@ async function geminiCompletion(messages: ChatMessage[], config: LLMConfig, maxT
   const response = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': config.apiKey ?? '' },
-    body: JSON.stringify(toGeminiPayload(messages, maxTokens, options?.jsonMode ?? false)),
+    body: JSON.stringify(toGeminiPayload(messages, maxTokens, options?.jsonMode ?? false, options?.disableThinking ?? false)),
     signal: composeSignal(options?.signal, COMPLETION_TIMEOUT_MS),
   });
   if (!response.ok) {
