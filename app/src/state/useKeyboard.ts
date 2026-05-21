@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
+import {
+  MIN_KEYBOARD_HEIGHT,
+  CLOSE_KEYBOARD_HEIGHT,
+  resolveKeyboardOpen,
+} from './keyboard-hysteresis';
 
-const MIN_KEYBOARD_HEIGHT = 150;
 const VIEWPORT_WIDTH_RESET_DELTA = 40;
 const NON_TEXT_INPUT_TYPES = new Set([
   'button',
@@ -79,7 +83,18 @@ export function useKeyboard() {
       }
 
       const heightDelta = viewportState.baselineHeight - currentHeight;
-      const nextOpen = editableFocused && heightDelta > MIN_KEYBOARD_HEIGHT;
+      // BUGFIX-03: hysteresis (open 150 / close 80) so a transient mid-animation
+      // viewport height in the [close, open] band cannot flip an already-settled
+      // keyboardOpen and reverse the BottomNavigation y-spring. See
+      // keyboard-hysteresis.ts and CLAUDE.md "SwipeTabContainer resize + keyboard".
+      const nextOpen =
+        editableFocused &&
+        resolveKeyboardOpen({
+          heightDelta,
+          wasOpen: appliedKeyboardOpen === true,
+          openThreshold: MIN_KEYBOARD_HEIGHT,
+          closeThreshold: CLOSE_KEYBOARD_HEIGHT,
+        });
       applyKeyboardOpen(nextOpen);
     };
 
