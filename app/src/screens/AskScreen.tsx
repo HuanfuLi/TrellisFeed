@@ -251,8 +251,13 @@ export function AskScreen() {
   // response is saved even if the component unmounts during streaming.
   const generateAiReply = useCallback(
     async (userContent: string, placeholderId: string, currentMessages?: SessionMessage[]) => {
-      // Prevent concurrent AI calls — drop if one is already in flight
-      if (generatingRef.current) return;
+      // Phase 55.1 BUGFIX-01 — bind this reply to the session it was requested
+      // in. Captured up-front (before any streaming) so a later session switch
+      // cannot move the persist target. Do NOT early-drop on generatingRef: a
+      // new send (e.g. after New Chat) must be honored, not silently swallowed.
+      // The prior stream is aborted just below; its persist block bails on the
+      // controller.signal.aborted checks.
+      const originSessionId = sessionRef.current.id;
       generatingRef.current = true;
 
       // Abort any previous in-flight stream; create a fresh controller
@@ -273,7 +278,11 @@ export function AskScreen() {
           for await (const token of postContextQaService.askStreaming(postOrigin.context, userContent)) {
             if (controller.signal.aborted) return;
             lastContent += token;
-            setStreaming({ placeholderId, content: lastContent });
+            // Only paint the streaming overlay while the origin session is
+            // still on screen — never render session A's stream over session B.
+            if (sessionRef.current.id === originSessionId) {
+              setStreaming({ placeholderId, content: lastContent });
+            }
           }
           // Promote post-context Q&A into the knowledge graph so insights
           // feed into Knowledge Graph, Review, and Podcast surfaces.
@@ -293,7 +302,9 @@ export function AskScreen() {
           const priorMessages = (currentMessages ?? sessionRef.current.messages).slice(0, -1);
           question = await askStreaming(userContent, (accumulated) => {
             lastContent = accumulated;
-            if (!controller.signal.aborted) {
+            // Paint overlay only when not aborted AND the origin session is
+            // still the displayed one (BUGFIX-01 cross-session leak guard).
+            if (!controller.signal.aborted && sessionRef.current.id === originSessionId) {
               setStreaming({ placeholderId, content: accumulated });
             }
           }, sessionContext, priorMessages, webSearchEnabled);
@@ -326,17 +337,24 @@ export function AskScreen() {
           kind: isMaliciousBlock ? 'malicious-block' : undefined,
         };
 
-        // Re-read sessionRef here (after all awaits) so we have the latest version,
-        // which now includes the user message that handleSend persisted before calling us.
-        // Reading sessionRef.current at the top of this function (before the first await)
-        // captured a stale snapshot that predated the React state flush.
-        const latest = sessionRef.current;
-        // Persist to localStorage first — survives component unmount
+        // Phase 55.1 BUGFIX-01 — persist to the ORIGINATING session, re-read by
+        // id (NOT bare sessionRef.current, which is the ACTIVE session at
+        // persist time and was the source of the cross-session leak). Re-reading
+        // also picks up the user message handleSend persisted before calling us.
+        const latest = sessionService.getById(originSessionId);
+        // Origin session was deleted while streaming → nothing to persist into.
+        if (!latest) return;
+        // Persist to localStorage first — survives component unmount.
         const updated: ChatSession = { ...latest, messages: [...latest.messages, aiMsg] };
         sessionService.save(updated);
 
-        // Update React state — skip if aborted (component likely unmounted)
-        if (!controller.signal.aborted) {
+        // Update React state ONLY when the origin is still the displayed session
+        // (and not aborted). resolvePersistTarget.updateUI encodes the id-match.
+        const { updateUI } = resolvePersistTarget({
+          originSessionId,
+          activeSessionId: sessionRef.current.id,
+        });
+        if (!controller.signal.aborted && updateUI) {
           setSession(updated);
           setStreaming(null);
         }
@@ -357,10 +375,20 @@ export function AskScreen() {
           });
         }
       } catch (error) {
-        setStreaming(null);
-        toast(error instanceof Error ? error.message : t('ask.streamFailed'), 'error');
+        // Only surface/clear the overlay for the still-active run — an aborted
+        // prior stream (B replaced A) must not wipe B's overlay or toast.
+        if (abortRef.current === controller) {
+          setStreaming(null);
+          toast(error instanceof Error ? error.message : t('ask.streamFailed'), 'error');
+        }
       } finally {
-        generatingRef.current = false;
+        // Phase 55.1 BUGFIX-01 — only this run may clear the in-flight flag.
+        // If a newer send (B) replaced this controller (A), A's finally must NOT
+        // reset generatingRef/abortRef that B has already taken ownership of.
+        if (abortRef.current === controller) {
+          generatingRef.current = false;
+          abortRef.current = null;
+        }
       }
     },
     [askStreaming, questions, webSearchEnabled, t],
@@ -463,6 +491,9 @@ export function AskScreen() {
   }, []);
 
   const handleNewChat = useCallback(() => {
+    // BUGFIX-01 — abort any in-flight stream BEFORE switching so it cannot
+    // persist/render under the new session.
+    abortRef.current?.abort();
     const newSession = startNewSession(sessionRef.current);
     setSession(newSession);
     setStreaming(null);
@@ -470,6 +501,8 @@ export function AskScreen() {
   }, []);
 
   const handleSelectSession = useCallback((id: string) => {
+    // BUGFIX-01 — abort any in-flight stream BEFORE switching sessions.
+    abortRef.current?.abort();
     // Process the outgoing session before switching
     processSessionIfNeeded(sessionRef.current);
     generateSessionPostsIfNeeded(sessionRef.current);
@@ -554,6 +587,9 @@ export function AskScreen() {
     setHistorySessions((prev) => prev.filter((s) => s.id !== id));
     // If we deleted the active session, open a fresh one
     if (id === sessionRef.current.id) {
+      // BUGFIX-01 — abort the in-flight stream for the session being deleted so
+      // its answer cannot land in the freshly-created session.
+      abortRef.current?.abort();
       const newSession = sessionService.createNew();
       setSession(newSession);
       setStreaming(null);
