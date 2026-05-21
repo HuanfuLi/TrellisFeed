@@ -831,11 +831,37 @@ export function buildPostOriginContext(post: DailyPost, questions: Question[]): 
  */
 const BASE_ENTRIES_PER_CONCEPT = 4;
 
+// Phase 55 D-14 like-boost rationale (kept above the function — load-bearing):
+// A like reuses the EXISTING 4→8 multiplicity lever, the SAME mechanism the 3-list
+// pipeline already uses for importance/overdue (CLAUDE.md §"Concept Feed Generation
+// Pipeline"). The like signal must NOT invent a fourth list, must NOT add a pipeline
+// stage, and must NOT mutate the derived list inside this function — buildConceptBatch
+// only returns conceptIds for the caller to append to the append-only derived list.
+//
+// Liked postIds are resolved → anchor conceptIds via engagementService.getLikedPostIds()
+// (the recorded like signal) + postHistoryService.getPosts(). A post maps to its anchor
+// via sourceQuestionIds[0] — the established pipeline convention (see the dismiss-filter
+// at line ~245: "post.sourceQuestionIds[0] is the anchor.id"; DailyPost has no conceptId
+// field). Both reads are synchronous. Liked posts pin against postHistory purge via
+// engagementService.getPinnedIds() (Pitfall 6 already handled), so getPosts() returns them.
+//
+// Boost is OR (isImportant || isLiked), NOT additive: worst-case multiplicity stays
+// BASE*2 — identical to the pre-existing all-important case — so the like-boost adds
+// no new starvation vector (T-55-04a / A4). Due-for-review (overdue/important) concepts
+// still receive BASE*2 entries and remain present regardless of what else is liked.
 function buildConceptBatch(questions: Question[]): string[] {
   const exploredIds = new Set(dailyReadService.getExploredAnchors());
 
   const anchors = questions.filter(q => q.isAnchorNode);
   const dueAnchors = anchors.filter(a => !exploredIds.has(a.id));
+
+  // Phase 55 D-14 like-boost setup: resolve liked postIds → conceptIds once.
+  const likedPostIds = new Set(engagementService.getLikedPostIds());
+  const likedConceptIds = new Set<string>();
+  for (const p of postHistoryService.getPosts()) {
+    const anchorId = p.sourceQuestionIds?.[0];
+    if (likedPostIds.has(p.id) && anchorId) likedConceptIds.add(anchorId);
+  }
 
   const conceptIds: string[] = [];
   for (const anchor of dueAnchors) {
@@ -847,8 +873,22 @@ function buildConceptBatch(questions: Question[]): string[] {
         isImportant = leaf === 'dying' || leaf === 'falling' || leaf === 'dead';
       } catch { /* non-critical — default to not important */ }
     }
-    const count = isImportant ? BASE_ENTRIES_PER_CONCEPT * 2 : BASE_ENTRIES_PER_CONCEPT;
+
+    // Phase 55 D-14: like counts as a boost equal to importance (see rationale above).
+    const isLiked = likedConceptIds.has(anchor.id);
+    const isBoosted = isImportant || isLiked;
+    const count = isBoosted ? BASE_ENTRIES_PER_CONCEPT * 2 : BASE_ENTRIES_PER_CONCEPT;
+
+    // ── Phase 55 D-02 instrumentation (dev-gated, stripped in production) ──────
+    if (typeof import.meta !== 'undefined' && import.meta.env?.DEV) {
+      console.info(`[buildConceptBatch] anchor=${anchor.id} isImportant=${isImportant} isLiked=${isLiked} count=${count}`);
+    }
+
     for (let i = 0; i < count; i++) conceptIds.push(anchor.id);
+  }
+
+  if (typeof import.meta !== 'undefined' && import.meta.env?.DEV) {
+    console.info(`[buildConceptBatch] likedConceptIds=${likedConceptIds.size} total=${conceptIds.length}`);
   }
   return conceptIds;
 }

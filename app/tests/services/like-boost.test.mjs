@@ -15,7 +15,13 @@ const feedSource = fs.readFileSync(
 );
 
 const batchIdx = feedSource.indexOf('function buildConceptBatch');
-const batchBlock = batchIdx === -1 ? '' : feedSource.slice(batchIdx, batchIdx + 1200);
+// Slice the FULL function body (start → its column-0 closing brace) rather than a
+// fixed char window. The real 55-04 implementation carries a rationale comment block
+// that pushed the boost code past the original 1200-char estimate; scanning the whole
+// function keeps both the positive (BASE*2 / isBoosted) and negative (no list mutation)
+// assertions sound regardless of comment length.
+const batchEnd = batchIdx === -1 ? -1 : feedSource.indexOf('\n}', batchIdx);
+const batchBlock = batchIdx === -1 ? '' : feedSource.slice(batchIdx, batchEnd === -1 ? batchIdx + 1200 : batchEnd + 2);
 
 describe('like-boost (Phase 55 D-14)', () => {
   // Source-reading: like-boost reuses the isImportant||isLiked boost flag.
