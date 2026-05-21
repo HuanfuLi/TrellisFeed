@@ -57,3 +57,80 @@ export function resolveKeyboardOpen({
   // Stay closed until the shrink clearly exceeds the open threshold.
   return heightDelta > openThreshold;
 }
+
+/**
+ * BUGFIX-03 (gap closure, 2026-05-21): focus-driven instant hide.
+ *
+ * Hysteresis alone did not stop the on-device flicker. Two layout authorities
+ * were fighting over the `position: fixed; bottom: 0` BottomNavigation:
+ *   1. Android `adjustResize` shrinks the layout viewport when the keyboard
+ *      opens, re-anchoring the fixed bar UPWARD instantly (the "nav rises with
+ *      the screen edge").
+ *   2. The JS spring then slides it DOWN to hide it (the "collapse back").
+ * The gap between the instant native reposition and the lagged spring IS the
+ * flicker. Hysteresis only debounced the boolean — it never removed the race.
+ *
+ * Fix: `focusin` on an editable element is the deterministic, EARLY signal
+ * (fires at tap, before the keyboard animation / resize). On a touch device we
+ * hide the nav at that instant — front-running the resize so the bar is already
+ * off-screen before it can rise. `pending` marks the focus→keyboard grace window
+ * so the small transient resize deltas during the keyboard animation do not
+ * re-show the nav. Height-based hysteresis still governs the steady state (and
+ * the back-button-closes-keyboard-while-focused case). The hide is applied with
+ * a zero-duration transition (see BottomNavigation.tsx); show keeps the spring.
+ */
+export type KeyboardEventKind = 'focusin' | 'focusout' | 'resize';
+
+export interface KeyboardNavState {
+  open: boolean;
+  /** Set on a touch `focusin`; cleared once height confirms open or focus leaves. */
+  pending: boolean;
+}
+
+export const INITIAL_KEYBOARD_NAV_STATE: KeyboardNavState = { open: false, pending: false };
+
+export interface NextKeyboardStateArgs {
+  kind: KeyboardEventKind;
+  /** Whether an editable element currently holds focus. */
+  editableFocused: boolean;
+  /** Current viewport shrink relative to baseline (baselineHeight - currentHeight). */
+  heightDelta: number;
+  /** Whether the device has a virtual keyboard (touch). Focus front-run only fires here. */
+  isTouchDevice: boolean;
+  openThreshold: number;
+  closeThreshold: number;
+}
+
+export function nextKeyboardState(
+  prev: KeyboardNavState,
+  ev: NextKeyboardStateArgs,
+): KeyboardNavState {
+  // Focus left the editable element → the keyboard is going away; show the nav.
+  if (ev.kind === 'focusout' || !ev.editableFocused) {
+    return INITIAL_KEYBOARD_NAV_STATE;
+  }
+
+  // Tap into an input on a touch device: the virtual keyboard WILL appear. Hide
+  // instantly NOW, ahead of adjustResize, and enter the grace window.
+  if (ev.kind === 'focusin') {
+    return ev.isTouchDevice ? { open: true, pending: true } : prev;
+  }
+
+  // resize, editable still focused:
+  // Keyboard height confirmed — definitively open, leave the grace window.
+  if (ev.heightDelta > ev.openThreshold) return { open: true, pending: false };
+
+  // Still in the focus→keyboard grace window: keep hidden, ignore transient delta.
+  if (prev.pending) return { open: true, pending: true };
+
+  // Steady state: hysteresis (handles close + back-button-while-focused).
+  return {
+    open: resolveKeyboardOpen({
+      heightDelta: ev.heightDelta,
+      wasOpen: prev.open,
+      openThreshold: ev.openThreshold,
+      closeThreshold: ev.closeThreshold,
+    }),
+    pending: false,
+  };
+}
