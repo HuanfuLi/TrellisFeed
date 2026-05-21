@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: Cleanup, Hardening & Rewards
-status: ready_to_plan
-stopped_at: Phase 55 complete (7/6); inserted Phase 55.1 (device-test bug fixes) — plan next
+status: ready_to_execute
+stopped_at: Phase 55.1 planned (0/4) — research + 4 plans + validation strategy done; execute next
 last_updated: 2026-05-21
-last_activity: 2026-05-21 -- folded 4 device-test bugs into inserted Phase 55.1
+last_activity: 2026-05-21 -- planned Phase 55.1 (4 device-test bug-fix plans, all Wave 1)
 progress:
   total_phases: 7
   completed_phases: 2
-  total_plans: 12
+  total_plans: 16
   completed_plans: 12
   percent: 29
 ---
@@ -26,8 +26,8 @@ See: .planning/PROJECT.md (updated 2026-05-20)
 ## Current Position
 
 Phase: 55.1 (INSERTED — device-test bug fixes)
-Plan: Not started
-Status: Ready to plan
+Plan: 4 plans created (55.1-01..04), all Wave 1 / parallel
+Status: Ready to execute (plans verified by plan-checker)
 Last activity: 2026-05-21
 
 Progress: [███░░░░░░░] 29%
@@ -98,5 +98,7 @@ Resume file: .planning/phases/55-algorithm-mechanism-tuning/55-CONTEXT.md
 
 ## Operator Next Steps
 
-- Plan the inserted device-test bug-fix phase with `/gsd:plan-phase 55.1` (BUGFIX-01..04), then resume Phase 56.
-- BUGFIX-01 (session leak) and BUGFIX-02 (post truncation) are correctness bugs; BUGFIX-03/04 are Ask-screen keyboard UX. Likely code areas: `src/state/useQuestions.ts` + `src/services/session.service.ts` (01), `src/services/concept-feed.service.ts` / `post-queue.service.ts` / `InfoFlow.tsx` + locale/provider change handlers (02), `src/components/SwipeTabContainer.tsx` + `BottomNavigation.tsx` (03), `src/components/ChatInput.tsx` (04).
+- Execute the planned phase with `/gsd:execute-phase 55.1` (4 plans, all Wave 1 / fully parallel — disjoint files), then `/gsd:verify-work`. Resume Phase 56 after.
+- **Mandatory on-device UAT gate before verify-work:** BUGFIX-03/04 (keyboard) and the rapid-switch repro for BUGFIX-01 / live-Gemini check for BUGFIX-02 give false-green in the Node suite (per `feedback_browser_storage_human_verify.md`). Automated tests for 03/04 are source-guards, not runtime proof.
+- Confirmed root causes (research, HIGH confidence): 01 → `AskScreen.tsx` persists to active session not originating + no abort-on-switch; 02 → `concept-feed.service.ts:793` `maxTokens:80` + Gemini thinking tokens → fragment persisted; 03 → `useKeyboard.ts` threshold toggling reverses the `BottomNavigation` spring; 04 → `ChatInput.tsx` submit button — WebView blur eats first tap.
+- Residual risk to confirm during execution: text-art `maxTokens` value (~512) and Gemini `thinkingConfig` field shape — doc-verify before locking the field (don't ship an unverified API field).
