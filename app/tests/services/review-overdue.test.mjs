@@ -2,17 +2,18 @@
 // large-gap reset, oldest-overdue-first sort, daysOverdue helper.
 
 import assert from 'node:assert/strict';
-import test from 'node:test';
+import test, { before, after } from 'node:test';
+import { today, addDays, __setNowForTesting } from '../../src/lib/date.ts';
 
-const ISO_MS_PER_DAY = 86400000;
+// Pin the clock to local noon 2026-05-20 — safely away from midnight so the
+// UTC/local date skew that previously made these tests flaky is removed. The
+// production helpers (today/addDays/daysOverdue) all read this pinned clock.
+before(() => __setNowForTesting(new Date(2026, 4, 20, 12, 0, 0).getTime()));
+after(() => __setNowForTesting(null));
 
-// Build an ISO 'YYYY-MM-DD' string `daysFromNow` days from today, anchored
-// at midnight local time so the helper's local-Date arithmetic matches.
-const isoOffset = (daysFromNow) => {
-  const d = new Date();
-  d.setDate(d.getDate() + daysFromNow);
-  return d.toISOString().split('T')[0];
-};
+// Build a 'YYYY-MM-DD' string `daysFromNow` days from the pinned today, using
+// the same local helpers production uses so expectations stay in lockstep.
+const isoOffset = (daysFromNow) => addDays(today(), daysFromNow);
 
 const mkSchedule = (overrides = {}) => ({
   nextReviewDate: isoOffset(0),

@@ -5,6 +5,7 @@ import {
 } from './trellis-blossom-dates.service.ts';
 import { generateVinePath, getLeafPosition, getVineColor, hashStr, type VinePathSpec } from './trellis-layout.service.ts';
 import { flashcardService } from './flashcard.service.ts';
+import { today, nowMs } from '../lib/date.ts';
 
 export type LeafState = 'bud' | 'green' | 'dying' | 'falling' | 'dead' | 'blossom' | 'fruit';
 
@@ -29,7 +30,7 @@ export interface TrellisLayout {
 }
 
 function computeDaysOverdue(nextReviewDate: string): number {
-  const todayDate = new Date();
+  const todayDate = new Date(nowMs());
   const [y, m, d] = nextReviewDate.split('-').map(Number);
   if (!y || !m || !d) return 0;
   const reviewDate = new Date(y, m - 1, d);
@@ -75,7 +76,7 @@ export function computeLeafState(
     const [by, bm, bd] = blossomSinceDate.split('-').map(Number);
     if (by && bm && bd) {
       const blossomDate = new Date(by, bm - 1, bd);
-      const daysSince = Math.floor((Date.now() - blossomDate.getTime()) / 86400000);
+      const daysSince = Math.floor((nowMs() - blossomDate.getTime()) / 86400000);
       if (daysSince >= 7) return 'fruit';
     }
   }
@@ -228,7 +229,7 @@ export function buildTrellisState(questions: Question[]): TrellisLayout {
           // Blossom date persistence (Pitfall 4)
           if (state === 'blossom' || state === 'fruit') {
             if (!blossomDates[anchor.id]) {
-              const isoToday = new Date().toISOString().split('T')[0];
+              const isoToday = today();
               blossomDates[anchor.id] = isoToday;
               setBlossomDate(anchor.id, isoToday);
             }
@@ -257,7 +258,7 @@ export function buildTrellisState(questions: Question[]): TrellisLayout {
           const state = computeLeafState(q, [], blossomDates[q.id], fcMap);
           if (state === 'blossom' || state === 'fruit') {
             if (!blossomDates[q.id]) {
-              const isoToday = new Date().toISOString().split('T')[0];
+              const isoToday = today();
               blossomDates[q.id] = isoToday;
               setBlossomDate(q.id, isoToday);
             }

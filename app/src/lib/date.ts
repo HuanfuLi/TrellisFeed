@@ -22,8 +22,19 @@ export function currentIntlLocale(): string {
   return INTL_LOCALE[locale];
 }
 
+// ─── Injectable clock (TECHDEBT-14 follow-on) ─────────────────────────────────
+// Single source of "now" for the date helpers. Production reads Date.now();
+// tests pin it to a fixed epoch-ms (local noon, midnight-safe) so date-derived
+// expectations are deterministic regardless of the wall-clock UTC/local skew.
+let _nowMsProvider: () => number = () => Date.now();
+export function nowMs(): number { return _nowMsProvider(); }
+/** TEST-ONLY: pin the clock to a fixed epoch-ms, or pass null to restore Date.now(). */
+export function __setNowForTesting(ms: number | null): void {
+  _nowMsProvider = (ms == null) ? () => Date.now() : () => ms;
+}
+
 export function today(): string {
-  const d = new Date();
+  const d = new Date(nowMs());
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
@@ -73,7 +84,7 @@ export function formatDateLabel(date: string): string {
 }
 
 export function getGreeting(): string {
-  const hour = new Date().getHours();
+  const hour = new Date(nowMs()).getHours();
   if (hour < 12) return t('common.greeting.morning');
   if (hour < 17) return t('common.greeting.afternoon');
   return t('common.greeting.evening');
