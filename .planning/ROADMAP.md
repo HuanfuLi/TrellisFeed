@@ -189,7 +189,7 @@ Phases execute in numeric order: 54 → 55 → 55.1 → 56 → 57 → 58 → 59
 |-------|-----------|----------------|--------|-----------|
 | 54. Code Quality, Bugs & Tech Debt | v1.7 | 5/4 | Complete    | 2026-05-21 |
 | 55. Algorithm & Mechanism Tuning | v1.7 | 7/6 | Complete    | 2026-05-21 |
-| 55.1. Device-Test Bug Fixes (INSERTED) | v1.7 | 8/8 | Complete   | 2026-05-21 |
+| 55.1. Device-Test Bug Fixes (INSERTED) | v1.7 | 8/8 | Gaps (round 3) | 2026-05-21 |
 | 56. UI Polish & Documentation | v1.7 | 0/TBD | Not started | - |
 | 57. Rewards Foundation — Data Model & Service | v1.7 | 0/TBD | Not started | - |
 | 58. Rewards Core Shop Loop — Themes | v1.7 | 0/TBD | Not started | - |
