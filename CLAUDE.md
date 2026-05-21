@@ -259,27 +259,27 @@ Fix: **O(N_anchors) cosine pre-check BEFORE the tree descent** in `classifyAndAn
 
 ---
 
-## Question filter — dual-vector scoring (Phase 47 UAT-5 — load-bearing)
+## Question filter — RAW-ARGMAX gate + dual-vector scoring (Phase 47 UAT-5 + Phase 55 — load-bearing)
 
-`app/src/services/question-filter.service.ts:layer2Embedding` scores the three labels against **two different query vectors**:
+`app/src/services/question-filter.service.ts:layer2Embedding` decides the label with a **scale-invariant RAW-ARGMAX rule** (Phase 55, replacing the old absolute off-topic/malicious thresholds — see `.planning/phases/55-algorithm-mechanism-tuning/55-FILTER-TUNING-REPORT.md`). It still embeds **two query vectors** (the Phase 47 dual-vector split — preserved and now load-bearing for the security property):
 
-- **Malicious** is scored against the **raw content vector** (no prior-answer prefix).
-- **Off-topic + on-topic** are scored against the **D-11 contextualized vector** (`priorAnswer.slice(0, 240) + ' ' + content`).
+- **raw content vector** — `embedText(content)`, no prior-answer prefix.
+- **contextualized vector** — `priorAnswer.slice(0, 240) + ' ' + content` (D-11). When `context.priorAnswer` is empty/undefined it aliases the raw vector (no extra embed on first-turn questions).
 
-When `context.priorAnswer` is empty/undefined, both vectors alias the same `embedText(content)` call — no extra cost on first-turn questions.
+**Decision:**
+- **Malicious gate (security-critical):** argmax over the **RAW** vectors only — malicious iff `rawMal ≥ floor && rawMal ≥ rawOff && rawMal ≥ rawOn`. Context never enters this comparison, so a benign preamble cannot dilute the malicious score (the structural buried-payload defense). The `floor` comes from `resolveMaliciousFloor`: a validated per-`(provider,model,dims)` table (`VALIDATED_MALICIOUS_FLOORS`) for tested models, else corpus auto-calibration clamped to `[MALICIOUS_FLOOR_MIN, MALICIOUS_FLOOR_MAX]` = `[0.35, 0.70]`.
+- **Benign off/on split:** relative comparison on the **contextualized** vectors — off-topic iff `ctxOff − ctxOn ≥ OFF_TOPIC_MARGIN` (0.02), else on-topic (so unrelated/ambiguous/cross-lingual input defaults to on-topic, never flagged). Off-topic only flags; it carries no security weight.
 
 ### Why this exists
 
-The original D-11 design used a single contextualized vector everywhere so "but why?" follow-ups would stay on-topic when the prior answer was on-topic. UAT-5 (2026-05-17) surfaced that the 240-char benign prefix dilutes the embedding direction enough to drop verbatim-jailbreak cosine from **0.977 (raw)** to **0.755 (contextualized)** — silently below the 0.82 malicious threshold. A user asking a benign question then sending a verbatim jailbreak as turn 2 evaded the classifier entirely. Buried-payload / soft-prefix evasion is a published jailbreak technique; D-11 accidentally re-enabled it for our classifier.
-
-Dual-vector scoring keeps the D-11 follow-up benefit for off-topic detection where context genuinely matters, while denying malicious classification any contextual cover.
+The original D-11 single-contextualized-vector design let a 240-char benign prefix drop a verbatim jailbreak's cosine from **0.977 (raw)** to **0.755 (contextualized)** — buried-payload evasion. The Phase 47 dual-vector fix scored malicious on the raw vector. Phase 55 then replaced the absolute thresholds (mis-calibrated per embedding model: 4% malicious recall on OpenAI-3-small@256 at 0.82) with RAW-ARGMAX, lifting malicious recall 41%→96% and accuracy to 96.5–98.8% across qwen3-8b + OpenAI configs, **while keeping buried-payload closed by construction** (the malicious gate compares only raw vectors). Validated cross-model; buried-03 (educational preamble + extraction payload) blocks on all three configs.
 
 ### Rules
 
-1. **Don't unify the two vectors back into one.** `tests/services/filter-classifier.unit.test.mjs` Test 18d runs a benign 240-char preamble + verbatim mal-en-001 payload and asserts the result is `malicious`. Test 18a asserts the cold-cache call order is `[rawQuery, contextualizedQuery, ...corpus]`.
-2. **Don't add a priorAnswer prefix to the malicious cosine path.** The whole point of the fix is malicious scoring sees the raw payload, regardless of what came before in the chat.
-3. **Don't drop the contextVec → rawVec aliasing optimization** when no priorAnswer. Doubling embedText calls on first-turn questions is unnecessary cost.
-4. **Threshold tuning is empirical** — same band as Classification dedup: lower to 0.78 if missing real jailbreaks, raise to 0.85 if blocking legitimate questions. Raising too high re-opens the dilution surface even on raw vectors.
+1. **Never let context enter the malicious decision.** The malicious gate compares `rawMal/rawOff/rawOn` only — all from `embedText(content)`. `Test 18d` (benign 240-char preamble + verbatim mal-en-001 → `malicious`) and the golden buried-payload fixture are the load-bearing guards. Test 18a asserts the cold-cache embed order is `[rawQuery, contextualizedQuery, ...corpus]`.
+2. **Don't reintroduce absolute off-topic/malicious cosine thresholds.** The whole Phase 55 point is scale-invariance. The only absolute number in the malicious path is the `floor`, and it must stay clamped to `[0.35, 0.70]` in `resolveMaliciousFloor` (debug override included) — this is the security minimum that replaced the old `[0.78, 0.85]` clamp.
+3. **Don't drop the contextVec → rawVec aliasing** when no priorAnswer (avoids a duplicate embed).
+4. **Tuning a new model:** add a measured floor to `VALIDATED_MALICIOUS_FLOORS` (use `app/scripts/tune-decision-rule.mjs`); untested models auto-calibrate. Never widen the `[0.35, 0.70]` hard band. The anchor-dedup classifier (`canonical-knowledge.service.ts`) is SEPARATE and keeps its own `[0.78, 0.85]` band — RAW-ARGMAX does not touch it.
 
 ---
 

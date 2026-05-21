@@ -37,9 +37,12 @@ import corpus from '../data/filter-corpus.json' with { type: 'json' };
 
 /**
  * Cache-schema version for this loader. Bump when the FilterCorpusCache
- * shape changes; old payloads will be discarded as stale.
+ * shape changes OR the corpus content changes; old payloads will be discarded
+ * as stale. v2 (2026-05-21): added 20 real-world off-topic exemplars
+ * (off-en-041..060 — weather/food/sports/logistics/travel/tasks) to close the
+ * greeting-only off-topic coverage gap found in Phase 55 threshold tuning.
  */
-export const FILTER_CORPUS_VERSION = 1;
+export const FILTER_CORPUS_VERSION = 2;
 
 /**
  * localStorage key for the embedded corpus cache. Single key for the whole

@@ -280,9 +280,9 @@ export interface EmbeddingDebugConfig {
   // feedback_no_normalize_for_optional_fields). debugEnabled is the master gate:
   // false/undefined = production mode (constants used unconditionally).
   debugEnabled?: boolean;        // master gate; false/undefined = production mode
-  offTopicThreshold?: number;    // default 0.75 when undefined (question-filter)
-  maliciousThreshold?: number;   // default 0.82 when undefined; D-06 clamped to [0.78, 0.85] by service
-  anchorDedupThreshold?: number; // default 0.82 when undefined; clamped to [0.78, 0.85] by service
+  offTopicThreshold?: number;    // RETIRED by RAW-ARGMAX (Phase 55): the filter's off/on split is now relative, no absolute off-topic threshold. Field kept for stored-settings backward-compat; not read.
+  maliciousThreshold?: number;   // RAW-ARGMAX malicious-FLOOR debug override; clamped to [0.35, 0.70] by resolveMaliciousFloor (was the absolute malicious threshold pre-Phase-55)
+  anchorDedupThreshold?: number; // default 0.82 when undefined; clamped to [0.78, 0.85] by service (separate anchor-dedup classifier — unaffected by RAW-ARGMAX)
 }
 
 export interface LLMConfig {

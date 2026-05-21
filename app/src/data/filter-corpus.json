@@ -243,6 +243,126 @@
       "text": "lmao xd"
     },
     {
+      "id": "off-en-041",
+      "label": "off-topic",
+      "locale": "en",
+      "text": "is it going to rain tomorrow morning?"
+    },
+    {
+      "id": "off-en-042",
+      "label": "off-topic",
+      "locale": "en",
+      "text": "how hot will it get this afternoon?"
+    },
+    {
+      "id": "off-en-043",
+      "label": "off-topic",
+      "locale": "en",
+      "text": "find me a good sushi place near downtown"
+    },
+    {
+      "id": "off-en-044",
+      "label": "off-topic",
+      "locale": "en",
+      "text": "what should I cook for dinner tonight?"
+    },
+    {
+      "id": "off-en-045",
+      "label": "off-topic",
+      "locale": "en",
+      "text": "reserve a hotel room for next weekend"
+    },
+    {
+      "id": "off-en-046",
+      "label": "off-topic",
+      "locale": "en",
+      "text": "suggest a good TV show to binge this week"
+    },
+    {
+      "id": "off-en-047",
+      "label": "off-topic",
+      "locale": "en",
+      "text": "what music should I play while working out?"
+    },
+    {
+      "id": "off-en-048",
+      "label": "off-topic",
+      "locale": "en",
+      "text": "who won the basketball game last night?"
+    },
+    {
+      "id": "off-en-049",
+      "label": "off-topic",
+      "locale": "en",
+      "text": "when does the next World Cup start?"
+    },
+    {
+      "id": "off-en-050",
+      "label": "off-topic",
+      "locale": "en",
+      "text": "where is the nearest gas station?"
+    },
+    {
+      "id": "off-en-051",
+      "label": "off-topic",
+      "locale": "en",
+      "text": "what are the shopping mall's opening hours?"
+    },
+    {
+      "id": "off-en-052",
+      "label": "off-topic",
+      "locale": "en",
+      "text": "can you track my package delivery status?"
+    },
+    {
+      "id": "off-en-053",
+      "label": "off-topic",
+      "locale": "en",
+      "text": "should I bring an umbrella with me today?"
+    },
+    {
+      "id": "off-en-054",
+      "label": "off-topic",
+      "locale": "en",
+      "text": "plan a weekend road trip itinerary for me"
+    },
+    {
+      "id": "off-en-055",
+      "label": "off-topic",
+      "locale": "en",
+      "text": "what are the top tourist spots in Paris?"
+    },
+    {
+      "id": "off-en-056",
+      "label": "off-topic",
+      "locale": "en",
+      "text": "what's the latest celebrity gossip?"
+    },
+    {
+      "id": "off-en-057",
+      "label": "off-topic",
+      "locale": "en",
+      "text": "did the stock market go up or down today?"
+    },
+    {
+      "id": "off-en-058",
+      "label": "off-topic",
+      "locale": "en",
+      "text": "set an alarm for 7 in the morning"
+    },
+    {
+      "id": "off-en-059",
+      "label": "off-topic",
+      "locale": "en",
+      "text": "give me driving directions to the airport"
+    },
+    {
+      "id": "off-en-060",
+      "label": "off-topic",
+      "locale": "en",
+      "text": "what kind of food do you like to eat?"
+    },
+    {
       "id": "mal-en-001",
       "label": "malicious",
       "locale": "en",

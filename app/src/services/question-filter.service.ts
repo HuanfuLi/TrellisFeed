@@ -71,60 +71,111 @@ export interface FilterResult {
   bestMatch?: { label: FilterLabel; exemplar: string; score: number };
 }
 
-// ─── Thresholds (RESEARCH §"Layer 2 Decision Rule") ──────────────────────────
+// ─── RAW-ARGMAX decision rule (Phase 55 — 55-FILTER-TUNING-REPORT.md) ─────────
+//
+// The classifier no longer uses absolute off-topic/malicious cosine thresholds.
+// Empirical tuning (qwen3-8b + OpenAI-3-small @256/@1536) showed absolute
+// thresholds are mis-calibrated per embedding model — a value right for one
+// model's cosine scale is far wrong for another (e.g. 4% malicious recall on
+// OpenAI-3-small@256 at the old 0.82). The replacement is a *scale-invariant*
+// rule:
+//
+//   - MALICIOUS GATE: argmax over the RAW (context-free) vectors — classify
+//     malicious iff raw-malicious is the highest of {raw-mal, raw-off, raw-on}
+//     AND clears a floor. Using raw vectors only is what preserves the
+//     buried-payload defense (a benign prior-answer context can never dilute the
+//     malicious comparison — this is the structural successor to the old
+//     dual-vector + [0.78,0.85] clamp, see CLAUDE.md §"dual-vector scoring").
+//   - BENIGN SPLIT: relative comparison on the CONTEXTUALIZED vectors — off-topic
+//     iff ctx-off > ctx-on, else on-topic (on-topic wins ties = benign default,
+//     so unrelated/ambiguous input is never flagged). Off-topic only flags; it
+//     does not block, so it carries no security weight.
+//
+// Cross-model validation: malicious recall 41%→96% (local), accuracy →96.5%,
+// zero benign blocked, buried-payload still blocked on all three configs.
+
+/** Hard security band for the malicious floor — auto/debug values are clamped here. */
+export const MALICIOUS_FLOOR_MIN = 0.35;
+export const MALICIOUS_FLOOR_MAX = 0.70;
+/**
+ * Benign-split tie-break: classify off-topic only when contextualized off-topic
+ * beats on-topic by at least this margin; otherwise default to on-topic. This
+ * keeps "ambiguous / unrelated / cross-lingual" input on-topic (never flagged) —
+ * the prior absolute rule's on-topic default — while costing nothing on genuine
+ * off-topic (whose margins run well above this). Validated on qwen3-8b: lifts
+ * on-topic recall 93%→100%, off-topic stays 100%. The one mildly scale-sensitive
+ * constant; small enough to be safe across the tested cosine ranges.
+ */
+export const OFF_TOPIC_MARGIN = 0.02;
+/** Fallback floor when a corpus is unavailable for auto-calibration. */
+export const DEFAULT_MALICIOUS_FLOOR = 0.50;
 
 /**
- * Cosine similarity threshold above which the best-matching corpus
- * off-topic exemplar wins. Looser than malicious because off-topic
- * false-positives still let the LLM answer (just mark `flagged: true`).
- * CLAUDE.md band: 0.75-0.95.
+ * Validated per-(provider,model,dims) malicious floors from Phase 55 tuning.
+ * Models we have empirically validated get their measured floor directly (no
+ * recompute cost); anything not listed falls back to corpus auto-calibration.
  */
-export const OFF_TOPIC_SIMILARITY_THRESHOLD = 0.75;
+interface FloorTableEntry {
+  match: (provider: string, model: string, dims: number | undefined) => boolean;
+  floor: number;
+}
+export const VALIDATED_MALICIOUS_FLOORS: FloorTableEntry[] = [
+  { match: (_p, m) => /qwen3-embedding-8b/i.test(m), floor: 0.615 },
+  { match: (_p, m, d) => m === 'text-embedding-3-small' && d === 256, floor: 0.560 },
+  // OpenAI defaults to 1536 dims when `dimensions` is unset.
+  { match: (_p, m, d) => m === 'text-embedding-3-small' && (d === 1536 || d === undefined), floor: 0.485 },
+];
 
-/**
- * Cosine similarity threshold above which the best-matching corpus
- * malicious exemplar wins. Stricter than off-topic because false-positives
- * BLOCK the answer LLM with no override (D-02).
- */
-export const MALICIOUS_SIMILARITY_THRESHOLD = 0.82;
-
-// ─── Phase 55 D-05/D-06: per-threshold debug knobs ───────────────────────────
-//
-// During tuning the operator drives values live via the settings debug panel and
-// watches the dev-gated console instrumentation (D-02). In production
-// (debugEnabled !== true) the hardcoded constants above are used unconditionally —
-// the knobs are inert.
-//
-// D-06 SECURITY INVARIANT: the malicious threshold is clamped to [0.78, 0.85] in
-// THIS read path even when debug is on. The UI slider also clamps min=0.78 max=0.85,
-// but the service clamp is the load-bearing one — it cannot be detuned below 0.78,
-// which would re-open the dual-vector buried-payload evasion surface
-// (CLAUDE.md §"Question filter — dual-vector scoring"). Do NOT widen this band.
-
-/** Minimal shape of settings.embeddingDebug this module reads (avoids a hard type import). */
+/** Minimal shape of settings.embeddingDebug this module reads. */
 interface EmbeddingDebugLike {
   debugEnabled?: boolean;
-  offTopicThreshold?: number;
+  /** Debug-only floor override for the malicious gate; clamped to the hard band. */
   maliciousThreshold?: number;
 }
 
+const _autoFloorCache = new Map<string, number>();
+
 /**
- * Resolve the active off-topic + malicious thresholds. In production
- * (debugEnabled !== true OR no embDebug) returns the hardcoded constants. In debug
- * returns the live knob values, with malicious clamped to [0.78, 0.85] (D-06).
+ * Auto-calibrate the malicious floor from the corpus: set it just above the
+ * highest raw-malicious cosine observed among the BENIGN (on/off-topic)
+ * exemplars, so by construction no benign exemplar would trip the gate. Clamped
+ * to the hard [MIN, MAX] band so a degenerate/poisoned corpus can neither disable
+ * malicious detection (too high) nor over-block (too low).
  */
-export function getActiveThresholds(
-  embDebug: EmbeddingDebugLike | undefined,
-): { offTopic: number; malicious: number } {
-  if (!embDebug || embDebug.debugEnabled !== true) {
-    return { offTopic: OFF_TOPIC_SIMILARITY_THRESHOLD, malicious: MALICIOUS_SIMILARITY_THRESHOLD };
+function autoCalibrateFloor(corpus: FilterCorpusEntry[]): number {
+  const malicious = corpus.filter((e) => e.label === 'malicious');
+  const benign = corpus.filter((e) => e.label !== 'malicious');
+  if (malicious.length === 0 || benign.length === 0) return DEFAULT_MALICIOUS_FLOOR;
+  let maxBenignMal = 0;
+  for (const b of benign) {
+    let best = -1;
+    for (const m of malicious) {
+      const s = cosine(b.vector, m.vector);
+      if (s > best) best = s;
+    }
+    if (best > maxBenignMal) maxBenignMal = best;
   }
-  // D-06: clamp malicious to [0.78, 0.85] regardless of the stored/UI value.
-  const malicious = Math.min(0.85, Math.max(0.78, embDebug.maliciousThreshold ?? MALICIOUS_SIMILARITY_THRESHOLD));
-  return {
-    offTopic: embDebug.offTopicThreshold ?? OFF_TOPIC_SIMILARITY_THRESHOLD,
-    malicious,
-  };
+  return Math.min(MALICIOUS_FLOOR_MAX, Math.max(MALICIOUS_FLOOR_MIN, maxBenignMal + 0.02));
+}
+
+/**
+ * Resolve the malicious-gate floor for the active embedding config. Debug
+ * override (clamped) > validated table > corpus auto-calibration (memoized).
+ */
+export function resolveMaliciousFloor(
+  embConfig: EmbeddingConfig,
+  corpus: FilterCorpusEntry[],
+  embDebug: EmbeddingDebugLike | undefined,
+): number {
+  if (embDebug?.debugEnabled === true && typeof embDebug.maliciousThreshold === 'number') {
+    return Math.min(MALICIOUS_FLOOR_MAX, Math.max(MALICIOUS_FLOOR_MIN, embDebug.maliciousThreshold));
+  }
+  const { provider, model, dimensions } = embConfig;
+  const hit = VALIDATED_MALICIOUS_FLOORS.find((e) => e.match(provider, model, dimensions));
+  if (hit) return hit.floor;
+  const key = `${provider}:${model}:${dimensions ?? ''}`;
+  if (!_autoFloorCache.has(key)) _autoFloorCache.set(key, autoCalibrateFloor(corpus));
+  return _autoFloorCache.get(key)!;
 }
 
 // ─── Layer 1 (narrow regex fast-path) ────────────────────────────────────────
@@ -190,8 +241,6 @@ async function layer2Embedding(
   signal: AbortSignal | undefined,
   embDebug: EmbeddingDebugLike | undefined,
 ): Promise<FilterResult> {
-  // Phase 55 D-05/D-06: resolve active thresholds (debug knobs or constants).
-  const activeThresholds = getActiveThresholds(embDebug);
   // Dual-vector scoring — Phase 47 UAT-5 multi-turn jailbreak fix.
   //
   // The malicious classifier ALWAYS scores against the raw content vector.
@@ -233,69 +282,72 @@ async function layer2Embedding(
     throw new DOMException('Aborted', 'AbortError');
   }
 
-  // Single pass — track per-label best score + exemplar. Malicious uses rawVec
-  // (multi-turn evasion fix); off-topic + on-topic use contextVec (D-11).
-  let bestMalicious: { entry: FilterCorpusEntry; score: number } | null = null;
-  let bestOffTopic: { entry: FilterCorpusEntry; score: number } | null = null;
-  let bestOnTopic: { entry: FilterCorpusEntry; score: number } | null = null;
+  // RAW-ARGMAX gate. The malicious decision compares the RAW (context-free)
+  // vector against all three label exemplar sets — buried-payload resistant,
+  // because a benign prior-answer context never enters this comparison. The
+  // benign off/on split uses the CONTEXTUALIZED vector (D-11 follow-up benefit).
+  // When there is no priorAnswer, contextVec aliases rawVec so the off/on raw and
+  // contextualized scores coincide and we skip the duplicate cosine.
+  let bestMalRaw: { entry: FilterCorpusEntry; score: number } | null = null;
+  let bestOffRaw: { entry: FilterCorpusEntry; score: number } | null = null;
+  let bestOnRaw: { entry: FilterCorpusEntry; score: number } | null = null;
+  let bestOffCtx: { entry: FilterCorpusEntry; score: number } | null = null;
+  let bestOnCtx: { entry: FilterCorpusEntry; score: number } | null = null;
 
   for (const entry of corpus) {
     if (entry.label === 'malicious') {
-      const score = cosine(rawVec, entry.vector);
-      if (!bestMalicious || score > bestMalicious.score) bestMalicious = { entry, score };
+      const s = cosine(rawVec, entry.vector);
+      if (!bestMalRaw || s > bestMalRaw.score) bestMalRaw = { entry, score: s };
     } else if (entry.label === 'off-topic') {
-      const score = cosine(contextVec, entry.vector);
-      if (!bestOffTopic || score > bestOffTopic.score) bestOffTopic = { entry, score };
+      const sr = cosine(rawVec, entry.vector);
+      if (!bestOffRaw || sr > bestOffRaw.score) bestOffRaw = { entry, score: sr };
+      const sc = hasPriorAnswer ? cosine(contextVec, entry.vector) : sr;
+      if (!bestOffCtx || sc > bestOffCtx.score) bestOffCtx = { entry, score: sc };
     } else {
-      const score = cosine(contextVec, entry.vector);
-      if (!bestOnTopic || score > bestOnTopic.score) bestOnTopic = { entry, score };
+      const sr = cosine(rawVec, entry.vector);
+      if (!bestOnRaw || sr > bestOnRaw.score) bestOnRaw = { entry, score: sr };
+      const sc = hasPriorAnswer ? cosine(contextVec, entry.vector) : sr;
+      if (!bestOnCtx || sc > bestOnCtx.score) bestOnCtx = { entry, score: sc };
     }
   }
 
-  // Phase 55 D-02: dev-gated would-flip-distance instrumentation. Only emits when
-  // running in the browser dev build AND debug mode is toggled on, so it never ships
-  // log noise. Shows how close the best score was to flipping the label.
+  const floor = resolveMaliciousFloor(embConfig, corpus, embDebug);
+  const malRaw = bestMalRaw?.score ?? -1;
+  const offRaw = bestOffRaw?.score ?? -1;
+  const onRaw = bestOnRaw?.score ?? -1;
+
+  // Phase 55 D-02: dev-gated instrumentation (browser dev build + debug only).
   if (typeof import.meta !== 'undefined' && import.meta.env?.DEV && embDebug?.debugEnabled === true) {
-    const flipDistOff = bestOffTopic ? bestOffTopic.score - activeThresholds.offTopic : null;
-    const flipDistMal = bestMalicious ? bestMalicious.score - activeThresholds.malicious : null;
     console.info(
-      '[filter] maliciousBest=%o (thr=%o flipDist=%o) offTopicBest=%o (thr=%o flipDist=%o) onTopicBest=%o',
-      bestMalicious?.score, activeThresholds.malicious, flipDistMal,
-      bestOffTopic?.score, activeThresholds.offTopic, flipDistOff,
-      bestOnTopic?.score,
+      '[filter] floor=%o rawMal=%o rawOff=%o rawOn=%o | ctxOff=%o ctxOn=%o',
+      floor, malRaw, offRaw, onRaw, bestOffCtx?.score, bestOnCtx?.score,
     );
   }
 
-  // Apply thresholds in priority order. Malicious wins ties at equal-score
-  // boundary (D-12 conservative tie-break — block-with-no-LLM beats
-  // flag-with-LLM-call when both labels are similarly close).
-  if (bestMalicious && bestMalicious.score >= activeThresholds.malicious) {
+  // Malicious gate: raw-only argmax above the floor. No context vector enters
+  // here, so a benign preamble cannot dilute the malicious score (the structural
+  // buried-payload defense — see header comment + CLAUDE.md §"dual-vector scoring").
+  if (bestMalRaw && malRaw >= floor && malRaw >= offRaw && malRaw >= onRaw) {
     return {
       label: 'malicious',
-      bestMatch: {
-        label: 'malicious',
-        exemplar: bestMalicious.entry.text,
-        score: bestMalicious.score,
-      },
-    };
-  }
-  if (bestOffTopic && bestOffTopic.score >= activeThresholds.offTopic) {
-    return {
-      label: 'off-topic',
-      bestMatch: {
-        label: 'off-topic',
-        exemplar: bestOffTopic.entry.text,
-        score: bestOffTopic.score,
-      },
+      bestMatch: { label: 'malicious', exemplar: bestMalRaw.entry.text, score: malRaw },
     };
   }
 
-  // No threshold breached — on-topic. Include the best on-topic exemplar
-  // in bestMatch for dev console / eval-test debug visibility.
+  // Benign split: relative comparison on contextualized vectors. Off-topic only
+  // when it beats on-topic by OFF_TOPIC_MARGIN, so unrelated / ambiguous input
+  // defaults to on-topic (never flagged).
+  if (bestOffCtx && bestOffCtx.score - (bestOnCtx?.score ?? -1) >= OFF_TOPIC_MARGIN) {
+    return {
+      label: 'off-topic',
+      bestMatch: { label: 'off-topic', exemplar: bestOffCtx.entry.text, score: bestOffCtx.score },
+    };
+  }
+
   return {
     label: 'on-topic',
-    bestMatch: bestOnTopic
-      ? { label: 'on-topic', exemplar: bestOnTopic.entry.text, score: bestOnTopic.score }
+    bestMatch: bestOnCtx
+      ? { label: 'on-topic', exemplar: bestOnCtx.entry.text, score: bestOnCtx.score }
       : undefined,
   };
 }

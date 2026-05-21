@@ -326,13 +326,14 @@ export function SettingsAIScreen() {
             {t('settings.debug')}
           </p>
           {/*
-            Phase 55 D-04/D-05/D-06: per-threshold tuning knobs. These replace the dead
-            single `similarityThreshold` slider (which never mapped to any real threshold).
-            The labels here are dev-only debug strings rendered ONLY when debugEnabled is on,
-            so they intentionally stay English and are NOT added to en/zh/es/ja.json — the
-            Phase 56 i18n sweep should not flag them. The malicious + anchor-dedup knobs are
-            UI-clamped to min=0.78 max=0.85 (D-06); the service read path clamps too, so the
-            slider clamp is belt-and-suspenders, not the load-bearing guard.
+            Phase 55: per-knob tuning controls, dev-only (rendered only when debugEnabled).
+            Labels stay English and are NOT added to locale bundles. Post-RAW-ARGMAX
+            (55-FILTER-TUNING-REPORT.md): the question filter no longer uses an absolute
+            off-topic OR malicious threshold — it uses a scale-invariant relative rule with
+            a malicious FLOOR. So the off-topic slider is retired and the malicious slider now
+            overrides the floor, clamped to [0.35, 0.70] in BOTH the UI and the service read
+            path (resolveMaliciousFloor). The anchor-dedup knob is a SEPARATE classifier
+            (canonical-knowledge.service.ts) and keeps its [0.78, 0.85] band.
           */}
           {/* Master debug-mode gate — knobs hidden in release when off (D-04). */}
           <SettingRow label="Debug mode" description="Show per-threshold tuning controls (dev only)">
@@ -347,44 +348,30 @@ export function SettingsAIScreen() {
           </SettingRow>
           {embeddingDebug.debugEnabled && (
             <>
-              {/* Off-topic threshold — no security constraint. */}
-              <SettingRow
-                label={`Off-topic threshold: ${(embeddingDebug.offTopicThreshold ?? 0.75).toFixed(2)}`}
-                description="Cosine above which a question is flagged off-topic (0.75 default)"
-              >
-                <input
-                  type="range"
-                  min={0.60}
-                  max={0.95}
-                  step={0.01}
-                  value={embeddingDebug.offTopicThreshold ?? 0.75}
-                  onChange={(e) => {
-                    const next = { ...embeddingDebug, offTopicThreshold: parseFloat(e.target.value) };
-                    setEmbeddingDebug(next);
-                    saveEmbeddingDebug(next);
-                  }}
-                  style={{ width: '120px', accentColor: 'var(--primary-40)', cursor: 'pointer' }}
-                />
-              </SettingRow>
-              {/* Malicious threshold — CLAMPED to 0.78-0.85 (D-06 security invariant). */}
-              <SettingRow
-                label={`Malicious threshold: ${(embeddingDebug.maliciousThreshold ?? 0.82).toFixed(2)}`}
-                description="Clamped 0.78-0.85 — lowering reopens the dual-vector buried-payload evasion surface"
-              >
-                <input
-                  type="range"
-                  min={0.78}
-                  max={0.85}
-                  step={0.01}
-                  value={embeddingDebug.maliciousThreshold ?? 0.82}
-                  onChange={(e) => {
-                    const next = { ...embeddingDebug, maliciousThreshold: parseFloat(e.target.value) };
-                    setEmbeddingDebug(next);
-                    saveEmbeddingDebug(next);
-                  }}
-                  style={{ width: '120px', accentColor: 'var(--primary-40)', cursor: 'pointer' }}
-                />
-              </SettingRow>
+              {/* Malicious FLOOR override (RAW-ARGMAX) — clamped to [0.35, 0.70]. */}
+              {(() => {
+                const floorValue = Math.min(0.70, Math.max(0.35, embeddingDebug.maliciousThreshold ?? 0.50));
+                return (
+                  <SettingRow
+                    label={`Malicious floor: ${floorValue.toFixed(2)}`}
+                    description="RAW-ARGMAX floor, clamped 0.35-0.70. Lower = catches more attacks but risks blocking benign; higher = misses attacks. Production uses the validated per-model floor."
+                  >
+                    <input
+                      type="range"
+                      min={0.35}
+                      max={0.70}
+                      step={0.01}
+                      value={floorValue}
+                      onChange={(e) => {
+                        const next = { ...embeddingDebug, maliciousThreshold: parseFloat(e.target.value) };
+                        setEmbeddingDebug(next);
+                        saveEmbeddingDebug(next);
+                      }}
+                      style={{ width: '120px', accentColor: 'var(--primary-40)', cursor: 'pointer' }}
+                    />
+                  </SettingRow>
+                );
+              })()}
               {/* Anchor-dedup threshold — CLAMPED to 0.78-0.85 (CLAUDE.md dedup band). */}
               <SettingRow
                 label={`Anchor dedup threshold: ${(embeddingDebug.anchorDedupThreshold ?? 0.82).toFixed(2)}`}
