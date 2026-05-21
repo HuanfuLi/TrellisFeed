@@ -45,7 +45,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] 54-01-PLAN.md — Close out QUALITY-02 debug sessions, QUALITY-03 podcast todo, TECHDEBT-14 green-suite re-acceptance
 - [x] 54-02-PLAN.md — QUALITY-01 whole-codebase bug audit + behavior-observing regression tests
 - [x] 54-03-PLAN.md — TECHDEBT-13 scored severity x reach tech-debt inventory (deliverable)
-- [ ] 54-04-PLAN.md — TECHDEBT-13 top-tier resolution: delete dead code, clear lint, operator decision
+- [x] 54-04-PLAN.md — TECHDEBT-13 top-tier resolution: delete dead code, clear lint, operator decision
 
 ### Phase 55: Algorithm & Mechanism Tuning
 **Goal**: The app's numeric thresholds and signal-driven mechanisms behave as intended and are tuned with documented, test-backed rationale rather than guesswork.
@@ -112,7 +112,7 @@ Phases execute in numeric order: 54 → 55 → 56 → 57 → 58 → 59
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 54. Code Quality, Bugs & Tech Debt | v1.7 | 3/4 | In Progress|  |
+| 54. Code Quality, Bugs & Tech Debt | v1.7 | 5/4 | Complete   | 2026-05-21 |
 | 55. Algorithm & Mechanism Tuning | v1.7 | 0/TBD | Not started | - |
 | 56. UI Polish & Documentation | v1.7 | 0/TBD | Not started | - |
 | 57. Rewards Foundation — Data Model & Service | v1.7 | 0/TBD | Not started | - |
