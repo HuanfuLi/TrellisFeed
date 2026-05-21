@@ -1,7 +1,7 @@
 import type { Question, ReviewSchedule } from '../types/index.ts';
 import { buildAnchorReflectionTree } from './canonical-knowledge.service.ts';
 import {
-  getBlossomDates, setBlossomDate, clearBlossomDate,
+  getBlossomDates, replaceBlossomDates,
 } from './trellis-blossom-dates.service.ts';
 import { generateVinePath, getLeafPosition, getVineColor, hashStr, type VinePathSpec } from './trellis-layout.service.ts';
 import { flashcardService } from './flashcard.service.ts';
@@ -181,6 +181,15 @@ export function buildTrellisState(questions: Question[]): TrellisLayout {
 
   const tree = buildAnchorReflectionTree(questions);
   const blossomDates = getBlossomDates();
+  // PERF (55.1-06 / BUGFIX-05): the per-node setBlossomDate/clearBlossomDate
+  // calls below USED to each do a full getBlossomDates() (JSON.parse) +
+  // setItem() (JSON.stringify) of the growing map — O(N^2) localStorage churn,
+  // measured as the DOMINANT cost at production scale (54.24 ms of a 60.87 ms
+  // build at N=3000; see app/scripts/profile-trellis.mjs). We now mutate the
+  // in-memory `blossomDates` map during the loop and flush ONCE after the loop
+  // via a single replaceBlossomDates() write. Leaf-state outputs are identical
+  // — only the persistence is batched.
+  let blossomDatesDirty = false;
 
   // Build FlashCard review lookup: nodeId → best ReviewSchedule
   // Reviews update FlashCards (not Questions), so this is the authoritative source.
@@ -226,16 +235,16 @@ export function buildTrellisState(questions: Question[]): TrellisLayout {
         // Process anchors with their children
         cluster.anchors.forEach(({ anchor, qaChildren }) => {
           const state = computeLeafState(anchor, qaChildren, blossomDates[anchor.id], fcMap);
-          // Blossom date persistence (Pitfall 4)
+          // Blossom date persistence (Pitfall 4) — batched: mutate in-memory map,
+          // flush once after the loop (see blossomDatesDirty above).
           if (state === 'blossom' || state === 'fruit') {
             if (!blossomDates[anchor.id]) {
-              const isoToday = today();
-              blossomDates[anchor.id] = isoToday;
-              setBlossomDate(anchor.id, isoToday);
+              blossomDates[anchor.id] = today();
+              blossomDatesDirty = true;
             }
           } else if (blossomDates[anchor.id]) {
             delete blossomDates[anchor.id];
-            clearBlossomDate(anchor.id);
+            blossomDatesDirty = true;
           }
           const leafPos = getLeafPosition(anchor.id, vine.spec);
           nodes.push({
@@ -258,13 +267,12 @@ export function buildTrellisState(questions: Question[]): TrellisLayout {
           const state = computeLeafState(q, [], blossomDates[q.id], fcMap);
           if (state === 'blossom' || state === 'fruit') {
             if (!blossomDates[q.id]) {
-              const isoToday = today();
-              blossomDates[q.id] = isoToday;
-              setBlossomDate(q.id, isoToday);
+              blossomDates[q.id] = today();
+              blossomDatesDirty = true;
             }
           } else if (blossomDates[q.id]) {
             delete blossomDates[q.id];
-            clearBlossomDate(q.id);
+            blossomDatesDirty = true;
           }
           const leafPos = getLeafPosition(q.id, vine.spec);
           nodes.push({
@@ -285,6 +293,12 @@ export function buildTrellisState(questions: Question[]): TrellisLayout {
       });
     });
   });
+
+  // PERF (55.1-06): single flush of all blossom-date set/clear ops collected
+  // during the loop, replacing the prior O(N^2) per-node persistence.
+  if (blossomDatesDirty) {
+    replaceBlossomDates(blossomDates);
+  }
 
   return { nodes, vines };
 }
