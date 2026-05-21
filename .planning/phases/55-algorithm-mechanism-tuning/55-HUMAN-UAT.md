@@ -12,11 +12,12 @@ updated: 2026-05-21
 
 ## Tests
 
-### 1. Heavy stores live in OPFS SQLite, not localStorage (structural quota-relief proof)
-expected: After normal light use (ask 1–2 questions, scroll the feed once) in `npm run dev` (Chrome, localhost), DevTools confirms the heavy data moved off localStorage into the OPFS-backed SQLite file — no bulk image generation needed.
-how: DevTools → Application tab.
-  (a) Storage → confirm an OPFS SQLite file exists. In console: `for await (const [k] of (await navigator.storage.getDirectory()).entries()) console.log(k)` — a `.sqlite3` (e.g. `trellis.sqlite3`) entry should be listed.
-  (b) Local Storage → `http://localhost:*` → confirm the heavy keys are ABSENT: `trellis_questions`, `trellis_post_queue`, `trellis_daily_posts`, `trellis_post_history`, session keys, `trellis_flashcards`. Only lightweight prefs (settings, onboarding flags) should remain.
+### 1. Heavy stores live in IndexedDB, not localStorage (structural quota-relief proof)
+expected: After normal light use (ask 1–2 questions, scroll the feed once) in `npm run dev` (Chrome, localhost), DevTools confirms the heavy data moved off localStorage into IndexedDB — no bulk image generation needed. (Unified backend: IndexedDB on both web and the native WebView.)
+how: DevTools.
+  (a) Console: confirm the active backend log on boot reads `[Trellis] DB backend active: IndexedDBBackend` (NOT `LocalStorageBackend`).
+  (b) Application → IndexedDB → a database named `trellis` exists with object stores (`questions`, `posts`, `post_queue`, `sessions`, `flashcards`, …) holding rows.
+  (c) Application → Local Storage → `http://localhost:*` → the heavy keys are ABSENT: `trellis_questions`, `trellis_post_queue`, `trellis_daily_posts`, `trellis_post_history`, session keys, `trellis_flashcards`. Only lightweight prefs (settings, onboarding flags) remain.
 result: [pending]
 
 ### 2. Content persists across a hard reload (D-12 sync-read invariant)
