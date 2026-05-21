@@ -1,6 +1,11 @@
 import { chatStream, chatCompletion } from '../providers/llm/index.ts';
 import type { DailyPost, Question } from '../types';
 import { settingsService } from './settings.service.ts';
+import { resolveGenerationConfig } from './generation-config.ts';
+
+// Phase 55.1 GAP-E — re-export so the fast-model resolver is reachable from this module's
+// public surface (and source-grep acceptance) while its definition stays React-free.
+export { resolveGenerationConfig };
 
 /**
  * On-enter essay generation service.
