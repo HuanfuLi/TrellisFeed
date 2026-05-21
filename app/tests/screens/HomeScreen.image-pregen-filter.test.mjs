@@ -23,9 +23,10 @@ describe('HomeScreen image pre-gen filter (post-Phase 33 architecture, lives in 
     // Find the refillQueue body.
     const fnStart = feedSource.indexOf('export async function refillQueue(');
     assert.ok(fnStart !== -1, 'concept-feed.service.ts should export refillQueue function');
-    // refillQueue is ~10kB — the image-pregen block lives ~9kB into the body.
-    // Slice generously so all three assertions can find their targets.
-    const fnBody = feedSource.slice(fnStart, fnStart + 12000);
+    // refillQueue is ~13kB — the image-pregen block lives ~12.6kB into the body
+    // (Phase 55-06 D-02 dev-gated refill instrumentation sits above it). Slice
+    // generously so all three assertions can find their targets.
+    const fnBody = feedSource.slice(fnStart, fnStart + 14000);
 
     // Must filter posts to image-style only and assign to an `imagePosts` binding.
     // Live shape: `const imagePosts = posts.filter((p) => p.presentationStyle === 'image');`
