@@ -24,6 +24,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [ ] **Phase 54: Code Quality, Bugs & Tech Debt** - Inventory and resolve high-priority tech debt, audit and fix bugs, close carried-over debug sessions, verify auto-gen podcast on device
 - [ ] **Phase 55: Algorithm & Mechanism Tuning** - Review and tune numeric thresholds with documented rationale; test and tune filter, recommendation, feed randomizer, and "like" mechanisms; fix the curiosity-feed buffer-queue refill reliability bug; migrate the heavy store layer to SQLite-primary
+- [ ] **Phase 55.1 (INSERTED): Device-Test Bug Fixes** - Fix four on-device-test regressions: cross-session LLM response leakage, provider/locale-triggered text-art post truncation, Ask-screen nav-bar keyboard flicker, and the first-tap-dismisses-keyboard send bug
 - [ ] **Phase 56: UI Polish & Documentation** - Sweep screens against a polish checklist, fix animations and navigation paths, archive/update stale docs, verify CLAUDE.md against code
 - [ ] **Phase 57: Rewards Foundation — Data Model & Service** - Lock cosmeticsService, credit subtraction, events, theme CSS blocks, Clear-All-Data preservation, and the non-pushy guardrail before any UI
 - [ ] **Phase 58: Rewards Core Shop Loop — Themes** - ShopScreen browse/preview/buy/equip with color themes, dual entry points, always-mounted resync, and 4-locale UI strings
@@ -64,6 +65,19 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] 55-04-PLAN.md — Like-signal → derived-list multiplicity boost + STYLE_WEIGHTS/trajectory verify-and-keep (TUNE-02)
 - [x] 55-05-PLAN.md — Storage migration to SQLite-primary (WASM backend, Float32 BLOB, clean cutover, delete-guard) (TUNE-01)
 - [x] 55-06-PLAN.md — Feed buffer-queue refill reliability: root-cause the intermittent 1/4/0-post under-refill, fix the size-check + refill-threshold + walker-batch interaction, add regression tests (TUNE-03)
+
+### Phase 55.1 (INSERTED): Device-Test Bug Fixes
+**Goal**: Four regressions surfaced by on-device testing are root-caused and fixed: chat answers never cross sessions, persisted post content survives provider/locale switches intact, and the Ask-screen keyboard interaction is stable (no nav-bar flicker, send works on first tap).
+**Inserted**: 2026-05-21, after Phase 55, from a device-test session. Sits before Phase 56 because two of the four are correctness/blocker bugs (response leakage, can't-send-on-first-tap), not cosmetic polish.
+**Depends on**: Phase 55 (current code baseline)
+**Requirements**: BUGFIX-01, BUGFIX-02, BUGFIX-03, BUGFIX-04
+**Success Criteria** (what must be TRUE):
+  1. A streaming LLM answer is bound to the session it was requested for: the rapid ask → new-session → ask → new-session sequence never renders a prior session's response under a different session's question. The leak is root-caused (request→session binding in `useQuestions`/`session.service`, and/or aborting the in-flight stream on session switch) and covered by a regression test. (BUGFIX-01)
+  2. Switching the LLM provider (e.g. to Gemini) or the locale does NOT mutate or truncate already-generated posts: existing text-art posts that showed full sentences keep their full text and never collapse to a few words / a single token. The corrupting trigger is identified and persisted post content is treated as immutable by provider/locale change handlers. Covered by a test that exercises a provider/locale change against existing posts. (BUGFIX-02)
+  3. On the Ask screen, opening the keyboard raises the input island smoothly with NO bottom-navigation-bar flicker (the nav bar does not animate up/down during the keyboard transition). Consistent with the existing SwipeTabContainer keyboard/resize and root-overflow invariants (CLAUDE.md). (BUGFIX-03)
+  4. On the Ask screen, tapping Send while the keyboard is open sends the message on the FIRST tap — the tap is not consumed by keyboard dismissal (e.g. fire on pointer-down / preserve input focus so the send handler runs before blur). (BUGFIX-04)
+**Plans**: TBD
+**UI hint**: yes (issues 3 + 4 are Ask-screen keyboard/layout)
 
 ### Phase 56: UI Polish & Documentation
 **Goal**: Screens look and feel finished within the Android WebView budget, navigation is sound end-to-end, and the project's documentation reflects the current state of the code.
@@ -116,12 +130,13 @@ Decimal phases appear between their surrounding integers in numeric order.
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 54 → 55 → 56 → 57 → 58 → 59
+Phases execute in numeric order: 54 → 55 → 55.1 → 56 → 57 → 58 → 59
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 54. Code Quality, Bugs & Tech Debt | v1.7 | 5/4 | Complete    | 2026-05-21 |
 | 55. Algorithm & Mechanism Tuning | v1.7 | 7/6 | Complete    | 2026-05-21 |
+| 55.1. Device-Test Bug Fixes (INSERTED) | v1.7 | 0/TBD | Not started | - |
 | 56. UI Polish & Documentation | v1.7 | 0/TBD | Not started | - |
 | 57. Rewards Foundation — Data Model & Service | v1.7 | 0/TBD | Not started | - |
 | 58. Rewards Core Shop Loop — Themes | v1.7 | 0/TBD | Not started | - |

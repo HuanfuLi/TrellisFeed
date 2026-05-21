@@ -37,6 +37,13 @@ Six areas are internal cleanup/hardening (POLISH, DOCS, TECHDEBT, QUALITY, TUNE)
 - [x] **TUNE-02**: Filter, recommendation, feed randomizer, and "like" signal mechanisms are tested and tuned against expected behavior
 - [x] **TUNE-03**: The curiosity-feed buffer queue reliably refills — swipe-for-more yields the intended batch (8 posts) whenever the derived list has unread capacity; the intermittent under-refill (sometimes 1, 4, or 0 new posts) caused by unreliable queue-size checks / refill-threshold races is root-caused, fixed, and regression-tested
 
+### Device-Test Bug Fixes (folded 2026-05-21 — surfaced by on-device testing)
+
+- [ ] **BUGFIX-01**: A streaming LLM answer is bound to the chat session it was requested for — rapidly asking a question, creating a new session, asking again, and creating another session never leaks a prior session's response into a different session (observed: a 3rd-session answer appeared under a 5th-session question). Root-caused (request→session binding and/or in-flight abort on session switch) and regression-tested.
+- [ ] **BUGFIX-02**: Switching the LLM provider (e.g. to Gemini) or the locale never mutates or truncates already-generated post content — existing text-art posts that rendered full sentences keep their full text and do not collapse to a few words or a single token. The corrupting trigger is root-caused and persisted post content is treated as immutable by provider/locale changes.
+- [ ] **BUGFIX-03**: On the Ask screen, opening the keyboard moves the input island up smoothly without the bottom navigation bar flickering / moving up and down.
+- [ ] **BUGFIX-04**: On the Ask screen, tapping Send while the keyboard is open sends the message on the first tap — the tap is not consumed by keyboard dismissal (no need to dismiss the keyboard and tap again).
+
 ### Rewards Shop
 
 - [ ] **REWARDS-01**: User can view their coin (fruit credit) balance and browse a catalog of purchasable cosmetics
@@ -87,6 +94,10 @@ Which phases cover which requirements. Populated during roadmap creation.
 | TUNE-01 | Phase 55 | Complete |
 | TUNE-02 | Phase 55 | Complete |
 | TUNE-03 | Phase 55 | Complete |
+| BUGFIX-01 | Phase 55.1 | Pending |
+| BUGFIX-02 | Phase 55.1 | Pending |
+| BUGFIX-03 | Phase 55.1 | Pending |
+| BUGFIX-04 | Phase 55.1 | Pending |
 | POLISH-01 | Phase 56 | Pending |
 | POLISH-02 | Phase 56 | Pending |
 | POLISH-03 | Phase 56 | Pending |
@@ -103,10 +114,10 @@ Which phases cover which requirements. Populated during roadmap creation.
 | REWARDS-06 | Phase 59 | Pending |
 
 **Coverage:**
-- v1 requirements: 22 total
-- Mapped to phases: 22 ✓
+- v1 requirements: 26 total
+- Mapped to phases: 26 ✓
 - Unmapped: 0
 
 ---
 *Requirements defined: 2026-05-20*
-*Last updated: 2026-05-21 — folded TUNE-03 (feed buffer-queue refill reliability) into Phase 55*
+*Last updated: 2026-05-21 — folded BUGFIX-01..04 (device-test bug fixes) into inserted Phase 55.1*

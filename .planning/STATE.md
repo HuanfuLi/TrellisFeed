@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: Cleanup, Hardening & Rewards
 status: ready_to_plan
-stopped_at: Phase 55 complete (7/6) — ready to discuss Phase 56
-last_updated: 2026-05-21T10:41:54.381Z
-last_activity: 2026-05-21 -- Phase 55 execution started
+stopped_at: Phase 55 complete (7/6); inserted Phase 55.1 (device-test bug fixes) — plan next
+last_updated: 2026-05-21
+last_activity: 2026-05-21 -- folded 4 device-test bugs into inserted Phase 55.1
 progress:
-  total_phases: 6
-  completed_phases: 1
-  total_plans: 10
+  total_phases: 7
+  completed_phases: 2
+  total_plans: 12
   completed_plans: 12
-  percent: 17
+  percent: 29
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-20)
 
 **Core value:** AI-powered personalized learning that respects user attention — reward-based, non-pushy, local-first.
-**Current focus:** Phase 56 — ui polish & documentation
+**Current focus:** Phase 55.1 (INSERTED) — device-test bug fixes
 
 ## Current Position
 
-Phase: 56
+Phase: 55.1 (INSERTED — device-test bug fixes)
 Plan: Not started
 Status: Ready to plan
 Last activity: 2026-05-21
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [███░░░░░░░] 29%
 
 ## Milestone Shape (v1.7)
 
@@ -40,12 +40,13 @@ Phase numbering continues from v1.6 (ended at Phase 53).
 |-------|-------|--------------|
 | 54 | Code Quality, Bugs & Tech Debt | QUALITY-01, QUALITY-02, QUALITY-03, TECHDEBT-13, TECHDEBT-14 |
 | 55 | Algorithm & Mechanism Tuning | TUNE-01, TUNE-02, TUNE-03 |
+| 55.1 (INSERTED) | Device-Test Bug Fixes | BUGFIX-01, BUGFIX-02, BUGFIX-03, BUGFIX-04 |
 | 56 | UI Polish & Documentation | POLISH-01, POLISH-02, POLISH-03, DOCS-01, DOCS-02 |
 | 57 | Rewards Foundation — Data Model & Service | REWARDS-08 |
 | 58 | Rewards Core Shop Loop — Themes | REWARDS-01, REWARDS-02, REWARDS-03, REWARDS-04, REWARDS-07, REWARDS-09 |
 | 59 | Rewards Pet Companion & Garden Cosmetics | REWARDS-05, REWARDS-06 |
 
-**Coverage:** 22 / 22 v1.7 requirements mapped ✓
+**Coverage:** 26 / 26 v1.7 requirements mapped ✓ (added BUGFIX-01..04 in inserted Phase 55.1)
 
 ## Accumulated Context
 
@@ -84,6 +85,10 @@ Carried forward from v1.6 close (2026-05-20). All four now have a v1.7 home.
 | todo | 2026-05-07-fix-cosine-similarity-threshold-cache-miss | pending | Phase 55 (TUNE-01) |
 | todo | 2026-05-09-inspect-auto-gen-podcast-working-or-not-and-debug | pending | Phase 54 (QUALITY-03) |
 | bug | feed buffer queue under-refill (swipe yields 1/4/0 instead of 8) | folded 2026-05-21 | Phase 55 (TUNE-03) |
+| bug | cross-session LLM response leakage (3rd-session answer under 5th-session question) | folded 2026-05-21 | Phase 55.1 (BUGFIX-01) |
+| bug | text-art posts truncate to a few words / "The" after provider (Gemini?) or locale switch | folded 2026-05-21 | Phase 55.1 (BUGFIX-02) |
+| bug | Ask-screen bottom nav bar flickers when keyboard opens | folded 2026-05-21 | Phase 55.1 (BUGFIX-03) |
+| bug | Ask-screen first Send tap dismisses keyboard instead of sending | folded 2026-05-21 | Phase 55.1 (BUGFIX-04) |
 
 ## Session Continuity
 
@@ -93,4 +98,5 @@ Resume file: .planning/phases/55-algorithm-mechanism-tuning/55-CONTEXT.md
 
 ## Operator Next Steps
 
-- Plan the first phase with `/gsd:plan-phase 54`
+- Plan the inserted device-test bug-fix phase with `/gsd:plan-phase 55.1` (BUGFIX-01..04), then resume Phase 56.
+- BUGFIX-01 (session leak) and BUGFIX-02 (post truncation) are correctness bugs; BUGFIX-03/04 are Ask-screen keyboard UX. Likely code areas: `src/state/useQuestions.ts` + `src/services/session.service.ts` (01), `src/services/concept-feed.service.ts` / `post-queue.service.ts` / `InfoFlow.tsx` + locale/provider change handlers (02), `src/components/SwipeTabContainer.tsx` + `BottomNavigation.tsx` (03), `src/components/ChatInput.tsx` (04).
