@@ -39,6 +39,10 @@ Defined for v1.7 in `.planning/REQUIREMENTS.md`.
 
 ## Validated Requirements
 
+### v1.7
+
+- QUALITY-01, QUALITY-02, QUALITY-03, TECHDEBT-13, TECHDEBT-14 — whole-codebase bug audit (one real bug fixed: PlannerScreen credit-balance resync) + scored severity×reach tech-debt inventory with top tier resolved (dead code deleted, scheduler logs → `console.warn`); both carried-over Force-New-Day debug threads confirmed already-fixed and moved to `debug/resolved/`; auto-gen podcast device-verified by operator; suite kept green (1635 tests) — a UTC-midnight date-test flake was fixed via an injectable clock in `lib/date.ts`. Validated in Phase 54.
+
 ### v1.6
 
 - FILTER-01..05 — regex filter replaced with hybrid narrow-regex + dual-vector embedding classifier; pre-LLM gate blocks malicious prompts before any provider call; structural input bracketing as defense in depth. Validated in Phase 47.
@@ -156,4 +160,4 @@ _Last updated: 2026-05-19 — Phase 51 complete (RETRIEVE-03 + RETRIEVE-04 via t
 **Phase 46 complete (2026-05-13, verifier 8/8):** v1.5 milestone-audit gap closure closed CONTENT-03 on the queued-news prefetch path. `PreFetchCache.news` now stores filtered top-source arrays, direct and queued-prefetch news paths share `selectNewsTopSources`, and `mapNewsSourcesToNewsMeta` maps up to three sources with stable 1-based indexes before `generateNewsEssay` consumes `sources.slice(0, 3)`. The targeted CONTENT-03 regression passes 17/17 and final build/lint/test evidence is recorded in `46-VERIFY.md`; the only aggregate test caveat remains the known-deferred `tests/concept-feed.test.mjs` `buildFallbackPosts` baseline from Phase 45. Milestone v1.5 is ready for re-audit and archive.
 
 ---
-*Last updated: 2026-05-20 — v1.7 milestone started (Cleanup, Hardening & Rewards). Defining requirements.*
+*Last updated: 2026-05-21 — Phase 54 complete (Code Quality, Bugs & Tech Debt; verifier 5/5, code review clean). QUALITY-01/02/03 + TECHDEBT-13/14 validated. v1.7 progress: 1 of 6 phases done; Phase 55 (Algorithm & Mechanism Tuning) next.*
