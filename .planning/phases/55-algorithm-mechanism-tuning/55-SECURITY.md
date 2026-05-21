@@ -105,7 +105,7 @@ Summary threat flags:
 
 ## Verification Evidence
 
-Ran on 2026-05-21 from `app/`:
+Ran on 2026-05-21 from `app/` and re-ran during the security audit:
 
 ```bash
 ./node_modules/.bin/tsc -b --noEmit
@@ -119,11 +119,23 @@ Result:
 
 ---
 
+## Security Audit 2026-05-21
+
+| Metric | Count |
+|--------|-------|
+| Threats found | 20 |
+| Closed | 20 |
+| Open | 0 |
+| Unregistered summary threat flags | 0 |
+
+Re-verified against the current checkout. The existing plan-time threat register is authored and complete, every threat has a closed disposition, and no `## Threat Flags` sections were present in the Phase 55 summaries.
+
 ## Security Audit Trail
 
 | Audit Date | Threats Total | Closed | Open | Run By |
 |------------|---------------|--------|------|--------|
 | 2026-05-21 | 20 | 20 | 0 | Codex |
+| 2026-05-21 | 20 | 20 | 0 | Codex rerun |
 
 ---
 
