@@ -269,8 +269,20 @@ export interface EmbeddingConfig {
 }
 
 export interface EmbeddingDebugConfig {
+  // Legacy field — retained for backwards-compat read side. Phase 55 D-05 stops
+  // rendering its slider (it never mapped to any real threshold). Do NOT reconnect
+  // this to anchor dedup.
   similarityThreshold: number;
   showScores: boolean;
+  // Phase 55 D-05: per-threshold live tuning knobs. Optional + additive — pre-feature
+  // stored settings load with these undefined and every read path falls back to the
+  // hardcoded service constant (no normalize framework per CLAUDE.md
+  // feedback_no_normalize_for_optional_fields). debugEnabled is the master gate:
+  // false/undefined = production mode (constants used unconditionally).
+  debugEnabled?: boolean;        // master gate; false/undefined = production mode
+  offTopicThreshold?: number;    // default 0.75 when undefined (question-filter)
+  maliciousThreshold?: number;   // default 0.82 when undefined; D-06 clamped to [0.78, 0.85] by service
+  anchorDedupThreshold?: number; // default 0.82 when undefined; clamped to [0.78, 0.85] by service
 }
 
 export interface LLMConfig {

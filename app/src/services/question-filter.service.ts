@@ -88,6 +88,45 @@ export const OFF_TOPIC_SIMILARITY_THRESHOLD = 0.75;
  */
 export const MALICIOUS_SIMILARITY_THRESHOLD = 0.82;
 
+// ─── Phase 55 D-05/D-06: per-threshold debug knobs ───────────────────────────
+//
+// During tuning the operator drives values live via the settings debug panel and
+// watches the dev-gated console instrumentation (D-02). In production
+// (debugEnabled !== true) the hardcoded constants above are used unconditionally —
+// the knobs are inert.
+//
+// D-06 SECURITY INVARIANT: the malicious threshold is clamped to [0.78, 0.85] in
+// THIS read path even when debug is on. The UI slider also clamps min=0.78 max=0.85,
+// but the service clamp is the load-bearing one — it cannot be detuned below 0.78,
+// which would re-open the dual-vector buried-payload evasion surface
+// (CLAUDE.md §"Question filter — dual-vector scoring"). Do NOT widen this band.
+
+/** Minimal shape of settings.embeddingDebug this module reads (avoids a hard type import). */
+interface EmbeddingDebugLike {
+  debugEnabled?: boolean;
+  offTopicThreshold?: number;
+  maliciousThreshold?: number;
+}
+
+/**
+ * Resolve the active off-topic + malicious thresholds. In production
+ * (debugEnabled !== true OR no embDebug) returns the hardcoded constants. In debug
+ * returns the live knob values, with malicious clamped to [0.78, 0.85] (D-06).
+ */
+export function getActiveThresholds(
+  embDebug: EmbeddingDebugLike | undefined,
+): { offTopic: number; malicious: number } {
+  if (!embDebug || embDebug.debugEnabled !== true) {
+    return { offTopic: OFF_TOPIC_SIMILARITY_THRESHOLD, malicious: MALICIOUS_SIMILARITY_THRESHOLD };
+  }
+  // D-06: clamp malicious to [0.78, 0.85] regardless of the stored/UI value.
+  const malicious = Math.min(0.85, Math.max(0.78, embDebug.maliciousThreshold ?? MALICIOUS_SIMILARITY_THRESHOLD));
+  return {
+    offTopic: embDebug.offTopicThreshold ?? OFF_TOPIC_SIMILARITY_THRESHOLD,
+    malicious,
+  };
+}
+
 // ─── Layer 1 (narrow regex fast-path) ────────────────────────────────────────
 
 /**
@@ -149,7 +188,10 @@ async function layer2Embedding(
   context: QuestionFilterContext | undefined,
   embConfig: EmbeddingConfig,
   signal: AbortSignal | undefined,
+  embDebug: EmbeddingDebugLike | undefined,
 ): Promise<FilterResult> {
+  // Phase 55 D-05/D-06: resolve active thresholds (debug knobs or constants).
+  const activeThresholds = getActiveThresholds(embDebug);
   // Dual-vector scoring — Phase 47 UAT-5 multi-turn jailbreak fix.
   //
   // The malicious classifier ALWAYS scores against the raw content vector.
@@ -210,10 +252,24 @@ async function layer2Embedding(
     }
   }
 
+  // Phase 55 D-02: dev-gated would-flip-distance instrumentation. Only emits when
+  // running in the browser dev build AND debug mode is toggled on, so it never ships
+  // log noise. Shows how close the best score was to flipping the label.
+  if (typeof import.meta !== 'undefined' && import.meta.env?.DEV && embDebug?.debugEnabled === true) {
+    const flipDistOff = bestOffTopic ? bestOffTopic.score - activeThresholds.offTopic : null;
+    const flipDistMal = bestMalicious ? bestMalicious.score - activeThresholds.malicious : null;
+    console.info(
+      '[filter] maliciousBest=%o (thr=%o flipDist=%o) offTopicBest=%o (thr=%o flipDist=%o) onTopicBest=%o',
+      bestMalicious?.score, activeThresholds.malicious, flipDistMal,
+      bestOffTopic?.score, activeThresholds.offTopic, flipDistOff,
+      bestOnTopic?.score,
+    );
+  }
+
   // Apply thresholds in priority order. Malicious wins ties at equal-score
   // boundary (D-12 conservative tie-break — block-with-no-LLM beats
   // flag-with-LLM-call when both labels are similarly close).
-  if (bestMalicious && bestMalicious.score >= MALICIOUS_SIMILARITY_THRESHOLD) {
+  if (bestMalicious && bestMalicious.score >= activeThresholds.malicious) {
     return {
       label: 'malicious',
       bestMatch: {
@@ -223,7 +279,7 @@ async function layer2Embedding(
       },
     };
   }
-  if (bestOffTopic && bestOffTopic.score >= OFF_TOPIC_SIMILARITY_THRESHOLD) {
+  if (bestOffTopic && bestOffTopic.score >= activeThresholds.offTopic) {
     return {
       label: 'off-topic',
       bestMatch: {
@@ -280,7 +336,10 @@ export async function evaluateQuestion(
 
   // Lazy-load settings — keeps this module leaf so node --test can import it.
   const { settingsService } = await import('./settings.service.ts');
-  const embConfig = settingsService.getSync().embedding;
+  const settings = settingsService.getSync();
+  const embConfig = settings.embedding;
+  // Phase 55 D-05/D-06: live debug knobs (or undefined → constants used).
+  const embDebug = settings.embeddingDebug as EmbeddingDebugLike | undefined;
 
   // D-12 — graceful degradation when embedding is unconfigured.
   if (!embConfig.isConfigured) {
@@ -288,7 +347,7 @@ export async function evaluateQuestion(
   }
 
   try {
-    return await layer2Embedding(content, context, embConfig, signal);
+    return await layer2Embedding(content, context, embConfig, signal, embDebug);
   } catch (e: unknown) {
     // AbortError is expected on cancellation — propagate as on-topic (caller
     // is shutting down). Other errors are network/quota/parser failures.

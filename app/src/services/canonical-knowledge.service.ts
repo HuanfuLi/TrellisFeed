@@ -712,8 +712,23 @@ export async function preCheckAnchorMatch(
   allQuestions: Question[],
 ): Promise<{ match: Question; similarity: number } | null> {
   const { settingsService } = await import('./settings.service.ts');
-  const embCfg = settingsService.getSync().embedding;
+  const settings = settingsService.getSync();
+  const embCfg = settings.embedding;
   if (!embCfg.isConfigured) return null;
+
+  // Phase 55 D-05/D-06: resolve the anchor-dedup threshold. In production
+  // (debugEnabled !== true) the hardcoded constant is used. In debug the live knob
+  // drives the pre-check, clamped to the empirical [0.78, 0.85] dedup band
+  // (CLAUDE.md §"Classification dedup — embedding pre-check"). The clamp mirrors the
+  // malicious clamp in question-filter.service.ts:getActiveThresholds — the operator
+  // cannot widen it to 0.75/0.95 from the debug panel. The pre-check itself still runs
+  // before the tree descent; only the comparison value is parameterized.
+  const embDebug = settings.embeddingDebug as
+    | { debugEnabled?: boolean; anchorDedupThreshold?: number }
+    | undefined;
+  const activeAnchorThreshold = embDebug?.debugEnabled === true
+    ? Math.min(0.85, Math.max(0.78, embDebug.anchorDedupThreshold ?? ANCHOR_PRE_CHECK_SIMILARITY_THRESHOLD))
+    : ANCHOR_PRE_CHECK_SIMILARITY_THRESHOLD;
 
   const anchors = allQuestions.filter(q => q.isAnchorNode === true);
   if (anchors.length === 0) return null;
@@ -756,14 +771,14 @@ export async function preCheckAnchorMatch(
   for (const a of anchors) {
     if (!a.embeddingVector || a.embeddingVector.length === 0) continue;
     const sim = cosine(queryVec, a.embeddingVector);
-    if (sim >= ANCHOR_PRE_CHECK_SIMILARITY_THRESHOLD && (!best || sim > best.similarity)) {
+    if (sim >= activeAnchorThreshold && (!best || sim > best.similarity)) {
       best = { match: a, similarity: sim };
     }
   }
 
   if (best && import.meta.env?.DEV) {
     console.debug(
-      `[classification] pre-check hit: anchor "${best.match.title}" similarity=${best.similarity.toFixed(3)} (threshold=${ANCHOR_PRE_CHECK_SIMILARITY_THRESHOLD})`,
+      `[classification] pre-check hit: anchor "${best.match.title}" similarity=${best.similarity.toFixed(3)} (threshold=${activeAnchorThreshold})`,
     );
   }
   return best;
