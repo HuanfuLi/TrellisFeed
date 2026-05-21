@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Send, Mic, Loader2, Globe } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { transcribeAudio } from '../providers/stt';
 import { startVoiceRecording, stopVoiceRecording, MicPermissionDeniedError } from '../lib/voice-recorder';
 import { settingsService } from '../services/settings.service';
 import { toast } from '../lib/toast';
+import { useKeyboard } from '../state/useKeyboard';
+import { resolveChatInputSettleDistance } from '../state/chatinput-offset';
 
 interface ChatInputProps {
   onSend: (message: string) => void;
@@ -89,10 +91,55 @@ export function ChatInput({ onSend, placeholder, disabled, webSearchEnabled, onT
 
   const canSend = message.trim().length > 0 && !disabled;
 
+  // GAP-A (BUGFIX-05, Phase 55.1): smooth the input-bar reposition on keyboard
+  // open/close instead of teleporting.
+  //
+  // On Android `adjustResize` shrinks the WebView and the AskScreen 100dvh flex
+  // column reflows INSTANTLY, so this bar snaps above the keyboard in one frame.
+  // We do NOT add a second persistent mover (that would fight adjustResize — two
+  // animation owners). Instead, at the moment keyboardOpen flips we apply a brief
+  // transient translateY (the bar starts a few px BELOW its landing spot) and let
+  // a short CSS transition ease it to 0. The resting offset is always 0 (see
+  // resolveChatInputOffset's contract) — only the edge is animated.
+  //
+  // The transition lives on THIS form wrapper (the element ChatInput owns), never
+  // on an ancestor of a Header (CLAUDE.md "Header positioning" forbids
+  // transform/will-change on Header ancestors). useKeyboard() is the existing
+  // global hysteresis signal — reused here, no second visualViewport listener.
+  const keyboardOpen = useKeyboard();
+  const [settleY, setSettleY] = useState(0);
+  const animFrame = useRef<number | null>(null);
+
+  useEffect(() => {
+    const vp = window.visualViewport;
+    const keyboardHeight = vp
+      ? Math.max(0, (window.innerHeight || vp.height) - vp.height)
+      : 0;
+    // Start a frame BELOW the landing position when opening (slide up to land);
+    // when closing, settle distance is 0 so the bar simply eases to rest.
+    const distance = resolveChatInputSettleDistance({ keyboardHeight, isKeyboardOpen: keyboardOpen });
+    setSettleY(distance);
+    if (animFrame.current !== null) cancelAnimationFrame(animFrame.current);
+    // Next frame: relax to the resting offset (0) so the CSS transition eases through.
+    animFrame.current = requestAnimationFrame(() => setSettleY(0));
+    return () => {
+      if (animFrame.current !== null) cancelAnimationFrame(animFrame.current);
+    };
+  }, [keyboardOpen]);
+
   return (
     <form
       onSubmit={handleSubmit}
-      style={{ flexShrink: 0, padding: '0 16px 16px' }}
+      style={{
+        flexShrink: 0,
+        padding: '0 16px 16px',
+        // Eased reposition: the transient settleY decays to 0 over a short
+        // ease-out so the bar slides into place instead of teleporting. ~180ms
+        // is short enough that it never lags behind the native adjustResize.
+        transform: settleY ? `translateY(${settleY}px)` : undefined,
+        transition: 'transform 0.18s ease-out',
+        willChange: 'transform',
+      }}
     >
       <div style={{ maxWidth: '448px', margin: '0 auto' }}>
         <div
