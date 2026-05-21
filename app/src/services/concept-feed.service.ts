@@ -1345,6 +1345,16 @@ const _refillMutex = createPromiseMutex();
  * reassigns failures, generates posts, and enqueues results.
  */
 export async function refillQueue(questions: Question[]): Promise<void> {
+  // Phase 55-06 (TUNE-03) D-02 instrumentation — record when the cheap pre-check
+  // is about to short-circuit (queue at/above REFILL_THRESHOLD). Logged BEFORE the
+  // guard so the early-return statement below stays a single byte-stable line
+  // (refill-mutex.test.mjs source-asserts `if (!needsRefill()) return;`).
+  // Dev-gated, no shipped log noise.
+  if (typeof import.meta !== 'undefined' && import.meta.env?.DEV && !postQueueService.needsRefill()) {
+    console.info('[refillQueue] early-return: needsRefill=false', {
+      queueSize: postQueueService.size(),
+    });
+  }
   // Cheap pre-check: skip the mutex entirely if a refill isn't needed.
   // (The mutex's run() also short-circuits if a body is in-flight.)
   if (!postQueueService.needsRefill()) return;
@@ -1402,6 +1412,18 @@ export async function refillQueue(questions: Question[]): Promise<void> {
     // restores ~one swipe of headroom (8) on top of the 24-post threshold.
     const dismissedIds = new Set(engagementService.getDismissedAnchorIds());
     const conceptIds = postQueueService.walkDerivedList(24, exploredIds, dismissedIds);
+    // Phase 55-06 (TUNE-03) D-02 instrumentation — record the walker decision state
+    // so a sub-24 conceptIds yield (cause (c) candidate) is visible against the
+    // derivedList length + cyclePosition. Dev-gated.
+    if (typeof import.meta !== 'undefined' && import.meta.env?.DEV) {
+      console.info('[refillQueue] walkDerivedList', {
+        requested: 24,
+        returned: conceptIds.length,
+        derivedListLength: postQueueService.getDerivedList().length,
+        cyclePosition: postQueueService.getCyclePosition(),
+        queueSizeBeforeEnqueue: postQueueService.size(),
+      });
+    }
     if (conceptIds.length === 0) return;
 
     // Step 2: Pre-check API keys — validate non-empty strings (D-20, D-21 step 1).
@@ -1586,10 +1608,22 @@ export async function refillQueue(questions: Question[]): Promise<void> {
     // Phase 36 GAP-4 — run concept-axis spread BEFORE style-axis spread so
     // dominant anchors (important / overdue with 2× entries) don't cluster
     // in the served window. See spreadByConcept JSDoc + RESEARCH § Pattern 3.
+    // Phase 55-06 (TUNE-03) D-02 instrumentation — record the enqueue realized-add
+    // (queue size before vs after) so a near-full-queue cap (cause (b) candidate)
+    // that clamps fresh additions toward zero is visible. Dev-gated.
+    const queueSizeBeforeEnqueue = postQueueService.size();
     postQueueService.enqueueInterleaved(posts, (combined) => {
       spreadByConcept(combined);
       spreadByStyle(combined);
     });
+    if (typeof import.meta !== 'undefined' && import.meta.env?.DEV) {
+      console.info('[refillQueue] enqueueInterleaved', {
+        offered: posts.length,
+        queueSizeBeforeEnqueue,
+        queueSizeAfterEnqueue: postQueueService.size(),
+        realizedAdd: postQueueService.size() - queueSizeBeforeEnqueue,
+      });
+    }
     postQueueService.incrementCycle();
   });
 }
@@ -1793,13 +1827,58 @@ export const conceptFeedService = {
       if (postQueueService.getTotalServed() >= postQueueService.getTotalGenerated() + bonusCap) return [];
     }
 
+    // Phase 55-06 (TUNE-03) D-02 instrumentation — log the swipe-for-more decision
+    // state BEFORE the dequeue so the operator can reproduce the 1/4/0 under-refill
+    // in `npm run dev`. Dev-gated so it ships no log noise.
+    if (typeof import.meta !== 'undefined' && import.meta.env?.DEV) {
+      console.info('[generateMorePosts] pre-dequeue', {
+        requestedCount: count,
+        queueSize: postQueueService.size(),
+        needsRefill: postQueueService.needsRefill(),
+      });
+    }
+
     // Drain from queue
     let posts = postQueueService.dequeue(count);
 
-    // If queue was empty, await refill then try again (BLOCKER 3 fix)
-    if (posts.length === 0 && postQueueService.needsRefill()) {
+    // Phase 55-06 (TUNE-03) — SHORTFALL refill, not empty-only refill.
+    //
+    // Root cause of the intermittent 1/4/0 under-refill: the prior guard awaited a
+    // refill ONLY when the queue popped EXACTLY zero (`posts.length === 0`). When a
+    // swipe popped a NON-empty-but-short queue (e.g. dequeue(8) returning 4), the
+    // empty branch was skipped and the user was served the short count instead of
+    // the intended 8 — even though the derived list still had unread capacity. This
+    // was a dequeue-before-refill race: the background refill from the PREVIOUS swipe
+    // (fire-and-forget below) had not yet landed enough posts when the next swipe ran.
+    //
+    // Fix: await a refill whenever the served batch falls SHORT of the requested
+    // `count` AND a refill is warranted, then re-dequeue the remainder to top up to
+    // the intended batch. The `_refillMutex` single-body guarantee (refillQueue)
+    // means a concurrent background refill is awaited rather than re-run, so at most
+    // one extra LLM body per swipe. The `allExplored`/`bonusCap` early-returns above
+    // already short-circuit a genuinely exhausted vine, so a finished list still
+    // correctly yields fewer than `count` (that is NOT the bug) and refillQueue's own
+    // `walkDerivedList(...).length === 0` guard keeps the top-up from looping on an
+    // exhausted derived list.
+    const refillBranchFired = posts.length < count && postQueueService.needsRefill();
+    if (refillBranchFired) {
       await refillQueue(questions);
-      posts = postQueueService.dequeue(count);
+      const topUp = postQueueService.dequeue(count - posts.length);
+      posts = posts.concat(topUp);
+    }
+    const emptyRefillBranchFired = refillBranchFired; // retained for instrumentation key compat
+
+    // Phase 55-06 (TUNE-03) D-02 instrumentation — log the realized served count
+    // AFTER the dequeue (+ optional empty-queue refill). A served < requested with
+    // emptyRefillBranchFired === false is the dequeue-before-refill shortfall (a).
+    if (typeof import.meta !== 'undefined' && import.meta.env?.DEV) {
+      console.info('[generateMorePosts] post-dequeue', {
+        requestedCount: count,
+        served: posts.length,
+        postPopQueueSize: postQueueService.size(),
+        shortfallRefillFired: emptyRefillBranchFired,
+        shortfall: posts.length < count,
+      });
     }
 
     // Persist to history (D-33)
