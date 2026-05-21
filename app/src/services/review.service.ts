@@ -1,5 +1,5 @@
 import type { FlashCard, ReviewSchedule, ServiceResult } from '../types/index.ts';
-import { today, addDays } from '../lib/date.ts';
+import { today, addDays, nowMs as clockNowMs } from '../lib/date.ts';
 import { flashcardService } from './flashcard.service.ts';
 import { eventBus } from '../lib/event-bus.ts';
 import { questionService } from './question.service.ts';
@@ -9,7 +9,7 @@ export const SM2_INTERVALS = [1, 2, 4, 7, 15, 30];
 // Helper: days overdue from an ISO 'YYYY-MM-DD' nextReviewDate.
 // Returns 0 for empty/invalid dates (no schedule yet) and clamps negative
 // (not-yet-due) results to 0.
-export function daysOverdue(nextReviewDate: string, nowMs: number = Date.now()): number {
+export function daysOverdue(nextReviewDate: string, nowMs: number = clockNowMs()): number {
   if (!nextReviewDate) return 0;
   const [y, m, d] = nextReviewDate.split('-').map(Number);
   if (!y || !m || !d) return 0;
@@ -51,7 +51,7 @@ export function daysOverdue(nextReviewDate: string, nowMs: number = Date.now()):
 export function calcNextInterval(
   current: ReviewSchedule,
   rating: number,
-  nowMs: number = Date.now(),
+  nowMs: number = clockNowMs(),
 ): { days: number; newEaseFactor: number; newReviewCount: number } {
   const { reviewCount, easeFactor, nextReviewDate } = current;
   const newEF = Math.max(

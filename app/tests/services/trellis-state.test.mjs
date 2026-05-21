@@ -1,5 +1,11 @@
 import assert from 'node:assert/strict';
-import test from 'node:test';
+import test, { before, after } from 'node:test';
+import { today, addDays, __setNowForTesting } from '../../src/lib/date.ts';
+
+// Pin the clock to local noon 2026-05-20 (midnight-safe) so overdue-day
+// arithmetic in computeLeafState is deterministic regardless of wall-clock.
+before(() => __setNowForTesting(new Date(2026, 4, 20, 12, 0, 0).getTime()));
+after(() => __setNowForTesting(null));
 
 // localStorage shim (same pattern as 25-00 test)
 const storage = new Map();
@@ -28,11 +34,9 @@ const mkQ = (overrides = {}) => ({
   ...overrides,
 });
 
-const daysAgo = (n) => {
-  const d = new Date();
-  d.setDate(d.getDate() - n);
-  return d.toISOString().split('T')[0];
-};
+// n days in the PAST (daysAgo(-5) => 5 days in the FUTURE), built via the
+// local helpers so it reads the pinned clock.
+const daysAgo = (n) => addDays(today(), -n);
 
 test('computeLeafState returns bud when reviewCount is zero everywhere', async () => {
   storage.clear();
