@@ -60,9 +60,9 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 6 plans
 - [x] 55-01-PLAN.md — Wave 0 test scaffolds + @sqlite.org/sqlite-wasm OPFS spike (migration go/no-go gate)
 - [x] 55-02-PLAN.md — In-memory embed cache + pipeline hand-off (TUNE-01, folded cache-miss todo)
-- [ ] 55-03-PLAN.md — Threshold audit: per-threshold debug knobs + malicious clamp + golden fixtures (TUNE-01/02, security)
+- [x] 55-03-PLAN.md — Threshold audit: per-threshold debug knobs + malicious clamp + golden fixtures (TUNE-01/02, security)
 - [x] 55-04-PLAN.md — Like-signal → derived-list multiplicity boost + STYLE_WEIGHTS/trajectory verify-and-keep (TUNE-02)
-- [ ] 55-05-PLAN.md — Storage migration to SQLite-primary (WASM backend, Float32 BLOB, clean cutover, delete-guard) (TUNE-01)
+- [x] 55-05-PLAN.md — Storage migration to SQLite-primary (WASM backend, Float32 BLOB, clean cutover, delete-guard) (TUNE-01)
 - [ ] 55-06-PLAN.md — Feed buffer-queue refill reliability: root-cause the intermittent 1/4/0-post under-refill, fix the size-check + refill-threshold + walker-batch interaction, add regression tests (TUNE-03)
 
 ### Phase 56: UI Polish & Documentation
@@ -121,7 +121,7 @@ Phases execute in numeric order: 54 → 55 → 56 → 57 → 58 → 59
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 54. Code Quality, Bugs & Tech Debt | v1.7 | 5/4 | Complete    | 2026-05-21 |
-| 55. Algorithm & Mechanism Tuning | v1.7 | 3/6 | In Progress|  |
+| 55. Algorithm & Mechanism Tuning | v1.7 | 5/6 | In Progress|  |
 | 56. UI Polish & Documentation | v1.7 | 0/TBD | Not started | - |
 | 57. Rewards Foundation — Data Model & Service | v1.7 | 0/TBD | Not started | - |
 | 58. Rewards Core Shop Loop — Themes | v1.7 | 0/TBD | Not started | - |
