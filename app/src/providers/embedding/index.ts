@@ -105,13 +105,57 @@ async function localEmbed(text: string, config: EmbeddingConfig): Promise<number
   return vec;
 }
 
-// ─── Public API ───────────────────────────────────────────────────────────────
+// ─── In-memory session cache (D-07, Phase 55) ────────────────────────────────
+// Session-lived (cleared on page reload). Key = djb2(provider:model:text).
+// Eliminates the 2–3× duplicate embed per ask: filter rawVec → retrieval
+// queryEmbedding → classify preCheckAnchorMatch all hit cache after the first call.
+//
+// SECURITY NOTE: the cache key MUST include provider AND model (D-07 / Pitfall 5).
+// If the user changes the embedding model/provider in settings, callers MUST invoke
+// clearEmbedCache() (wired to settingsService.set('embedding', ...) in
+// SettingsAIScreen.tsx) to prevent returning a stale, wrong-dimensionality vector
+// for the new model — which would silently corrupt the malicious cosine scoring.
 
-export async function embedText(text: string, config: EmbeddingConfig): Promise<number[]> {
+const _embedCache = new Map<string, number[]>();
+
+function _djb2CacheKey(text: string, config: EmbeddingConfig): string {
+  // djb2 — fast, browser-safe (no async SubtleCrypto, no node:crypto), no import.
+  // Collision probability is negligible for the O(100) session-lived entries here.
+  const raw = `${config.provider}:${config.model}:${text}`;
+  let h = 5381;
+  for (let i = 0; i < raw.length; i++) {
+    h = (h * 33) ^ raw.charCodeAt(i);
+  }
+  return (h >>> 0).toString(36);
+}
+
+/** Empties the session embed cache. Call on embedding model/provider change. */
+export function clearEmbedCache(): void {
+  _embedCache.clear();
+}
+
+/** Returns the cached vector for (provider,model,text), or undefined if not cached. */
+export function getCachedEmbedding(text: string, config: EmbeddingConfig): number[] | undefined {
+  return _embedCache.get(_djb2CacheKey(text, config));
+}
+
+// Private: the original per-provider dispatch, now wrapped by the caching embedText.
+async function _embedTextUncached(text: string, config: EmbeddingConfig): Promise<number[]> {
   switch (config.provider) {
     case 'google':   return googleEmbed(text, config);
     case 'local':    return localEmbed(text, config);
     case 'lmstudio': return openAIEmbed(text, config);
     default:         return openAIEmbed(text, config);
   }
+}
+
+// ─── Public API ───────────────────────────────────────────────────────────────
+
+export async function embedText(text: string, config: EmbeddingConfig): Promise<number[]> {
+  const key = _djb2CacheKey(text, config);
+  const cached = _embedCache.get(key);
+  if (cached) return cached;
+  const vec = await _embedTextUncached(text, config);
+  _embedCache.set(key, vec);
+  return vec;
 }
