@@ -11,6 +11,7 @@ import { eventBus } from '../lib/event-bus';
 import { webSearch } from '../services/web-search.service';
 import { toast } from '../lib/toast';
 import i18n from '../locales';
+import { coldStartProfiler } from '../lib/cold-start-profiler';
 
 const WEB_SEARCH_TOOL_PROMPT = `
 You have access to a web search tool. When a question requires current/real-time information, recent events, up-to-date facts, or verification of claims, output exactly:
@@ -157,9 +158,16 @@ export function useQuestions(): UseQuestionsReturn {
         // the pre-gate defaults to on-topic so the answer LLM still runs.
         // Bracketing (Plan 03) keeps safety intact during outages.
         let filterResult: FilterResult;
+        // Cold-start span (a): filterQuestion includes the embedding warm-up AND
+        // the cold-cache filter-corpus embed (124 sequential embedText calls on
+        // the first ask). No-op unless trellis_cold_start_profile is set. Wraps
+        // timing ONLY — does not move the filter→chatStream order.
+        const stopFilterSpan = coldStartProfiler.span('filterQuestion (embed + corpus)');
         try {
           filterResult = await filterQuestion(content, sessionContext, abortController.signal);
+          stopFilterSpan();
         } catch (err: unknown) {
+          stopFilterSpan();
           if (abortController.signal.aborted) {
             toast(i18n.t('ask.localeChangedDiscarded'));
             setIsAsking(false);
@@ -187,7 +195,10 @@ export function useQuestions(): UseQuestionsReturn {
         }
 
         const store = questionService.getAll();
+        // Cold-start span (c): first-turn candidate context assembly.
+        const stopCtxSpan = coldStartProfiler.span('buildCandidateContextPack');
         const candidatePack = buildCandidateContextPack(content, store);
+        stopCtxSpan();
 
         // ═══ Phase 35 — System prompt MUST be byte-stable across turns ═══
         // The per-turn formatCandidateContextPack(candidatePack) interpolation lives in
@@ -249,7 +260,12 @@ export function useQuestions(): UseQuestionsReturn {
           { serviceName: 'ask', signal: abortController.signal },
         );
 
+        // Cold-start span (d): chatStream time-to-first-token — captures the live
+        // provider TLS/handshake + model warm-up on a real device. Closed on the
+        // first received token, then the single-shot table is flushed.
+        let stopTtftSpan: (() => void) | null = coldStartProfiler.span('chatStream TTFT (provider handshake)');
         for await (const token of stream) {
+          if (stopTtftSpan) { stopTtftSpan(); stopTtftSpan = null; coldStartProfiler.flush(); }
           if (abortController.signal.aborted) break;
           accumulated += token;
           // Show the user a cleaned version — hide partial/complete tool markers
