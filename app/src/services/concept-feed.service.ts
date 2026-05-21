@@ -30,6 +30,7 @@ import {
 import { spreadByStyle, spreadByConcept } from './feed-spread.ts';
 export { spreadByStyle, spreadByConcept };
 import { createPromiseMutex } from './refill-mutex.ts';
+import { isUnusableTextArtFragment } from './text-art-fragment.ts';
 import { dbExecute, dbQuery } from './db.service.ts';
 
 const CONNECTION_POSTS_KEY = 'trellis_connection_posts';
@@ -779,13 +780,15 @@ function tightenTextArtContent(raw: string): string | null {
     s = (lastSpace > 40 ? cut.slice(0, lastSpace) : cut).trim() + '…';
   }
   if (!s) return null;
-  // Phase 55.1 BUGFIX-02: reject too-short fragments. A Gemini thinking model on the
-  // old 80-token budget returned starved fragments like "T" or a dangling "Is your"
-  // (no sentence terminator). A single-word / no-internal-space result under the floor
-  // is unusable as a headline — return null so the call site falls back to
-  // `teaser.hook || title` instead of persisting garbage. Applies to textArtContent
-  // ONLY; news essay content (defer-to-streamer, empty-string shell) is never routed here.
-  if (!/\s/.test(s) && s.length < 8) return null;
+  // Phase 55.1 BUGFIX-02 (+ CR-01 fix): reject too-short fragments. A Gemini thinking
+  // model on the old 80-token budget returned starved fragments like "T" or a dangling
+  // "Is your" (no sentence terminator). The predicate is CJK-aware so short-but-valid
+  // zh/ja headlines (no inter-word spaces) are NOT discarded after a LOCALE_CHANGED, and
+  // it catches dangling multi-word Latin fragments the old `!/\s/` gate missed. Returning
+  // null makes the call site fall back to `teaser.hook || title` instead of persisting
+  // garbage. Applies to textArtContent ONLY; news essay content (defer-to-streamer,
+  // empty-string shell) is never routed here. See `text-art-fragment.ts` for the rules.
+  if (isUnusableTextArtFragment(s)) return null;
   return s || null;
 }
 
