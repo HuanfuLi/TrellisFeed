@@ -680,6 +680,27 @@ function _backgroundGenerateTextArt(posts: DailyPost[]): void {
   }).catch(() => {}).finally(() => { _textArtBgRunning = false; });
 }
 
+/**
+ * Phase 55.1 BUGFIX-02: pure merge guard for text-art content. Treats persisted
+ * content as immutable unless `incoming` is a genuine improvement. A provider switch
+ * to a Gemini thinking model + locale change previously produced a starved fragment
+ * ("T" / "Is your") that the bare `incoming ?? existing` happily wrote over a full
+ * sentence. Rules:
+ *   - incoming empty/undefined         → keep existing
+ *   - existing empty                   → take valid incoming
+ *   - incoming strictly shorter        → keep existing (don't trade down)
+ *   - else                             → take incoming
+ * Scoped to textArtContent ONLY — news bodyMarkdown defer-to-streamer is untouched.
+ */
+function mergeTextArtContent(existing: string | undefined, incoming: string | undefined): string | undefined {
+  const inc = (incoming ?? '').trim();
+  const exi = (existing ?? '').trim();
+  if (!inc) return existing;            // empty/undefined incoming → keep existing
+  if (!exi) return incoming;            // existing empty → take valid incoming
+  if (inc.length < exi.length) return existing; // shorter regen → keep existing (anti-truncation)
+  return incoming;
+}
+
 /** Persist presentationStyle and textArtContent from styled posts back into the cache. */
 function _persistStylesToCache(styledPosts: DailyPost[]): void {
   const cachedNow = loadCache();
@@ -688,7 +709,10 @@ function _persistStylesToCache(styledPosts: DailyPost[]): void {
   cachedNow.posts = cachedNow.posts.map(p => {
     const info = styleMap.get(p.id);
     if (!info) return p;
-    return { ...p, presentationStyle: info.presentationStyle, textArtContent: info.textArtContent ?? p.textArtContent };
+    // Phase 55.1 BUGFIX-02: never overwrite a non-empty textArtContent with a
+    // shorter/empty regeneration — route through mergeTextArtContent instead of
+    // the old bare nullish-coalesce that let a starved regen replace good content.
+    return { ...p, presentationStyle: info.presentationStyle, textArtContent: mergeTextArtContent(p.textArtContent, info.textArtContent) };
   });
   saveCache(cachedNow);
 }
@@ -697,6 +721,13 @@ function _persistStylesToCache(styledPosts: DailyPost[]): void {
 // posts (and any cached text-art posts) regenerate under the new locale.
 // Without this, text-art generated under one locale stays in the cache
 // forever and renders mismatched against the user's UI locale.
+//
+// Phase 55.1 BUGFIX-02 (Open Question 2 — default keep+gate): this strip is KEPT
+// as-is. The safety net against a failed/starved regeneration corrupting the feed
+// is NOT here — it lives in `tightenTextArtContent` (rejects empty/fragments) +
+// `mergeTextArtContent` (never overwrites a non-empty value with a shorter/empty
+// one) + the raised Gemini token budget (Task 3). So even though we strip here, a
+// truncated regen can no longer be persisted on top of good content.
 eventBus.subscribe('LOCALE_CHANGED', () => {
   const cached = loadCache();
   if (!cached) return;
@@ -747,6 +778,14 @@ function tightenTextArtContent(raw: string): string | null {
     const lastSpace = cut.lastIndexOf(' ');
     s = (lastSpace > 40 ? cut.slice(0, lastSpace) : cut).trim() + '…';
   }
+  if (!s) return null;
+  // Phase 55.1 BUGFIX-02: reject too-short fragments. A Gemini thinking model on the
+  // old 80-token budget returned starved fragments like "T" or a dangling "Is your"
+  // (no sentence terminator). A single-word / no-internal-space result under the floor
+  // is unusable as a headline — return null so the call site falls back to
+  // `teaser.hook || title` instead of persisting garbage. Applies to textArtContent
+  // ONLY; news essay content (defer-to-streamer, empty-string shell) is never routed here.
+  if (!/\s/.test(s) && s.length < 8) return null;
   return s || null;
 }
 
