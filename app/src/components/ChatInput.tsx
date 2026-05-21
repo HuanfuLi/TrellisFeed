@@ -5,8 +5,7 @@ import { transcribeAudio } from '../providers/stt';
 import { startVoiceRecording, stopVoiceRecording, MicPermissionDeniedError } from '../lib/voice-recorder';
 import { settingsService } from '../services/settings.service';
 import { toast } from '../lib/toast';
-import { useKeyboard } from '../state/useKeyboard';
-import { resolveChatInputSettleDistance } from '../state/chatinput-offset';
+import { resolveChatInputOffset } from '../state/chatinput-offset';
 
 interface ChatInputProps {
   onSend: (message: string) => void;
@@ -91,41 +90,75 @@ export function ChatInput({ onSend, placeholder, disabled, webSearchEnabled, onT
 
   const canSend = message.trim().length > 0 && !disabled;
 
-  // GAP-A (BUGFIX-05, Phase 55.1): smooth the input-bar reposition on keyboard
-  // open/close instead of teleporting.
+  // GAP-A (BUGFIX-05, Phase 55.1 — ATTEMPT 2): make the bar FOLLOW the keyboard's
+  // animated rise frame-by-frame instead of teleporting.
   //
-  // On Android `adjustResize` shrinks the WebView and the AskScreen 100dvh flex
-  // column reflows INSTANTLY, so this bar snaps above the keyboard in one frame.
-  // We do NOT add a second persistent mover (that would fight adjustResize — two
-  // animation owners). Instead, at the moment keyboardOpen flips we apply a brief
-  // transient translateY (the bar starts a few px BELOW its landing spot) and let
-  // a short CSS transition ease it to 0. The resting offset is always 0 (see
-  // resolveChatInputOffset's contract) — only the edge is animated.
+  // Attempt 1 (55.1-05) applied a transient translateY that eased back to 0 over
+  // a CSS transition. It FAILED on device: Android's `adjustResize` reflows the
+  // AskScreen 100dvh flex column in the SAME paint that the transient was applied
+  // and removed, so no transit was ever visible — the bar still snapped.
   //
-  // The transition lives on THIS form wrapper (the element ChatInput owns), never
-  // on an ancestor of a Header (CLAUDE.md "Header positioning" forbids
-  // transform/will-change on Header ancestors). useKeyboard() is the existing
-  // global hysteresis signal — reused here, no second visualViewport listener.
-  const keyboardOpen = useKeyboard();
-  const [settleY, setSettleY] = useState(0);
-  const animFrame = useRef<number | null>(null);
+  // Attempt 2 drives the transform CONTINUOUSLY off `window.visualViewport`
+  // `resize` AND `scroll` events. Android emits a STREAM of both throughout the
+  // keyboard animation; on each event we recompute the live keyboard inset and
+  // translate the bar by the RESIDUAL between that visual-viewport inset and the
+  // layout-viewport reflow (the flex column already lifts the bar by the layout
+  // shrink, so translating by the full inset would double-lift it).
+  //
+  //   residual = liveVisualInset - layoutReflow
+  //     liveVisualInset = innerHeight - visualViewport.height - offsetTop
+  //     layoutReflow    = innerHeight - documentElement.clientHeight
+  //
+  // documentElement.clientHeight tracks the layout viewport (what the flex column
+  // actually re-anchors against under adjustResize). During the animation the
+  // visual viewport leads the layout reflow, so the residual is the still-uncovered
+  // gap the bar must climb — it shrinks to ~0 once the layout catches up, leaving
+  // the bar flush above the keyboard with no double-lift and no leftover offset.
+  // RESIDUAL RECONCILIATION is the on-device tuning knob (see plan checkpoint).
+  //
+  // The transform/willChange live on THIS <form> wrapper only (the element
+  // ChatInput owns — a Header SIBLING, never a Header ancestor; CLAUDE.md "Header
+  // positioning" forbids transform/will-change on Header ancestors). Writes are
+  // rAF-coalesced so a burst of events produces one paint, avoiding jitter. No CSS
+  // transition on the transform — the motion comes from the event stream itself.
+  const [followY, setFollowY] = useState(0);
+  const rafRef = useRef<number | null>(null);
 
   useEffect(() => {
     const vp = window.visualViewport;
-    const keyboardHeight = vp
-      ? Math.max(0, (window.innerHeight || vp.height) - vp.height)
-      : 0;
-    // Start a frame BELOW the landing position when opening (slide up to land);
-    // when closing, settle distance is 0 so the bar simply eases to rest.
-    const distance = resolveChatInputSettleDistance({ keyboardHeight, isKeyboardOpen: keyboardOpen });
-    setSettleY(distance);
-    if (animFrame.current !== null) cancelAnimationFrame(animFrame.current);
-    // Next frame: relax to the resting offset (0) so the CSS transition eases through.
-    animFrame.current = requestAnimationFrame(() => setSettleY(0));
-    return () => {
-      if (animFrame.current !== null) cancelAnimationFrame(animFrame.current);
+    if (!vp) return;
+
+    const compute = () => {
+      rafRef.current = null;
+      const innerHeight = window.innerHeight;
+      const liveVisualInset = resolveChatInputOffset({
+        innerHeight,
+        viewportHeight: vp.height,
+        viewportOffsetTop: vp.offsetTop,
+      });
+      // Layout-viewport reflow already applied by the flex column under
+      // adjustResize. clientHeight shrinks with the layout viewport.
+      const layoutReflow = Math.max(0, innerHeight - document.documentElement.clientHeight);
+      // Residual the bar must still climb to stay flush above the keyboard.
+      const residual = Math.max(0, liveVisualInset - layoutReflow);
+      setFollowY(residual);
     };
-  }, [keyboardOpen]);
+
+    const schedule = () => {
+      if (rafRef.current !== null) return;
+      rafRef.current = requestAnimationFrame(compute);
+    };
+
+    vp.addEventListener('resize', schedule);
+    vp.addEventListener('scroll', schedule);
+    schedule();
+
+    return () => {
+      vp.removeEventListener('resize', schedule);
+      vp.removeEventListener('scroll', schedule);
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    };
+  }, []);
 
   return (
     <form
@@ -133,11 +166,14 @@ export function ChatInput({ onSend, placeholder, disabled, webSearchEnabled, onT
       style={{
         flexShrink: 0,
         padding: '0 16px 16px',
-        // Eased reposition: the transient settleY decays to 0 over a short
-        // ease-out so the bar slides into place instead of teleporting. ~180ms
-        // is short enough that it never lags behind the native adjustResize.
-        transform: settleY ? `translateY(${settleY}px)` : undefined,
-        transition: 'transform 0.18s ease-out',
+        // Continuous keyboard-follow (attempt 2): translate by the live residual
+        // inset recomputed on every visualViewport event, so the bar rises WITH
+        // the keyboard frame-by-frame. NO CSS transition on the transform — a
+        // transition would lag/fight the per-event stream. willChange:transform
+        // hints compositing for the rapid updates. This wrapper is a Header
+        // sibling, so the transform here does NOT violate the Header-positioning
+        // invariant (no transform on a Header ancestor).
+        transform: followY ? `translateY(${-followY}px)` : undefined,
         willChange: 'transform',
       }}
     >

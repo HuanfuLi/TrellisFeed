@@ -5,7 +5,12 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <!-- interactive-widget=resizes-content (Phase 55.1 GAP-A attempt 2 companion lever):
+         makes the layout viewport (documentElement.clientHeight) resize predictably with
+         the soft keyboard, so ChatInput's residual reconciliation (live visualViewport
+         inset minus layout reflow) tracks the keyboard cleanly. Toggle/remove if device
+         UAT shows the bar double-lifting or lagging. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
     <title>Trellis</title>
   </head>
   <body>
