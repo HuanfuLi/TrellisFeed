@@ -76,7 +76,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. Switching the LLM provider (e.g. to Gemini) or the locale does NOT mutate or truncate already-generated posts: existing text-art posts that showed full sentences keep their full text and never collapse to a few words / a single token. The corrupting trigger is identified and persisted post content is treated as immutable by provider/locale change handlers. Covered by a test that exercises a provider/locale change against existing posts. (BUGFIX-02)
   3. On the Ask screen, opening the keyboard raises the input island smoothly with NO bottom-navigation-bar flicker (the nav bar does not animate up/down during the keyboard transition). Consistent with the existing SwipeTabContainer keyboard/resize and root-overflow invariants (CLAUDE.md). (BUGFIX-03)
   4. On the Ask screen, tapping Send while the keyboard is open sends the message on the FIRST tap — the tap is not consumed by keyboard dismissal (e.g. fire on pointer-down / preserve input focus so the send handler runs before blur). (BUGFIX-04)
-**Plans**: TBD
+**Plans**: 4 plans
+- [ ] 55.1-01-PLAN.md — BUGFIX-01: bind streaming answer to originating session (origin-gated persist + abort-on-switch)
+- [ ] 55.1-02-PLAN.md — BUGFIX-02: stop provider/locale switch from truncating text-art posts (reject-empty gate + persist-merge guard + Gemini budget/thinkingConfig)
+- [ ] 55.1-03-PLAN.md — BUGFIX-03: useKeyboard hysteresis so the bottom nav doesn't flicker on keyboard open
+- [ ] 55.1-04-PLAN.md — BUGFIX-04: Send fires on pointerdown+preventDefault (first-tap send) via shared submitMessage
 **UI hint**: yes (issues 3 + 4 are Ask-screen keyboard/layout)
 
 ### Phase 56: UI Polish & Documentation
