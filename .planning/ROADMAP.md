@@ -58,7 +58,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. The curiosity-feed buffer queue reliably refills: swipe-for-more serves the intended batch (8 posts) whenever the derived list has unread capacity, and the intermittent under-refill (1 / 4 / 0 new posts) is root-caused — queue-size check + refill-threshold + walker-batch interaction fixed and covered by regression tests
   5. The heavy/growing text stores migrate off localStorage to a SQLite-primary backend (WASM SQLite in the browser, native on device) with the synchronous service-read API preserved via an in-memory mirror, embedding vectors stored as Float32 BLOBs, a clean cutover, and the delete-guard + always-mounted resync intact (folded scope, D-09..D-13)
 **Plans**: 6 plans
-- [ ] 55-01-PLAN.md — Wave 0 test scaffolds + @sqlite.org/sqlite-wasm OPFS spike (migration go/no-go gate)
+- [x] 55-01-PLAN.md — Wave 0 test scaffolds + @sqlite.org/sqlite-wasm OPFS spike (migration go/no-go gate)
 - [ ] 55-02-PLAN.md — In-memory embed cache + pipeline hand-off (TUNE-01, folded cache-miss todo)
 - [ ] 55-03-PLAN.md — Threshold audit: per-threshold debug knobs + malicious clamp + golden fixtures (TUNE-01/02, security)
 - [ ] 55-04-PLAN.md — Like-signal → derived-list multiplicity boost + STYLE_WEIGHTS/trajectory verify-and-keep (TUNE-02)
@@ -121,7 +121,7 @@ Phases execute in numeric order: 54 → 55 → 56 → 57 → 58 → 59
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 54. Code Quality, Bugs & Tech Debt | v1.7 | 5/4 | Complete    | 2026-05-21 |
-| 55. Algorithm & Mechanism Tuning | v1.7 | 0/6 | Not started | - |
+| 55. Algorithm & Mechanism Tuning | v1.7 | 1/6 | In Progress|  |
 | 56. UI Polish & Documentation | v1.7 | 0/TBD | Not started | - |
 | 57. Rewards Foundation — Data Model & Service | v1.7 | 0/TBD | Not started | - |
 | 58. Rewards Core Shop Loop — Themes | v1.7 | 0/TBD | Not started | - |
