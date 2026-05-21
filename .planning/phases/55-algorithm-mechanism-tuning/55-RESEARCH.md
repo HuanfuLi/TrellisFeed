@@ -394,7 +394,7 @@ export interface EmbeddingDebugConfig {
   // NEW (D-05) — per-threshold live knobs, hidden in release
   offTopicThreshold: number;    // default 0.75
   maliciousThreshold: number;   // default 0.82, clamped 0.78–0.85 (D-06)
-  anchorDedupThreshold: number; // default 0.82
+  anchorDedupThreshold: number; // default 0.82, clamped 0.78–0.85
   debugEnabled: boolean;        // master gate — hides panel in release
 }
 ```
@@ -688,19 +688,19 @@ describe('filter golden fixtures', () => {
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **OPFS availability on the developer's machine**
+1. **OPFS availability on the developer's machine** — **RESOLVED by 55-01 Task 2 (OPFS spike) + Task 3 (human GO/NO-GO checkpoint).** The Wave 0 spike verifies `navigator.storage?.getDirectory` and `opfs-sahpool` resolution in `npm run dev`; the human checkpoint records the GO/NO-GO verdict that 55-05 consumes (GO → WASMSQLiteBackend active; NO-GO → LocalStorageBackend stays active with WASMSQLiteBackend gated behind the OPFS try/catch fallback).
    - What we know: OPFS works in Chrome 108+ on desktop.
    - What's unclear: Whether the dev's `npm run dev` environment uses a recent enough Chrome and whether localhost is treated as a secure context for OPFS.
    - Recommendation: Wave 0 task should verify `navigator.storage?.getDirectory` exists; if not, fall back to `LocalStorageBackend` with a loud warning.
 
-2. **Synchronous vs async SQLite writes in `WASMSQLiteBackend`**
+2. **Synchronous vs async SQLite writes in `WASMSQLiteBackend`** — **RESOLVED by 55-05 Task 3 (batch inserts in transactions).** Bulk hydrate inserts are wrapped in a single `BEGIN; INSERT...; COMMIT` transaction per service to avoid jank on first-launch migration of many rows.
    - What we know: `@sqlite.org/sqlite-wasm` opfs-sahpool uses synchronous SyncAccessHandles internally; the JS wrapper exposes async methods.
    - What's unclear: Whether the `execute()` method blocks long enough to cause jank on bulk inserts (e.g., migrating 200 questions on first launch).
    - Recommendation: Batch inserts in transactions (`BEGIN; INSERT...; INSERT...; COMMIT`). The existing `dbExecute` interface supports this via sequential calls.
 
-3. **Per-threshold knob clamp on malicious in the UI**
+3. **Per-threshold knob clamp on malicious in the UI** — **RESOLVED by 55-03 Task 1 (service-side clamp `Math.min(0.85, Math.max(0.78, ...))`) AND Task 2 (UI slider `min=0.78 max=0.85`).** The clamp is enforced in BOTH the slider min/max and the service read path, so neither a crafted settings payload nor a UI drag can detune malicious below the band.
    - What we know: D-06 clamps malicious to 0.78–0.85.
    - What's unclear: Should the clamp be enforced in the UI (slider min/max) or in the service read path?
    - Recommendation: Both — slider `min=0.78 max=0.85` AND the service clamps the read value.

@@ -47,7 +47,7 @@ created: 2026-05-21
 
 ## Wave 0 Requirements
 
-- [ ] `app/tests/services/embed-cache.test.mjs` — embedding query-cache hit/miss + pipeline hand-off (TUNE-01)
+- [ ] `app/tests/providers/embed-cache.test.mjs` — embedding query-cache hit/miss + pipeline hand-off (TUNE-01)
 - [ ] `app/tests/services/filter-golden-fixtures.test.mjs` — labeled off-topic/on-topic/malicious corpus asserted at chosen thresholds; malicious stays in 0.78–0.85 band (TUNE-01/02)
 - [ ] `app/tests/services/storage-migration.test.mjs` — SQLite-primary write-through + in-memory mirror sync read + clean-cutover init + delete-guard preserved (folded migration)
 - [ ] `app/tests/services/like-boost.test.mjs` — liked concept gets 4→8 derived-list multiplicity without starving due-for-review concepts (TUNE-02)
