@@ -829,7 +829,14 @@ Return ONLY the single sentence, nothing else.`;
       const result = await chatCompletion(
         [{ role: 'user', content: prompt }],
         settings.llm,
-        { maxTokens: 80, serviceName: 'text-art' },
+        // Phase 55.1 BUGFIX-02: raise the budget off 80. On Gemini 2.5/3 thinking
+        // models, internal reasoning tokens count against maxOutputTokens — an
+        // 80-token budget is consumed by thinking and the visible text comes back
+        // empty/truncated (finishReason: MAX_TOKENS), collapsing the card to "T".
+        // A1 conservative value 512. Output is still capped to ONE sentence by
+        // tightenTextArtContent, so the rendered card does NOT lengthen.
+        // `disableThinking` belts the budget on the Gemini path (see toGeminiPayload).
+        { maxTokens: 512, serviceName: 'text-art', disableThinking: true },
       );
       return { postId: post.id, content: result };
     }),
