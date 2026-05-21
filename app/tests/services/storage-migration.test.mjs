@@ -100,4 +100,34 @@ describe('storage-migration (Phase 55 D-11/D-12/D-13)', () => {
       'IndexedDBBackend must exist in db.service.ts (unified web + native backend)',
     );
   });
+
+  // 55-07 regression guard: the heavy stores must NOT dual-write to localStorage.
+  // The original 55-05 migration wrote every store to BOTH localStorage AND the DB
+  // (and read the mirror back from localStorage), so localStorage stayed primary and
+  // the quota wall was never escaped — the whole point of the migration. IndexedDB
+  // is now the SOLE heavy persistence; localStorage holds only tiny prefs + the
+  // active-session-id pointer. This source guard fails if any heavy-store service
+  // reintroduces a localStorage.setItem for its heavy store key.
+  it('heavy-store services do NOT write their heavy store to localStorage (no dual-write)', () => {
+    const heavyServices = [
+      'question', 'post-queue', 'post-history', 'session',
+      'flashcard', 'concept-feed', 'collection', 'engagement', 'podcast',
+    ];
+    // Allowlisted small-pref localStorage writes that are intentionally retained.
+    const ALLOWED = /localStorage\.setItem\(\s*ACTIVE_ID_KEY/;
+    for (const name of heavyServices) {
+      const src = fs.readFileSync(
+        new URL(`../../src/services/${name}.service.ts`, import.meta.url),
+        'utf-8',
+      );
+      const setItems = src.match(/localStorage\.setItem\([^)]*/g) ?? [];
+      const offending = setItems.filter((call) => !ALLOWED.test(call));
+      assert.equal(
+        offending.length,
+        0,
+        `${name}.service.ts must not localStorage.setItem its heavy store (found: ${offending.join(' | ')}). ` +
+        'IndexedDB is the sole heavy persistence (55-07).',
+      );
+    }
+  });
 });
