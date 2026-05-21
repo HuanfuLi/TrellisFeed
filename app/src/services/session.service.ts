@@ -3,6 +3,7 @@ import { eventBus } from '../lib/event-bus';
 import { toast } from '../lib/toast';
 import { t } from '../lib/i18n-leaf.ts';
 import { conceptFeedService } from './concept-feed.service';
+import { dbExecute, dbQuery } from './db.service.ts';
 
 const SESSIONS_KEY = 'trellis_sessions';
 const ACTIVE_ID_KEY = 'trellis_active_session';
@@ -31,6 +32,47 @@ function saveAll(sessions: ChatSession[]): void {
     if (e instanceof DOMException && e.name === 'QuotaExceededError') {
       toast(t('common.toast.storageFullChatHistory'), 'error');
     }
+  }
+  // SQLite write-through (D-09/D-12) — transaction-wrapped full-table snapshot.
+  // The localStorage mirror stays the synchronous read path; SQLite is durable.
+  void (async () => {
+    try {
+      await dbExecute('BEGIN');
+      await dbExecute('DELETE FROM sessions');
+      for (const s of sessions) {
+        await dbExecute('INSERT OR REPLACE INTO sessions (id, data) VALUES (?, ?)', [s.id, JSON.stringify(s)]);
+      }
+      await dbExecute('COMMIT');
+    } catch {
+      try { await dbExecute('ROLLBACK'); } catch { /* ignore */ }
+    }
+  })();
+}
+
+let _hydratedSessions = false;
+
+/**
+ * Boot hydration (D-12). Restore the sessions mirror from SQLite when the mirror
+ * is empty (D-11 clean-cutover state). Guarded so a populated mirror is never
+ * overwritten. Emits SESSION_UPDATED so always-mounted Ask consumers re-read.
+ */
+export async function hydrateSessionsFromSQLite(): Promise<void> {
+  if (_hydratedSessions) return;
+  _hydratedSessions = true;
+  try {
+    if (loadAll().length > 0) return; // mirror already has data — trust it
+    const rows = await dbQuery<{ id: string; data: string }>('SELECT * FROM sessions');
+    if (rows.length === 0) return;
+    const toAdd: ChatSession[] = [];
+    for (const row of rows) {
+      try { toAdd.push(JSON.parse(row.data) as ChatSession); } catch { /* skip corrupt */ }
+    }
+    if (toAdd.length > 0) {
+      try { localStorage.setItem(SESSIONS_KEY, JSON.stringify(toAdd)); } catch { /* ignore */ }
+      eventBus.emit({ type: 'SESSION_UPDATED', payload: { id: '*' } });
+    }
+  } catch {
+    // SQLite unavailable — silently skip
   }
 }
 

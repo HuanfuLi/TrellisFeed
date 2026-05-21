@@ -27,6 +27,15 @@ import { CollectionDrillInScreen } from './screens/CollectionDrillInScreen';
 import { settingsService } from './services/settings.service';
 import { hydrateFromSQLite } from './services/question.service';
 import { hydratePlannerFromSQLite } from './services/planner.service';
+// Phase 55 D-12 boot orchestration — every migrated heavy-store service's hydrate.
+import { hydrateDailyPostsFromSQLite } from './services/concept-feed.service';
+import { hydrateQueueFromSQLite } from './services/post-queue.service';
+import { hydratePostHistoryFromSQLite } from './services/post-history.service';
+import { hydrateSessionsFromSQLite } from './services/session.service';
+import { hydrateFlashcardsFromSQLite } from './services/flashcard.service';
+import { hydrateCollectionsFromSQLite } from './services/collection.service';
+import { hydrateEngagementFromSQLite } from './services/engagement.service';
+import { hydratePodcastsFromSQLite } from './services/podcast.service';
 import { useKeyboard } from './state/useKeyboard';
 import { bootstrapImageGeneration } from './services/imageGeneration.bootstrap';
 import { applyTheme } from './lib/theme';
@@ -325,11 +334,29 @@ const router = createBrowserRouter([
   },
 ]);
 
+// Phase 55 D-12: hydrate EVERY migrated heavy-store service's in-memory mirror
+// from SQLite once on boot. void-fired (non-blocking) so it never gates first
+// render — on a clean D-11 cutover the mirrors start empty and SQLite is empty,
+// so there is no empty-state flash. Each hydrate emits its own resync event
+// (GRAPH_UPDATED / SESSION_UPDATED / ENGAGEMENT_CHANGED / COLLECTIONS_CHANGED /
+// FLASHCARDS_CREATED) so always-mounted screens re-read without a refresh.
+function hydrateAllFromSQLite(): void {
+  void hydrateFromSQLite();            // questions
+  void hydratePlannerFromSQLite();     // planner chunks/threads/checkins
+  void hydrateDailyPostsFromSQLite();  // concept-feed daily-posts cache
+  void hydrateQueueFromSQLite();       // post-queue state
+  void hydratePostHistoryFromSQLite(); // post history
+  void hydrateSessionsFromSQLite();    // chat sessions
+  void hydrateFlashcardsFromSQLite();  // flashcards
+  void hydrateCollectionsFromSQLite(); // collections
+  void hydrateEngagementFromSQLite();  // saved/liked/dismissed
+  void hydratePodcastsFromSQLite();    // podcast metadata
+}
+
 export default function App() {
   // Hydrate data from SQLite on app start (no-op on web)
   useEffect(() => {
-    void hydrateFromSQLite();
-    void hydratePlannerFromSQLite();
+    hydrateAllFromSQLite();
     // Bootstrap image generation providers with keys from user settings.
     bootstrapImageGeneration();
     // Start foreground scheduler (60s poll + app resume checks)

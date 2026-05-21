@@ -27,8 +27,13 @@ import type { DailyPost } from '../types/index.ts';
 import { eventBus } from '../lib/event-bus.ts';
 import { postHistoryService } from './post-history.service.ts';
 import { collectionService } from './collection.service.ts';
+import { dbExecute, dbQuery } from './db.service.ts';
 
 const STORAGE_KEY = 'trellis_engagement_v1';
+// Phase 55 D-09/D-12: engagement state (a single JSON blob of saved/liked/
+// dismissed/savedPodcasts ID arrays) write-throughs to one row in the SQLite
+// `engagement` table. localStorage mirror stays the synchronous read path.
+const SQLITE_ROW_ID = 'engagement_state';
 
 interface EngagementState {
   saved: string[];          // postIds
@@ -65,6 +70,49 @@ function saveState(state: EngagementState): void {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch {
     // localStorage quota exceeded — silently drop
+  }
+  // SQLite write-through (D-09/D-12) — fire-and-forget single-row upsert.
+  void dbExecute('INSERT OR REPLACE INTO engagement (id, data) VALUES (?, ?)', [
+    SQLITE_ROW_ID,
+    JSON.stringify(state),
+  ]).catch(() => { /* SQLite unavailable — localStorage mirror is the read path */ });
+}
+
+let _hydratedEngagement = false;
+
+/**
+ * Boot hydration (D-12). Restore the engagement mirror from SQLite's single row
+ * when the localStorage mirror is empty (D-11 clean-cutover state). Guarded so a
+ * populated mirror is never overwritten. Emits ENGAGEMENT_CHANGED (bulk sentinel
+ * id '*') so saved/liked consumers re-read (no-refresh assumption).
+ */
+export async function hydrateEngagementFromSQLite(): Promise<void> {
+  if (_hydratedEngagement) return;
+  _hydratedEngagement = true;
+  try {
+    const cur = loadState();
+    const hasData = cur.saved.length > 0 || cur.liked.length > 0
+      || cur.dismissed.length > 0 || cur.savedPodcasts.length > 0;
+    if (hasData) return; // mirror already has data — trust it
+    const rows = await dbQuery<{ id: string; data: string }>(
+      'SELECT * FROM engagement WHERE id = ?', [SQLITE_ROW_ID],
+    );
+    if (rows.length === 0) return;
+    let parsed: Partial<EngagementState> | null = null;
+    try { parsed = JSON.parse(rows[0].data) as Partial<EngagementState>; } catch { return; }
+    const next: EngagementState = {
+      saved: Array.isArray(parsed?.saved) ? parsed!.saved : [],
+      liked: Array.isArray(parsed?.liked) ? parsed!.liked : [],
+      dismissed: Array.isArray(parsed?.dismissed) ? parsed!.dismissed : [],
+      savedPodcasts: Array.isArray(parsed?.savedPodcasts) ? parsed!.savedPodcasts : [],
+    };
+    const restored = next.saved.length || next.liked.length || next.dismissed.length || next.savedPodcasts.length;
+    if (restored) {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+      eventBus.emit({ type: 'ENGAGEMENT_CHANGED', payload: { kind: 'save', id: '*' } });
+    }
+  } catch {
+    // SQLite unavailable — silently skip
   }
 }
 

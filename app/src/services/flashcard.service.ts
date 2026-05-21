@@ -6,6 +6,7 @@ import { t } from '../lib/i18n-leaf.ts';
 import { settingsService } from './settings.service.ts';
 import { chatCompletion } from '../providers/llm/index.ts';
 import { questionService } from './question.service.ts';
+import { dbExecute, dbQuery } from './db.service.ts';
 // Projected flashcards removed (D-02 revised: only LLM-extracted flashcards shown)
 
 const STORAGE_KEY = 'trellis_flashcards';
@@ -58,6 +59,46 @@ function saveAll(cards: FlashCard[]): void {
     if (e instanceof DOMException && e.name === 'QuotaExceededError') {
       toast(t('common.toast.storageFullFlashcards'), 'error');
     }
+  }
+  // SQLite write-through (D-09/D-12) — transaction-wrapped full-table snapshot.
+  void (async () => {
+    try {
+      await dbExecute('BEGIN');
+      await dbExecute('DELETE FROM flashcards');
+      for (const c of cards) {
+        await dbExecute('INSERT OR REPLACE INTO flashcards (id, data) VALUES (?, ?)', [c.id, JSON.stringify(c)]);
+      }
+      await dbExecute('COMMIT');
+    } catch {
+      try { await dbExecute('ROLLBACK'); } catch { /* ignore */ }
+    }
+  })();
+}
+
+let _hydratedFlashcards = false;
+
+/**
+ * Boot hydration (D-12). Restore the flashcards mirror from SQLite when the
+ * mirror is empty (D-11 clean-cutover state). Guarded so a populated mirror is
+ * never overwritten. Emits FLASHCARDS_CREATED (count) so Review consumers re-read.
+ */
+export async function hydrateFlashcardsFromSQLite(): Promise<void> {
+  if (_hydratedFlashcards) return;
+  _hydratedFlashcards = true;
+  try {
+    if (loadAll().length > 0) return; // mirror already has data — trust it
+    const rows = await dbQuery<{ id: string; data: string }>('SELECT * FROM flashcards');
+    if (rows.length === 0) return;
+    const toAdd: FlashCard[] = [];
+    for (const row of rows) {
+      try { toAdd.push(JSON.parse(row.data) as FlashCard); } catch { /* skip corrupt */ }
+    }
+    if (toAdd.length > 0) {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(toAdd)); } catch { /* ignore */ }
+      eventBus.emit({ type: 'FLASHCARDS_CREATED', payload: { sessionId: '*', count: toAdd.length } });
+    }
+  } catch {
+    // SQLite unavailable — silently skip
   }
 }
 

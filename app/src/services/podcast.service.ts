@@ -7,6 +7,7 @@ import { questionService } from './question.service';
 import { chatCompletion } from '../providers/llm';
 import { synthesize } from '../providers/tts';
 import { buildPodcastPrompt, computeOptionsHash } from './podcast-prompt';
+import { dbExecute, dbQuery } from './db.service.ts';
 
 const STORAGE_KEY = 'trellis_podcasts';
 const audioBlobUrls = new Map<string, string>();
@@ -115,19 +116,66 @@ async function hydrateAudioBlobUrls(): Promise<void> {
 void hydrateAudioBlobUrls();
 
 function saveStore(podcasts: DailyPodcast[]): void {
+  // Strip transient fields — audio is persisted in IndexedDB, not localStorage
+  // and NOT in SQLite. Phase 55 migrates ONLY the podcast metadata store
+  // (trellis_podcasts); the audio-blob IndexedDB store (trellis_audio) is left
+  // untouched.
+  const toSave = podcasts.map((p) => {
+    const copy = { ...p };
+    delete copy.audioPath;
+    delete copy.audioDataUri;
+    return copy;
+  });
   try {
-    // Strip transient fields — audio is persisted in IndexedDB, not localStorage.
-    const toSave = podcasts.map((p) => {
-      const copy = { ...p };
-      delete copy.audioPath;
-      delete copy.audioDataUri;
-      return copy;
-    });
     localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
   } catch (e) {
     if (e instanceof DOMException && e.name === 'QuotaExceededError') {
       toast(t('common.toast.storageFullPodcast'), 'error');
     }
+  }
+  // SQLite write-through (D-09/D-12) — transaction-wrapped full-table snapshot
+  // of the metadata only. localStorage mirror stays the synchronous read path.
+  void (async () => {
+    try {
+      await dbExecute('BEGIN');
+      await dbExecute('DELETE FROM podcasts');
+      for (const p of toSave) {
+        await dbExecute('INSERT OR REPLACE INTO podcasts (id, data) VALUES (?, ?)', [p.id, JSON.stringify(p)]);
+      }
+      await dbExecute('COMMIT');
+    } catch {
+      try { await dbExecute('ROLLBACK'); } catch { /* ignore */ }
+    }
+  })();
+}
+
+let _hydratedPodcasts = false;
+
+/**
+ * Boot hydration (D-12) for podcast METADATA only. Restore the mirror from
+ * SQLite when the localStorage mirror is empty (D-11 clean-cutover state).
+ * Guarded so a populated mirror is never overwritten. After populating, kicks
+ * off the existing audio-blob rehydration from IndexedDB so ready podcasts get
+ * their playable blob URLs back. Emits nothing custom — re-running
+ * hydrateAudioBlobUrls is sufficient for the player to find audio on demand.
+ */
+export async function hydratePodcastsFromSQLite(): Promise<void> {
+  if (_hydratedPodcasts) return;
+  _hydratedPodcasts = true;
+  try {
+    if (loadStore().length > 0) return; // mirror already has data — trust it
+    const rows = await dbQuery<{ id: string; data: string }>('SELECT * FROM podcasts');
+    if (rows.length === 0) return;
+    const toAdd: DailyPodcast[] = [];
+    for (const row of rows) {
+      try { toAdd.push(JSON.parse(row.data) as DailyPodcast); } catch { /* skip corrupt */ }
+    }
+    if (toAdd.length > 0) {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(toAdd)); } catch { /* ignore */ }
+      void hydrateAudioBlobUrls();
+    }
+  } catch {
+    // SQLite unavailable — silently skip
   }
 }
 
