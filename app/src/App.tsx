@@ -37,6 +37,10 @@ import { hydrateCollectionsFromSQLite } from './services/collection.service';
 import { hydrateEngagementFromSQLite } from './services/engagement.service';
 import { hydratePodcastsFromSQLite } from './services/podcast.service';
 import { clearLegacyHeavyLocalStorageKeys } from './services/db.service';
+// Phase 55.1-07 GAP-C — boot pre-warm of the filter-corpus embedding cache so the
+// first ask doesn't pay the 124-sequential-embed cold path (measured dominant
+// cold-start stall — see scripts/profile-cold-start.mjs).
+import { prewarmFilterCorpus } from './services/filter-corpus.service';
 import { useKeyboard } from './state/useKeyboard';
 import { bootstrapImageGeneration } from './services/imageGeneration.bootstrap';
 import { applyTheme } from './lib/theme';
@@ -379,6 +383,15 @@ export default function App() {
     });
     // Bootstrap image generation providers with keys from user settings.
     bootstrapImageGeneration();
+    // Phase 55.1-07 GAP-C — fire-and-forget boot warm-up of the filter-corpus
+    // embedding cache. The malicious RAW-ARGMAX pre-gate runs filterQuestion
+    // BEFORE chatStream on every ask; on a cold cache that pays 124 sequential
+    // corpus embeds (~6.9s in-process, measured) and dominates the first
+    // roundtrip. Warming it here at boot — NOT awaited, so it never delays first
+    // paint — lets the first ask hit the warm localStorage cache. Non-blocking,
+    // key-absent/offline-safe (no-ops when embedding is unconfigured, swallows
+    // embed errors). See scripts/profile-cold-start.mjs for the measurement.
+    void prewarmFilterCorpus(settingsService.getSync().embedding);
     // Start foreground scheduler (60s poll + app resume checks)
     startScheduler();
     // Schedule native OS notifications for podcast/review reminders
