@@ -47,9 +47,9 @@
 
 | #   | Symbol | File | Call sites | Sev | Reach | Score | Decision (with rationale) |
 |-----|--------|------|-----------|-----|-------|-------|---------------------------|
-| B1  | `usePlanner` | `state/usePlanner.ts:19` | 1 (decl only) | 1 | 1 | **1** | **FIX (delete).** `@deprecated` Phase 26 D-22; zero live call sites in `src/` or `tests/`. Trivial, unambiguous removal — flagged FIX despite low score because cost-to-fix is near-zero and the hook is explicitly declared dead. DISTINCT from the LIVE `usePlannerAutoGen`. |
-| B2  | `ConnectionPostScreen` | `screens/ConnectionPostScreen.tsx:27` | 1 (decl only); 0 in `App.tsx` routes | 1 | 1 | **1** | **FIX (delete).** Not wired into any route; unreachable. Trivial removal. Verify no unique live types/utilities before deleting (PATTERNS §ConnectionPostScreen). |
-| B3  | `recordFeedView` | `trajectoryAnalyzer.service.ts:63` | 1 (decl only) | 2 | 2 | **4** | **DECISION-PENDING.** `trajectoryAnalyzer.service.ts` is LIVE (imported by `plannerAutoGen.service.ts`); only THIS export is dead. Fate (delete vs wire to a call site) depends on whether the trajectory-analytics pipeline is abandoned or planned for Phase 55+. RESEARCH OQ#1. Plan 54-04 `checkpoint:decision` resolves. NOT pre-decided. |
+| B1  | `usePlanner` | `state/usePlanner.ts:19` | 1 (decl only) | 1 | 1 | **1** | **RESOLVED (Plan 54-04).** Deleted — `@deprecated` Phase 26 D-22, zero live call sites; word-boundary re-grep reconfirmed 0 refs (LIVE `usePlannerAutoGen` untouched). `tsc -b --noEmit` green after deletion. |
+| B2  | `ConnectionPostScreen` | `screens/ConnectionPostScreen.tsx:27` | 1 (decl only); 0 in `App.tsx` routes | 1 | 1 | **1** | **RESOLVED (Plan 54-04).** Deleted — 0 references, not routed in `App.tsx`, exports no unique type/util consumed elsewhere (only the component). `tsc` green after. |
+| B3  | `recordFeedView` | `trajectoryAnalyzer.service.ts:63` | 1 (decl only) | 2 | 2 | **4** | **RESOLVED (Plan 54-04, operator decision `a-delete-warn`).** Deleted the dead `recordFeedView` export. `FEED_VIEWS_KEY`, `SIGNAL_CACHE_KEY`, and `loadFeedViews()` were RETAINED — re-grep confirmed `loadFeedViews()` is still consumed by the LIVE `aggregateSignals` (feedViews count), so the keys have other readers and were not removed. Live `trajectoryAnalyzer.service.ts` (imported by `plannerAutoGen.service.ts`) untouched. |
 | B4  | `replaceBlossomDates` | `trellis-blossom-dates.service.ts:42` | 1 (decl only) | 1 | 1 | **1** | **RE-ACCEPT.** Low-risk test/reset seam. Plausibly used by dev affordances; not worth deleting given near-zero carrying cost and a real chance it's an intentional reset hook. |
 | B5  | `recordStructuralSignalPatch` | `canonical-knowledge.service.ts:1285` | 1 (decl only) | 2 | 2 | **4** | **RE-ACCEPT.** Lives in a load-bearing service (`canonical-knowledge`). Deleting from this file risks collateral; the symbol is a structural-signal seam that may be wired in a tuning phase. Re-accepted with rationale rather than risk a load-bearing-file edit during cleanup (Pitfall 2). |
 | B6  | `hasReorgBackup` | `canonical-knowledge.service.ts:1558` | 1 (decl only) | 3 | 2 | **6** | **RE-ACCEPT.** Safety-related rollback seam for graph reorganization. Higher severity (data-correctness on rollback). Keeping a rollback affordance available outweighs deleting unused-but-safety-adjacent code. Re-accepted; wire to a call site in a future reorg-UX phase if needed. |
@@ -65,12 +65,12 @@
 
 | #  | Item | File(s) | Sev | Reach | Score | Decision (with rationale) |
 |----|------|---------|-----|-------|-------|---------------------------|
-| C1 | `console.log` violating `no-console` rule (7 instances) | `scheduler.service.ts:76,84,113,137,172,178,190` | 1 | 2 | **2** | **DECISION-PENDING.** ESLint `no-console` allows only `warn`/`error` (`console.info` is NOT allowed). The lint cleanup itself is trivial-FIX, but the *target* (`console.warn` vs silence entirely) is the operator's diagnostic-logging preference — RESEARCH OQ#2. Plan 54-04 `checkpoint:decision` resolves the conversion target; the conversion then ships as FIX. NOT pre-decided. |
-| C2 | `console.log` violating `no-console` rule (2 instances) | `scheduler.native.ts:106,111` | 1 | 2 | **2** | **DECISION-PENDING.** Same as C1 — same scheduler-log preference decision governs both files. Convert alongside C1 once the target is chosen. |
-| C3 | Stale `eslint-disable` (`@typescript-eslint/no-unused-vars`) | `PodcastScreen.tsx:102` | 1 | 1 | **1** | **FIX (delete the disable line).** The `_qa`/`_ct` underscore-prefix already satisfies the ESLint exemption, so the suppression is dead. Trivial, unambiguous removal. Verify `npm run lint` reports 0 errors on the file after. |
+| C1 | `console.log` violating `no-console` rule (7 instances) | `scheduler.service.ts:76,84,113,137,172,178,190` | 1 | 2 | **2** | **RESOLVED (Plan 54-04, operator decision `a-delete-warn`).** All 7 `console.log` → `console.warn` (allowlisted; `console.info` is NOT). Preserves the device-debug diagnostics while clearing the lint warnings. |
+| C2 | `console.log` violating `no-console` rule (2 instances) | `scheduler.native.ts:106,111` | 1 | 2 | **2** | **RESOLVED (Plan 54-04, operator decision `a-delete-warn`).** Both `console.log` → `console.warn` alongside C1. |
+| C3 | Stale `eslint-disable` (`@typescript-eslint/no-unused-vars`) | `PodcastScreen.tsx:102` | 1 | 1 | **1** | **RESOLVED (Plan 54-04).** Deleted the stale disable line; the `_qa`/`_ct` underscore-prefix already satisfies the `varsIgnorePattern: '^_'` exemption. `npm run lint` reports 0 errors on the file (the unrelated `react-hooks/exhaustive-deps` disable at the next `useEffect` was left intact). |
 | C4 | Large background image (4.55 MB) bloats the Capacitor bundle | `assets/planner-trellis/trellis-bg-default.png` | 2 | 3 | **6** | **RE-ACCEPT.** Real bundle bloat (P2 per Phase 45 perf audit), but image re-compression/resizing is asset-pipeline work, not code cleanup, and risks visual regression on the planner background. Re-accepted; fold into a Phase 56 polish/asset pass. |
 | C5 | 1.29 MB `index.js` chunk — no code-splitting; dynamic-import warnings | build output (`vite`) | 2 | 3 | **6** | **RE-ACCEPT.** Code-splitting is a build-architecture change (P2; less critical for Capacitor where assets are local-bundled, not network-fetched). Out of scope for a cleanup phase. Re-accepted; revisit if web-delivery latency becomes a target. |
-| C6 | Missing call sites for `recordFeedView` — trajectory analytics pipeline incomplete/abandoned | `trajectoryAnalyzer.service.ts:63` | 2 | 2 | **4** | **DECISION-PENDING.** Same item as B3 (the "incomplete analytics pipeline" framing of the same dead export). Disposition tracked once at B3; resolved by the same Plan 54-04 `checkpoint:decision`. NOT pre-decided. |
+| C6 | Missing call sites for `recordFeedView` — trajectory analytics pipeline incomplete/abandoned | `trajectoryAnalyzer.service.ts:63` | 2 | 2 | **4** | **RESOLVED (Plan 54-04, operator decision `a-delete-warn`).** Same item as B3 — the dead `recordFeedView` export was deleted; the trajectory-analytics seam can be re-added in Phase 55 (TUNE-02) if wired then. |
 
 ### Group D — Architecture / design debt (lower priority)
 
@@ -88,10 +88,20 @@
 
 | Tier | Count | Items |
 |------|-------|-------|
-| **FIX** (≥12, or trivial-cost unambiguous cleanup) | 3 | B1 `usePlanner` delete, B2 `ConnectionPostScreen` delete, C3 stale `eslint-disable` removal |
-| **DECISION-PENDING** (operator input → Plan 54-04 `checkpoint:decision`) | 2 distinct | B3/C6 `recordFeedView` fate; C1/C2 scheduler-log conversion target |
+| **RESOLVED** (fixed in Plan 54-04) | 5 | B1 `usePlanner` deleted, B2 `ConnectionPostScreen` deleted, C3 stale `eslint-disable` removed, B3/C6 `recordFeedView` deleted, C1/C2 scheduler `console.log` → `console.warn` |
 | **RE-ACCEPT** (6–11, or low-risk seam to retain) | 13 | A1, A2, A3, A6, B4, B5, B6, B7, B8, B9, B10, B11, B12, C4, C5, D4, D5 |
 | **NOTE-ONLY** (≤5, acknowledged, no action) | 7 | A4, A5, A7, D1, D2, D3 |
+
+### Operator decision (Plan 54-04 `checkpoint:decision`)
+
+**Selected: `a-delete-warn`** (recorded 2026-05-20).
+
+- **(A) `recordFeedView` / trajectory analytics:** DELETE the dead export. Storage keys
+  (`FEED_VIEWS_KEY`, `SIGNAL_CACHE_KEY`) and the `loadFeedViews()` helper were RETAINED
+  after re-grep confirmed `loadFeedViews()` is still read by the LIVE `aggregateSignals`.
+  Re-add the analytics seam in Phase 55 (TUNE-02) if/when wired.
+- **(B) Scheduler logging:** convert all 9 `console.log` calls to `console.warn`
+  (`console.info` is NOT lint-allowed), preserving the device-debug diagnostics.
 
 > A1 scores exactly 12 (FIX boundary) but is re-accepted with rationale — its remediation is an
 > architectural rewrite, not a Phase 54 cleanup. This is the one deliberate boundary override and
@@ -99,18 +109,18 @@
 
 ---
 
-## Top Tier (FIX) Worklist — for Plan 54-04
+## Top Tier (FIX) Worklist — RESOLVED in Plan 54-04
 
-Plan 54-04 must resolve exactly these items. This is the unambiguous resolution worklist:
+All items below were resolved in Plan 54-04 (commits in the 54-04 wave):
 
-1. **B1 — Delete `usePlanner`** (`state/usePlanner.ts`). Pre-delete: re-confirm 0 call sites in `src/` + `tests/` by grep; confirm `tsc -b --noEmit` passes after. Distinct from the LIVE `usePlannerAutoGen` — do not touch the latter.
-2. **B2 — Delete `ConnectionPostScreen`** (`screens/ConnectionPostScreen.tsx`). Pre-delete: confirm not routed in `App.tsx`; verify no unique live types/utilities; `tsc -b --noEmit` after.
-3. **C3 — Remove the stale `eslint-disable` line** at `PodcastScreen.tsx:102`. Verify `npm run lint` → 0 errors on the file.
+1. **B1 — `usePlanner` (`state/usePlanner.ts`) — DELETED.** Re-grep reconfirmed 0 call sites; `tsc -b --noEmit` green after. LIVE `usePlannerAutoGen` untouched.
+2. **B2 — `ConnectionPostScreen` (`screens/ConnectionPostScreen.tsx`) — DELETED.** Not routed in `App.tsx`; no unique exported type/util consumed elsewhere; `tsc` green after.
+3. **C3 — Stale `eslint-disable` line at `PodcastScreen.tsx:102` — REMOVED.** `npm run lint` reports 0 errors on the file.
 
-### Carried to Plan 54-04 as `checkpoint:decision` (resolve before fixing)
+### Operator-decision items — RESOLVED via `a-delete-warn`
 
-- **D1 (B3/C6) — `recordFeedView` / trajectory-analytics fate:** delete the dead export (+ its `SIGNAL_CACHE_KEY`/`FEED_VIEWS_KEY` if fully abandoned) **OR** re-accept with a Phase 55+ rationale comment. The `trajectoryAnalyzer.service.ts` *service* is LIVE (imported by `plannerAutoGen.service.ts`); only the `recordFeedView` export is dead. (RESEARCH OQ#1.)
-- **D2 (C1/C2) — scheduler-log conversion target:** convert `console.log` → `console.warn` (preserves diagnostics; `console.info` is NOT allowlisted) **OR** silence entirely for clean production logs. Operator preference. Once chosen, the conversion of all 9 sites (`scheduler.service.ts` ×7 + `scheduler.native.ts` ×2) ships as a trivial FIX. (RESEARCH OQ#2.)
+- **D1 (B3/C6) — `recordFeedView` / trajectory-analytics fate:** DELETED the dead export. `FEED_VIEWS_KEY` / `SIGNAL_CACHE_KEY` / `loadFeedViews()` RETAINED (the helper is still read by the LIVE `aggregateSignals`). Re-add the seam in Phase 55 (TUNE-02) if needed.
+- **D2 (C1/C2) — scheduler-log conversion target:** all 9 `console.log` sites (`scheduler.service.ts` ×7 + `scheduler.native.ts` ×2) converted to `console.warn` (`console.info` is NOT allowlisted), preserving diagnostics.
 
 ---
 
@@ -118,12 +128,12 @@ Plan 54-04 must resolve exactly these items. This is the unambiguous resolution 
 
 | Symbol / target | Result | FIX-delete confirmed? |
 |---|---|---|
-| `usePlanner` | 1 hit (declaration only) | ✓ yes |
-| `ConnectionPostScreen` | 1 hit (declaration); 0 in `App.tsx` | ✓ yes |
-| `recordFeedView` | 1 hit (declaration only) | DECISION-PENDING (service is live) |
-| `scheduler.service.ts` `console.log` | 7 instances | DECISION-PENDING (conversion target) |
-| `scheduler.native.ts` `console.log` | 2 instances | DECISION-PENDING (conversion target) |
-| `PodcastScreen.tsx:102` stale `eslint-disable` | present | ✓ yes |
+| `usePlanner` | 1 hit (declaration only) | ✓ RESOLVED — deleted (Plan 54-04) |
+| `ConnectionPostScreen` | 1 hit (declaration); 0 in `App.tsx` | ✓ RESOLVED — deleted (Plan 54-04) |
+| `recordFeedView` | 1 hit (declaration only) | ✓ RESOLVED — deleted (Plan 54-04, `a-delete-warn`); keys/`loadFeedViews` retained (live reader) |
+| `scheduler.service.ts` `console.log` | 7 instances | ✓ RESOLVED — → `console.warn` (Plan 54-04, `a-delete-warn`) |
+| `scheduler.native.ts` `console.log` | 2 instances | ✓ RESOLVED — → `console.warn` (Plan 54-04, `a-delete-warn`) |
+| `PodcastScreen.tsx:102` stale `eslint-disable` | present | ✓ RESOLVED — removed (Plan 54-04) |
 | `recordStructuralSignalPatch` | 1 hit (declaration only) | re-accept (load-bearing file) |
 | `getMoveDestination` | 1 hit (declaration only) | re-accept (Phase 55 candidate) |
 | `useTodayQuestions` | 1 hit (declaration only) | re-accept (API seam) |

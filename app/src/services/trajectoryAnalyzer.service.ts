@@ -59,20 +59,6 @@ function loadFeedViews(): FeedViewEntry[] {
   }
 }
 
-/** Record a feed post view for trajectory tracking. */
-export function recordFeedView(questionId: string): void {
-  try {
-    const views = loadFeedViews();
-    // Keep only last 7 days and cap at 200 entries
-    const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
-    const pruned = views.filter((v) => v.viewedAt > cutoff).slice(-199);
-    pruned.push({ questionId, viewedAt: Date.now() });
-    localStorage.setItem(FEED_VIEWS_KEY, JSON.stringify(pruned));
-    // Invalidate cache
-    localStorage.removeItem(SIGNAL_CACHE_KEY);
-  } catch { /* ignore */ }
-}
-
 // ── Signal computation ─────────────────────────────────────────────────────
 
 function computeReviewPerformance(cards: ReturnType<typeof flashcardService.getAll>): number {
