@@ -1,12 +1,24 @@
 /**
  * Database abstraction layer.
- * Uses Capacitor Community SQLite when running on native (iOS/Android).
- * Falls back to localStorage on web/browser environments.
  *
- * All public methods mirror a simple key-value + table-query interface so
- * callers don't depend on either backend directly.
+ * ONE backend on every platform (Phase 55, unified 2026-05-21): IndexedDB —
+ * used identically in the browser AND inside the iOS/Android Capacitor WebView.
+ * IndexedDB quota is disk-based (hundreds of MB+), escaping the ~5MB localStorage
+ * cap that motivated the migration, and — unlike main-thread WASM SQLite — needs
+ * no Web Worker or COOP/COEP cross-origin isolation (which would have broken the
+ * app's YouTube iframe embeds + cross-origin API calls). A single backend across
+ * web and device keeps behaviour identical and debuggable from the browser console.
+ *
+ * LocalStorageBackend remains ONLY for environments without IndexedDB (the Node
+ * test runner) and as a last-resort fallback if IndexedDB init throws.
+ *
+ * All public methods mirror a simple key-value + table-query interface (a tiny
+ * SQL subset) so callers don't depend on the backend directly.
+ *
+ * Caveat (tracked for the future client/server split): iOS WebView may evict
+ * IndexedDB under storage pressure. Acceptable pre-server (device is a cache once
+ * the server owns the source of truth); mitigated by navigator.storage.persist().
  */
-import { Capacitor } from '@capacitor/core';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -18,12 +30,12 @@ interface DBBackend {
   query<T extends Row>(sql: string, values?: (string | number | null)[]): Promise<T[]>;
 }
 
-// ─── Shared schema (DDL) ──────────────────────────────────────────────────────
-// Phase 55 D-09/D-13: the migration table set is identical across the native
-// SQLiteBackend and the browser WASMSQLiteBackend so a record persisted on one
-// platform round-trips on the other. Both backends run this exact DDL in their
-// _runMigrations(). All statements are idempotent (IF NOT EXISTS) so re-running
-// across hot reloads / re-init is safe.
+// ─── Schema (table set) ───────────────────────────────────────────────────────
+// Phase 55 D-09/D-13: the unified IndexedDBBackend derives one object store per
+// table from this list (see TABLE_NAMES below). The DDL form is kept as the
+// documented schema/column source-of-truth and as the LocalStorageBackend's
+// no-op CREATE input; IndexedDB itself stores rows schemalessly with the first
+// column as the row key.
 //
 // `questions.embedding BLOB` (D-13): the Float32 vector is stored base64-encoded
 // in a dedicated column (see question.service.ts vectorToBase64) instead of as a
@@ -64,50 +76,15 @@ const SHARED_DDL: string[] = [
   `CREATE TABLE IF NOT EXISTS video_cache (id TEXT PRIMARY KEY, data TEXT NOT NULL)`,
 ];
 
-// ─── SQLite Backend (Capacitor native) ───────────────────────────────────────
+// Object-store names for the IndexedDB backend, derived from SHARED_DDL so the
+// store set never drifts from the documented schema. (SHARED_DDL is retained as
+// the schema source-of-truth + column documentation even though IndexedDB stores
+// rows schemalessly; the first column of each table is the row key by convention.)
+const TABLE_NAMES: string[] = SHARED_DDL
+  .map((ddl) => ddl.match(/CREATE TABLE IF NOT EXISTS (\w+)/i)?.[1])
+  .filter((n): n is string => !!n);
 
-class SQLiteBackend implements DBBackend {
-  private db: import('@capacitor-community/sqlite').SQLiteDBConnection | null = null;
-
-  async init() {
-    // Phase 33 UAT-4 fix (2026-04-20): CapacitorSQLite.getConnection does not
-    // exist on the native plugin — calling it throws "not implemented on
-    // android". The correct API is the SQLiteConnection wrapper, which
-    // tracks connections in a JS-side map keyed by database name. Use
-    // isConnection to reuse across hot reloads, createConnection otherwise.
-    const { CapacitorSQLite, SQLiteConnection } = await import('@capacitor-community/sqlite');
-    const sqlite = new SQLiteConnection(CapacitorSQLite);
-    // SQLite connection name kept as 'echolearn' for backwards compat with
-    // existing native installs — renaming would orphan the on-disk DB file
-    // and force a data wipe. User-facing brand is Trellis; this internal
-    // handle is never visible.
-    const existing = await sqlite.isConnection('echolearn', false);
-    this.db = existing.result
-      ? await sqlite.retrieveConnection('echolearn', false)
-      : await sqlite.createConnection('echolearn', false, 'no-encryption', 1, false);
-    await this.db.open();
-    await this._runMigrations();
-  }
-
-  private async _runMigrations() {
-    for (const sql of SHARED_DDL) {
-      await this.execute(sql);
-    }
-  }
-
-  async execute(sql: string, values: (string | number | null)[] = []) {
-    if (!this.db) throw new Error('DB not initialised');
-    await this.db.run(sql, values);
-  }
-
-  async query<T extends Row>(sql: string, values: (string | number | null)[] = []): Promise<T[]> {
-    if (!this.db) throw new Error('DB not initialised');
-    const result = await this.db.query(sql, values);
-    return (result.values ?? []) as T[];
-  }
-}
-
-// ─── localStorage Backend (Web fallback) ─────────────────────────────────────
+// ─── localStorage Backend (Node test runner + last-resort fallback) ──────────
 
 const PREFIX = 'trellis_db_';
 
@@ -198,57 +175,117 @@ class LocalStorageBackend implements DBBackend {
   }
 }
 
-// ─── WASM SQLite Backend (Browser dev + web, Phase 55 D-10) ──────────────────
-// PRIMARY browser backend (55-01 OPFS GO verdict). Uses @sqlite.org/sqlite-wasm
-// with the opfs-sahpool VFS — persistent, OPFS-backed, synchronous
-// SyncAccessHandles, NO SharedArrayBuffer / COOP / COEP required on Chromium.
-// init() throws when OPFS is unavailable (incognito, older browser, insecure
-// context); the getDB() factory catches that and falls back to
-// LocalStorageBackend so a backend-init failure never crashes the app
-// (Pitfall 1 / T-55-05b). Runs the same SHARED_DDL as the native SQLiteBackend
-// so the schema matches across platforms.
+// ─── IndexedDB Backend (web + native WebView — Phase 55, unified) ────────────
+// THE backend on every platform. Each SHARED_DDL table maps to one IndexedDB
+// object store with out-of-line keys (the row's first column is the key).
+// IndexedDB quota is disk-based, escaping the localStorage cap, with none of the
+// Worker / COOP / COEP constraints that block main-thread WASM SQLite. The
+// DBBackend methods are already async, so the in-memory-mirror + async
+// write-through design (D-12) is unchanged — services read synchronously from
+// their mirror and write through here. Implements the same minimal SQL subset as
+// LocalStorageBackend (INSERT OR REPLACE / DELETE [WHERE] / SELECT *; BEGIN/
+// COMMIT/ROLLBACK and CREATE TABLE are no-ops — each op is its own auto-committed
+// IDB transaction and stores are created at open()).
 
-class WASMSQLiteBackend implements DBBackend {
-  // Typed as Sqlite3Oo1Db at runtime; `unknown` avoids a hard type dep on the
-  // browser-only package in the native build.
-  private db: unknown = null;
+const IDB_NAME = 'trellis';
+const IDB_VERSION = 1;
+
+class IndexedDBBackend implements DBBackend {
+  private db: IDBDatabase | null = null;
 
   async init() {
-    const sqlite3InitModule = (await import('@sqlite.org/sqlite-wasm')).default;
-    const sqlite3 = await sqlite3InitModule();
-    // opfs-sahpool VFS: persistent OPFS-backed DB using synchronous access
-    // handles. Unlike oo1.OpfsDb (the kvvfs/SAB OPFS VFS, which needs a Worker +
-    // COOP/COEP cross-origin isolation), installOpfsSAHPoolVfs runs on the main
-    // thread with NO special headers — the reason 55-RESEARCH selected it. The
-    // install Promise rejects when OPFS is unavailable (incognito, insecure
-    // context, older browser); the getDB() catch then swaps to LocalStorageBackend.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const poolUtil = await (sqlite3 as any).installOpfsSAHPoolVfs({
-      name: 'opfs-sahpool',
-      directory: '.trellis-sqlite',
+    this.db = await new Promise<IDBDatabase>((resolve, reject) => {
+      const req = indexedDB.open(IDB_NAME, IDB_VERSION);
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        for (const name of TABLE_NAMES) {
+          if (!db.objectStoreNames.contains(name)) db.createObjectStore(name);
+        }
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error ?? new Error('IndexedDB open failed'));
+      req.onblocked = () => reject(new Error('IndexedDB open blocked'));
     });
-    this.db = new poolUtil.OpfsSAHPoolDb('/trellis.sqlite3');
-    await this._runMigrations();
   }
 
-  private async _runMigrations() {
-    for (const sql of SHARED_DDL) {
-      await this.execute(sql);
+  private store(table: string, mode: IDBTransactionMode): IDBObjectStore {
+    if (!this.db) throw new Error('IndexedDB not initialised');
+    return this.db.transaction(table, mode).objectStore(table);
+  }
+
+  private static wrap<T>(req: IDBRequest<T>): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error ?? new Error('IndexedDB request failed'));
+    });
+  }
+
+  async execute(sql: string, values: (string | number | null)[] = []): Promise<void> {
+    const s = sql.trim();
+    // Transaction verbs + DDL: no-ops (each op below auto-commits its own IDB
+    // transaction; object stores are created at open()).
+    if (/^(BEGIN|COMMIT|ROLLBACK|CREATE\s+TABLE)/i.test(s)) return;
+
+    // INSERT OR REPLACE INTO <table> (cols) VALUES (?, ...)
+    const insertMatch = s.match(/^INSERT\s+OR\s+REPLACE\s+INTO\s+(\w+)\s*\(([^)]+)\)\s*VALUES\s*\(([^)]+)\)/i);
+    if (insertMatch) {
+      const table = insertMatch[1];
+      const cols = insertMatch[2].split(',').map((c) => c.trim());
+      const row: Row = {};
+      cols.forEach((c, i) => { row[c] = values[i] ?? null; });
+      const key = (values[0] ?? '') as IDBValidKey; // first column is the PK by convention
+      await IndexedDBBackend.wrap(this.store(table, 'readwrite').put(row, key));
+      return;
+    }
+
+    // DELETE FROM <table> WHERE <col> = ?
+    const deleteWhereMatch = s.match(/^DELETE\s+FROM\s+(\w+)\s+WHERE\s+(\w+)\s*=\s*\?/i);
+    if (deleteWhereMatch) {
+      const table = deleteWhereMatch[1];
+      const col = deleteWhereMatch[2];
+      const target = values[0] ?? null;
+      const st = this.store(table, 'readwrite');
+      await new Promise<void>((resolve, reject) => {
+        const cursorReq = st.openCursor();
+        cursorReq.onsuccess = () => {
+          const cursor = cursorReq.result;
+          if (!cursor) { resolve(); return; }
+          if ((cursor.value as Row)[col] === target) cursor.delete();
+          cursor.continue();
+        };
+        cursorReq.onerror = () => reject(cursorReq.error ?? new Error('IndexedDB delete failed'));
+      });
+      return;
+    }
+
+    // DELETE FROM <table>  (no WHERE → clear the whole store; D-11 cutover + Clear-All-Data)
+    const deleteAllMatch = s.match(/^DELETE\s+FROM\s+(\w+)\s*$/i);
+    if (deleteAllMatch) {
+      await IndexedDBBackend.wrap(this.store(deleteAllMatch[1], 'readwrite').clear());
+      return;
     }
   }
 
-  async execute(sql: string, values: (string | number | null)[] = []) {
-    if (!this.db) throw new Error('WASMSQLite not initialised');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (this.db as any).exec({ sql, bind: values });
-  }
-
   async query<T extends Row>(sql: string, values: (string | number | null)[] = []): Promise<T[]> {
-    if (!this.db) throw new Error('WASMSQLite not initialised');
-    const rows: T[] = [];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (this.db as any).exec({ sql, bind: values, rowMode: 'object', resultRows: rows });
-    return rows;
+    const s = sql.trim();
+
+    // SELECT * FROM <table> WHERE <col> = ?
+    const selectWhereMatch = s.match(/^SELECT\s+\*\s+FROM\s+(\w+)\s+WHERE\s+(\w+)\s*=\s*\?/i);
+    if (selectWhereMatch) {
+      const col = selectWhereMatch[2];
+      const target = values[0] ?? null;
+      const all = await IndexedDBBackend.wrap(this.store(selectWhereMatch[1], 'readonly').getAll());
+      return (all as T[]).filter((r) => r[col] === target);
+    }
+
+    // SELECT * FROM <table>
+    const selectMatch = s.match(/^SELECT\s+\*\s+FROM\s+(\w+)/i);
+    if (selectMatch) {
+      const all = await IndexedDBBackend.wrap(this.store(selectMatch[1], 'readonly').getAll());
+      return all as T[];
+    }
+
+    return [];
   }
 }
 
@@ -261,26 +298,21 @@ export async function getDB(): Promise<DBBackend> {
   if (backend) return backend;
   if (initPromise) { await initPromise; return backend!; }
 
-  // Native → real SQLite (connection name 'echolearn' preserved for backwards
-  // compat). Browser → WASMSQLiteBackend (opfs-sahpool) with a graceful
-  // LocalStorageBackend fallback if OPFS init throws (Pitfall 1 / T-55-05b).
-  let candidate: DBBackend;
-  if (Capacitor.isNativePlatform()) {
-    candidate = new SQLiteBackend();
-  } else {
-    candidate = new WASMSQLiteBackend();
-  }
+  // One backend on ALL platforms (browser + Capacitor WebView): IndexedDB.
+  // LocalStorageBackend is used only where IndexedDB is absent (Node test runner)
+  // or as a last-resort fallback if IndexedDB init throws (private mode / disabled
+  // storage) so a backend-init failure never crashes the app.
+  const candidate: DBBackend = typeof indexedDB !== 'undefined'
+    ? new IndexedDBBackend()
+    : new LocalStorageBackend();
   initPromise = candidate.init().then(() => {
     backend = candidate;
-    if (!Capacitor.isNativePlatform()) {
-      console.info('[Trellis] DB backend active:', candidate.constructor.name);
-    }
+    // Logged so the operator can confirm the active backend (IndexedDB vs fallback)
+    // from the browser/WebView console.
+    console.info('[Trellis] DB backend active:', candidate.constructor.name);
   }).catch(async (err) => {
-    if (!Capacitor.isNativePlatform() && !(candidate instanceof LocalStorageBackend)) {
-      // OPFS / WASM unavailable — fall back to LocalStorageBackend so the app
-      // never crashes on a backend-init failure. Logged so the operator can
-      // see whether the dev environment is on the WASM path or the fallback.
-      console.warn('[Trellis] WASM SQLite unavailable, falling back to LocalStorageBackend:', err);
+    if (!(candidate instanceof LocalStorageBackend)) {
+      console.warn('[Trellis] IndexedDB unavailable, falling back to LocalStorageBackend:', err);
       const fb = new LocalStorageBackend();
       await fb.init();
       backend = fb;

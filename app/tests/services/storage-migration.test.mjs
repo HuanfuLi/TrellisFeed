@@ -89,12 +89,15 @@ describe('storage-migration (Phase 55 D-11/D-12/D-13)', () => {
     );
   });
 
-  // D-10: WASMSQLiteBackend is present in db.service.ts. RED until 55-05.
-  it('db.service.ts contains WASMSQLiteBackend class', () => {
+  // D-10 (revised 2026-05-21): browser SQLite (oo1.OpfsDb / opfs-sahpool) proved
+  // unworkable — OpfsDb needs COOP/COEP isolation (breaks YouTube embeds) and
+  // opfs-sahpool's createSyncAccessHandle is Worker-only, so neither runs on the
+  // main thread. Unified on a single IndexedDBBackend across web + native WebView.
+  it('db.service.ts contains IndexedDBBackend class (unified backend)', () => {
     assert.match(
       dbServiceSource,
-      /class\s+WASMSQLiteBackend/,
-      'WASMSQLiteBackend must exist in db.service.ts (D-10)',
+      /class\s+IndexedDBBackend/,
+      'IndexedDBBackend must exist in db.service.ts (unified web + native backend)',
     );
   });
 });
