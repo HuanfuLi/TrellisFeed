@@ -7,33 +7,25 @@ import { settingsService } from './settings.service.ts';
 import { engagementService } from './engagement.service.ts';
 import { dbExecute, dbQuery } from './db.service.ts';
 
-const STORAGE_KEY = 'trellis_post_history';
+// Phase 55-07: IndexedDB is the SOLE persistence for post history. The
+// module-level `_store` is the synchronous read+write mirror; it starts empty
+// and is populated from IndexedDB by hydratePostHistoryFromSQLite() at boot.
+// No localStorage write-through for `trellis_post_history` anymore.
+let _store: DailyPost[] = [];
 
 function loadPosts(): DailyPost[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter((p: Record<string, unknown>) =>
-      p && typeof p.id === 'string' && typeof p.generatedAt === 'number' && typeof p.title === 'string'
-    );
-  } catch {
-    return [];
-  }
+  // The mirror only ever holds valid DailyPost objects (added via addPost /
+  // hydrate, both shape-checked at their boundary). No re-validation needed —
+  // the prior filter guarded against corrupt localStorage JSON, which is gone.
+  return _store;
 }
 
 function savePosts(posts: DailyPost[]): void {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(posts));
-  } catch {
-    // localStorage quota exceeded — silently drop
-  }
-  // SQLite write-through (D-09/D-12). localStorage mirror stays the synchronous
-  // read path; SQLite is the durable store. Fire-and-forget — a failed write
-  // does not block the sync mutator. Re-snapshot the whole table each save
-  // (post-history is small + purge mutates the set, so a full overwrite is the
-  // simplest correct shape).
+  _store = posts;
+  // IndexedDB write-through (D-09/D-12) — the durable store. Fire-and-forget so
+  // a failed write does not block the sync mutator. Re-snapshot the whole table
+  // each save (post-history is small + purge mutates the set, so a full
+  // overwrite is the simplest correct shape).
   void persistAllToSQLite(posts);
 }
 
@@ -67,14 +59,19 @@ export async function hydratePostHistoryFromSQLite(): Promise<void> {
     if (rows.length === 0) return;
     const toAdd: DailyPost[] = [];
     for (const row of rows) {
-      try { toAdd.push(JSON.parse(row.data) as DailyPost); } catch { /* skip corrupt */ }
+      try {
+        const p = JSON.parse(row.data) as DailyPost;
+        if (p && typeof p.id === 'string' && typeof p.generatedAt === 'number' && typeof p.title === 'string') {
+          toAdd.push(p);
+        }
+      } catch { /* skip corrupt */ }
     }
     if (toAdd.length > 0) {
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(toAdd)); } catch { /* ignore */ }
+      _store = toAdd;
       eventBus.emit({ type: 'GRAPH_UPDATED' });
     }
   } catch {
-    // SQLite unavailable — silently skip
+    // IndexedDB unavailable — silently skip
   }
 }
 
@@ -119,8 +116,9 @@ export const postHistoryService = {
     savePosts(posts);
   },
 
-  /** Clear all post history. */
+  /** Clear all post history (mirror + IndexedDB). */
   clear(): void {
-    localStorage.removeItem(STORAGE_KEY);
+    _store = [];
+    void dbExecute('DELETE FROM post_history').catch(() => { /* ignore */ });
   },
 };

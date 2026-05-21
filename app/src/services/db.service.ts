@@ -338,6 +338,44 @@ export async function dbQuery<T extends Row>(sql: string, values?: (string | num
   return db.query<T>(sql, values);
 }
 
+// The 13 legacy heavy-store localStorage keys retired by the Phase 55 migration.
+// Tiny boot-critical prefs (trellis_settings, trellis_fruit_credits,
+// trellis_dev_mode, trellis_ask_rate_limit, trellis_blossom_dates,
+// trellis_token_usage, trellis_daily_read, trellis_trajectory_signals,
+// trellis_active_session) are intentionally NOT listed — they stay in localStorage.
+const LEGACY_HEAVY_KEYS = [
+  'trellis_questions',
+  'trellis_daily_posts',
+  'trellis_post_history',
+  'trellis_post_queue',
+  'trellis_post_queue_yesterday',
+  'trellis_sessions',
+  'trellis_flashcards',
+  'trellis_db_tables',
+  'trellis_collections_v1',
+  'trellis_engagement_v1',
+  'trellis_podcasts',
+  'trellis_news_posts',
+  'trellis_video_cache',
+];
+
+/**
+ * One-time D-11 cutover sweep: remove the now-stale legacy heavy-store
+ * localStorage keys. Phase 55-07 calls this from App.tsx boot AFTER hydration
+ * has populated every in-memory mirror from IndexedDB, so the user's data is
+ * already restored from the durable store before the stale localStorage copies
+ * are deleted (a stale shadow copy could otherwise re-seed a mirror — T-55-05e).
+ *
+ * NOTE: in 55-07 the heavy services no longer READ these keys, so this sweep is
+ * pure quota reclamation — it does not change runtime behaviour, only frees the
+ * ~5MB localStorage the dual-write was still consuming.
+ */
+export function clearLegacyHeavyLocalStorageKeys(): void {
+  for (const k of LEGACY_HEAVY_KEYS) {
+    try { localStorage.removeItem(k); } catch { /* ignore */ }
+  }
+}
+
 /**
  * Wipe all known application tables. Called by "Clear All Data" in Settings AND
  * used as the D-11 clean-cutover sweep (pre-release, no real users): clears every
@@ -367,28 +405,7 @@ export async function clearAllTables(): Promise<void> {
     // DB may not be available (e.g. tables not yet created) — silently ignore
   }
   // ── D-11 cutover: remove the legacy heavy-store localStorage keys ──────────
-  // MUST enumerate ALL 13 heavy-store keys. Missing any leaves a stale heavy
-  // store in localStorage after cutover (D-11 incomplete). Tiny boot-critical
-  // prefs (trellis_settings, trellis_fruit_credits, trellis_dev_mode,
-  // trellis_ask_rate_limit, trellis_blossom_dates, trellis_token_usage,
-  // trellis_daily_read, trellis_trajectory_signals) are intentionally NOT
-  // cleared here — they stay in localStorage.
-  const legacyKeys = [
-    'trellis_questions',
-    'trellis_daily_posts',
-    'trellis_post_history',
-    'trellis_post_queue',
-    'trellis_post_queue_yesterday',
-    'trellis_sessions',
-    'trellis_flashcards',
-    'trellis_db_tables',
-    'trellis_collections_v1',
-    'trellis_engagement_v1',
-    'trellis_podcasts',
-    'trellis_news_posts',
-    'trellis_video_cache',
-  ];
-  for (const k of legacyKeys) {
-    try { localStorage.removeItem(k); } catch { /* ignore */ }
-  }
+  // Enumerated in LEGACY_HEAVY_KEYS (all 13 heavy-store keys); tiny boot-critical
+  // prefs are intentionally excluded from that list and stay in localStorage.
+  clearLegacyHeavyLocalStorageKeys();
 }

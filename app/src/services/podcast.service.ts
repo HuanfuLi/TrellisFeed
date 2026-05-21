@@ -1,7 +1,7 @@
 import type { DailyPodcast, Question, ServiceResult, PodcastOptions, SupportedLocale } from '../types';
 import { eventBus } from '../lib/event-bus';
 import { toast } from '../lib/toast';
-import { t, getCurrentLocale } from '../lib/i18n-leaf.ts';
+import { getCurrentLocale } from '../lib/i18n-leaf.ts';
 import { settingsService } from './settings.service';
 import { questionService } from './question.service';
 import { chatCompletion } from '../providers/llm';
@@ -9,7 +9,9 @@ import { synthesize } from '../providers/tts';
 import { buildPodcastPrompt, computeOptionsHash } from './podcast-prompt';
 import { dbExecute, dbQuery } from './db.service.ts';
 
-const STORAGE_KEY = 'trellis_podcasts';
+// Phase 55-07: the legacy `trellis_podcasts` localStorage key is no longer
+// written — metadata persists to the IndexedDB `podcasts` table (the key is
+// cleared on the D-11 cutover sweep in db.service.ts clearAllTables).
 const audioBlobUrls = new Map<string, string>();
 
 let podcastIdCounter = Date.now();
@@ -91,14 +93,14 @@ async function deleteAudioBlob(podcastId: string): Promise<void> {
   }
 }
 
+// Phase 55-07: podcast METADATA persists ONLY to the IndexedDB `podcasts` table.
+// The module-level `_store` is the synchronous read+write mirror (starts empty,
+// hydrated from IndexedDB at boot). No localStorage write for `trellis_podcasts`.
+// The audio-blob IndexedDB store (trellis_audio) is a SEPARATE store, untouched.
+let _store: DailyPodcast[] = [];
+
 function loadStore(): DailyPodcast[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    return JSON.parse(raw) as DailyPodcast[];
-  } catch {
-    return [];
-  }
+  return _store;
 }
 
 /** Restore in-memory blob URLs from IndexedDB for all podcasts that have audio persisted. */
@@ -126,15 +128,11 @@ function saveStore(podcasts: DailyPodcast[]): void {
     delete copy.audioDataUri;
     return copy;
   });
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
-  } catch (e) {
-    if (e instanceof DOMException && e.name === 'QuotaExceededError') {
-      toast(t('common.toast.storageFullPodcast'), 'error');
-    }
-  }
-  // SQLite write-through (D-09/D-12) — transaction-wrapped full-table snapshot
-  // of the metadata only. localStorage mirror stays the synchronous read path.
+  // The in-memory mirror holds the stripped (audio-less) metadata — same shape
+  // that persists to IndexedDB — so a reload-then-read round-trips identically.
+  _store = toSave;
+  // IndexedDB write-through (D-09/D-12) — transaction-wrapped full-table
+  // snapshot of the metadata only. The in-memory mirror is the sync read path.
   void (async () => {
     try {
       await dbExecute('BEGIN');
@@ -171,11 +169,11 @@ export async function hydratePodcastsFromSQLite(): Promise<void> {
       try { toAdd.push(JSON.parse(row.data) as DailyPodcast); } catch { /* skip corrupt */ }
     }
     if (toAdd.length > 0) {
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(toAdd)); } catch { /* ignore */ }
+      _store = toAdd;
       void hydrateAudioBlobUrls();
     }
   } catch {
-    // SQLite unavailable — silently skip
+    // IndexedDB unavailable — silently skip
   }
 }
 

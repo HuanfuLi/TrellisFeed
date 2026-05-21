@@ -32,12 +32,17 @@ export { spreadByStyle, spreadByConcept };
 import { createPromiseMutex } from './refill-mutex.ts';
 import { dbExecute, dbQuery } from './db.service.ts';
 
-const STORAGE_KEY = 'trellis_daily_posts';
 const CONNECTION_POSTS_KEY = 'trellis_connection_posts';
-// Phase 55 D-09/D-12: the daily-posts cache (a single JSON blob) write-throughs
-// to one row in the SQLite `posts` table. The localStorage mirror stays the
-// synchronous read path (loadCache); SQLite is the durable store.
+// Phase 55-07: the daily-posts cache (a single JSON blob) persists ONLY to one
+// row in the IndexedDB `posts` table. The module-level `_cache` mirror is the
+// synchronous read+write path (starts empty, hydrated from IndexedDB at boot).
+// No localStorage write for `trellis_daily_posts` anymore.
 const DAILY_POSTS_SQLITE_ROW_ID = 'daily_posts_cache';
+
+// In-memory daily-posts cache mirror. Holds the LAST written CachedDailyPosts
+// blob; loadCache() applies the same midnight stale-date rejection the prior
+// localStorage read did.
+let _cache: CachedDailyPosts | null = null;
 const MAX_POSTS = 4;
 const CONTEXT_LIMIT = 10;
 
@@ -173,20 +178,19 @@ function isValidDailyPost(value: unknown): value is DailyPost {
 
 function loadCache(): CachedDailyPosts | null {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<CachedDailyPosts>;
+    const parsed = _cache;
     if (
-      typeof parsed?.date !== 'string' ||
-      typeof parsed?.fingerprint !== 'string' ||
-      !Array.isArray(parsed?.posts)
+      !parsed ||
+      typeof parsed.date !== 'string' ||
+      typeof parsed.fingerprint !== 'string' ||
+      !Array.isArray(parsed.posts)
     ) {
       return null;
     }
     // Phase 36-11: stale cache rejection. The served-posts cache must NOT
     // carry across midnight — yesterday's served posts have already been
     // shown to the user and should not render as "today's feed". This is the
-    // symmetric counterpart to post-queue.service.ts's load() rehydration.
+    // symmetric counterpart to post-queue.service.ts's new-day rehydration.
     // See .planning/phases/36-.../36-UAT.md round-3 sub-issue (b cause #2)
     // and (d) — second Force-New-Day was rendering the previous-state served
     // posts because of this missing date check.
@@ -216,19 +220,15 @@ function loadCache(): CachedDailyPosts | null {
 }
 
 function saveCache(cache: CachedDailyPosts): void {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(cache));
-  } catch {
-    // ignore cache persistence failures
-  }
-  // SQLite write-through (D-09/D-12) — fire-and-forget single-row upsert into
+  _cache = cache;
+  // IndexedDB write-through (D-09/D-12) — fire-and-forget single-row upsert into
   // the `posts` table. served_at carries the cache date as an epoch for coarse
   // ordering; the full cache blob lives in `data`.
   void dbExecute('INSERT OR REPLACE INTO posts (id, data, served_at) VALUES (?, ?, ?)', [
     DAILY_POSTS_SQLITE_ROW_ID,
     JSON.stringify(cache),
     Date.parse(cache.date) || Date.now(),
-  ]).catch(() => { /* SQLite unavailable — localStorage mirror is the read path */ });
+  ]).catch(() => { /* IndexedDB unavailable — in-memory mirror is the read path */ });
 }
 
 let _hydratedDailyPosts = false;
@@ -245,20 +245,21 @@ export async function hydrateDailyPostsFromSQLite(): Promise<void> {
   if (_hydratedDailyPosts) return;
   _hydratedDailyPosts = true;
   try {
-    if (localStorage.getItem(STORAGE_KEY)) return; // mirror already has data — trust it
+    if (_cache) return; // mirror already has data — trust it
     const rows = await dbQuery<{ id: string; data: string }>(
       'SELECT * FROM posts WHERE id = ?', [DAILY_POSTS_SQLITE_ROW_ID],
     );
     if (rows.length === 0) return;
-    try {
-      // Write the blob back to the mirror; loadCache() validates date/shape on read.
-      localStorage.setItem(STORAGE_KEY, rows[0].data);
-    } catch { /* ignore */ }
+    let parsed: CachedDailyPosts | null = null;
+    try { parsed = JSON.parse(rows[0].data) as CachedDailyPosts; } catch { return; }
+    _cache = parsed;
+    // loadCache() validates date/shape on read (midnight stale rejection); only
+    // emit a resync if the restored cache is still valid for today.
     if (loadCache()) {
       eventBus.emit({ type: 'GRAPH_UPDATED' });
     }
   } catch {
-    // SQLite unavailable — silently skip
+    // IndexedDB unavailable — silently skip
   }
 }
 
@@ -1805,7 +1806,8 @@ export const conceptFeedService = {
 
   /** Explicitly clear the post cache (e.g. after "Clear All Data"). */
   clearCache(): void {
-    try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
+    _cache = null;
+    void dbExecute('DELETE FROM posts WHERE id = ?', [DAILY_POSTS_SQLITE_ROW_ID]).catch(() => { /* ignore */ });
     try { sessionStorage.removeItem(CONNECTION_POSTS_KEY); } catch { /* ignore */ }
   },
 

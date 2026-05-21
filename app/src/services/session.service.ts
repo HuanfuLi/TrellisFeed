@@ -5,8 +5,13 @@ import { t } from '../lib/i18n-leaf.ts';
 import { conceptFeedService } from './concept-feed.service';
 import { dbExecute, dbQuery } from './db.service.ts';
 
-const SESSIONS_KEY = 'trellis_sessions';
+// Phase 55-07: the sessions ARRAY persists ONLY to IndexedDB. The module-level
+// `_store` is the synchronous read+write mirror (starts empty, hydrated from
+// IndexedDB at boot). The tiny active-session-ID pointer (ACTIVE_ID_KEY) stays
+// in localStorage — it is a boot-critical pref, not a heavy store.
 const ACTIVE_ID_KEY = 'trellis_active_session';
+
+let _store: ChatSession[] = [];
 
 let idCounter = Date.now();
 function newId(): string {
@@ -14,27 +19,14 @@ function newId(): string {
 }
 
 function loadAll(): ChatSession[] {
-  try {
-    const raw = localStorage.getItem(SESSIONS_KEY);
-    if (!raw) return [];
-    return JSON.parse(raw) as ChatSession[];
-  } catch (e) {
-    toast(t('common.toast.chatHistoryLoadFailed'), 'error');
-    console.error('sessionService.loadAll:', e);
-    return [];
-  }
+  return _store;
 }
 
 function saveAll(sessions: ChatSession[]): void {
-  try {
-    localStorage.setItem(SESSIONS_KEY, JSON.stringify(sessions));
-  } catch (e) {
-    if (e instanceof DOMException && e.name === 'QuotaExceededError') {
-      toast(t('common.toast.storageFullChatHistory'), 'error');
-    }
-  }
-  // SQLite write-through (D-09/D-12) — transaction-wrapped full-table snapshot.
-  // The localStorage mirror stays the synchronous read path; SQLite is durable.
+  _store = sessions;
+  // IndexedDB write-through (D-09/D-12) — transaction-wrapped full-table
+  // snapshot. The in-memory mirror is the synchronous read path; IndexedDB is
+  // the sole durable store.
   void (async () => {
     try {
       await dbExecute('BEGIN');
@@ -68,11 +60,11 @@ export async function hydrateSessionsFromSQLite(): Promise<void> {
       try { toAdd.push(JSON.parse(row.data) as ChatSession); } catch { /* skip corrupt */ }
     }
     if (toAdd.length > 0) {
-      try { localStorage.setItem(SESSIONS_KEY, JSON.stringify(toAdd)); } catch { /* ignore */ }
+      _store = toAdd;
       eventBus.emit({ type: 'SESSION_UPDATED', payload: { id: '*' } });
     }
   } catch {
-    // SQLite unavailable — silently skip
+    // IndexedDB unavailable — silently skip
   }
 }
 

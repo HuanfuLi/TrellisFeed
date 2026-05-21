@@ -36,6 +36,7 @@ import { hydrateFlashcardsFromSQLite } from './services/flashcard.service';
 import { hydrateCollectionsFromSQLite } from './services/collection.service';
 import { hydrateEngagementFromSQLite } from './services/engagement.service';
 import { hydratePodcastsFromSQLite } from './services/podcast.service';
+import { clearLegacyHeavyLocalStorageKeys } from './services/db.service';
 import { useKeyboard } from './state/useKeyboard';
 import { bootstrapImageGeneration } from './services/imageGeneration.bootstrap';
 import { applyTheme } from './lib/theme';
@@ -334,36 +335,55 @@ const router = createBrowserRouter([
   },
 ]);
 
-// Phase 55 D-12: hydrate EVERY migrated heavy-store service's in-memory mirror
-// from SQLite once on boot. void-fired (non-blocking) so it never gates first
-// render — on a clean D-11 cutover the mirrors start empty and SQLite is empty,
-// so there is no empty-state flash. Each hydrate emits its own resync event
-// (GRAPH_UPDATED / SESSION_UPDATED / ENGAGEMENT_CHANGED / COLLECTIONS_CHANGED /
-// FLASHCARDS_CREATED) so always-mounted screens re-read without a refresh.
-function hydrateAllFromSQLite(): void {
-  void hydrateFromSQLite();            // questions
-  void hydratePlannerFromSQLite();     // planner chunks/threads/checkins
-  void hydrateDailyPostsFromSQLite();  // concept-feed daily-posts cache
-  void hydrateQueueFromSQLite();       // post-queue state
-  void hydratePostHistoryFromSQLite(); // post history
-  void hydrateSessionsFromSQLite();    // chat sessions
-  void hydrateFlashcardsFromSQLite();  // flashcards
-  void hydrateCollectionsFromSQLite(); // collections
-  void hydrateEngagementFromSQLite();  // saved/liked/dismissed
-  void hydratePodcastsFromSQLite();    // podcast metadata
+// Phase 55-07: hydrate EVERY migrated heavy-store service's in-memory mirror
+// from IndexedDB once on boot. AWAITED (Promise.all) before the main app
+// renders — IndexedDB reads are async and the in-memory mirrors are now the SOLE
+// synchronous read path, so first render MUST wait for hydration or post-boot
+// reads return empty (empty-feed flash, premature refill against an empty queue).
+// Each hydrate emits its own resync event (GRAPH_UPDATED / SESSION_UPDATED /
+// ENGAGEMENT_CHANGED / COLLECTIONS_CHANGED / FLASHCARDS_CREATED) so always-mounted
+// screens re-read without a refresh.
+//
+// AFTER hydration completes, the one-time D-11 cutover sweep removes the now-stale
+// legacy heavy localStorage keys — ONLY after the mirrors are restored from
+// IndexedDB, never before (a pre-hydrate clear would discard data if IndexedDB
+// were somehow staler; the dual-write means IndexedDB is current).
+async function hydrateAllFromSQLite(): Promise<void> {
+  await Promise.all([
+    hydrateFromSQLite(),            // questions
+    hydratePlannerFromSQLite(),     // planner chunks/threads/checkins
+    hydrateDailyPostsFromSQLite(),  // concept-feed daily-posts cache
+    hydrateQueueFromSQLite(),       // post-queue state
+    hydratePostHistoryFromSQLite(), // post history
+    hydrateSessionsFromSQLite(),    // chat sessions
+    hydrateFlashcardsFromSQLite(),  // flashcards
+    hydrateCollectionsFromSQLite(), // collections
+    hydrateEngagementFromSQLite(),  // saved/liked/dismissed
+    hydratePodcastsFromSQLite(),    // podcast metadata
+  ]);
+  // One-time stale-key sweep (quota reclamation) — safe now that every mirror is
+  // populated from the durable IndexedDB store.
+  clearLegacyHeavyLocalStorageKeys();
 }
 
 export default function App() {
-  // Hydrate data from SQLite on app start (no-op on web)
+  // Gate first render on hydration so post-boot synchronous mirror reads have
+  // data (no empty-feed flash, no premature refill against an empty queue).
+  const [hydrated, setHydrated] = useState(false);
+
+  // Hydrate data from IndexedDB on app start, THEN reveal the app.
   useEffect(() => {
-    hydrateAllFromSQLite();
+    let cancelled = false;
+    void hydrateAllFromSQLite().finally(() => {
+      if (!cancelled) setHydrated(true);
+    });
     // Bootstrap image generation providers with keys from user settings.
     bootstrapImageGeneration();
     // Start foreground scheduler (60s poll + app resume checks)
     startScheduler();
     // Schedule native OS notifications for podcast/review reminders
     void scheduleNativeNotifications();
-    return () => { stopScheduler(); };
+    return () => { cancelled = true; stopScheduler(); };
   }, []);
 
   // Keep theme in sync when the OS switches between light/dark while app is open
@@ -403,6 +423,29 @@ export default function App() {
     }).then((handle) => { listenerHandle = handle; });
     return () => { void listenerHandle?.remove(); };
   }, []);
+
+  // Minimal neutral loading placeholder until the IndexedDB hydration resolves.
+  // Plain on purpose — a spinner on the app surface color avoids a flash of an
+  // empty feed / premature feed-refill against an empty in-memory queue.
+  if (!hydrated) {
+    return (
+      <div
+        style={{
+          position: 'fixed',
+          inset: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'var(--surface)',
+        }}
+      >
+        <Loader2
+          size={28}
+          style={{ animation: 'spin 1s linear infinite', color: 'var(--primary-40)' }}
+        />
+      </div>
+    );
+  }
 
   return <RouterProvider router={router} />;
 }

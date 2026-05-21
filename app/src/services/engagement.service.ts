@@ -29,10 +29,11 @@ import { postHistoryService } from './post-history.service.ts';
 import { collectionService } from './collection.service.ts';
 import { dbExecute, dbQuery } from './db.service.ts';
 
-const STORAGE_KEY = 'trellis_engagement_v1';
-// Phase 55 D-09/D-12: engagement state (a single JSON blob of saved/liked/
-// dismissed/savedPodcasts ID arrays) write-throughs to one row in the SQLite
-// `engagement` table. localStorage mirror stays the synchronous read path.
+// Phase 55-07: engagement state (a single JSON blob of saved/liked/dismissed/
+// savedPodcasts ID arrays) persists to one row in the IndexedDB `engagement`
+// table. The in-memory mirror is the synchronous read path; the legacy
+// `trellis_engagement_v1` localStorage key is no longer written (cleared on the
+// D-11 cutover sweep in db.service.ts clearAllTables).
 const SQLITE_ROW_ID = 'engagement_state';
 
 interface EngagementState {
@@ -46,36 +47,34 @@ function freshState(): EngagementState {
   return { saved: [], liked: [], dismissed: [], savedPodcasts: [] };
 }
 
+// Phase 55-07: engagement state persists ONLY to IndexedDB (single-row blob).
+// The module-level `_state` is the synchronous read+write mirror (starts empty,
+// hydrated from IndexedDB at boot). No localStorage write for `trellis_engagement_v1`.
+let _state: EngagementState = freshState();
+
 function loadState(): EngagementState {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return freshState();
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object') return freshState();
-    const p = parsed as Partial<EngagementState>;
-    return {
-      saved: Array.isArray(p.saved) ? p.saved : [],
-      liked: Array.isArray(p.liked) ? p.liked : [],
-      dismissed: Array.isArray(p.dismissed) ? p.dismissed : [],
-      // Additive field (no migration — pre-feature payloads load with []).
-      savedPodcasts: Array.isArray(p.savedPodcasts) ? p.savedPodcasts : [],
-    };
-  } catch {
-    return freshState();
-  }
+  // Return a copy with fresh arrays so callers that mutate (push/filter) don't
+  // corrupt the mirror until they call saveState.
+  return {
+    saved: [..._state.saved],
+    liked: [..._state.liked],
+    dismissed: [..._state.dismissed],
+    savedPodcasts: [..._state.savedPodcasts],
+  };
 }
 
 function saveState(state: EngagementState): void {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  } catch {
-    // localStorage quota exceeded — silently drop
-  }
-  // SQLite write-through (D-09/D-12) — fire-and-forget single-row upsert.
+  _state = {
+    saved: [...state.saved],
+    liked: [...state.liked],
+    dismissed: [...state.dismissed],
+    savedPodcasts: [...state.savedPodcasts],
+  };
+  // IndexedDB write-through (D-09/D-12) — fire-and-forget single-row upsert.
   void dbExecute('INSERT OR REPLACE INTO engagement (id, data) VALUES (?, ?)', [
     SQLITE_ROW_ID,
     JSON.stringify(state),
-  ]).catch(() => { /* SQLite unavailable — localStorage mirror is the read path */ });
+  ]).catch(() => { /* IndexedDB unavailable — in-memory mirror is the read path */ });
 }
 
 let _hydratedEngagement = false;
@@ -108,11 +107,11 @@ export async function hydrateEngagementFromSQLite(): Promise<void> {
     };
     const restored = next.saved.length || next.liked.length || next.dismissed.length || next.savedPodcasts.length;
     if (restored) {
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+      _state = next;
       eventBus.emit({ type: 'ENGAGEMENT_CHANGED', payload: { kind: 'save', id: '*' } });
     }
   } catch {
-    // SQLite unavailable — silently skip
+    // IndexedDB unavailable — silently skip
   }
 }
 

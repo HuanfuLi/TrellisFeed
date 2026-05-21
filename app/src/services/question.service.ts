@@ -1,7 +1,6 @@
 import type { Question, ServiceResult, AskResult, SessionMessage } from '../types/index.ts';
 import { today } from '../lib/date.ts';
 import { eventBus } from '../lib/event-bus.ts';
-import { toast } from '../lib/toast.ts';
 import { t } from '../lib/i18n-leaf.ts';
 import { settingsService } from './settings.service.ts';
 import { chatCompletion } from '../providers/llm/index.ts';
@@ -14,7 +13,14 @@ import {
 } from './canonical-knowledge.service.ts';
 import { evaluateQuestion as filterQuestion, type QuestionFilterContext, type FilterResult } from './question-filter.service.ts';
 
-const STORAGE_KEY = 'trellis_questions';
+// ─── In-memory mirror (Phase 55-07 — IndexedDB is the SOLE heavy persistence) ──
+// The questions store is held in a module-level array that is the SYNCHRONOUS
+// read+write source at runtime. Persistence is IndexedDB ONLY (persistToSQLite /
+// deleteFromSQLite). The mirror starts EMPTY and is populated from IndexedDB at
+// boot by the hydrate fn below (App.tsx awaits it before first render). There is
+// no localStorage write-through for `trellis_questions` — the dual-write that
+// defeated the 55-05 quota goal is removed here.
+let _store: Question[] = [];
 
 // ─── Float32 vector ↔ base64 codec (D-13) ────────────────────────────────────
 // Embedding vectors persist as a Float32 binary BLOB (base64-encoded) in a
@@ -88,38 +94,26 @@ async function deleteFromSQLite(id: string): Promise<void> {
 let hydrated = false;
 
 /**
- * On startup, if localStorage is EMPTY, restore the full question store from SQLite.
+ * On boot, populate the in-memory mirror from IndexedDB (the SOLE heavy store).
  *
  * ── Load-bearing invariant (do not regress) ─────────────────────────────────
- * localStorage is the PRIMARY source of truth. SQLite is a cold backup that
- * survives localStorage eviction (Safari 7-day purge, manual clear, WebView
- * reinstall).
+ * The in-memory `_store` is the synchronous runtime source of truth; IndexedDB
+ * is the durable persistence. The mirror starts EMPTY, so the delete-guard
+ * (`if (existing.length > 0) return`) lets the FIRST hydrate populate it while
+ * still preventing a late async hydrate from clobbering rows the user created
+ * between boot and hydration completing.
  *
- * The previous "merge any missing rows" implementation resurrected deleted
- * nodes on cold restart: `deleteFromSQLite` is fire-and-forget, so if the
- * app is backgrounded/killed in the ~10-100ms between `saveStore(filtered)`
- * and the SQLite DELETE flushing, SQLite keeps the row. On the next launch,
- * the old logic saw "row in SQLite but not localStorage" and restored it —
- * flipping user deletes back. This was the "I did nothing and deleted nodes
- * came back" symptom (2026-04-21 report).
- *
- * The restore-if-empty rule is safe in both directions:
- *   - Fresh install / cleared storage → localStorage empty → full SQLite restore
- *   - Active session with some deletes → localStorage has rows → trust it,
- *     never merge from SQLite
- *
- * If a future feature needs finer-grained reconciliation (e.g. multi-device
- * sync), route it through a migration path that tracks tombstones explicitly
- * instead of inferring deletes from presence.
+ * The guard also prevents deleted-row resurrection: `delete()` awaits the
+ * IndexedDB DELETE, so a deleted row is gone from durable storage; a re-hydrate
+ * over an already-populated mirror is a no-op and never re-reads stale rows.
  */
 export async function hydrateFromSQLite(): Promise<void> {
   if (hydrated) return;
   hydrated = true;
   try {
     const existing = loadStore({ includeFlagged: true });
-    // Delete-guard (D-12 / T-55-05a) — PRESERVED across the SQLite-primary
-    // inversion: if the mirror already has rows this session, trust it; never
-    // merge from SQLite or deletes get resurrected.
+    // Delete-guard (D-12 / T-55-05a) — if the mirror already has rows this
+    // session, trust it; never merge from IndexedDB or deletes get resurrected.
     if (existing.length > 0) return;
 
     // Reassemble embeddingVector from the BLOB column (D-13, stripped from JSON).
@@ -142,7 +136,7 @@ export async function hydrateFromSQLite(): Promise<void> {
       eventBus.emit({ type: 'GRAPH_UPDATED' });
     }
   } catch {
-    // SQLite not available (web without capacitor) — silently skip
+    // IndexedDB not available (Node test runner) — silently skip
   }
 }
 
@@ -158,25 +152,19 @@ function newId(): string {
   return `q-${++idCounter}`;
 }
 
+// Read the in-memory mirror. Returns a fresh deep copy so callers that mutate
+// the returned array (read-modify-write) cannot corrupt the mirror until they
+// call saveStore — preserving the exact semantic the prior JSON.parse provided.
 function loadStore(opts?: { includeFlagged?: boolean }): Question[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const questions = JSON.parse(raw) as Question[];
-    return opts?.includeFlagged ? questions : questions.filter((q) => !q.flagged);
-  } catch {
-    return [];
-  }
+  const copy = structuredClone(_store);
+  return opts?.includeFlagged ? copy : copy.filter((q) => !q.flagged);
 }
 
+// Write the in-memory mirror. IndexedDB persistence happens via persistToSQLite
+// / deleteFromSQLite at each mutation site (NOT here) — there is no localStorage
+// write for `trellis_questions` anymore.
 function saveStore(questions: Question[]): void {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(questions));
-  } catch (e) {
-    if (e instanceof DOMException && e.name === 'QuotaExceededError') {
-      toast(t('common.toast.storageFullQuestion'), 'error');
-    }
-  }
+  _store = structuredClone(questions);
 }
 
 // Derive a short display title from the user's raw question text.
