@@ -725,7 +725,13 @@ export async function preCheckAnchorMatch(
   let queryVec = question.embeddingVector;
   if (!queryVec || queryVec.length === 0) {
     try {
-      queryVec = await embedText(question.content.trim(), embCfg);
+      // Phase 55 D-07: embed the BARE content (no .trim()) so this query vector
+      // shares the embed-cache key with the filter rawVec (question-filter:173)
+      // and the retrieval embed (question.service:253), which both embed the
+      // same raw `content`. The filter runs first in askStreaming, so this
+      // pre-check call is normally a cache hit (or skipped entirely when the
+      // pre-computed embeddingVector is already present).
+      queryVec = await embedText(question.content, embCfg);
     } catch (err) {
       console.warn('[Trellis] pre-check query embedding failed:', err instanceof Error ? err.message : err);
       return null;

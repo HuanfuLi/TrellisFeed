@@ -7,7 +7,7 @@ import { Header } from '../../components/ui/Header';
 import { settingsService } from '../../services/settings.service';
 import { testLLMConnection } from '../../providers/llm';
 import { testTTSConnection } from '../../providers/tts';
-import { embedText } from '../../providers/embedding';
+import { embedText, clearEmbedCache } from '../../providers/embedding';
 import { toast } from '../../lib/toast';
 import type { LLMConfig, TTSConfig, EmbeddingConfig, EmbeddingDebugConfig } from '../../types';
 import {
@@ -51,6 +51,13 @@ export function SettingsAIScreen() {
     const isConfigured =
       current.provider === 'local' || current.provider === 'lmstudio' ? !!current.baseUrl :
         !!current.apiKey;
+    // Phase 55 D-07 / Pitfall 5: when the embedding provider or model changes,
+    // invalidate the in-memory session embed cache so a stale, wrong-dimensionality
+    // vector from the previous model can never be returned for the new one.
+    const prev = settingsService.getSync().embedding;
+    if (prev.provider !== current.provider || prev.model !== current.model) {
+      clearEmbedCache();
+    }
     settingsService.set('embedding', { ...current, isConfigured });
   };
 
