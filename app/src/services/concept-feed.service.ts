@@ -30,9 +30,14 @@ import {
 import { spreadByStyle, spreadByConcept } from './feed-spread.ts';
 export { spreadByStyle, spreadByConcept };
 import { createPromiseMutex } from './refill-mutex.ts';
+import { dbExecute, dbQuery } from './db.service.ts';
 
 const STORAGE_KEY = 'trellis_daily_posts';
 const CONNECTION_POSTS_KEY = 'trellis_connection_posts';
+// Phase 55 D-09/D-12: the daily-posts cache (a single JSON blob) write-throughs
+// to one row in the SQLite `posts` table. The localStorage mirror stays the
+// synchronous read path (loadCache); SQLite is the durable store.
+const DAILY_POSTS_SQLITE_ROW_ID = 'daily_posts_cache';
 const MAX_POSTS = 4;
 const CONTEXT_LIMIT = 10;
 
@@ -215,6 +220,45 @@ function saveCache(cache: CachedDailyPosts): void {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(cache));
   } catch {
     // ignore cache persistence failures
+  }
+  // SQLite write-through (D-09/D-12) — fire-and-forget single-row upsert into
+  // the `posts` table. served_at carries the cache date as an epoch for coarse
+  // ordering; the full cache blob lives in `data`.
+  void dbExecute('INSERT OR REPLACE INTO posts (id, data, served_at) VALUES (?, ?, ?)', [
+    DAILY_POSTS_SQLITE_ROW_ID,
+    JSON.stringify(cache),
+    Date.parse(cache.date) || Date.now(),
+  ]).catch(() => { /* SQLite unavailable — localStorage mirror is the read path */ });
+}
+
+let _hydratedDailyPosts = false;
+
+/**
+ * Boot hydration (D-12) for the daily-posts cache. When the localStorage mirror
+ * is empty (D-11 clean-cutover state) restore the single cache row from SQLite.
+ * Guarded so a populated mirror is never overwritten. loadCache() already
+ * rejects a stale (non-today) cache, so writing the blob back and letting the
+ * normal read path validate it preserves the midnight stale-rejection semantics.
+ * Emits GRAPH_UPDATED so HomeScreen resyncs (no-refresh assumption).
+ */
+export async function hydrateDailyPostsFromSQLite(): Promise<void> {
+  if (_hydratedDailyPosts) return;
+  _hydratedDailyPosts = true;
+  try {
+    if (localStorage.getItem(STORAGE_KEY)) return; // mirror already has data — trust it
+    const rows = await dbQuery<{ id: string; data: string }>(
+      'SELECT * FROM posts WHERE id = ?', [DAILY_POSTS_SQLITE_ROW_ID],
+    );
+    if (rows.length === 0) return;
+    try {
+      // Write the blob back to the mirror; loadCache() validates date/shape on read.
+      localStorage.setItem(STORAGE_KEY, rows[0].data);
+    } catch { /* ignore */ }
+    if (loadCache()) {
+      eventBus.emit({ type: 'GRAPH_UPDATED' });
+    }
+  } catch {
+    // SQLite unavailable — silently skip
   }
 }
 

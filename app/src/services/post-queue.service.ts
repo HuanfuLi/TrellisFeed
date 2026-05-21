@@ -7,8 +7,15 @@ import type { DailyPost } from '../types/index.ts';
 // feed-spread.ts (zero transitive deps on settings/locales chains, so this
 // import is safe under node --test).
 import { spreadByConcept, spreadByStyle } from './feed-spread.ts';
+import { eventBus } from '../lib/event-bus.ts';
+import { dbExecute, dbQuery } from './db.service.ts';
 
 const STORAGE_KEY = 'trellis_post_queue';
+// Phase 55 D-09/D-12: SQLite single-row durable mirror of the queue state. The
+// in-memory `_state` (loaded from localStorage at module init) remains the
+// synchronous read path; SQLite write-through happens in save(). The whole
+// QueueState serializes to one row keyed by this id.
+const SQLITE_ROW_ID = 'queue_state';
 // Phase 36 GAP-D Fix A (2026-05-07): durable yesterday snapshot key. The live
 // STORAGE_KEY is overwritten by the very first save() of today's queue, so a
 // single-key implementation of getYesterdayQueue() is destroyed within
@@ -144,9 +151,48 @@ function save(state: QueueState): void {
   } catch (err) {
     console.warn('[postQueueService] localStorage save failed:', err);
   }
+  // SQLite write-through (D-09/D-12) — fire-and-forget single-row upsert.
+  void dbExecute('INSERT OR REPLACE INTO post_queue (id, data) VALUES (?, ?)', [
+    SQLITE_ROW_ID,
+    JSON.stringify(state),
+  ]).catch(() => { /* SQLite unavailable — localStorage mirror is the read path */ });
 }
 
 let _state: QueueState = load();
+
+let _hydratedQueue = false;
+
+/**
+ * Boot hydration (D-12). When the in-memory mirror is empty (D-11 clean-cutover
+ * state) restore the queue state from SQLite's single row. Guarded so a
+ * populated mirror is never overwritten. Re-runs the same-day / new-day branch
+ * logic of load() against the SQLite payload so the 3-list pipeline semantics
+ * (derived-list append-only, cyclic queue, new-day rehydration) are preserved.
+ * Emits GRAPH_UPDATED so always-mounted screens resync (no-refresh assumption).
+ */
+export async function hydrateQueueFromSQLite(): Promise<void> {
+  if (_hydratedQueue) return;
+  _hydratedQueue = true;
+  try {
+    if (_state.posts.length > 0 || _state.derivedList.length > 0) return; // mirror has data — trust it
+    const rows = await dbQuery<{ id: string; data: string }>(
+      'SELECT * FROM post_queue WHERE id = ?', [SQLITE_ROW_ID],
+    );
+    if (rows.length === 0) return;
+    let parsed: Partial<QueueState>;
+    try { parsed = JSON.parse(rows[0].data) as Partial<QueueState>; } catch { return; }
+    // Reuse load()'s normalization by writing the SQLite payload back to the
+    // localStorage mirror and re-running load() — this preserves the date-mismatch
+    // rehydration + defensive-default branches without duplicating them.
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed)); } catch { /* ignore */ }
+    _state = load();
+    if (_state.posts.length > 0 || _state.derivedList.length > 0) {
+      eventBus.emit({ type: 'GRAPH_UPDATED' });
+    }
+  } catch {
+    // SQLite unavailable — silently skip
+  }
+}
 
 export const postQueueService = {
   /** Get a shallow copy of the current queue. */
