@@ -99,7 +99,6 @@ export function PodcastScreen() {
     // lives on location.state and is read by an unrelated effect below.
     // Only strip the conceptFilter* fields and preserve the rest.
     if (state && (state.conceptFilterQaIds || state.conceptTitle)) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { conceptFilterQaIds: _qa, conceptTitle: _ct, ...rest } = state;
       navigate(location.pathname, { replace: true, state: Object.keys(rest).length > 0 ? rest : null });
     }

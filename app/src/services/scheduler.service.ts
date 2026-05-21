@@ -73,7 +73,7 @@ async function checkPodcast(): Promise<void> {
     : now >= effectiveTrigger || now < sleepMin;
 
   const fmt = (m: number) => `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`;
-  console.log(`[Scheduler:podcast] now=${fmt(now)} trigger=${fmt(effectiveTrigger)} sleep=${settings.podcast.sleepTime} adv=${advance} isPast=${isPast} done=${doneToday} auto=${settings.podcast.autoGenerate} llm=${settings.llm.isConfigured} tts=${settings.tts.isConfigured}`);
+  console.warn(`[Scheduler:podcast] now=${fmt(now)} trigger=${fmt(effectiveTrigger)} sleep=${settings.podcast.sleepTime} adv=${advance} isPast=${isPast} done=${doneToday} auto=${settings.podcast.autoGenerate} llm=${settings.llm.isConfigured} tts=${settings.tts.isConfigured}`);
 
   if (doneToday) return;
   if (!settings.podcast.autoGenerate) return;
@@ -81,7 +81,7 @@ async function checkPodcast(): Promise<void> {
   if (!isPast) return;
 
   markDoneToday(PODCAST_DONE_KEY);
-  console.log('[Scheduler] Triggering podcast generation at', `${Math.floor(now / 60)}:${String(now % 60).padStart(2, '0')}`, `(trigger was ${Math.floor(effectiveTrigger / 60)}:${String(effectiveTrigger % 60).padStart(2, '0')})`);
+  console.warn('[Scheduler] Triggering podcast generation at', `${Math.floor(now / 60)}:${String(now % 60).padStart(2, '0')}`, `(trigger was ${Math.floor(effectiveTrigger / 60)}:${String(effectiveTrigger % 60).padStart(2, '0')})`);
   toast(t('common.toast.generatingDailyPodcast'), 'info');
 
   try {
@@ -110,7 +110,7 @@ async function checkPlanner(): Promise<void> {
   if (!plannerAutoGenService.isDailyRefreshNeeded()) return;
 
   markDoneToday(PLANNER_DONE_KEY);
-  console.log('[Scheduler] Triggering planner refresh');
+  console.warn('[Scheduler] Triggering planner refresh');
 
   try {
     await plannerAutoGenService.generateAndStoreSuggestions(false);
@@ -134,7 +134,7 @@ function checkReviewReminder(): void {
   if (now < reminderMin) return;
 
   markDoneToday(REVIEW_DONE_KEY);
-  console.log('[Scheduler] Review reminder triggered');
+  console.warn('[Scheduler] Review reminder triggered');
   toast(t('common.toast.reviewReminder'), 'info');
   eventBus.emit({ type: 'REVIEW_DUE_COUNT_CHANGED', payload: { count: -1 } });
 }
@@ -169,13 +169,13 @@ export function startScheduler(): void {
   if (Capacitor.isNativePlatform()) {
     void CapApp.addListener('appStateChange', ({ isActive }) => {
       if (isActive) {
-        console.log('[Scheduler] App resumed — running checks');
+        console.warn('[Scheduler] App resumed — running checks');
         void runAllChecks();
       }
     }).then((handle) => { _appStateHandle = handle; });
   }
 
-  console.log('[Scheduler] Started (60s poll + resume check)');
+  console.warn('[Scheduler] Started (60s poll + resume check)');
 }
 
 export function stopScheduler(): void {
@@ -187,5 +187,5 @@ export function stopScheduler(): void {
     void _appStateHandle.remove();
     _appStateHandle = null;
   }
-  console.log('[Scheduler] Stopped');
+  console.warn('[Scheduler] Stopped');
 }
