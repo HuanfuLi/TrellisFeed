@@ -23,7 +23,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 ### 🚧 v1.7 Cleanup, Hardening & Rewards (In Progress)
 
 - [ ] **Phase 54: Code Quality, Bugs & Tech Debt** - Inventory and resolve high-priority tech debt, audit and fix bugs, close carried-over debug sessions, verify auto-gen podcast on device
-- [ ] **Phase 55: Algorithm & Mechanism Tuning** - Review and tune numeric thresholds with documented rationale; test and tune filter, recommendation, feed randomizer, and "like" mechanisms
+- [ ] **Phase 55: Algorithm & Mechanism Tuning** - Review and tune numeric thresholds with documented rationale; test and tune filter, recommendation, feed randomizer, and "like" mechanisms; migrate the heavy store layer to SQLite-primary
 - [ ] **Phase 56: UI Polish & Documentation** - Sweep screens against a polish checklist, fix animations and navigation paths, archive/update stale docs, verify CLAUDE.md against code
 - [ ] **Phase 57: Rewards Foundation — Data Model & Service** - Lock cosmeticsService, credit subtraction, events, theme CSS blocks, Clear-All-Data preservation, and the non-pushy guardrail before any UI
 - [ ] **Phase 58: Rewards Core Shop Loop — Themes** - ShopScreen browse/preview/buy/equip with color themes, dual entry points, always-mounted resync, and 4-locale UI strings
@@ -48,14 +48,20 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] 54-04-PLAN.md — TECHDEBT-13 top-tier resolution: delete dead code, clear lint, operator decision
 
 ### Phase 55: Algorithm & Mechanism Tuning
-**Goal**: The app's numeric thresholds and signal-driven mechanisms behave as intended and are tuned with documented, test-backed rationale rather than guesswork.
+**Goal**: The app's numeric thresholds and signal-driven mechanisms behave as intended and are tuned with documented, test-backed rationale rather than guesswork; the heavy store layer escapes the localStorage quota by migrating to a SQLite-primary backend.
 **Depends on**: Phase 54
 **Requirements**: TUNE-01, TUNE-02
 **Success Criteria** (what must be TRUE):
   1. Classification-dedup and filter cosine-similarity thresholds are reviewed and set to documented values, and the cosine-similarity threshold cache-miss todo is resolved
   2. The filter mechanism is exercised against expected behavior (off-topic, on-topic, malicious) and any threshold drift is corrected without re-opening the buried-payload evasion surface
   3. The recommendation, feed-randomizer, and "like"-signal mechanisms are tested against expected behavior and tuned, with each tuned constant accompanied by a rationale comment
-**Plans**: TBD
+  4. The heavy/growing text stores migrate off localStorage to a SQLite-primary backend (WASM SQLite in the browser, native on device) with the synchronous service-read API preserved via an in-memory mirror, embedding vectors stored as Float32 BLOBs, a clean cutover, and the delete-guard + always-mounted resync intact (folded scope, D-09..D-13)
+**Plans**: 5 plans
+- [ ] 55-01-PLAN.md — Wave 0 test scaffolds + @sqlite.org/sqlite-wasm OPFS spike (migration go/no-go gate)
+- [ ] 55-02-PLAN.md — In-memory embed cache + pipeline hand-off (TUNE-01, folded cache-miss todo)
+- [ ] 55-03-PLAN.md — Threshold audit: per-threshold debug knobs + malicious clamp + golden fixtures (TUNE-01/02, security)
+- [ ] 55-04-PLAN.md — Like-signal → derived-list multiplicity boost + STYLE_WEIGHTS/trajectory verify-and-keep (TUNE-02)
+- [ ] 55-05-PLAN.md — Storage migration to SQLite-primary (WASM backend, Float32 BLOB, clean cutover, delete-guard) (TUNE-01)
 
 ### Phase 56: UI Polish & Documentation
 **Goal**: Screens look and feel finished within the Android WebView budget, navigation is sound end-to-end, and the project's documentation reflects the current state of the code.
@@ -113,7 +119,7 @@ Phases execute in numeric order: 54 → 55 → 56 → 57 → 58 → 59
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 54. Code Quality, Bugs & Tech Debt | v1.7 | 5/4 | Complete    | 2026-05-21 |
-| 55. Algorithm & Mechanism Tuning | v1.7 | 0/TBD | Not started | - |
+| 55. Algorithm & Mechanism Tuning | v1.7 | 0/5 | Not started | - |
 | 56. UI Polish & Documentation | v1.7 | 0/TBD | Not started | - |
 | 57. Rewards Foundation — Data Model & Service | v1.7 | 0/TBD | Not started | - |
 | 58. Rewards Core Shop Loop — Themes | v1.7 | 0/TBD | Not started | - |
