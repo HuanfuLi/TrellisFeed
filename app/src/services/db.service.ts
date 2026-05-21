@@ -18,6 +18,52 @@ interface DBBackend {
   query<T extends Row>(sql: string, values?: (string | number | null)[]): Promise<T[]>;
 }
 
+// ─── Shared schema (DDL) ──────────────────────────────────────────────────────
+// Phase 55 D-09/D-13: the migration table set is identical across the native
+// SQLiteBackend and the browser WASMSQLiteBackend so a record persisted on one
+// platform round-trips on the other. Both backends run this exact DDL in their
+// _runMigrations(). All statements are idempotent (IF NOT EXISTS) so re-running
+// across hot reloads / re-init is safe.
+//
+// `questions.embedding BLOB` (D-13): the Float32 vector is stored base64-encoded
+// in a dedicated column (see question.service.ts vectorToBase64) instead of as a
+// JSON array inside `data` — ~3x smaller than the JSON form, eliminating the
+// localStorage quota wall that motivated this migration.
+const SHARED_DDL: string[] = [
+  `CREATE TABLE IF NOT EXISTS questions (
+    id TEXT PRIMARY KEY,
+    data TEXT NOT NULL,
+    embedding BLOB
+  )`,
+  `CREATE TABLE IF NOT EXISTS edge_weights (
+    edge_key TEXT PRIMARY KEY,
+    weight INTEGER NOT NULL DEFAULT 0
+  )`,
+  `CREATE TABLE IF NOT EXISTS planner_chunks (
+    id TEXT PRIMARY KEY,
+    data TEXT NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS planner_threads (
+    id TEXT PRIMARY KEY,
+    data TEXT NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS planner_checkins (
+    id TEXT PRIMARY KEY,
+    data TEXT NOT NULL
+  )`,
+  // ── Phase 55 heavy-store tables (D-09) ──────────────────────────────────────
+  `CREATE TABLE IF NOT EXISTS sessions (id TEXT PRIMARY KEY, data TEXT NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS posts (id TEXT PRIMARY KEY, data TEXT NOT NULL, served_at INTEGER)`,
+  `CREATE TABLE IF NOT EXISTS post_queue (id TEXT PRIMARY KEY, data TEXT NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS post_history (id TEXT PRIMARY KEY, data TEXT NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS flashcards (id TEXT PRIMARY KEY, data TEXT NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS collections (id TEXT PRIMARY KEY, data TEXT NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS engagement (id TEXT PRIMARY KEY, data TEXT NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS podcasts (id TEXT PRIMARY KEY, data TEXT NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS news_posts (id TEXT PRIMARY KEY, data TEXT NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS video_cache (id TEXT PRIMARY KEY, data TEXT NOT NULL)`,
+];
+
 // ─── SQLite Backend (Capacitor native) ───────────────────────────────────────
 
 class SQLiteBackend implements DBBackend {
@@ -44,29 +90,7 @@ class SQLiteBackend implements DBBackend {
   }
 
   private async _runMigrations() {
-    const ddl = [
-      `CREATE TABLE IF NOT EXISTS questions (
-        id TEXT PRIMARY KEY,
-        data TEXT NOT NULL
-      )`,
-      `CREATE TABLE IF NOT EXISTS edge_weights (
-        edge_key TEXT PRIMARY KEY,
-        weight INTEGER NOT NULL DEFAULT 0
-      )`,
-      `CREATE TABLE IF NOT EXISTS planner_chunks (
-        id TEXT PRIMARY KEY,
-        data TEXT NOT NULL
-      )`,
-      `CREATE TABLE IF NOT EXISTS planner_threads (
-        id TEXT PRIMARY KEY,
-        data TEXT NOT NULL
-      )`,
-      `CREATE TABLE IF NOT EXISTS planner_checkins (
-        id TEXT PRIMARY KEY,
-        data TEXT NOT NULL
-      )`,
-    ];
-    for (const sql of ddl) {
+    for (const sql of SHARED_DDL) {
       await this.execute(sql);
     }
   }
@@ -174,6 +198,52 @@ class LocalStorageBackend implements DBBackend {
   }
 }
 
+// ─── WASM SQLite Backend (Browser dev + web, Phase 55 D-10) ──────────────────
+// PRIMARY browser backend (55-01 OPFS GO verdict). Uses @sqlite.org/sqlite-wasm
+// with the opfs-sahpool VFS — persistent, OPFS-backed, synchronous
+// SyncAccessHandles, NO SharedArrayBuffer / COOP / COEP required on Chromium.
+// init() throws when OPFS is unavailable (incognito, older browser, insecure
+// context); the getDB() factory catches that and falls back to
+// LocalStorageBackend so a backend-init failure never crashes the app
+// (Pitfall 1 / T-55-05b). Runs the same SHARED_DDL as the native SQLiteBackend
+// so the schema matches across platforms.
+
+class WASMSQLiteBackend implements DBBackend {
+  // Typed as Sqlite3Oo1Db at runtime; `unknown` avoids a hard type dep on the
+  // browser-only package in the native build.
+  private db: unknown = null;
+
+  async init() {
+    const sqlite3InitModule = (await import('@sqlite.org/sqlite-wasm')).default;
+    const sqlite3 = await sqlite3InitModule();
+    // opfs-sahpool: persistent OPFS-backed DB. Throws here if OPFS is
+    // unavailable — the getDB() catch swaps to LocalStorageBackend.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    this.db = new (sqlite3 as any).oo1.OpfsDb('/trellis.sqlite3');
+    await this._runMigrations();
+  }
+
+  private async _runMigrations() {
+    for (const sql of SHARED_DDL) {
+      await this.execute(sql);
+    }
+  }
+
+  async execute(sql: string, values: (string | number | null)[] = []) {
+    if (!this.db) throw new Error('WASMSQLite not initialised');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (this.db as any).exec({ sql, bind: values });
+  }
+
+  async query<T extends Row>(sql: string, values: (string | number | null)[] = []): Promise<T[]> {
+    if (!this.db) throw new Error('WASMSQLite not initialised');
+    const rows: T[] = [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (this.db as any).exec({ sql, bind: values, rowMode: 'object', resultRows: rows });
+    return rows;
+  }
+}
+
 // ─── Singleton ────────────────────────────────────────────────────────────────
 
 let backend: DBBackend | null = null;
@@ -183,10 +253,28 @@ export async function getDB(): Promise<DBBackend> {
   if (backend) return backend;
   if (initPromise) { await initPromise; return backend!; }
 
-  const candidate = Capacitor.isNativePlatform() ? new SQLiteBackend() : new LocalStorageBackend();
+  // Native → real SQLite (connection name 'echolearn' preserved for backwards
+  // compat). Browser → WASMSQLiteBackend (opfs-sahpool) with a graceful
+  // LocalStorageBackend fallback if OPFS init throws (Pitfall 1 / T-55-05b).
+  let candidate: DBBackend;
+  if (Capacitor.isNativePlatform()) {
+    candidate = new SQLiteBackend();
+  } else {
+    candidate = new WASMSQLiteBackend();
+  }
   initPromise = candidate.init().then(() => {
     backend = candidate;
-  }).catch((err) => {
+  }).catch(async (err) => {
+    if (!Capacitor.isNativePlatform() && !(candidate instanceof LocalStorageBackend)) {
+      // OPFS / WASM unavailable — fall back to LocalStorageBackend so the app
+      // never crashes on a backend-init failure. Logged so the operator can
+      // see whether the dev environment is on the WASM path or the fallback.
+      console.warn('[Trellis] WASM SQLite unavailable, falling back to LocalStorageBackend:', err);
+      const fb = new LocalStorageBackend();
+      await fb.init();
+      backend = fb;
+      return;
+    }
     // Reset so callers can retry after a transient failure
     initPromise = null;
     throw err;
@@ -207,7 +295,13 @@ export async function dbQuery<T extends Row>(sql: string, values?: (string | num
   return db.query<T>(sql, values);
 }
 
-/** Wipe all known application tables. Called by "Clear All Data" in Settings. */
+/**
+ * Wipe all known application tables. Called by "Clear All Data" in Settings AND
+ * used as the D-11 clean-cutover sweep (pre-release, no real users): clears every
+ * migrated SQLite table AND removes the legacy heavy-store localStorage keys so
+ * no migrated store survives in localStorage after the cutover (a stale shadow
+ * copy could otherwise re-seed an in-memory mirror — T-55-05e).
+ */
 export async function clearAllTables(): Promise<void> {
   try {
     await dbExecute('DELETE FROM questions');
@@ -215,7 +309,43 @@ export async function clearAllTables(): Promise<void> {
     await dbExecute('DELETE FROM planner_chunks');
     await dbExecute('DELETE FROM planner_threads');
     await dbExecute('DELETE FROM planner_checkins');
+    // ── Phase 55 heavy-store tables (D-09) ──────────────────────────────────
+    await dbExecute('DELETE FROM sessions');
+    await dbExecute('DELETE FROM posts');
+    await dbExecute('DELETE FROM post_queue');
+    await dbExecute('DELETE FROM post_history');
+    await dbExecute('DELETE FROM flashcards');
+    await dbExecute('DELETE FROM collections');
+    await dbExecute('DELETE FROM engagement');
+    await dbExecute('DELETE FROM podcasts');
+    await dbExecute('DELETE FROM news_posts');
+    await dbExecute('DELETE FROM video_cache');
   } catch {
     // DB may not be available (e.g. tables not yet created) — silently ignore
+  }
+  // ── D-11 cutover: remove the legacy heavy-store localStorage keys ──────────
+  // MUST enumerate ALL 13 heavy-store keys. Missing any leaves a stale heavy
+  // store in localStorage after cutover (D-11 incomplete). Tiny boot-critical
+  // prefs (trellis_settings, trellis_fruit_credits, trellis_dev_mode,
+  // trellis_ask_rate_limit, trellis_blossom_dates, trellis_token_usage,
+  // trellis_daily_read, trellis_trajectory_signals) are intentionally NOT
+  // cleared here — they stay in localStorage.
+  const legacyKeys = [
+    'trellis_questions',
+    'trellis_daily_posts',
+    'trellis_post_history',
+    'trellis_post_queue',
+    'trellis_post_queue_yesterday',
+    'trellis_sessions',
+    'trellis_flashcards',
+    'trellis_db_tables',
+    'trellis_collections_v1',
+    'trellis_engagement_v1',
+    'trellis_podcasts',
+    'trellis_news_posts',
+    'trellis_video_cache',
+  ];
+  for (const k of legacyKeys) {
+    try { localStorage.removeItem(k); } catch { /* ignore */ }
   }
 }
