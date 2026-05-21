@@ -124,6 +124,15 @@ export interface TrellisLeafProps {
   anchorId?: string; // Phase 28 D-12 — identifies the leaf for focus matching + pulse key
   focused?: boolean; // Phase 28 D-12 — true when Suggested Moves row for this anchor was pressed
   perfGuardActive?: boolean; // Phase 28 D-13 — true when layout.nodes.length > 30 AND leaf is off-screen
+  /**
+   * Phase 55.1 GAP-B (BUGFIX-05) — master render-layer gate. When false (Planner
+   * off-screen), the leaf renders fully STATIC: outer motion.g uses the scalar
+   * `rotation` (no sway keyframe array, no `repeat: Infinity`, no entry-spring
+   * re-trigger) and the inner pulse does not animate. Leaf STATE/shape/color is
+   * unchanged — only WHETHER it animates. Defaults to true to preserve existing
+   * call sites and tests.
+   */
+  animationsEnabled?: boolean;
 }
 
 // ── Bud (universal) ────────────────────────────────────────────────────────
@@ -538,6 +547,7 @@ export function TrellisLeaf(props: TrellisLeafProps) {
     x, y, tangentAngle, side, state, botanicalCategory,
     ambientSway, animationDelay = 0,
     anchorId, focused = false, perfGuardActive = false,
+    animationsEnabled = true,
   } = props;
   const cat = BOTANICAL_CATEGORIES[botanicalCategory % BOTANICAL_CATEGORIES.length];
 
@@ -578,17 +588,26 @@ export function TrellisLeaf(props: TrellisLeafProps) {
   const outwardAngle = tangentAngle + side * 90;
   const rotation = outwardAngle + 90;
 
+  // Phase 55.1 GAP-B — sway only when the master gate is on. When the Planner is
+  // off-screen (animationsEnabled=false) the outer motion.g is fully static.
+  const swayActive = animationsEnabled && ambientSway;
+
   return (
     <g transform={`translate(${x}, ${y})`}>
-      {/* Outer motion.g — ambient sway (Phase 25); preserved unchanged */}
+      {/* Outer motion.g — Phase 25 ambient sway, gated by the GAP-B master gate.
+           When animationsEnabled is false: scalar `rotate`, no keyframe array,
+           no `repeat: Infinity`, instant (duration 0) transition — zero per-frame
+           work while the Planner is off-screen. */}
       <motion.g
-        initial={{ scale: 0, opacity: 0 }}
+        initial={animationsEnabled ? { scale: 0, opacity: 0 } : false}
         animate={{
           scale: LEAF_SCALE,
           opacity: 1,
-          rotate: ambientSway ? [rotation, rotation + 3, rotation - 3, rotation] : rotation,
+          rotate: swayActive ? [rotation, rotation + 3, rotation - 3, rotation] : rotation,
         }}
-        transition={ambientSway
+        transition={!animationsEnabled
+          ? { duration: 0 }
+          : swayActive
           ? {
               scale: { type: 'spring', stiffness: 260, damping: 18, delay: animationDelay },
               opacity: { duration: 0.3, delay: animationDelay },
@@ -609,7 +628,7 @@ export function TrellisLeaf(props: TrellisLeafProps) {
                focus re-triggers the animation). */}
           <motion.g
             key={`pulse-${anchorId ?? 'x'}-${focusCounter}`}
-            animate={focused && !perfGuardActive
+            animate={animationsEnabled && focused && !perfGuardActive
               ? {
                   scale: [1, 1.15, 1],
                   filter: [
@@ -619,7 +638,7 @@ export function TrellisLeaf(props: TrellisLeafProps) {
                   ],
                 }
               : { scale: 1, filter: 'drop-shadow(0 0 0px transparent)' }}
-            transition={focused
+            transition={animationsEnabled && focused
               ? {
                   scale: { duration: 0.6, ease: 'easeInOut' },
                   filter: { duration: 2.0, ease: 'easeOut' },

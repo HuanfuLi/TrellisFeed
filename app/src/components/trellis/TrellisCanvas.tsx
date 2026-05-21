@@ -9,6 +9,13 @@ import { leafAnimationMask, TAP_ANIMATION_THRESHOLD } from '../../services/trell
 export interface TrellisCanvasProps {
   layout: TrellisLayout;
   ambientEnabled: boolean;
+  /**
+   * Phase 55.1 GAP-B (BUGFIX-05) — master render-layer gate. When false (Planner
+   * off-screen), leaves render fully static: no entry spring re-trigger, no
+   * ambient sway keyframes, no pulse. Defaults to true to preserve existing call
+   * sites/tests. Computed in TrellisHero via shouldAnimateTrellis.
+   */
+  animationsEnabled?: boolean;
   focusedAnchorId?: string | null;
 }
 
@@ -31,7 +38,7 @@ export const isLeafFocused = (
   return focusedAnchorId === leafAnchorId;
 };
 
-export function TrellisCanvas({ layout, ambientEnabled, focusedAnchorId }: TrellisCanvasProps) {
+export function TrellisCanvas({ layout, ambientEnabled, animationsEnabled = true, focusedAnchorId }: TrellisCanvasProps) {
   const { t } = useTranslation();
   const { vines, nodes } = layout;
   const leafCount = nodes.length;
@@ -152,10 +159,18 @@ export function TrellisCanvas({ layout, ambientEnabled, focusedAnchorId }: Trell
         {nodes.map((n, i) => {
           // D-13: when the canvas is large, gate the one-shot animations.
           // leafAnimationMask returns true when allowed; perfGuardActive is the
-          // complement. Without IO layered, inView=true is the conservative default.
-          const inView = true;
+          // complement.
+          //
+          // Phase 55.1 GAP-B (BUGFIX-05): wire real visibility into `inView`.
+          // When the master gate is off (Planner off-screen, !animationsEnabled),
+          // treat every leaf as out-of-view for the perf mask so perfGuardActive
+          // forces true above the count threshold (suppresses tap/pulse). The
+          // dominant cross-screen cost — the per-leaf entry spring + ambient sway
+          // keyframes — is removed in TrellisLeaf via the animationsEnabled prop.
+          const inView = animationsEnabled;
           const perfGuardActive =
-            perfGuardThresholdExceeded && !leafAnimationMask({ totalCount: leafCount, inView });
+            !animationsEnabled ||
+            (perfGuardThresholdExceeded && !leafAnimationMask({ totalCount: leafCount, inView }));
           return (
             <TrellisLeaf
               key={n.anchor.id}
@@ -170,6 +185,7 @@ export function TrellisCanvas({ layout, ambientEnabled, focusedAnchorId }: Trell
               animationDelay={0.8 + i * 0.05}
               focused={isLeafFocused(focusedAnchorId, n.anchor.id)}
               perfGuardActive={perfGuardActive}
+              animationsEnabled={animationsEnabled}
             />
           );
         })}
