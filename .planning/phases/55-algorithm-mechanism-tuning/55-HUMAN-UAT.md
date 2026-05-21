@@ -18,7 +18,7 @@ how: DevTools.
   (a) Console: confirm the active backend log on boot reads `[Trellis] DB backend active: IndexedDBBackend` (NOT `LocalStorageBackend`).
   (b) Application → IndexedDB → a database named `trellis` exists with object stores (`questions`, `posts`, `post_queue`, `sessions`, `flashcards`, …) holding rows.
   (c) Application → Local Storage → `http://localhost:*` → the heavy keys are ABSENT: `trellis_questions`, `trellis_post_queue`, `trellis_daily_posts`, `trellis_post_history`, session keys, `trellis_flashcards`. Only lightweight prefs (settings, onboarding flags) remain.
-result: [pending]
+result: PASSED (operator-confirmed 2026-05-21 — heavy keys gone from Local Storage; backend reads IndexedDB). NOTE: required a 55-07 dual-write fix — 55-05 had written heavy stores to BOTH localStorage and the DB, leaving localStorage primary; now IndexedDB is the sole heavy persistence.
 
 ### 2. Content persists across a hard reload (D-12 sync-read invariant)
 expected: Ask a question (creates a question + anchor) and note its title. Hard-reload (Cmd+Shift+R). The question/anchor reappears immediately on Home/Graph with NO empty-state flash — proving the boot path hydrates SQLite → in-memory mirror → synchronous `getSync()` read before first paint.
@@ -35,10 +35,12 @@ result: [pending]
 ## Summary
 
 total: 4
-passed: 0
+passed: 1
 issues: 0
-pending: 4
+pending: 3
 skipped: 0
 blocked: 0
 
 ## Gaps
+
+- 55-05 shipped a dual-write (heavy stores written to BOTH localStorage and the DB; mirror hydrated from localStorage) so localStorage stayed primary and the quota wall was never escaped. Also, the browser SQLite backend (oo1.OpfsDb / opfs-sahpool) was unworkable on the main thread. RESOLVED by 55-07: unified on a single IndexedDBBackend (web + native WebView), made the in-memory mirror the sole sync read path hydrated from IndexedDB at boot (awaited before first render), preserved post-queue day-rollover + yesterday-snapshot off localStorage, and added a no-dual-write regression guard. Operator-confirmed heavy keys gone + IndexedDB active 2026-05-21.
