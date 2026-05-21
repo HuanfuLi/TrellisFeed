@@ -22,14 +22,14 @@ Six areas are internal cleanup/hardening (POLISH, DOCS, TECHDEBT, QUALITY, TUNE)
 
 ### Tech Debt
 
-- [ ] **TECHDEBT-13**: Accumulated tech debt across v1.4–v1.6 is inventoried, prioritized, and high-priority items are resolved
-- [ ] **TECHDEBT-14**: Known-deferred test failures (e.g. the stale `buildFallbackPosts` test contract) are resolved or formally re-accepted with documented rationale
+- [x] **TECHDEBT-13**: Accumulated tech debt across v1.4–v1.6 is inventoried, prioritized, and high-priority items are resolved
+- [x] **TECHDEBT-14**: Known-deferred test failures (e.g. the stale `buildFallbackPosts` test contract) are resolved or formally re-accepted with documented rationale
 
 ### Code Quality & Bugs
 
-- [ ] **QUALITY-01**: The codebase is audited for bugs (logic errors, edge cases, race conditions) and confirmed bugs are fixed
-- [ ] **QUALITY-02**: Carried-over debug sessions are resolved (`feed-not-auto-populating-after-force-new-day`, `vine-chip-not-clearing-after-force-new-day`)
-- [ ] **QUALITY-03**: Auto-generated podcast is verified working on device and any defects are fixed
+- [x] **QUALITY-01**: The codebase is audited for bugs (logic errors, edge cases, race conditions) and confirmed bugs are fixed
+- [x] **QUALITY-02**: Carried-over debug sessions are resolved (`feed-not-auto-populating-after-force-new-day`, `vine-chip-not-clearing-after-force-new-day`)
+- [x] **QUALITY-03**: Auto-generated podcast is verified working on device and any defects are fixed
 
 ### Tuning & Mechanisms
 
@@ -78,11 +78,11 @@ Which phases cover which requirements. Populated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| QUALITY-01 | Phase 54 | Pending |
-| QUALITY-02 | Phase 54 | Pending |
-| QUALITY-03 | Phase 54 | Pending |
-| TECHDEBT-13 | Phase 54 | Pending |
-| TECHDEBT-14 | Phase 54 | Pending |
+| QUALITY-01 | Phase 54 | Complete |
+| QUALITY-02 | Phase 54 | Complete |
+| QUALITY-03 | Phase 54 | Complete |
+| TECHDEBT-13 | Phase 54 | Complete |
+| TECHDEBT-14 | Phase 54 | Complete |
 | TUNE-01 | Phase 55 | Pending |
 | TUNE-02 | Phase 55 | Pending |
 | POLISH-01 | Phase 56 | Pending |
