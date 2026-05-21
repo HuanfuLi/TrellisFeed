@@ -33,9 +33,9 @@ Six areas are internal cleanup/hardening (POLISH, DOCS, TECHDEBT, QUALITY, TUNE)
 
 ### Tuning & Mechanisms
 
-- [ ] **TUNE-01**: Numeric algorithm thresholds (cosine similarity for classification dedup and the filter, etc.) are reviewed and tuned with documented rationale; the cosine-similarity threshold cache-miss todo is resolved
-- [ ] **TUNE-02**: Filter, recommendation, feed randomizer, and "like" signal mechanisms are tested and tuned against expected behavior
-- [ ] **TUNE-03**: The curiosity-feed buffer queue reliably refills — swipe-for-more yields the intended batch (8 posts) whenever the derived list has unread capacity; the intermittent under-refill (sometimes 1, 4, or 0 new posts) caused by unreliable queue-size checks / refill-threshold races is root-caused, fixed, and regression-tested
+- [x] **TUNE-01**: Numeric algorithm thresholds (cosine similarity for classification dedup and the filter, etc.) are reviewed and tuned with documented rationale; the cosine-similarity threshold cache-miss todo is resolved
+- [x] **TUNE-02**: Filter, recommendation, feed randomizer, and "like" signal mechanisms are tested and tuned against expected behavior
+- [x] **TUNE-03**: The curiosity-feed buffer queue reliably refills — swipe-for-more yields the intended batch (8 posts) whenever the derived list has unread capacity; the intermittent under-refill (sometimes 1, 4, or 0 new posts) caused by unreliable queue-size checks / refill-threshold races is root-caused, fixed, and regression-tested
 
 ### Rewards Shop
 
@@ -84,9 +84,9 @@ Which phases cover which requirements. Populated during roadmap creation.
 | QUALITY-03 | Phase 54 | Complete |
 | TECHDEBT-13 | Phase 54 | Complete |
 | TECHDEBT-14 | Phase 54 | Complete |
-| TUNE-01 | Phase 55 | Pending |
-| TUNE-02 | Phase 55 | Pending |
-| TUNE-03 | Phase 55 | Pending |
+| TUNE-01 | Phase 55 | Complete |
+| TUNE-02 | Phase 55 | Complete |
+| TUNE-03 | Phase 55 | Complete |
 | POLISH-01 | Phase 56 | Pending |
 | POLISH-02 | Phase 56 | Pending |
 | POLISH-03 | Phase 56 | Pending |
