@@ -955,8 +955,8 @@ export function HomeScreen() {
           </div>
         )}
 
-        {/* Empty state when feed has posts but no concept posts (D-17) */}
-        {conceptQuota === 0 && dailyPosts.length > 0 && questions.length > 0 && (
+        {/* Empty state — only on a genuinely empty feed (D-17; GAP-D HIDE: do not render above a populated feed) */}
+        {conceptQuota === 0 && dailyPosts.length === 0 && questions.length > 0 && (
           <div style={{
             display: 'flex',
             flexDirection: 'column',
