@@ -23,6 +23,10 @@ import { settingsService } from '../services/settings.service';
 import { getRateLimitStatus, type RateLimitStatus } from '../services/ask-rate-limiter.service';
 import { toast } from '../lib/toast';
 import { Header, HEADER_HEIGHT } from '../components/ui/Header';
+// Phase 55.1 BUGFIX-01 — pure persist-target helper lives in a sibling .ts
+// module so its Wave 0 test can import it without the .tsx render chain.
+import { resolvePersistTarget } from './ask-persist-target';
+export { resolvePersistTarget };
 
 const SUGGESTED_PROMPT_KEYS = [
   'ask.suggestedPrompts.spacedRepetition',
