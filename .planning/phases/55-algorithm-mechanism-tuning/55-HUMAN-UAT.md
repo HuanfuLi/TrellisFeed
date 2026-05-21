@@ -1,5 +1,5 @@
 ---
-status: partial
+status: complete
 phase: 55-algorithm-mechanism-tuning
 source: [55-VERIFICATION.md]
 started: 2026-05-21
@@ -8,7 +8,7 @@ updated: 2026-05-21
 
 ## Current Test
 
-[awaiting human testing]
+[testing complete]
 
 ## Tests
 
@@ -22,22 +22,22 @@ result: PASSED (operator-confirmed 2026-05-21 — heavy keys gone from Local Sto
 
 ### 2. Content persists across a hard reload (D-12 sync-read invariant)
 expected: Ask a question (creates a question + anchor) and note its title. Hard-reload (Cmd+Shift+R). The question/anchor reappears immediately on Home/Graph with NO empty-state flash — proving the boot path hydrates SQLite → in-memory mirror → synchronous `getSync()` read before first paint.
-result: [pending]
+result: PASSED (operator-confirmed 2026-05-21 — content rehydrated on hard reload, no empty-state flash)
 
 ### 3. OPFS quota headroom is categorically larger than localStorage (cheap numeric check)
 expected: In the DevTools console run `await navigator.storage.estimate()`. The reported `quota` is in the hundreds-of-MB-to-GB range (browser-disk based), versus localStorage's ~5 MB cap — numerically demonstrating the quota relief without writing any large data.
-result: [pending]
+result: PASSED (operator-confirmed 2026-05-21 — quota reported in MB–GB range)
 
 ### 4. Per-threshold debug knob UI
-expected: Under the Debug-mode toggle in Settings → AI, three labeled range sliders appear (off-topic, malicious, anchor-dedup). The malicious slider refuses to go below 0.78 or above 0.85. The D-02 refill instrumentation (`[refillQueue] …`, `[generateMorePosts] …`) appears in the DevTools console while swiping the feed. The knobs are hidden/inert when Debug mode is off (release behavior).
-result: [pending]
+expected: Under the Debug-mode toggle in Settings → AI, the malicious-floor slider appears (clamped 0.35–0.70) alongside the anchor-dedup slider; the off-topic slider is GONE (retired by RAW-ARGMAX). The malicious-floor slider refuses to go below 0.35 or above 0.70. The D-02 refill instrumentation (`[refillQueue] …`, `[generateMorePosts] …`) appears in the DevTools console while swiping the feed. The knobs are hidden/inert when Debug mode is off (release behavior).
+result: PASSED (operator-confirmed 2026-05-21 — malicious-floor + anchor-dedup sliders present, off-topic slider gone, floor clamped 0.35–0.70, refill logs visible, inert when debug off)
 
 ## Summary
 
 total: 4
-passed: 1
+passed: 4
 issues: 0
-pending: 3
+pending: 0
 skipped: 0
 blocked: 0
 
