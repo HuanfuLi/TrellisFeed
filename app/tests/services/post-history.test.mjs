@@ -51,7 +51,10 @@ const { postHistoryService } = await import('../../src/services/post-history.ser
 describe('postHistoryService', () => {
   beforeEach(() => {
     localStorage.clear();
-    // Default: 7-day retention
+    // Phase 55-07: post history is an in-memory mirror (IndexedDB-backed); the
+    // localStorage clear no longer resets it. Use the service's own clear().
+    postHistoryService.clear();
+    // Default: 7-day retention (settings stay in localStorage — set after clear)
     setRetentionDays(7);
   });
 

@@ -41,8 +41,9 @@ const { postQueueService } = await import('../../src/services/post-queue.service
 
 describe('postQueueService', () => {
   beforeEach(() => {
+    // Phase 55-07: queue is in-memory + IndexedDB. resetAll() fully wipes it.
     localStorage.clear();
-    postQueueService.loadQueue();
+    postQueueService.resetAll();
   });
 
   it('enqueue 3 posts, dequeue 2 returns first 2, queue has 1 remaining', () => {
@@ -72,29 +73,25 @@ describe('postQueueService', () => {
     assert.equal(postQueueService.needsRefill(), false);
   });
 
-  it('loadQueue with date mismatch rehydrates posts + cycleNumber, resets totals, snapshots to STORAGE_KEY_YESTERDAY', () => {
-    // Phase 36-11: load() now rehydrates _state.posts (and derivedList +
-    // cyclePosition) from yesterday's parsed.posts on date mismatch, AFTER
-    // snapshotting to STORAGE_KEY_YESTERDAY. Counters (totalGenerated +
-    // totalServed) reset to 0; cycleNumber inherits.
+  it('loadQueue with date mismatch rehydrates posts + cycleNumber, resets totals, snapshots yesterday', () => {
+    // Phase 36-11: on a date mismatch, normalizeState rehydrates _state.posts
+    // (and derivedList + cyclePosition) from yesterday's posts AFTER snapshotting
+    // to the durable yesterday mirror. Counters reset to 0; cycleNumber inherits.
+    // Phase 55-07: drive the rollover via simulateDateRollback (in-memory) rather
+    // than overwriting a localStorage payload.
     postQueueService.enqueue([makePost('x'), makePost('y')]);
     postQueueService.incrementCycle();
     assert.equal(postQueueService.size(), 2);
     assert.equal(postQueueService.getCycleNumber(), 1);
 
-    // Overwrite localStorage with a stale date
-    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    raw.date = '1999-01-01';
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(raw));
-
+    postQueueService.simulateDateRollback('1999-01-01');
     postQueueService.loadQueue();
     // Rehydrated: posts + cycleNumber preserved
     assert.equal(postQueueService.size(), 2, 'posts rehydrated from yesterday');
     assert.equal(postQueueService.getCycleNumber(), 1, 'cycleNumber inherited');
-    // Snapshot written
-    const yest = JSON.parse(localStorage.getItem('trellis_post_queue_yesterday'));
-    assert.equal(yest.date, '1999-01-01');
-    assert.equal(yest.posts.length, 2);
+    // Durable yesterday snapshot written
+    const yest = postQueueService.getYesterdayQueue();
+    assert.equal(yest.length, 2);
   });
 
   it('loadQueue with same date preserves queue contents', () => {
@@ -133,61 +130,40 @@ describe('postQueueService', () => {
   });
 
   // ─── D-30: getYesterdayQueue() — warm-start recovery of unviewed posts ────
-  // Contract (post-queue.service.ts:124):
-  //   1. Reads localStorage directly (bypasses in-memory _state).
-  //   2. Returns [] when no saved state exists.
-  //   3. Returns [] when saved state's date === today().
-  //   4. Returns parsed.posts || [] when saved state's date !== today().
-  //   5. Returns [] on malformed JSON (catch block).
+  // Phase 55-07 contract: getYesterdayQueue() reads the in-memory _yesterday
+  // mirror (durable IndexedDB row), populated by normalizeState's date-mismatch
+  // branch (driven here via simulateDateRollback). Comprehensive lifecycle
+  // coverage lives in tests/services/post-queue-yesterday-snapshot.test.mjs.
 
-  it('getYesterdayQueue returns [] when localStorage is empty', () => {
-    // beforeEach cleared localStorage; nothing saved yet.
+  it('getYesterdayQueue returns [] when no snapshot exists', () => {
+    // beforeEach resetAll'd; no rollover has happened yet.
     const yesterday = postQueueService.getYesterdayQueue();
     assert.deepEqual(yesterday, []);
   });
 
-  it('getYesterdayQueue returns [] when stored date matches today', () => {
-    // Enqueue triggers save() with today's date.
+  it('getYesterdayQueue returns [] when only today\'s queue exists (no rollover)', () => {
     postQueueService.enqueue([makePost('today-1'), makePost('today-2')]);
     const yesterday = postQueueService.getYesterdayQueue();
     assert.deepEqual(yesterday, [], 'same-day state should not be treated as yesterday');
   });
 
-  it('getYesterdayQueue returns stored posts when snapshot key holds them (Phase 36 GAP-D Fix A)', () => {
-    // Phase 36 GAP-D Fix A (2026-05-07): getYesterdayQueue now reads from
-    // STORAGE_KEY_YESTERDAY (the durable snapshot), NOT the live STORAGE_KEY.
-    // Write directly to the snapshot key to simulate a prior cold-start of the
-    // new day having taken its snapshot. Comprehensive snapshot-lifecycle
-    // coverage lives in tests/services/post-queue-yesterday-snapshot.test.mjs;
-    // this test only exercises the read-from-snapshot-key contract.
-    const STORAGE_KEY_YESTERDAY = 'trellis_post_queue_yesterday';
-    const snapshotPayload = {
-      date: '1999-01-01',
-      posts: [makePost('y1'), makePost('y2'), makePost('y3')],
-    };
-    localStorage.setItem(STORAGE_KEY_YESTERDAY, JSON.stringify(snapshotPayload));
+  it('getYesterdayQueue returns snapshotted posts after a date rollover (Phase 36 GAP-D Fix A)', () => {
+    postQueueService.enqueue([makePost('y1'), makePost('y2'), makePost('y3')]);
+    postQueueService.simulateDateRollback('1999-01-01');
+    postQueueService.loadQueue(); // snapshots y1/y2/y3 to the yesterday mirror
 
     const yesterday = postQueueService.getYesterdayQueue();
-    assert.equal(yesterday.length, 3, 'should return all 3 yesterday posts from the snapshot key');
+    assert.equal(yesterday.length, 3, 'should return all 3 yesterday posts from the snapshot');
     assert.equal(yesterday[0].id, 'y1');
     assert.equal(yesterday[1].id, 'y2');
     assert.equal(yesterday[2].id, 'y3');
   });
 
-  it('getYesterdayQueue returns [] when snapshot has no posts field', () => {
-    // Defensive: Array.isArray(parsed.posts) handles missing posts key.
-    const STORAGE_KEY_YESTERDAY = 'trellis_post_queue_yesterday';
-    const snapshotPayload = { date: '1999-01-01' };
-    localStorage.setItem(STORAGE_KEY_YESTERDAY, JSON.stringify(snapshotPayload));
-
-    const yesterday = postQueueService.getYesterdayQueue();
-    assert.deepEqual(yesterday, []);
-  });
-
-  it('getYesterdayQueue returns [] gracefully on malformed JSON', () => {
-    const STORAGE_KEY_YESTERDAY = 'trellis_post_queue_yesterday';
-    localStorage.setItem(STORAGE_KEY_YESTERDAY, '{not-valid-json}');
-    const yesterday = postQueueService.getYesterdayQueue();
-    assert.deepEqual(yesterday, [], 'malformed JSON should be caught and return empty array');
+  it('getYesterdayQueue returns [] when the rolled-back queue had no posts', () => {
+    // Only a derivedList (no posts) → no snapshot fires.
+    postQueueService.appendToDerivedList(['anchor-x']);
+    postQueueService.simulateDateRollback('1999-01-01');
+    postQueueService.loadQueue();
+    assert.deepEqual(postQueueService.getYesterdayQueue(), []);
   });
 });

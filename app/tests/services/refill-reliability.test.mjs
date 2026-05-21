@@ -62,7 +62,7 @@ function shortfallWouldAwaitRefill(servedCount, requestedCount) {
 describe('TUNE-03 under-refill reproduction (Phase 55-06 Task 1 — current behavior)', () => {
   beforeEach(() => {
     localStorage.clear();
-    postQueueService.loadQueue();
+    postQueueService.resetForNewDay();
   });
 
   // CAUSE (a): dequeue-before-refill shortfall (CONFIRMED DOMINANT CAUSE).
@@ -165,7 +165,7 @@ function fixedGenerateMore(count, refillStub) {
 describe('TUNE-03 corrected swipe-for-more (Phase 55-06 Task 2 — fixed path)', () => {
   beforeEach(() => {
     localStorage.clear();
-    postQueueService.loadQueue();
+    postQueueService.resetForNewDay();
   });
 
   it('serves the full 8-post batch on a short (4-post) queue when the derived list still has unread capacity', () => {

@@ -62,6 +62,11 @@ const EIGHT_DAYS_MS = 8 * 24 * 60 * 60 * 1000;
 describe('postHistoryService.purgeExpired — collection pinning (D-09)', () => {
   beforeEach(() => {
     localStorage.clear();
+    // Phase 55-07: post-history / collections / engagement are in-memory mirrors
+    // (IndexedDB-backed) — reset them explicitly (localStorage clear no longer does).
+    postHistoryService.clear();
+    collectionService.reset();
+    engagementService.reset();
     setRetentionDays(7);
   });
 

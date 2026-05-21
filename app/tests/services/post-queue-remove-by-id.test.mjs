@@ -62,23 +62,21 @@ const { postQueueService } = await import('../../src/services/post-queue.service
 
 describe('postQueueService.removeByIds — Phase 43 gap-closure 43-15', () => {
   beforeEach(() => {
+    // Phase 55-07: queue is in-memory + IndexedDB. resetAll() fully wipes it
+    // (queue + yesterday) for isolation; seed via the public enqueue() API.
     localStorage.clear();
-    postQueueService.loadQueue();
+    postQueueService.resetAll();
   });
 
   it('Test 1: removeByIds([]) is a no-op — returns 0, no save', () => {
-    const seed = { date: todayStr(), posts: [makePost('p1'), makePost('p2')], cycleNumber: 0, totalGenerated: 2, totalServed: 0, derivedList: [], cyclePosition: 0 };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(seed));
-    postQueueService.loadQueue();
+    postQueueService.enqueue([makePost('p1'), makePost('p2')]);
     const removed = postQueueService.removeByIds([]);
     assert.equal(removed, 0, 'empty input returns 0');
     assert.equal(postQueueService.size(), 2, 'queue unchanged');
   });
 
   it('Test 2: removeByIds with no matches returns 0 and does not mutate', () => {
-    const seed = { date: todayStr(), posts: [makePost('p1'), makePost('p2')], cycleNumber: 0, totalGenerated: 2, totalServed: 0, derivedList: [], cyclePosition: 0 };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(seed));
-    postQueueService.loadQueue();
+    postQueueService.enqueue([makePost('p1'), makePost('p2')]);
     const removed = postQueueService.removeByIds(['nonexistent-x', 'nonexistent-y']);
     assert.equal(removed, 0);
     assert.equal(postQueueService.size(), 2);
@@ -87,9 +85,7 @@ describe('postQueueService.removeByIds — Phase 43 gap-closure 43-15', () => {
   });
 
   it('Test 3: removeByIds([p1,p3]) removes both and returns 2', () => {
-    const seed = { date: todayStr(), posts: [makePost('p1'), makePost('p2'), makePost('p3'), makePost('p4')], cycleNumber: 0, totalGenerated: 4, totalServed: 0, derivedList: [], cyclePosition: 0 };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(seed));
-    postQueueService.loadQueue();
+    postQueueService.enqueue([makePost('p1'), makePost('p2'), makePost('p3'), makePost('p4')]);
     const removed = postQueueService.removeByIds(['p1', 'p3']);
     assert.equal(removed, 2);
     assert.equal(postQueueService.size(), 2);
@@ -97,9 +93,7 @@ describe('postQueueService.removeByIds — Phase 43 gap-closure 43-15', () => {
   });
 
   it('Test 4: removeByIds is idempotent — second call returns 0', () => {
-    const seed = { date: todayStr(), posts: [makePost('p1'), makePost('p2'), makePost('p3')], cycleNumber: 0, totalGenerated: 3, totalServed: 0, derivedList: [], cyclePosition: 0 };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(seed));
-    postQueueService.loadQueue();
+    postQueueService.enqueue([makePost('p1'), makePost('p2'), makePost('p3')]);
     const r1 = postQueueService.removeByIds(['p1', 'p2']);
     const r2 = postQueueService.removeByIds(['p1', 'p2']);
     assert.equal(r1, 2);
@@ -107,50 +101,41 @@ describe('postQueueService.removeByIds — Phase 43 gap-closure 43-15', () => {
     assert.equal(postQueueService.size(), 1);
   });
 
-  it('Test 5: removeByIds persists to localStorage[STORAGE_KEY]', () => {
-    const seed = { date: todayStr(), posts: [makePost('p1'), makePost('p2'), makePost('p3')], cycleNumber: 0, totalGenerated: 3, totalServed: 0, derivedList: [], cyclePosition: 0 };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(seed));
-    postQueueService.loadQueue();
+  it('Test 5: removeByIds persists the mutated queue (readable via getQueue)', () => {
+    postQueueService.enqueue([makePost('p1'), makePost('p2'), makePost('p3')]);
     postQueueService.removeByIds(['p2']);
-    const raw = localStorage.getItem(STORAGE_KEY);
-    assert.ok(raw, 'localStorage[STORAGE_KEY] still populated');
-    const parsed = JSON.parse(raw);
-    assert.deepEqual(parsed.posts.map(p => p.id), ['p1', 'p3']);
+    assert.deepEqual(postQueueService.getQueue().map(p => p.id), ['p1', 'p3']);
   });
 
-  it('Test 6: removeByIds does NOT touch STORAGE_KEY_YESTERDAY snapshot', () => {
-    // Seed a yesterday snapshot independently
-    localStorage.setItem(STORAGE_KEY_YESTERDAY, JSON.stringify({
-      date: 'yesterday',
-      posts: [makePost('y1'), makePost('y2'), makePost('y3')],
-    }));
-    const seed = { date: todayStr(), posts: [makePost('p1'), makePost('p2')], cycleNumber: 0, totalGenerated: 2, totalServed: 0, derivedList: [], cyclePosition: 0 };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(seed));
-    postQueueService.loadQueue();
-
+  it('Test 6: removeByIds does NOT touch the yesterday snapshot', () => {
+    // Seed a yesterday snapshot via the rollover path.
+    postQueueService.enqueue([makePost('y1'), makePost('y2'), makePost('y3')]);
+    const yesterday = (() => { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10); })();
+    postQueueService.simulateDateRollback(yesterday);
+    postQueueService.loadQueue(); // snapshots y1/y2/y3, rehydrates them into today
+    // Add distinct today-posts then remove one.
+    postQueueService.enqueue([makePost('p1'), makePost('p2')]);
     postQueueService.removeByIds(['p1']);
 
-    const snapRaw = localStorage.getItem(STORAGE_KEY_YESTERDAY);
-    const snap = JSON.parse(snapRaw);
+    const snap = postQueueService.getYesterdayQueue();
     assert.deepEqual(
-      snap.posts.map(p => p.id),
+      snap.map(p => p.id),
       ['y1', 'y2', 'y3'],
-      'STORAGE_KEY_YESTERDAY snapshot must be unchanged after removeByIds (Plan 36-09 contract preserved)',
+      'yesterday snapshot must be unchanged after removeByIds (Plan 36-09 contract preserved)',
     );
   });
 
   it('Test 7: removeByIds does NOT decrement totalServed (separate metric for dequeue path)', () => {
-    const seed = { date: todayStr(), posts: [makePost('p1'), makePost('p2')], cycleNumber: 0, totalGenerated: 5, totalServed: 3, derivedList: [], cyclePosition: 0 };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(seed));
-    postQueueService.loadQueue();
+    postQueueService.enqueue([makePost('p1'), makePost('p2'), makePost('s1'), makePost('s2'), makePost('s3')]);
+    postQueueService.dequeue(3); // totalServed = 3
     postQueueService.removeByIds(['p1']);
     assert.equal(postQueueService.getTotalServed(), 3, 'totalServed must NOT decrement on removeByIds (only dequeue path mutates it)');
   });
 
   it('Test 8: removeByIds does NOT mutate derivedList or cyclePosition', () => {
-    const seed = { date: todayStr(), posts: [makePost('p1'), makePost('p2')], cycleNumber: 0, totalGenerated: 2, totalServed: 0, derivedList: ['anchor-a', 'anchor-b', 'anchor-c'], cyclePosition: 2 };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(seed));
-    postQueueService.loadQueue();
+    postQueueService.enqueue([makePost('p1'), makePost('p2')]);
+    postQueueService.appendToDerivedList(['anchor-a', 'anchor-b', 'anchor-c']);
+    postQueueService.walkDerivedList(2, new Set(), new Set()); // cyclePosition = 2
     postQueueService.removeByIds(['p1']);
     assert.deepEqual(postQueueService.getDerivedList(), ['anchor-a', 'anchor-b', 'anchor-c']);
     assert.equal(postQueueService.getCyclePosition(), 2);
@@ -170,13 +155,15 @@ describe('postQueueService.removeByIds — Phase 43 gap-closure 43-15', () => {
     );
   });
 
-  it('Test 10: NEGATIVE INVARIANT — load() date-mismatch rehydration is unchanged (Phase 36-11)', () => {
+  it('Test 10: NEGATIVE INVARIANT — date-mismatch rehydration is unchanged (Phase 36-11)', () => {
     const src = readFileSync(path.join(appRoot, 'src/services/post-queue.service.ts'), 'utf8');
-    // The rehydration block: snapshot to STORAGE_KEY_YESTERDAY, then rehydrate _state.posts
+    // Phase 55-07: the yesterday snapshot moved off localStorage to the durable
+    // IndexedDB row (SQLITE_ROW_ID_YESTERDAY) + in-memory _yesterday mirror. The
+    // rehydration re-interleave (spreadByConcept/spreadByStyle) is unchanged.
     assert.match(
       src,
-      /localStorage\.setItem\(STORAGE_KEY_YESTERDAY/,
-      'Plan 36-09 snapshot write must be preserved',
+      /SQLITE_ROW_ID_YESTERDAY/,
+      'Plan 36-09 durable yesterday snapshot must be preserved (now an IndexedDB row)',
     );
     assert.match(
       src,

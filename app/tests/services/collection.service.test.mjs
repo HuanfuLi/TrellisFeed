@@ -20,6 +20,7 @@ globalThis.localStorage = {
 };
 
 const { collectionService } = await import('../../src/services/collection.service.ts');
+const { postHistoryService } = await import('../../src/services/post-history.service.ts');
 const { eventBus } = await import('../../src/lib/event-bus.ts');
 
 const STORAGE_KEY = 'trellis_collections_v1';
@@ -48,7 +49,7 @@ describe('collectionService — Phase 50', () => {
     collectionsChangedEvents = []; // reset() emits nothing, but extra-safe.
   });
 
-  it('createCollection persists to trellis_collections_v1 + emits COLLECTIONS_CHANGED { kind: "create" }', () => {
+  it('createCollection persists + emits COLLECTIONS_CHANGED { kind: "create" }', () => {
     const result = collectionService.createCollection('Spaced Repetition');
     assert.equal(result.success, true);
     assert.ok(result.data, 'expected ServiceResult.data on success');
@@ -58,10 +59,11 @@ describe('collectionService — Phase 50', () => {
     assert.equal(typeof result.data.createdAt, 'number');
     assert.equal(typeof result.data.updatedAt, 'number');
 
-    // Persistence
-    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    assert.equal(raw.collections.length, 1);
-    assert.equal(raw.collections[0].name, 'Spaced Repetition');
+    // Persistence — Phase 55-07: assert via the public getter (in-memory mirror
+    // backed by IndexedDB; no localStorage read).
+    const persisted = collectionService.getCollections();
+    assert.equal(persisted.length, 1);
+    assert.equal(persisted[0].name, 'Spaced Repetition');
 
     // Event
     const createEvents = collectionsChangedEvents.filter(e => e.payload.kind === 'create');
@@ -266,10 +268,8 @@ describe('collectionService — Phase 50', () => {
   });
 
   it('getCollectionPosts gracefully drops orphan IDs not present in post history (T-50-ORPHAN)', () => {
-    // postHistoryService backs to its own STORAGE_KEY ('trellis_post_history'),
-    // empty in this test because we only cleared the collections key.
-    // Ensure we're starting clean for that key too.
-    localStorage.removeItem('trellis_post_history');
+    // postHistoryService is its own in-memory store; ensure it's clean too.
+    postHistoryService.clear();
     const c = collectionService.createCollection('Orphans');
     const cid = c.data.id;
     collectionService.addPost(cid, 'p-purged-1');

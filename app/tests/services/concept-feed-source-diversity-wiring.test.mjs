@@ -48,7 +48,7 @@ describe('SC-1: walker skips dismissed concept end-to-end', () => {
   beforeEach(() => {
     localStorage.clear();
     engagementService.reset();
-    postQueueService.loadQueue();  // re-read state from cleared localStorage → freshState
+    postQueueService.resetForNewDay(); // Phase 55-07: in-memory reset
   });
 
   it('walkDerivedList output excludes dismissed conceptIds (engagementService → walker integration)', () => {
