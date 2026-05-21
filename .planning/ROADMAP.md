@@ -77,10 +77,10 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. On the Ask screen, opening the keyboard raises the input island smoothly with NO bottom-navigation-bar flicker (the nav bar does not animate up/down during the keyboard transition). Consistent with the existing SwipeTabContainer keyboard/resize and root-overflow invariants (CLAUDE.md). (BUGFIX-03)
   4. On the Ask screen, tapping Send while the keyboard is open sends the message on the FIRST tap — the tap is not consumed by keyboard dismissal (e.g. fire on pointer-down / preserve input focus so the send handler runs before blur). (BUGFIX-04)
 **Plans**: 4 plans
-- [ ] 55.1-01-PLAN.md — BUGFIX-01: bind streaming answer to originating session (origin-gated persist + abort-on-switch)
-- [ ] 55.1-02-PLAN.md — BUGFIX-02: stop provider/locale switch from truncating text-art posts (reject-empty gate + persist-merge guard + Gemini budget/thinkingConfig)
-- [ ] 55.1-03-PLAN.md — BUGFIX-03: useKeyboard hysteresis so the bottom nav doesn't flicker on keyboard open
-- [ ] 55.1-04-PLAN.md — BUGFIX-04: Send fires on pointerdown+preventDefault (first-tap send) via shared submitMessage
+- [x] 55.1-01-PLAN.md — BUGFIX-01: bind streaming answer to originating session (origin-gated persist + abort-on-switch)
+- [x] 55.1-02-PLAN.md — BUGFIX-02: stop provider/locale switch from truncating text-art posts (reject-empty gate + persist-merge guard + Gemini budget/thinkingConfig)
+- [x] 55.1-03-PLAN.md — BUGFIX-03: useKeyboard hysteresis so the bottom nav doesn't flicker on keyboard open
+- [x] 55.1-04-PLAN.md — BUGFIX-04: Send fires on pointerdown+preventDefault (first-tap send) via shared submitMessage
 **UI hint**: yes (issues 3 + 4 are Ask-screen keyboard/layout)
 
 ### Phase 56: UI Polish & Documentation
@@ -140,7 +140,7 @@ Phases execute in numeric order: 54 → 55 → 55.1 → 56 → 57 → 58 → 59
 |-------|-----------|----------------|--------|-----------|
 | 54. Code Quality, Bugs & Tech Debt | v1.7 | 5/4 | Complete    | 2026-05-21 |
 | 55. Algorithm & Mechanism Tuning | v1.7 | 7/6 | Complete    | 2026-05-21 |
-| 55.1. Device-Test Bug Fixes (INSERTED) | v1.7 | 0/4 | Planned | - |
+| 55.1. Device-Test Bug Fixes (INSERTED) | v1.7 | 4/4 | Complete   | 2026-05-21 |
 | 56. UI Polish & Documentation | v1.7 | 0/TBD | Not started | - |
 | 57. Rewards Foundation — Data Model & Service | v1.7 | 0/TBD | Not started | - |
 | 58. Rewards Core Shop Loop — Themes | v1.7 | 0/TBD | Not started | - |
