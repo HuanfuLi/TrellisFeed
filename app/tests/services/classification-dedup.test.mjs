@@ -80,6 +80,32 @@ describe('classification dedup invariants', () => {
     );
   });
 
+  it('ANCHOR_PRE_CHECK_SIMILARITY_THRESHOLD source value is within the [0.78, 0.85] empirical dedup band (Phase 55 D-05/D-06)', () => {
+    // Phase 55: the anchor-dedup knob (debug) is clamped to [0.78, 0.85] in
+    // canonical-knowledge.service.ts:preCheckAnchorMatch, and the hardcoded default
+    // constant must itself sit inside that empirical band (CLAUDE.md §"Classification
+    // dedup — embedding pre-check": lower = missed dedups, higher = wrong merges). This
+    // is a tighter assertion than the conservative [0.75, 0.95] check above — it locks
+    // the constant to the exact band the debug clamp enforces so the two cannot drift.
+    const thresholdMatch = source.match(/ANCHOR_PRE_CHECK_SIMILARITY_THRESHOLD\s*=\s*([\d.]+)/);
+    assert.ok(thresholdMatch, 'ANCHOR_PRE_CHECK_SIMILARITY_THRESHOLD must be defined as a module constant');
+    const threshold = parseFloat(thresholdMatch[1]);
+    assert.ok(
+      threshold >= 0.78 && threshold <= 0.85,
+      `ANCHOR_PRE_CHECK_SIMILARITY_THRESHOLD must be inside the empirical [0.78, 0.85] dedup band — got ${threshold}. This band matches the debug-knob clamp (Math.min(0.85, Math.max(0.78, ...))) in preCheckAnchorMatch.`,
+    );
+  });
+
+  it('preCheckAnchorMatch clamps the anchor-dedup debug knob to [0.78, 0.85] (Phase 55 D-06)', () => {
+    const fnIdx = source.indexOf('export async function preCheckAnchorMatch');
+    assert.ok(fnIdx !== -1, 'preCheckAnchorMatch must exist');
+    const fnBody = source.slice(fnIdx, fnIdx + 1600);
+    assert.ok(
+      /Math\.min\(0\.85,\s*Math\.max\(0\.78,/.test(fnBody),
+      'preCheckAnchorMatch must clamp the debug anchorDedupThreshold to Math.min(0.85, Math.max(0.78, ...)) — the operator cannot widen the dedup band from the debug panel',
+    );
+  });
+
   it('classifyAndAnchorIncremental runs the pre-check before step 1', () => {
     const fnIdx = source.indexOf('export async function classifyAndAnchorIncremental');
     assert.ok(fnIdx !== -1, 'canonical-knowledge.service.ts should contain classifyAndAnchorIncremental');

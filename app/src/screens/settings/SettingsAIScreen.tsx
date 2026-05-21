@@ -325,24 +325,87 @@ export function SettingsAIScreen() {
           <p style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--muted-foreground)', marginBottom: '12px' }}>
             {t('settings.debug')}
           </p>
-          <SettingRow
-            label={t('settings.fields.similarityThreshold')}
-            description={t('settings.descriptions.similarityThreshold', { score: embeddingDebug.similarityThreshold.toFixed(2) })}
-          >
-            <input
-              type="range"
-              min={0.40}
-              max={0.95}
-              step={0.05}
-              value={embeddingDebug.similarityThreshold}
-              onChange={(e) => {
-                const next = { ...embeddingDebug, similarityThreshold: parseFloat(e.target.value) };
+          {/*
+            Phase 55 D-04/D-05/D-06: per-threshold tuning knobs. These replace the dead
+            single `similarityThreshold` slider (which never mapped to any real threshold).
+            The labels here are dev-only debug strings rendered ONLY when debugEnabled is on,
+            so they intentionally stay English and are NOT added to en/zh/es/ja.json — the
+            Phase 56 i18n sweep should not flag them. The malicious + anchor-dedup knobs are
+            UI-clamped to min=0.78 max=0.85 (D-06); the service read path clamps too, so the
+            slider clamp is belt-and-suspenders, not the load-bearing guard.
+          */}
+          {/* Master debug-mode gate — knobs hidden in release when off (D-04). */}
+          <SettingRow label="Debug mode" description="Show per-threshold tuning controls (dev only)">
+            <MaterialSwitch
+              checked={embeddingDebug.debugEnabled ?? false}
+              onChange={() => {
+                const next = { ...embeddingDebug, debugEnabled: !(embeddingDebug.debugEnabled ?? false) };
                 setEmbeddingDebug(next);
                 saveEmbeddingDebug(next);
               }}
-              style={{ width: '120px', accentColor: 'var(--primary-40)', cursor: 'pointer' }}
             />
           </SettingRow>
+          {embeddingDebug.debugEnabled && (
+            <>
+              {/* Off-topic threshold — no security constraint. */}
+              <SettingRow
+                label={`Off-topic threshold: ${(embeddingDebug.offTopicThreshold ?? 0.75).toFixed(2)}`}
+                description="Cosine above which a question is flagged off-topic (0.75 default)"
+              >
+                <input
+                  type="range"
+                  min={0.60}
+                  max={0.95}
+                  step={0.01}
+                  value={embeddingDebug.offTopicThreshold ?? 0.75}
+                  onChange={(e) => {
+                    const next = { ...embeddingDebug, offTopicThreshold: parseFloat(e.target.value) };
+                    setEmbeddingDebug(next);
+                    saveEmbeddingDebug(next);
+                  }}
+                  style={{ width: '120px', accentColor: 'var(--primary-40)', cursor: 'pointer' }}
+                />
+              </SettingRow>
+              {/* Malicious threshold — CLAMPED to 0.78-0.85 (D-06 security invariant). */}
+              <SettingRow
+                label={`Malicious threshold: ${(embeddingDebug.maliciousThreshold ?? 0.82).toFixed(2)}`}
+                description="Clamped 0.78-0.85 — lowering reopens the dual-vector buried-payload evasion surface"
+              >
+                <input
+                  type="range"
+                  min={0.78}
+                  max={0.85}
+                  step={0.01}
+                  value={embeddingDebug.maliciousThreshold ?? 0.82}
+                  onChange={(e) => {
+                    const next = { ...embeddingDebug, maliciousThreshold: parseFloat(e.target.value) };
+                    setEmbeddingDebug(next);
+                    saveEmbeddingDebug(next);
+                  }}
+                  style={{ width: '120px', accentColor: 'var(--primary-40)', cursor: 'pointer' }}
+                />
+              </SettingRow>
+              {/* Anchor-dedup threshold — CLAMPED to 0.78-0.85 (CLAUDE.md dedup band). */}
+              <SettingRow
+                label={`Anchor dedup threshold: ${(embeddingDebug.anchorDedupThreshold ?? 0.82).toFixed(2)}`}
+                description="Clamped 0.78-0.85 — lower = missed dedups, higher = wrong merges"
+              >
+                <input
+                  type="range"
+                  min={0.78}
+                  max={0.85}
+                  step={0.01}
+                  value={embeddingDebug.anchorDedupThreshold ?? 0.82}
+                  onChange={(e) => {
+                    const next = { ...embeddingDebug, anchorDedupThreshold: parseFloat(e.target.value) };
+                    setEmbeddingDebug(next);
+                    saveEmbeddingDebug(next);
+                  }}
+                  style={{ width: '120px', accentColor: 'var(--primary-40)', cursor: 'pointer' }}
+                />
+              </SettingRow>
+            </>
+          )}
           <SettingRow label={t('settings.fields.showSimilarityScores')} description={t('settings.descriptions.showScoresHint')}>
             <MaterialSwitch
               checked={embeddingDebug.showScores}

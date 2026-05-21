@@ -25,8 +25,17 @@ const defaultSettings: AppSettings = {
     isConfigured: false,
   },
   embeddingDebug: {
+    // Legacy dead slider value — kept for backwards-compat; UI no longer renders it (D-05).
     similarityThreshold: 0.65,
     showScores: false,
+    // Phase 55 D-05 per-threshold knobs. deepMerge() spreads { ...defaults, ...stored }
+    // for the embeddingDebug object, so a pre-feature stored config (with only
+    // similarityThreshold/showScores) loads these defaults automatically — this IS the
+    // Pitfall-3 shape-change defaulting for the kept settings key (no migration needed).
+    debugEnabled: false,
+    offTopicThreshold: 0.75,
+    maliciousThreshold: 0.82,
+    anchorDedupThreshold: 0.82,
   },
   tts: {
     provider: 'openai',
