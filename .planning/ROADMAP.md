@@ -46,7 +46,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. Known-deferred test failures (e.g. the stale `buildFallbackPosts` test contract) are resolved or formally re-accepted with documented rationale, and the full suite + `tsc` are green
   5. Bugs surfaced by a logic/edge-case/race-condition audit are fixed and covered by tests where practical
 
-**Plans**: 4 plans
+**Plans**: 8 plans (4 original + 4 gap-closure, all Wave 1 / parallel — disjoint files)
 
 - [x] 54-01-PLAN.md — Close out QUALITY-02 debug sessions, QUALITY-03 podcast todo, TECHDEBT-14 green-suite re-acceptance
 - [x] 54-02-PLAN.md — QUALITY-01 whole-codebase bug audit + behavior-observing regression tests
@@ -80,13 +80,17 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Goal**: Four regressions surfaced by on-device testing are root-caused and fixed: chat answers never cross sessions, persisted post content survives provider/locale switches intact, and the Ask-screen keyboard interaction is stable (no nav-bar flicker, send works on first tap).
 **Inserted**: 2026-05-21, after Phase 55, from a device-test session. Sits before Phase 56 because two of the four are correctness/blocker bugs (response leakage, can't-send-on-first-tap), not cosmetic polish.
 **Depends on**: Phase 55 (current code baseline)
-**Requirements**: BUGFIX-01, BUGFIX-02, BUGFIX-03, BUGFIX-04
+**Requirements**: BUGFIX-01, BUGFIX-02, BUGFIX-03, BUGFIX-04 (original); BUGFIX-05, BUGFIX-06, BUGFIX-07 (device-test follow-ons folded in via gap closure 2026-05-21)
 **Success Criteria** (what must be TRUE):
 
   1. A streaming LLM answer is bound to the session it was requested for: the rapid ask → new-session → ask → new-session sequence never renders a prior session's response under a different session's question. The leak is root-caused (request→session binding in `useQuestions`/`session.service`, and/or aborting the in-flight stream on session switch) and covered by a regression test. (BUGFIX-01)
   2. Switching the LLM provider (e.g. to Gemini) or the locale does NOT mutate or truncate already-generated posts: existing text-art posts that showed full sentences keep their full text and never collapse to a few words / a single token. The corrupting trigger is identified and persisted post content is treated as immutable by provider/locale change handlers. Covered by a test that exercises a provider/locale change against existing posts. (BUGFIX-02)
   3. On the Ask screen, opening the keyboard raises the input island smoothly with NO bottom-navigation-bar flicker (the nav bar does not animate up/down during the keyboard transition). Consistent with the existing SwipeTabContainer keyboard/resize and root-overflow invariants (CLAUDE.md). (BUGFIX-03)
   4. On the Ask screen, tapping Send while the keyboard is open sends the message on the FIRST tap — the tap is not consumed by keyboard dismissal (e.g. fire on pointer-down / preserve input focus so the send handler runs before blur). (BUGFIX-04)
+  5. (Gap closure) The Ask-screen input bar animates smoothly to its keyboard-open position instead of teleporting, with the nav instant-hide fix preserved. (BUGFIX-05 / GAP-A)
+  6. (Gap closure) The Planner trellis is profiled at production scale and the measured bottleneck is fixed; it stays smooth on large graphs without changing leaf-state semantics. (BUGFIX-05 / GAP-B)
+  7. (Gap closure) The ~1-min cold-start first-LLM-response is instrumented, the measured stall localized and fixed; warm responses stay fast. (BUGFIX-06 / GAP-C)
+  8. (Gap closure) The Home 'Nothing new today' empty-state no longer contradicts a populated feed (hidden or localized reword across all 4 bundles). (BUGFIX-07 / GAP-D)
 
 **Plans**: 4 plans
 
@@ -94,6 +98,10 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] 55.1-02-PLAN.md — BUGFIX-02: stop provider/locale switch from truncating text-art posts (reject-empty gate + persist-merge guard + Gemini budget/thinkingConfig)
 - [x] 55.1-03-PLAN.md — BUGFIX-03: useKeyboard hysteresis so the bottom nav doesn't flicker on keyboard open
 - [x] 55.1-04-PLAN.md — BUGFIX-04: Send fires on pointerdown+preventDefault (first-tap send) via shared submitMessage
+- [ ] 55.1-05-PLAN.md — GAP-A (BUGFIX-05): animate ChatInput reposition on keyboard open (CSS transition off visualViewport; preserves nav instant-hide + ChatInput/overflow invariants)
+- [ ] 55.1-06-PLAN.md — GAP-B (BUGFIX-05): profile Planner trellis at scale FIRST, then fix the measured bottleneck (recompute throttle / memoized leaf state / batched blossom writes / memoized leaf render)
+- [ ] 55.1-07-PLAN.md — GAP-C (BUGFIX-06): instrument cold-start first-ask FIRST, then fix the measured stall (boot warm-up of the dominant phase); byte-stable prompt + malicious gate preserved
+- [ ] 55.1-08-PLAN.md — GAP-D (BUGFIX-07): fix Home empty-state contradiction (hide-when-feed-nonempty OR localized reword across 4 bundles)
 
 **UI hint**: yes (issues 3 + 4 are Ask-screen keyboard/layout)
 
@@ -181,7 +189,7 @@ Phases execute in numeric order: 54 → 55 → 55.1 → 56 → 57 → 58 → 59
 |-------|-----------|----------------|--------|-----------|
 | 54. Code Quality, Bugs & Tech Debt | v1.7 | 5/4 | Complete    | 2026-05-21 |
 | 55. Algorithm & Mechanism Tuning | v1.7 | 7/6 | Complete    | 2026-05-21 |
-| 55.1. Device-Test Bug Fixes (INSERTED) | v1.7 | 4/4 | Complete   | 2026-05-21 |
+| 55.1. Device-Test Bug Fixes (INSERTED) | v1.7 | 4/8 | Gap closure | 2026-05-21 |
 | 56. UI Polish & Documentation | v1.7 | 0/TBD | Not started | - |
 | 57. Rewards Foundation — Data Model & Service | v1.7 | 0/TBD | Not started | - |
 | 58. Rewards Core Shop Loop — Themes | v1.7 | 0/TBD | Not started | - |

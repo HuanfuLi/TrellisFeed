@@ -5,7 +5,7 @@ milestone_name: Cleanup, Hardening & Rewards
 status: executing
 stopped_at: Phase 56 UI-SPEC approved
 last_updated: "2026-05-21T20:33:22.057Z"
-last_activity: 2026-05-21 -- Phase 56 planning complete
+last_activity: 2026-05-21 -- Phase 55.1 gap-closure plans created (GAP-A..D)
 progress:
   total_phases: 6
   completed_phases: 2
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-05-20)
 ## Current Position
 
 Phase: 55.1 (device-test-bug-fixes) — EXECUTING
-Plan: 1 of 4
-Status: Ready to execute
-Last activity: 2026-05-21 -- Phase 56 planning complete
+Plan: gap closure (05-08) ready; 4 of 8 plans complete
+Status: Ready to execute gap-closure plans
+Last activity: 2026-05-21 -- Phase 55.1 gap-closure plans created (GAP-A..D)
 
 Progress: [███░░░░░░░] 29%
 
