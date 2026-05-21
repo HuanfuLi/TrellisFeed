@@ -44,9 +44,14 @@
 import type { DailyPost, Collection } from '../types/index.ts';
 import { eventBus } from '../lib/event-bus.ts';
 import { postHistoryService } from './post-history.service.ts';
+import { dbExecute, dbQuery } from './db.service.ts';
 
 const STORAGE_KEY = 'trellis_collections_v1';
 const MAX_NAME_LENGTH = 50;
+// Phase 55 D-09/D-12: collections state (a single JSON blob) write-throughs to
+// one row in the SQLite `collections` table. localStorage mirror stays the sync
+// read path.
+const SQLITE_ROW_ID = 'collections_state';
 
 // Locked ServiceResult shape per 50-PATTERNS.md §"ServiceResult<T> Return Type":
 //   { success: true; data: T } | { success: false; error: <i18n key suffix> }
@@ -86,6 +91,42 @@ function saveState(state: CollectionsState): void {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch {
     // localStorage quota exceeded — silently drop (T-50-QUOTA).
+  }
+  // SQLite write-through (D-09/D-12) — fire-and-forget single-row upsert.
+  void dbExecute('INSERT OR REPLACE INTO collections (id, data) VALUES (?, ?)', [
+    SQLITE_ROW_ID,
+    JSON.stringify(state),
+  ]).catch(() => { /* SQLite unavailable — localStorage mirror is the read path */ });
+}
+
+let _hydratedCollections = false;
+
+/**
+ * Boot hydration (D-12). Restore the collections mirror from SQLite's single row
+ * when the localStorage mirror is empty (D-11 clean-cutover state). Guarded so a
+ * populated mirror is never overwritten. Emits COLLECTIONS_CHANGED so the Saved
+ * Collections sub-tab re-reads (no-refresh assumption).
+ */
+export async function hydrateCollectionsFromSQLite(): Promise<void> {
+  if (_hydratedCollections) return;
+  _hydratedCollections = true;
+  try {
+    if (loadState().collections.length > 0) return; // mirror already has data — trust it
+    const rows = await dbQuery<{ id: string; data: string }>(
+      'SELECT * FROM collections WHERE id = ?', [SQLITE_ROW_ID],
+    );
+    if (rows.length === 0) return;
+    let parsed: CollectionsState | null = null;
+    try { parsed = JSON.parse(rows[0].data) as CollectionsState; } catch { return; }
+    if (parsed && Array.isArray(parsed.collections) && parsed.collections.length > 0) {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed)); } catch { /* ignore */ }
+      eventBus.emit({
+        type: 'COLLECTIONS_CHANGED',
+        payload: { kind: 'create', collectionId: '*' },
+      });
+    }
+  } catch {
+    // SQLite unavailable — silently skip
   }
 }
 
