@@ -1,6 +1,11 @@
 import { chatStream, chatCompletion } from '../providers/llm/index.ts';
 import type { DailyPost, Question } from '../types';
 import { settingsService } from './settings.service.ts';
+import { resolveGenerationConfig } from './generation-config.ts';
+
+// Phase 55.1 GAP-E — re-export so the fast-model resolver is reachable from this module's
+// public surface (and source-grep acceptance) while its definition stays React-free.
+export { resolveGenerationConfig };
 
 /**
  * On-enter essay generation service.
@@ -87,6 +92,9 @@ export async function generateEssayMeta(post: DailyPost, bodyMarkdown: string, o
 
 async function* generateStandardEssay(post: DailyPost, questions: Question[], options?: EssayOptions): AsyncGenerator<string> {
   const settings = settingsService.getSync();
+  // Phase 55.1 GAP-E — route the on-open body through the optional low-latency model
+  // (thinking disabled) when configured; else fall back to the main model unchanged.
+  const { config, disableThinking } = resolveGenerationConfig(settings);
   const sourceQs = questions.filter(q => post.sourceQuestionIds.includes(q.id));
   const contextBlock = sourceQs.length > 0
     ? sourceQs.map(q => `Q: ${q.title || q.content.slice(0, 80)}\nA: ${(q.summary || q.answer).slice(0, 300)}`).join('\n\n')
@@ -110,13 +118,14 @@ async function* generateStandardEssay(post: DailyPost, questions: Question[], op
         content: `Write an essay titled "${post.title}" with this hook: "${post.teaser.hook}"\n\nContext from the learner's knowledge:\n${contextBlock}`,
       },
     ],
-    settings.llm,
-    { serviceName: 'posts', signal: options?.signal },
+    config,
+    { serviceName: 'posts', signal: options?.signal, disableThinking },
   );
 }
 
 async function* generateVideoEssay(post: DailyPost, options?: EssayOptions): AsyncGenerator<string> {
   const settings = settingsService.getSync();
+  const { config, disableThinking } = resolveGenerationConfig(settings);
   const transcript = post.videoMeta?.transcript;
   const videoTitle = post.videoMeta?.channelTitle ? `${post.title} (${post.videoMeta.channelTitle})` : post.title;
 
@@ -146,13 +155,17 @@ async function* generateVideoEssay(post: DailyPost, options?: EssayOptions): Asy
         content: userContent,
       },
     ],
-    settings.llm,
-    { serviceName: 'video-summary', signal: options?.signal },
+    config,
+    { serviceName: 'video-summary', signal: options?.signal, disableThinking },
   );
 }
 
 async function* generateNewsEssay(post: DailyPost, options?: EssayOptions): AsyncGenerator<string> {
   const settings = settingsService.getSync();
+  // Phase 55.1 GAP-E — fast-model routing. NOTE: this only changes WHICH model streams the
+  // news body on open; the news creation branch in concept-feed.service.ts still sets
+  // bodyMarkdown:'' (defer-to-streamer). Do NOT eagerly generate the body here.
+  const { config, disableThinking } = resolveGenerationConfig(settings);
   const sources = post.newsMeta?.sources ?? [];
   // Phase 41 SC-4 — multi-snippet grounding via sources.slice(0, 3). Plan 41-01 widened
   // Tavily maxResults 1 → 3 and stores up to 3 indexed entries in newsMeta.sources; this
@@ -198,13 +211,14 @@ async function* generateNewsEssay(post: DailyPost, options?: EssayOptions): Asyn
         content: `Headline: ${post.title}\nSources:\n${sourceText}\n\nConcept context: ${post.keywords.join(', ')}`,
       },
     ],
-    settings.llm,
-    { serviceName: 'news', signal: options?.signal },
+    config,
+    { serviceName: 'news', signal: options?.signal, disableThinking },
   );
 }
 
 async function* generateTextArtEssay(post: DailyPost, questions: Question[], options?: EssayOptions): AsyncGenerator<string> {
   const settings = settingsService.getSync();
+  const { config, disableThinking } = resolveGenerationConfig(settings);
   const sourceQs = questions.filter(q => post.sourceQuestionIds.includes(q.id));
   const contextBlock = sourceQs.length > 0
     ? sourceQs.map(q => `Q: ${q.title || q.content.slice(0, 80)}\nA: ${(q.summary || q.answer).slice(0, 300)}`).join('\n\n')
@@ -228,8 +242,8 @@ async function* generateTextArtEssay(post: DailyPost, questions: Question[], opt
         content: `Write a social media post about "${post.title}" with the hook: "${post.teaser.hook}"\n\nConcept context:\n${contextBlock}`,
       },
     ],
-    settings.llm,
-    { serviceName: 'posts', signal: options?.signal },
+    config,
+    { serviceName: 'posts', signal: options?.signal, disableThinking },
   );
 }
 

@@ -237,6 +237,20 @@ export interface ImageGenerationSettings {
 
 export interface AppSettings {
   llm: LLMConfig;
+  /**
+   * Phase 55.1 GAP-E (BUGFIX-08) — optional low-latency generation model.
+   * When `enabled` and configured, the on-open one-shot generators (post body,
+   * news essay, post-context Q&A) stream from THIS model with thinking/reasoning
+   * DISABLED, so the body starts streaming immediately on tap-in (no multi-second
+   * "thinking" stall). When unset/disabled, those generators fall back to `llm`
+   * with NO behavior change. Mirrors LLMConfig so users can point it at a wholly
+   * different provider/model/key (e.g. a fast local LM Studio model while `llm`
+   * is a cloud reasoning model). Additive-optional — pre-feature stored settings
+   * load the default (disabled) via deepMerge; no migration (CLAUDE.md
+   * feedback_no_normalize_for_optional_fields). Ask Q&A / classification / planner /
+   * podcast / flashcard are NOT routed through this — they keep `llm`.
+   */
+  fastModel?: FastModelConfig;
   tts: TTSConfig;
   embedding: EmbeddingConfig;
   embeddingDebug: EmbeddingDebugConfig;
@@ -292,6 +306,17 @@ export interface LLMConfig {
   baseUrl?: string;
   model: string;
   isConfigured: boolean;
+}
+
+/**
+ * Phase 55.1 GAP-E — low-latency generation model config. Mirrors LLMConfig (so the
+ * Settings UI + provider plumbing reuse existing patterns) plus an `enabled` master gate.
+ * `resolveGenerationConfig` returns this config (with thinking disabled) ONLY when
+ * `enabled === true` AND `isConfigured === true`; otherwise it falls back to the main
+ * `llm` config with thinking left on (byte-identical request to today).
+ */
+export interface FastModelConfig extends LLMConfig {
+  enabled: boolean;
 }
 
 export interface TTSConfig {

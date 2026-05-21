@@ -16,6 +16,19 @@ const defaultSettings: AppSettings = {
     model: 'gpt-4o',
     isConfigured: false,
   },
+  // Phase 55.1 GAP-E — optional low-latency generation model. Disabled/unset by default
+  // so existing users see NO behavior change (resolveGenerationConfig falls back to `llm`).
+  // MUST be present here for deepMerge() to default pre-feature stored settings (deepMerge
+  // iterates Object.keys(defaults), so an absent key would never be filled in) — this is the
+  // additive-optional defaulting path, NOT a migration (CLAUDE.md feedback_no_normalize_for_optional_fields).
+  fastModel: {
+    enabled: false,
+    provider: 'openai',
+    apiKey: '',
+    baseUrl: '',
+    model: 'gpt-4o-mini',
+    isConfigured: false,
+  },
   embedding: {
     provider: 'openai',
     apiKey: '',

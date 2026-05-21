@@ -1,6 +1,7 @@
 import { chatStream } from '../providers/llm';
 import type { PostOriginContext } from '../types';
 import { settingsService } from './settings.service';
+import { resolveGenerationConfig } from './generation-config';
 
 function buildContextPrompt(context: PostOriginContext, userQuestion: string): string {
   const sourceBlock = context.sourceQuestions.length > 0
@@ -45,7 +46,12 @@ export const postContextQaService = {
     if (!settings.preferences.aiConsentGiven) {
       throw new Error('AI features are disabled. Enable AI Data Transmission in Settings to ask about posts.');
     }
-    if (!settings.llm.isConfigured) {
+    // Phase 55.1 GAP-E — post-context Q&A is an on-open one-shot generator, so route it
+    // through the optional low-latency model (thinking disabled) when configured. Gate
+    // readiness on whichever config will actually be used (the resolver falls back to the
+    // main llm when the fast model is unset/disabled/unconfigured).
+    const { config, disableThinking } = resolveGenerationConfig(settings);
+    if (!config.isConfigured) {
       throw new Error('Add your API key in Settings to ask AI follow-up questions.');
     }
 
@@ -60,8 +66,8 @@ export const postContextQaService = {
           content: buildContextPrompt(context, userQuestion),
         },
       ],
-      settings.llm,
-      { serviceName: 'ask' },
+      config,
+      { serviceName: 'ask', disableThinking },
     );
   },
 };

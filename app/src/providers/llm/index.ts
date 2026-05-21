@@ -199,7 +199,19 @@ async function* openAIStream(messages: ChatMessage[], config: LLMConfig, options
   const response = await fetch(url, {
     method: 'POST',
     headers: isLocal ? { 'Content-Type': 'application/json' } : openAIHeaders(config),
-    body: JSON.stringify({ model: config.model, messages, max_tokens: 4096, stream: true }),
+    // Phase 55.1 GAP-E: on the fast-model path (disableThinking) for the OpenAI cloud
+    // provider, send `reasoning_effort: 'minimal'` so a reasoning-capable model (o-series /
+    // gpt-5*) does not stall the stream on internal reasoning before the first body token.
+    // Scoped to provider === 'openai' (skip local/lmstudio — their OpenAI-compatible servers
+    // vary and may reject the field). No-op when disableThinking is unset → byte-identical
+    // request to today's behavior.
+    body: JSON.stringify({
+      model: config.model,
+      messages,
+      max_tokens: 4096,
+      stream: true,
+      ...(options?.disableThinking && config.provider === 'openai' ? { reasoning_effort: 'minimal' } : {}),
+    }),
     signal: composeSignal(options?.signal, STREAM_TIMEOUT_MS),
   });
   if (!response.ok) {
@@ -261,6 +273,10 @@ async function* claudeStream(messages: ChatMessage[], config: LLMConfig, options
       'anthropic-version': '2023-06-01',
       'anthropic-dangerous-direct-browser-access': 'true',
     },
+    // Phase 55.1 GAP-E: the Anthropic fast-model path requires NO change — extended
+    // thinking is OPT-IN (a `thinking: { type: 'enabled', ... }` block), and we never
+    // send one. So Claude already streams without extended thinking by default; the
+    // `disableThinking` flag is intentionally a no-op here. Do NOT add a `thinking` block.
     body: JSON.stringify({ model: config.model, max_tokens: 4096, stream: true, system, messages: userMessages }),
     signal: composeSignal(options?.signal, STREAM_TIMEOUT_MS),
   });
@@ -330,7 +346,16 @@ async function* geminiStream(messages: ChatMessage[], config: LLMConfig, options
   const response = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': config.apiKey ?? '' },
-    body: JSON.stringify(toGeminiPayload(messages)),
+    // Phase 55.1 GAP-E: forward maxTokens / jsonMode / disableThinking so the fast-model
+    // streaming path sends `thinkingConfig.thinkingBudget: 0` (reuses the existing Gemini
+    // thinking-disable plumbing in toGeminiPayload). Previously the stream path dropped all
+    // options — disableThinking is now honored on BOTH completion and streaming paths.
+    body: JSON.stringify(toGeminiPayload(
+      messages,
+      options?.maxTokens ?? 4096,
+      options?.jsonMode ?? false,
+      options?.disableThinking ?? false,
+    )),
     signal: composeSignal(options?.signal, STREAM_TIMEOUT_MS),
   });
   if (!response.ok) {
