@@ -565,20 +565,25 @@ None — this phase produces findings lists and source-reading reports, not new 
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
+
+All three questions are operator-decision items by design (hybrid discovery, D-01). They are structurally resolved by the Phase 56-02 operator triage checkpoint — the dedicated gate where the operator decides each per-item direction. Resolutions recorded below.
 
 1. **Should `Documents/CHANGELOG_4_05.md` and `CHANGELOG_SUMMARY_4_05.md` move to Legacy/, or are they kept for historical record?**
    - What we know: They predate CHANGELOG_4_16 and CHANGELOG_5_20. The Legacy/ convention exists.
    - What's unclear: Whether the operator wants all older changelogs preserved at top level or only the most recent.
    - Recommendation: Move to Documents/Legacy/ per D-08 (stale = archive). Keep CHANGELOG_5_20 live.
+   - **RESOLVED:** Operator decides during 56-02 triage per D-08 — the operator triage reviews all doc-staleness (keep-live / archive / update) verdicts in 56-FINDINGS.md before 56-05 executes any `git mv`.
 
 2. **DR-01 drift resolution: is the CLAUDE.md "Brand History" note about `'echolearn'` SQLite connection a code regression (should IndexedDB use `'echolearn'` for backwards compat?) or a stale doc (IDB uses `'trellis'` and that's correct)?**
    - What we know: `IDB_NAME = 'trellis'` in db.service.ts:190. The old `'echolearn'` SQLite database was a separate Capacitor-SQLite plugin database. IndexedDB is a different storage mechanism and starting fresh with `'trellis'` is the correct choice for a migration.
    - Recommendation: This is a stale doc — the backwards compat note was about the SQLite connection (now gone); the IndexedDB name `'trellis'` is correct and needs no preservation. Present to operator per D-09 to confirm.
+   - **RESOLVED:** Presented to operator in 56-02 per D-09 (confirm-first); agent recommends the stale-doc-update direction. 56-05 applies only the operator-approved resolution.
 
 3. **Is `glow-ring` (filter: drop-shadow) actually jank on mid-tier Android, or does GPU compositing handle it acceptably?**
    - What we know: `filter` forces compositing layer promotion (GPU work, not CPU paint) but costs VRAM bandwidth. On mid-tier Android it may be fine at 250ms bursts but problematic if run frequently.
    - Recommendation: Flag as candidate finding; leave remove-vs-keep to operator per D-05.
+   - **RESOLVED:** Flagged as a candidate finding in 56-FINDINGS.md; operator decides remove-vs-simplify during 56-02 triage per D-05.
 
 ---
 
