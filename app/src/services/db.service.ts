@@ -216,10 +216,18 @@ class WASMSQLiteBackend implements DBBackend {
   async init() {
     const sqlite3InitModule = (await import('@sqlite.org/sqlite-wasm')).default;
     const sqlite3 = await sqlite3InitModule();
-    // opfs-sahpool: persistent OPFS-backed DB. Throws here if OPFS is
-    // unavailable — the getDB() catch swaps to LocalStorageBackend.
+    // opfs-sahpool VFS: persistent OPFS-backed DB using synchronous access
+    // handles. Unlike oo1.OpfsDb (the kvvfs/SAB OPFS VFS, which needs a Worker +
+    // COOP/COEP cross-origin isolation), installOpfsSAHPoolVfs runs on the main
+    // thread with NO special headers — the reason 55-RESEARCH selected it. The
+    // install Promise rejects when OPFS is unavailable (incognito, insecure
+    // context, older browser); the getDB() catch then swaps to LocalStorageBackend.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    this.db = new (sqlite3 as any).oo1.OpfsDb('/trellis.sqlite3');
+    const poolUtil = await (sqlite3 as any).installOpfsSAHPoolVfs({
+      name: 'opfs-sahpool',
+      directory: '.trellis-sqlite',
+    });
+    this.db = new poolUtil.OpfsSAHPoolDb('/trellis.sqlite3');
     await this._runMigrations();
   }
 
@@ -264,6 +272,9 @@ export async function getDB(): Promise<DBBackend> {
   }
   initPromise = candidate.init().then(() => {
     backend = candidate;
+    if (!Capacitor.isNativePlatform()) {
+      console.info('[Trellis] DB backend active:', candidate.constructor.name);
+    }
   }).catch(async (err) => {
     if (!Capacitor.isNativePlatform() && !(candidate instanceof LocalStorageBackend)) {
       // OPFS / WASM unavailable — fall back to LocalStorageBackend so the app
