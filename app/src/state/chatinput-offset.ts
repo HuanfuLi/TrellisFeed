@@ -1,97 +1,80 @@
 /**
  * chatinput-offset.ts
  *
- * React-free pure helper (GAP-A / BUGFIX-05, Phase 55.1) resolving the pixel
- * translateY the Ask-screen ChatInput should sit at while the WebView keyboard
- * reflow is in flight. Lives in its own module so it can be unit-tested under
- * `node --test` without importing `react`. Mirrors the keyboard-hysteresis.ts
- * pure-helper module style.
+ * React-free pure helper (GAP-A / BUGFIX-05, Phase 55.1 — ATTEMPT 2) resolving
+ * the LIVE keyboard inset (in px) the Ask-screen ChatInput should translate by
+ * while the WebView keyboard animation is in flight. Lives in its own module so
+ * it can be unit-tested under `node --test` without importing `react`.
  *
- * Why this exists
- * ---------------
- * On Android the keyboard opens with `adjustResize`: the WebView layout viewport
- * SHRINKS and the AskScreen 100dvh flex-column reflows INSTANTLY, so the
- * `flexShrink:0` ChatInput re-anchors above the keyboard in a single frame — it
- * "teleports". Device UAT round 2 flagged this as a polish defect (the nav fix in
- * commit 6fb7b325 was accepted; the input teleport remained).
+ * Why this exists — ATTEMPT 2 (the decay approach is REJECTED)
+ * -----------------------------------------------------------
+ * The first attempt (55.1-05) paired a CSS `transition` with a transient
+ * translateY (a bounded "settle distance") that decayed to 0 over a 0.18s ease.
+ * It FAILED on device (round 3): Android applies `adjustResize` and the
+ * AskScreen 100dvh flex-column reflows in the SAME paint that the transient
+ * offset is applied AND removed — so no transit was ever visible. The bar still
+ * teleported. That transient/decay helper is REMOVED.
  *
- * The fix is to pair a CSS `transition` on the bar's own `transform` with a single,
- * deterministic offset value so the visible motion is eased rather than instant. The
- * native adjustResize is the layout authority that LIFTS the bar (we must NOT add a
- * second mover that double-shifts it — that would fight adjustResize). This helper's
- * STEADY-STATE offset is therefore 0 in both states: at rest the bar sits where the
- * flex column places it. The eased motion comes from the component applying a brief,
- * non-zero transient transform on the open/close edge (see ChatInput.tsx), settling
- * back to this resolved value. Exposing the mapping here keeps it testable and
- * documents the contract: the helper never double-moves the bar.
+ * New approach — continuous tracking off visualViewport events
+ * ------------------------------------------------------------
+ * Android emits a STREAM of `visualViewport` `resize` AND `scroll` events
+ * throughout the keyboard animation. On each event the caller reads the live
+ * geometry and computes the keyboard inset:
+ *
+ *     inset = max(0, innerHeight - viewportHeight - viewportOffsetTop)
+ *
+ * As the keyboard animates open, `viewportHeight` shrinks / `offsetTop` grows
+ * across the event stream, so the returned inset GROWS frame-by-frame. The
+ * component translates the bar by this live value, so the bar FOLLOWS the
+ * keyboard's animated rise rather than snapping. The motion comes from the
+ * event stream itself, not from a CSS transition.
+ *
+ * Residual reconciliation (the on-device tuning knob, owned by the component):
+ * under `adjustResize` the layout viewport ALSO shrinks (the flex column already
+ * re-anchors the bar). The component must translate by the RESIDUAL between the
+ * visual-viewport inset this helper returns and the layout-viewport reflow so
+ * the bar neither double-lifts nor lags. This helper computes the raw visual
+ * inset; the component reconciles against the layout viewport.
  *
  * Contract
  * --------
- *  - isKeyboardOpen === false        → 0   (bar at rest; adjustResize not engaged)
- *  - isKeyboardOpen === true         → 0   (adjustResize already lifted the bar;
- *                                           the helper must NOT add a second offset)
- *  - keyboardHeight is clamped to >= 0 and used only to derive the transient settle
- *    distance via `resolveChatInputSettleDistance` (the eased delta the component
- *    animates THROUGH, not a resting offset).
+ *  - fully closed (viewportHeight ≈ innerHeight, offsetTop 0) → 0
+ *  - fully open                                               → full keyboard inset
+ *  - mid-animation (partial inset)                            → the partial value
+ *  - non-finite / negative geometry                           → clamped to 0
  *
  * Deterministic, no DOM reads. Inputs come from `window.visualViewport` geometry
  * only, resolved by the caller.
  */
 
 export interface ResolveChatInputOffsetArgs {
-  /** Keyboard height in px derived from visualViewport geometry (baseline - current). */
-  keyboardHeight: number;
-  /** Whether the keyboard is currently open (from useKeyboard / hysteresis machine). */
-  isKeyboardOpen: boolean;
+  /** `window.innerHeight` — the layout-viewport height (does not shrink with the keyboard). */
+  innerHeight: number;
+  /** `window.visualViewport.height` — shrinks as the keyboard animates open. */
+  viewportHeight: number;
+  /** `window.visualViewport.offsetTop` — grows when the viewport is offset by the keyboard. */
+  viewportOffsetTop: number;
 }
 
 /**
- * Maximum transient settle distance (px) the component eases THROUGH on the
- * open/close edge. The visible motion is bounded so a tall keyboard cannot produce
- * a long, sluggish slide; ~24px reads as a smooth lift without lagging behind the
- * native reflow. Empirical; confirm on-device.
- */
-export const MAX_CHATINPUT_SETTLE_DISTANCE = 24;
-
-/**
- * The resting translateY offset for the ChatInput.
+ * The LIVE keyboard inset (px) = `max(0, innerHeight - viewportHeight - viewportOffsetTop)`.
  *
- * Always 0 — adjustResize is the sole layout authority that lifts the bar, so the
- * resting position is wherever the flex column places it. Returning a non-zero
- * resting offset here would double-move the bar and fight the native reflow.
+ * Called on every `visualViewport` resize/scroll event during the keyboard
+ * animation. Because the geometry changes across the event stream, the returned
+ * value tracks the keyboard's partial position frame-by-frame — the bar follows
+ * the keyboard up and back down.
  *
- * The function still takes geometry so callers have a single, documented entry
- * point and so the contract (no double-move) is enforced by a test rather than by
- * convention.
+ * Non-finite inputs (NaN/Infinity) are treated as 0; the result is clamped to
+ * `>= 0` so a transient over-report cannot push the bar below its rest position.
  */
 export function resolveChatInputOffset({
-  keyboardHeight,
-  isKeyboardOpen,
+  innerHeight,
+  viewportHeight,
+  viewportOffsetTop,
 }: ResolveChatInputOffsetArgs): number {
-  // Guard against negative / NaN geometry without changing the resting contract.
-  void (Number.isFinite(keyboardHeight) ? Math.max(0, keyboardHeight) : 0);
-  void isKeyboardOpen;
-  return 0;
-}
-
-/**
- * The transient settle distance (px) the component animates THROUGH when the
- * keyboard state changes. This is the eased delta — NOT a resting offset.
- *
- *  - closed → returns 0 (nothing to settle; bar is already at rest)
- *  - open   → returns a small bounded distance scaled by keyboard height, capped at
- *    MAX_CHATINPUT_SETTLE_DISTANCE, so the bar eases up rather than teleporting.
- *
- * Scaling: a fraction of the keyboard height, clamped. A larger keyboard implies a
- * larger native jump, so a slightly larger (but bounded) eased distance keeps the
- * perceived motion proportional without ever exceeding the cap.
- */
-export function resolveChatInputSettleDistance({
-  keyboardHeight,
-  isKeyboardOpen,
-}: ResolveChatInputOffsetArgs): number {
-  if (!isKeyboardOpen) return 0;
-  const safeHeight = Number.isFinite(keyboardHeight) ? Math.max(0, keyboardHeight) : 0;
-  // 1/12 of the keyboard height, capped — a 300px keyboard yields 25 → clamps to 24.
-  return Math.min(MAX_CHATINPUT_SETTLE_DISTANCE, Math.round(safeHeight / 12));
+  const safeInner = Number.isFinite(innerHeight) ? innerHeight : 0;
+  const safeViewport = Number.isFinite(viewportHeight) ? viewportHeight : 0;
+  const safeOffset = Number.isFinite(viewportOffsetTop) ? viewportOffsetTop : 0;
+  const inset = safeInner - safeViewport - safeOffset;
+  return inset > 0 ? inset : 0;
 }
