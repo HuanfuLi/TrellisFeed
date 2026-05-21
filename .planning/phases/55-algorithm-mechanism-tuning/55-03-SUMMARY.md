@@ -97,3 +97,7 @@ The three threshold knob labels and the "Debug mode" toggle label are dev-only d
 ## Known Stubs
 
 None. No hardcoded empty values or placeholder data introduced. The legacy `similarityThreshold` field is intentionally retained (read-side backwards-compat) but no longer drives any UI control or threshold — documented in the type comment.
+
+## Self-Check: PASSED
+
+All 8 modified/created files present on disk. All 4 commits (`d1aa7840`, `7ea60a9a`, `792ae633`, `1fbd1951`) found in git log. STATE.md / ROADMAP.md untouched (orchestrator-owned).
