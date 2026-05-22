@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-05-20)
 
 ## Current Position
 
-Phase: 55.1 (device-test-bug-fixes) — EXECUTING (round-4 gaps merged; device UAT pending)
+Phase: 55.1 (device-test-bug-fixes) — EXECUTING (round-5: GAP-A skipped, GAP-B re-fixed; device UAT pending for GAP-B)
 Plan: 11 of 11
-Status: Round-4 gap closure merged to main (55.1-09 GAP-B render-gate, 55.1-10 GAP-E fast-model, 55.1-11 GAP-A visualViewport-follow). Awaiting on-device UAT for GAP-A/B/E.
-Last activity: 2026-05-22 -- Round-4 gaps 09/10/11 merged; tsc clean; round-4 changes' own tests green (1 pre-existing unrelated post-queue failure noted)
+Status: Round 5 — GAP-E PASS (device). GAP-A SKIPPED/won't-fix (smooth keyboard-follow is native-only in a WebView; reverted to clean baseline, commit 9e33efad). GAP-B RE-FIXED (plain-SVG off-screen branch, commit c08c30f2) — awaiting device re-test. tsc clean; only the pre-existing post-queue Test 6 failure remains (unrelated).
+Last activity: 2026-05-22 -- Round 5: GAP-A reverted (won't-fix, WebView limitation), GAP-B plain-SVG off-screen fix
 
 Progress: [████░░░░░░] 33%
 
