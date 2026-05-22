@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, type ElementType } from 'react';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import type { TrellisLayout } from '../../services/trellis-state.service.ts';
@@ -56,6 +56,16 @@ export function TrellisCanvas({ layout, ambientEnabled, animationsEnabled = true
   // lands, leaves above the threshold still animate (graceful degradation).
   const perfGuardThresholdExceeded = leafCount > TAP_ANIMATION_THRESHOLD;
 
+  // Phase 55.1 GAP-B (BUGFIX-05, round 5) — when the Planner is off-screen, render
+  // the vine stems as PLAIN <path> (no framer-motion VisualElement). The draw-on
+  // (pathLength) animation only matters on first foreground paint; off-screen we
+  // want ZERO motion machinery. `VinePath` is `motion.path` when animating and the
+  // intrinsic `'path'` tag otherwise; the motion-only props (initial/animate/
+  // transition) are spread ONLY in the animating branch so the plain tag never
+  // receives invalid DOM attributes. Resting visual is identical (a fully-drawn
+  // stroke), so there is no pop when the Planner becomes active.
+  const VinePath = (animationsEnabled ? motion.path : 'path') as ElementType;
+
   return (
     <svg
       viewBox={`0 0 ${TRELLIS_VIEWBOX_W} ${TRELLIS_VIEWBOX_H}`}
@@ -73,16 +83,20 @@ export function TrellisCanvas({ layout, ambientEnabled, animationsEnabled = true
           return (
             <g key={v.branchId}>
               {/* Soft shadow for depth */}
-              <motion.path
+              <VinePath
                 d={v.spec.d}
                 stroke={v.color}
                 strokeWidth={8}
                 fill="none"
                 opacity={0.08}
                 strokeLinecap="round"
-                initial={{ pathLength: 0 }}
-                animate={{ pathLength: 1 }}
-                transition={{ duration: 1.2, delay: i * 0.2, ease: 'easeInOut' }}
+                {...(animationsEnabled
+                  ? {
+                      initial: { pathLength: 0 },
+                      animate: { pathLength: 1 },
+                      transition: { duration: 1.2, delay: i * 0.2, ease: 'easeInOut' },
+                    }
+                  : {})}
               />
               {/* Tapering segments: thick at base, thin at tip */}
               {Array.from({ length: Math.min(segCount, 6) }, (_, si) => {
@@ -90,7 +104,7 @@ export function TrellisCanvas({ layout, ambientEnabled, animationsEnabled = true
                 const sw = 5.5 - frac * 3;
                 const dashLen = 100 / segCount;
                 return (
-                  <motion.path
+                  <VinePath
                     key={si}
                     d={v.spec.d}
                     stroke={v.color}
@@ -101,9 +115,13 @@ export function TrellisCanvas({ layout, ambientEnabled, animationsEnabled = true
                     strokeDasharray={`${dashLen}% ${100 - dashLen}%`}
                     strokeDashoffset={`${-si * dashLen}%`}
                     pathLength={100}
-                    initial={{ pathLength: 0 }}
-                    animate={{ pathLength: 100 }}
-                    transition={{ duration: 1.2, delay: i * 0.2, ease: 'easeInOut' }}
+                    {...(animationsEnabled
+                      ? {
+                          initial: { pathLength: 0 },
+                          animate: { pathLength: 100 },
+                          transition: { duration: 1.2, delay: i * 0.2, ease: 'easeInOut' },
+                        }
+                      : {})}
                   />
                 );
               })}

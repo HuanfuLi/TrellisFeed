@@ -588,8 +588,36 @@ export function TrellisLeaf(props: TrellisLeafProps) {
   const outwardAngle = tangentAngle + side * 90;
   const rotation = outwardAngle + 90;
 
+  // Phase 55.1 GAP-B (BUGFIX-05, round 5) — when the Planner is OFF-SCREEN the
+  // master gate is off: render a PLAIN static SVG group. No framer-motion
+  // motion.g VisualElement (×3 per leaf), no `useAnimationControls`-driven
+  // shake wrapper, and crucially NO `filter: drop-shadow(...)` — the round-4
+  // "static" branch still mounted all three motion.g's and a per-leaf drop-shadow
+  // filter, so the always-mounted off-screen canvas kept starving the compositor
+  // (filters force a rasterization pass; VisualElements carry per-element
+  // overhead). This branch mounts ZERO of that. It matches the motion.g RESTING
+  // transform EXACTLY (scale → rotate, transformOrigin 0 0 / transformBox
+  // fill-box) so there is no positional jump when the Planner becomes active and
+  // the animated branch below takes over. Off-screen leaves are never tapped
+  // (SVG root sets pointerEvents:none), so the tap/pulse wrappers are unneeded.
+  if (!animationsEnabled) {
+    return (
+      <g transform={`translate(${x}, ${y})`}>
+        <g
+          style={{
+            transform: `scale(${LEAF_SCALE}) rotate(${rotation}deg)`,
+            transformOrigin: '0 0',
+            transformBox: 'fill-box',
+          }}
+        >
+          {shape}
+        </g>
+      </g>
+    );
+  }
+
   // Phase 55.1 GAP-B — sway only when the master gate is on. When the Planner is
-  // off-screen (animationsEnabled=false) the outer motion.g is fully static.
+  // off-screen (animationsEnabled=false) we already returned the static group above.
   const swayActive = animationsEnabled && ambientSway;
 
   return (
