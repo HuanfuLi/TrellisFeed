@@ -4,7 +4,7 @@ milestone: v1.7
 milestone_name: Cleanup, Hardening & Rewards
 status: executing
 stopped_at: Phase 56 UI-SPEC approved
-last_updated: "2026-05-21T21:00:15.524Z"
+last_updated: "2026-05-22T02:00:15.947Z"
 last_activity: 2026-05-21 -- Phase 55.1 execution started
 progress:
   total_phases: 6
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-20)
 
 **Core value:** AI-powered personalized learning that respects user attention — reward-based, non-pushy, local-first.
-**Current focus:** Phase 55.1 — Device-Test Bug Fixes
+**Current focus:** Phase 55.1 — device-test-bug-fixes
 
 ## Current Position
 
-Phase: 55.1 (Device-Test Bug Fixes) — EXECUTING
-Plan: 1 of 8
-Status: Executing Phase 55.1
-Last activity: 2026-05-21 -- Phase 55.1 execution started
+Phase: 55.1 (device-test-bug-fixes) — EXECUTING (round-4 gaps merged; device UAT pending)
+Plan: 11 of 11
+Status: Round-4 gap closure merged to main (55.1-09 GAP-B render-gate, 55.1-10 GAP-E fast-model, 55.1-11 GAP-A visualViewport-follow). Awaiting on-device UAT for GAP-A/B/E.
+Last activity: 2026-05-22 -- Round-4 gaps 09/10/11 merged; tsc clean; round-4 changes' own tests green (1 pre-existing unrelated post-queue failure noted)
 
-Progress: [███░░░░░░░] 29%
+Progress: [████░░░░░░] 33%
 
 ## Milestone Shape (v1.7)
 

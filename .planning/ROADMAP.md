@@ -103,9 +103,9 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] 55.1-06-PLAN.md — GAP-B (BUGFIX-05): profile Planner trellis at scale FIRST, then fix the measured bottleneck (recompute throttle / memoized leaf state / batched blossom writes / memoized leaf render)
 - [x] 55.1-07-PLAN.md — GAP-C (BUGFIX-06): instrument cold-start first-ask FIRST, then fix the measured stall (boot warm-up of the dominant phase); byte-stable prompt + malicious gate preserved
 - [x] 55.1-08-PLAN.md — GAP-D (BUGFIX-07): fix Home empty-state contradiction (hide-when-feed-nonempty OR localized reword across 4 bundles)
-- [ ] 55.1-09-PLAN.md — GAP-B (BUGFIX-05) RE-TARGET: pause trellis leaf framer-motion animations when Planner is off-screen (shouldAnimateTrellis gate, render-layer fix; 55.1-06 optimized the bypassed build path)
-- [ ] 55.1-10-PLAN.md — GAP-E (BUGFIX-08) NEW: configurable low-latency generation model for on-open post-body/news/context-QA, thinking disabled per provider, falls back to main model; 4-bundle i18n
-- [ ] 55.1-11-PLAN.md — GAP-A (BUGFIX-05) ATTEMPT 2: drive ChatInput position continuously off visualViewport so the bar follows the keyboard frame-by-frame (decay approach from 55.1-05 rejected)
+- [x] 55.1-09-PLAN.md — GAP-B (BUGFIX-05) RE-TARGET: pause trellis leaf framer-motion animations when Planner is off-screen (shouldAnimateTrellis gate, render-layer fix; 55.1-06 optimized the bypassed build path)
+- [x] 55.1-10-PLAN.md — GAP-E (BUGFIX-08) NEW: configurable low-latency generation model for on-open post-body/news/context-QA, thinking disabled per provider, falls back to main model; 4-bundle i18n
+- [x] 55.1-11-PLAN.md — GAP-A (BUGFIX-05) ATTEMPT 2: drive ChatInput position continuously off visualViewport so the bar follows the keyboard frame-by-frame (decay approach from 55.1-05 rejected)
 
 **UI hint**: yes (issues 3 + 4 are Ask-screen keyboard/layout)
 
@@ -193,7 +193,7 @@ Phases execute in numeric order: 54 → 55 → 55.1 → 56 → 57 → 58 → 59
 |-------|-----------|----------------|--------|-----------|
 | 54. Code Quality, Bugs & Tech Debt | v1.7 | 5/4 | Complete    | 2026-05-21 |
 | 55. Algorithm & Mechanism Tuning | v1.7 | 7/6 | Complete    | 2026-05-21 |
-| 55.1. Device-Test Bug Fixes (INSERTED) | v1.7 | 8/8 | Gaps (round 3) | 2026-05-21 |
+| 55.1. Device-Test Bug Fixes (INSERTED) | v1.7 | 11/11 | Complete   | 2026-05-22 |
 | 56. UI Polish & Documentation | v1.7 | 0/TBD | Not started | - |
 | 57. Rewards Foundation — Data Model & Service | v1.7 | 0/TBD | Not started | - |
 | 58. Rewards Core Shop Loop — Themes | v1.7 | 0/TBD | Not started | - |
