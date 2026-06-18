@@ -1,7 +1,7 @@
 # Milestone v1.7 — Project Summary
 
-**Generated:** 2026-06-18  
-**Purpose:** 回归开发、团队 onboarding 与项目复盘  
+**Generated:** 2026-06-18
+**Purpose:** 回归开发、团队 onboarding 与项目复盘
 **Status:** 进行中；Phase 54、55 已完成，Phase 55.1 接近收尾，Phase 56 已规划，Rewards 尚未开始
 
 ---
