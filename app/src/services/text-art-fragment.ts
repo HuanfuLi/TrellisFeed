@@ -22,7 +22,7 @@
 // Ranges: CJK Ext-A, CJK Unified, Hiragana, Katakana, Hangul syllables,
 // CJK symbols/punctuation, and fullwidth forms.
 const CJK_RE =
-  /[　-〿぀-ゟ゠-ヿ㐀-䶿一-鿿가-힯＀-￯]/;
+  /[\u3000-\u303f\u3040-\u309f\u30a0-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uac00-\ud7af\uff00-\uffef]/;
 
 const TERMINATOR_RE = /[.!?…。！？]$/;
 
