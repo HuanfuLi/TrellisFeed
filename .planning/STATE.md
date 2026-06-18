@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: Cleanup, Hardening & Rewards
 status: executing
-stopped_at: Phase 56 UI-SPEC approved
-last_updated: "2026-05-22T02:00:15.947Z"
-last_activity: 2026-05-21 -- Phase 55.1 execution started
+stopped_at: Milestone v1.7 summary generated
+last_updated: "2026-06-18T09:22:32.687Z"
+last_activity: "2026-05-22 -- Round 5: GAP-A reverted (won't-fix, WebView limitation), GAP-B plain-SVG off-screen fix"
 progress:
   total_phases: 6
   completed_phases: 2
@@ -92,9 +92,9 @@ Carried forward from v1.6 close (2026-05-20). All four now have a v1.7 home.
 
 ## Session Continuity
 
-Last session: 2026-05-21T19:15:38.098Z
-Stopped at: Phase 56 UI-SPEC approved
-Resume file: .planning/phases/56-ui-polish-documentation/56-UI-SPEC.md
+Last session: 2026-06-18T09:22:32.684Z
+Stopped at: Milestone v1.7 summary generated
+Resume file: .planning/reports/MILESTONE_SUMMARY-v1.7.md
 
 ## Operator Next Steps
 
