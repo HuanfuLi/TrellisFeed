@@ -37,6 +37,15 @@ function todayStr() {
   return `${y}-${m}-${day}`;
 }
 
+function dateOffset(deltaDays) {
+  const d = new Date();
+  d.setDate(d.getDate() + deltaDays);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 function makePost(id) {
   return {
     id,
@@ -110,7 +119,7 @@ describe('postQueueService.removeByIds — Phase 43 gap-closure 43-15', () => {
   it('Test 6: removeByIds does NOT touch the yesterday snapshot', () => {
     // Seed a yesterday snapshot via the rollover path.
     postQueueService.enqueue([makePost('y1'), makePost('y2'), makePost('y3')]);
-    const yesterday = (() => { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10); })();
+    const yesterday = dateOffset(-1);
     postQueueService.simulateDateRollback(yesterday);
     postQueueService.loadQueue(); // snapshots y1/y2/y3, rehydrates them into today
     // Add distinct today-posts then remove one.

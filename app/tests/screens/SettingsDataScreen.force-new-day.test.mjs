@@ -46,6 +46,26 @@ describe('SettingsDataScreen force-new-day dev affordance (Phase 36 GAP-D Fix B)
     );
   });
 
+  it('handler computes yesterday with local calendar semantics, not UTC ISO slicing', () => {
+    const start = source.indexOf('const handleForceNewDay');
+    const next = source.indexOf('const refreshTokenUsage');
+    assert.ok(
+      start !== -1 && next !== -1 && next > start,
+      'Could not locate handleForceNewDay anchor pair (handleForceNewDay → refreshTokenUsage)',
+    );
+    const handlerBody = source.slice(start, next);
+    assert.match(
+      handlerBody,
+      /addDays\(today\(\),\s*-1\)/,
+      'handleForceNewDay must compute yesterday using local YYYY-MM-DD semantics to match postQueueService.today(); UTC ISO slicing can produce today during U.S. evening hours.',
+    );
+    assert.doesNotMatch(
+      handlerBody,
+      /toISOString\(\)\.slice\(0,\s*10\)/,
+      'handleForceNewDay must not use UTC ISO date slicing for the rollback date.',
+    );
+  });
+
   it('handler navigates to /home so the cold-start warm-start path runs', () => {
     assert.match(
       source,

@@ -15,6 +15,7 @@ import { clearAllTables } from '../../services/db.service';
 import { dailyReadService } from '../../services/daily-read.service';
 import { postQueueService } from '../../services/post-queue.service';
 import { engagementService } from '../../services/engagement.service';
+import { addDays, today } from '../../lib/date';
 import { SectionHeader, SettingRow, MaterialSwitch, SelectInput, TextInput, SUB_SCREEN_STYLE } from './SettingsShared';
 
 export function SettingsDataScreen() {
@@ -84,7 +85,7 @@ export function SettingsDataScreen() {
       // row (Plan 36-09); (b) rehydrates _state.posts from yesterday's UNSERVED
       // queue (Plan 36-11) so it auto-populates today's feed. See round-3
       // sub-issue (b cause #1) and Plan 36-11.
-      const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+      const yesterday = addDays(today(), -1);
       const rolled = postQueueService.simulateDateRollback(yesterday);
       if (!rolled) {
         toast('No post queue to roll back. Generate some posts first.', 'info');
