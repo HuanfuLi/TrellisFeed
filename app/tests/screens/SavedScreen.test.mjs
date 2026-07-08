@@ -123,12 +123,17 @@ test('SV: ENGAGEMENT_CHANGED subscription for in-place re-sync', () => {
   );
 });
 
-test('SV: Header uses backTo="/home" (sub-screen portal pattern; Phase 32.1)', () => {
+test('SV: Header back affordance pops history (Phase 56 navigation parity)', () => {
   const src = readSrc('src/screens/SavedScreen.tsx');
   assert.match(
     src,
-    /<Header\s+backTo=["']\/home["']/,
-    'Header passes backTo="/home" — portals to body since outside SwipeTabContext',
+    /<Header[\s\S]*?centered[\s\S]*?left=\{[\s\S]*?onClick=\{\(\) => navigate\(-1\)\}[\s\S]*?<ArrowLeft/,
+    'centered Header renders an ArrowLeft affordance that pops browser history',
+  );
+  assert.doesNotMatch(
+    src,
+    /backTo=["']\/home["']/,
+    'SavedScreen must not force a named /home route when history has a real parent',
   );
 });
 

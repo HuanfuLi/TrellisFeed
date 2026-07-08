@@ -52,7 +52,7 @@ test('SC-6: resetDismissedOnly() ordering — after dailyReadService.reset(), be
 
   const dailyResetIdx = fnBody.indexOf('dailyReadService.reset()');
   const partialResetIdx = fnBody.indexOf('engagementService.resetDismissedOnly()');
-  const successToastIdx = fnBody.indexOf("toast('Queue + daily-posts");
+  const successToastIdx = fnBody.indexOf("toast(t('settings.toast.forceNewDayRollbackSuccess')");
 
   assert.ok(dailyResetIdx > 0, 'dailyReadService.reset() must exist in handleForceNewDay');
   assert.ok(partialResetIdx > 0, 'engagementService.resetDismissedOnly() must exist in handleForceNewDay');
