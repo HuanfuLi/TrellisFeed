@@ -134,7 +134,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 56-03-PLAN.md — Animation/visual polish fixes (POLISH-01/02): jank keyframes → compositor-safe, prefers-reduced-motion, approved hex→token
+- [x] 56-03-PLAN.md — Animation/visual polish fixes (POLISH-01/02): jank keyframes → compositor-safe, prefers-reduced-motion, approved hex→token
 - [ ] 56-04-PLAN.md — Navigation / Android back-button reconciliation (POLISH-03) on approved findings; preserve single global back handler + Header portal split
 - [ ] 56-05-PLAN.md — Doc archival to Legacy via git mv (DOCS-01) + confirm-first CLAUDE.md drift corrections (DOCS-02)
 
@@ -194,7 +194,7 @@ Phases execute in numeric order: 54 → 55 → 55.1 → 56 → 57 → 58 → 59
 | 54. Code Quality, Bugs & Tech Debt | v1.7 | 5/4 | Complete    | 2026-05-21 |
 | 55. Algorithm & Mechanism Tuning | v1.7 | 7/6 | Complete    | 2026-05-21 |
 | 55.1. Device-Test Bug Fixes (INSERTED) | v1.7 | 11/11 | Complete   | 2026-05-22 |
-| 56. UI Polish & Documentation | v1.7 | 2/5 | In Progress | - |
+| 56. UI Polish & Documentation | v1.7 | 3/5 | In Progress | - |
 | 57. Rewards Foundation — Data Model & Service | v1.7 | 0/TBD | Not started | - |
 | 58. Rewards Core Shop Loop — Themes | v1.7 | 0/TBD | Not started | - |
 | 59. Rewards Pet Companion & Garden Cosmetics | v1.7 | 0/TBD | Not started | - |
