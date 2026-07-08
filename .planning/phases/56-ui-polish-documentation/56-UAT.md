@@ -9,9 +9,9 @@ updated: 2026-07-08T23:50:00Z
 ## Current Test
 
 number: 12
-name: Physical Android final feel check
+name: Android 真机最终手感检查
 expected: |
-  On an Android device, enable Trellis Dev Mode, then rapidly switch Home → Planner → Ask → Home and scroll the Home feed. The large 31-node trellis should not cause obvious swipe or scroll jank. Briefly confirm the updated Planner, Saved, and back-button behavior looks and feels normal.
+  在 Android 真机上启用 Trellis Dev Mode，然后快速切换 Home → Planner → Ask → Home，并滚动 Home 信息流。31 节点的大型 trellis 不应造成明显的切屏或滚动卡顿；同时简单确认更新后的 Planner、Saved 和返回按钮看起来、用起来正常。
 awaiting: user response
 
 ## Tests
@@ -71,8 +71,8 @@ expected: The current production build synchronizes into Capacitor Android and p
 result: pass
 evidence: `npx cap sync android` passed with 6 plugins; `./gradlew assembleDebug` passed; `app-debug.apk` produced (~32MB); no tracked Android diff.
 
-### 12. Physical Android final feel check
-expected: On an Android device, enable Trellis Dev Mode, then rapidly switch Home → Planner → Ask → Home and scroll the Home feed. The large 31-node trellis should not cause obvious swipe or scroll jank. Briefly confirm the updated Planner, Saved, and back-button behavior looks and feels normal.
+### 12. Android 真机最终手感检查
+expected: 在 Android 真机上启用 Trellis Dev Mode，然后快速切换 Home → Planner → Ask → Home，并滚动 Home 信息流。31 节点的大型 trellis 不应造成明显的切屏或滚动卡顿；同时简单确认更新后的 Planner、Saved 和返回按钮看起来、用起来正常。
 result: [pending]
 
 ## Summary
