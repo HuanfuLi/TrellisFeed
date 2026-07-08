@@ -118,16 +118,11 @@ export function TrellisStatusPanel({ nodes, onCreditsChange, counterRef }: Trell
     fontWeight: 600,
     cursor: fruitNodes.length > 0 ? 'pointer' : 'default',
     boxShadow: fruitNodes.length > 0 ? '0 2px 10px rgba(232,168,56,0.35)' : 'none',
-    animation: fruitNodes.length > 0 ? 'status-glow 3s ease-in-out infinite' : undefined,
   };
 
   return (
     <div style={{ position: 'relative' }}>
       <style>{`
-        @keyframes status-glow {
-          0%, 100% { box-shadow: 0 2px 8px rgba(232,168,56,0.3); }
-          50%      { box-shadow: 0 2px 18px rgba(232,168,56,0.55); }
-        }
         @keyframes fruit-fly {
           0%   { transform: translate(0, 0) scale(1); opacity: 1; }
           80%  { opacity: 1; }

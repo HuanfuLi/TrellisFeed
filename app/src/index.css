@@ -512,11 +512,11 @@ body.keyboard-open {
 @keyframes glow-pulse {
   0%, 100% {
     transform: scale(1);
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary-40) 50%, transparent);
+    opacity: 0.72;
   }
   50% {
     transform: scale(1.25);
-    box-shadow: 0 0 0 6px color-mix(in srgb, var(--primary-40) 0%, transparent);
+    opacity: 1;
   }
 }
 
@@ -536,9 +536,8 @@ body.keyboard-open {
 
 /* Aha! pulsing ring — applied to connection card on double-tap */
 @keyframes aha-pulse {
-  0%   { box-shadow: 0 0 0 0   color-mix(in srgb, var(--primary-40) 70%, transparent); }
-  50%  { box-shadow: 0 0 0 20px color-mix(in srgb, var(--primary-40) 0%,  transparent); }
-  100% { box-shadow: 0 0 0 0   color-mix(in srgb, var(--primary-40) 0%,  transparent); }
+  0%, 100% { transform: scale(1);    opacity: 1;    }
+  50%      { transform: scale(1.02); opacity: 0.92; }
 }
 
 /* Graph drill-down: current bucket level scales away before new level appears */
@@ -571,4 +570,20 @@ body.keyboard-open {
 @keyframes edge-draw {
   from { stroke-dashoffset: 1000; }
   to   { stroke-dashoffset: 0;    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glow-pulse,
+  .mic-pulse,
+  .skeleton-pulse,
+  [style*="aha-pulse"],
+  [style*="edge-draw"],
+  [style*="fruit-fly"],
+  [style*="glow-pulse"],
+  [style*="mic-pulse"],
+  [style*="milestone-pop"],
+  [style*="node-pop"],
+  [style*="skeleton-pulse"] {
+    animation: none !important;
+  }
 }
