@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: Cleanup, Hardening & Rewards
 status: executing
-stopped_at: Completed 56-03 visual and animation polish; next is 56-04 navigation polish
-last_updated: "2026-07-08T21:00:00.000Z"
+stopped_at: Completed 56-04 navigation polish; next is 56-05 documentation cleanup
+last_updated: "2026-07-08T22:40:29.000Z"
 last_activity: 2026-07-08
 progress:
   total_phases: 7
   completed_phases: 3
   total_plans: 5
-  completed_plans: 3
-  percent: 60
+  completed_plans: 4
+  percent: 80
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-05-20)
 ## Current Position
 
 Phase: 56 (ui-polish-documentation) — EXECUTING
-Plan: 4 of 5
-Status: 56-03 complete; 56-04 navigation polish ready
+Plan: 5 of 5
+Status: 56-04 complete; 56-05 documentation cleanup ready
 Last activity: 2026-07-08
 
-Progress: Phase 56 [██████░░░░] 60% (3/5 plans complete). Milestone v1.7: 3/7 phases complete; rewards phases 57–59 not started.
+Progress: Phase 56 [████████░░] 80% (4/5 plans complete). Milestone v1.7: 3/7 phases complete; rewards phases 57–59 not started.
 
 ## Milestone Shape (v1.7)
 
@@ -92,12 +92,12 @@ Carried forward from v1.6 close (2026-05-20). All four now have a v1.7 home.
 
 ## Session Continuity
 
-Last session: 2026-07-08T21:00:00.000Z
-Stopped at: Completed 56-03 visual and animation polish; next is 56-04 navigation polish
-Resume file: .planning/phases/56-ui-polish-documentation/56-03-SUMMARY.md
+Last session: 2026-07-08T22:40:29.000Z
+Stopped at: Completed 56-04 navigation polish; next is 56-05 documentation cleanup
+Resume file: .planning/phases/56-ui-polish-documentation/56-04-SUMMARY.md
 
 ## Operator Next Steps
 
-- Execute Phase 56 plan 04: apply only approved navigation parity fixes F-N01 and F-N02.
-- Preserve the single global Android back handler and Header portal split; do not add screen-level hardware back listeners.
+- Execute Phase 56 plan 05: archive approved stale documents with `git mv`, update styling conventions, and apply exact DR-01/DR-02 wording to CLAUDE.md.
+- Keep load-bearing docs live and preserve YouTube completion, RAW-ARGMAX, Header, and ChatInput guidance.
 - Phase 55.1 code and roadmap are complete, but historical notes still mention one device retest / requirements-status drift; use `.planning/reports/MILESTONE_SUMMARY-v1.7.md` plus `55.1-HUMAN-UAT.md` if reconciling the old paper trail.
