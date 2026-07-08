@@ -88,7 +88,7 @@ export function SettingsDataScreen() {
       const yesterday = addDays(today(), -1);
       const rolled = postQueueService.simulateDateRollback(yesterday);
       if (!rolled) {
-        toast('No post queue to roll back. Generate some posts first.', 'info');
+        toast(t('settings.toast.noPostQueueRollback'), 'info');
         return;
       }
       postQueueService.loadQueue();
@@ -136,11 +136,11 @@ export function SettingsDataScreen() {
       // Clear-All-Data / settingsService.reset() paths. See
       // .planning/debug/force-new-day-wipes-saved-liked.md.
       engagementService.resetDismissedOnly();
-      toast('Queue + daily-posts cache rolled back; vine progress reset. Navigating to /home.', 'success');
+      toast(t('settings.toast.forceNewDayRollbackSuccess'), 'success');
       navigate('/home');
     } catch (err) {
       console.warn('[SettingsDataScreen] force-new-day failed:', err);
-      toast('Force new day failed. Check console.', 'error');
+      toast(t('settings.toast.forceNewDayFailed'), 'error');
     }
   };
 

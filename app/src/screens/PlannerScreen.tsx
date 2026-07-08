@@ -211,7 +211,7 @@ export function PlannerScreen() {
                     cursor: 'pointer',
                   }}
                 >
-                  <Sprout size={16} style={{ color: '#4CAF50', flexShrink: 0 }} />
+                  <Sprout size={16} style={{ color: 'var(--primary-40)', flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{
                       fontSize: '0.9rem', fontWeight: 500, color: 'var(--foreground)',
@@ -261,7 +261,7 @@ export function PlannerScreen() {
                     cursor: 'pointer',
                   }}
                 >
-                  <Heart size={16} style={{ color: '#66BB6A', flexShrink: 0 }} />
+                  <Heart size={16} style={{ color: 'var(--primary-40)', flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{
                       fontSize: '0.9rem', fontWeight: 500, color: 'var(--foreground)',
