@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: Cleanup, Hardening & Rewards
 status: executing
-stopped_at: Milestone v1.7 summary generated
-last_updated: "2026-06-18T09:22:32.687Z"
-last_activity: "2026-05-22 -- Round 5: GAP-A reverted (won't-fix, WebView limitation), GAP-B plain-SVG off-screen fix"
+stopped_at: Completed 56-01 audit inputs; next is 56-02 operator triage
+last_updated: "2026-07-08T18:35:27.158Z"
+last_activity: 2026-07-08
 progress:
-  total_phases: 6
-  completed_phases: 2
-  total_plans: 15
-  completed_plans: 12
-  percent: 33
+  total_phases: 7
+  completed_phases: 3
+  total_plans: 5
+  completed_plans: 1
+  percent: 20
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-20)
 
 **Core value:** AI-powered personalized learning that respects user attention — reward-based, non-pushy, local-first.
-**Current focus:** Phase 55.1 — device-test-bug-fixes
+**Current focus:** Phase 56 — ui-polish-documentation
 
 ## Current Position
 
-Phase: 55.1 (device-test-bug-fixes) — EXECUTING (round-5: GAP-A skipped, GAP-B re-fixed; device UAT pending for GAP-B)
-Plan: 11 of 11
-Status: Round 5 — GAP-E PASS (device). GAP-A SKIPPED/won't-fix (smooth keyboard-follow is native-only in a WebView; reverted to clean baseline, commit 9e33efad). GAP-B RE-FIXED (plain-SVG off-screen branch, commit c08c30f2) — awaiting device re-test. tsc clean; only the pre-existing post-queue Test 6 failure remains (unrelated).
-Last activity: 2026-05-22 -- Round 5: GAP-A reverted (won't-fix, WebView limitation), GAP-B plain-SVG off-screen fix
+Phase: 56 (ui-polish-documentation) — EXECUTING
+Plan: 2 of 5
+Status: 56-01 complete; 56-02 operator triage pending
+Last activity: 2026-07-08
 
-Progress: [████░░░░░░] 33%
+Progress: Phase 56 [██░░░░░░░░] 20% (1/5 plans complete). Milestone v1.7: 3/7 phases complete; rewards phases 57–59 not started.
 
 ## Milestone Shape (v1.7)
 
@@ -92,13 +92,12 @@ Carried forward from v1.6 close (2026-05-20). All four now have a v1.7 home.
 
 ## Session Continuity
 
-Last session: 2026-06-18T09:22:32.684Z
-Stopped at: Milestone v1.7 summary generated
-Resume file: .planning/reports/MILESTONE_SUMMARY-v1.7.md
+Last session: 2026-07-08T18:35:27.154Z
+Stopped at: Completed 56-01 audit inputs; next is 56-02 operator triage
+Resume file: .planning/phases/56-ui-polish-documentation/56-01-SUMMARY.md
 
 ## Operator Next Steps
 
-- Execute the planned phase with `/gsd:execute-phase 55.1` (4 plans, all Wave 1 / fully parallel — disjoint files), then `/gsd:verify-work`. Resume Phase 56 after.
-- **Mandatory on-device UAT gate before verify-work:** BUGFIX-03/04 (keyboard) and the rapid-switch repro for BUGFIX-01 / live-Gemini check for BUGFIX-02 give false-green in the Node suite (per `feedback_browser_storage_human_verify.md`). Automated tests for 03/04 are source-guards, not runtime proof.
-- Confirmed root causes (research, HIGH confidence): 01 → `AskScreen.tsx` persists to active session not originating + no abort-on-switch; 02 → `concept-feed.service.ts:793` `maxTokens:80` + Gemini thinking tokens → fragment persisted; 03 → `useKeyboard.ts` threshold toggling reverses the `BottomNavigation` spring; 04 → `ChatInput.tsx` submit button — WebView blur eats first tap.
-- Residual risk to confirm during execution: text-art `maxTokens` value (~512) and Gemini `thinkingConfig` field shape — doc-verify before locking the field (don't ship an unverified API field).
+- Execute Phase 56 plan 02: operator triage. Read `56-FINDINGS.md` and `56-CLAUDE-DRIFT-REPORT.md`, decide approve / cut / add for each candidate, then record decisions in `56-TRIAGE.md`.
+- Do not execute 56-03 / 56-04 / 56-05 before `56-TRIAGE.md` exists. Phase 56 fixes are explicitly approval-gated.
+- Phase 55.1 code and roadmap are complete, but historical notes still mention one device retest / requirements-status drift; use `.planning/reports/MILESTONE_SUMMARY-v1.7.md` plus `55.1-HUMAN-UAT.md` if reconciling the old paper trail.
