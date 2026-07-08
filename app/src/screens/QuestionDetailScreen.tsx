@@ -60,7 +60,15 @@ export function QuestionDetailScreen() {
     <div style={{ paddingTop: `${HEADER_HEIGHT + 8}px`, paddingLeft: '16px', paddingRight: '16px', paddingBottom: 'calc(24px + var(--safe-area-bottom))', maxWidth: '448px', margin: '0 auto' }}>
       <Header
         title={t('questionDetail.headerTitle')}
-        backTo="/ask"
+        centered
+        left={
+          <button
+            onClick={() => navigate(-1)}
+            style={{ background: 'none', border: 'none', padding: '12px', marginLeft: '-12px', color: 'var(--primary-40)', display: 'flex', alignItems: 'center' }}
+          >
+            <ArrowLeft size={20} />
+          </button>
+        }
         right={
           <DetailMenu
             deleteLabel={t('questionDetail.deleteLabel')}
