@@ -11,14 +11,14 @@ Six areas are internal cleanup/hardening (POLISH, DOCS, TECHDEBT, QUALITY, TUNE)
 
 ### UI Polish
 
-- [ ] **POLISH-01**: Screens are swept against a UI-polish checklist; identified rough/skipped refinements (spacing, alignment, visual hierarchy) are fixed
-- [ ] **POLISH-02**: Missing or janky animations and transitions are identified and added/fixed across screens, within the Android WebView performance budget
-- [ ] **POLISH-03**: Navigation is audited end-to-end; wrong, dead-end, or broken back-button paths are fixed
+- [x] **POLISH-01**: Screens are swept against a UI-polish checklist; identified rough/skipped refinements (spacing, alignment, visual hierarchy) are fixed
+- [x] **POLISH-02**: Missing or janky animations and transitions are identified and added/fixed across screens, within the Android WebView performance budget
+- [x] **POLISH-03**: Navigation is audited end-to-end; wrong, dead-end, or broken back-button paths are fixed
 
 ### Documentation
 
-- [ ] **DOCS-01**: Stale documents in `Documents/` and `.planning/` are archived or updated to reflect current state
-- [ ] **DOCS-02**: CLAUDE.md load-bearing sections are verified against current code; any drift is corrected
+- [x] **DOCS-01**: Stale documents in `Documents/` and `.planning/` are archived or updated to reflect current state
+- [x] **DOCS-02**: CLAUDE.md load-bearing sections are verified against current code; any drift is corrected
 
 ### Tech Debt
 
@@ -98,11 +98,11 @@ Which phases cover which requirements. Populated during roadmap creation.
 | BUGFIX-02 | Phase 55.1 | Pending |
 | BUGFIX-03 | Phase 55.1 | Pending |
 | BUGFIX-04 | Phase 55.1 | Pending |
-| POLISH-01 | Phase 56 | Pending |
-| POLISH-02 | Phase 56 | Pending |
-| POLISH-03 | Phase 56 | Pending |
-| DOCS-01 | Phase 56 | Pending |
-| DOCS-02 | Phase 56 | Pending |
+| POLISH-01 | Phase 56 | Complete |
+| POLISH-02 | Phase 56 | Complete |
+| POLISH-03 | Phase 56 | Complete |
+| DOCS-01 | Phase 56 | Complete |
+| DOCS-02 | Phase 56 | Complete |
 | REWARDS-08 | Phase 57 | Pending |
 | REWARDS-01 | Phase 58 | Pending |
 | REWARDS-02 | Phase 58 | Pending |
@@ -120,4 +120,4 @@ Which phases cover which requirements. Populated during roadmap creation.
 
 ---
 *Requirements defined: 2026-05-20*
-*Last updated: 2026-05-21 — folded BUGFIX-01..04 (device-test bug fixes) into inserted Phase 55.1*
+*Last updated: 2026-07-08 — Phase 56 POLISH-01..03 and DOCS-01..02 verified complete*

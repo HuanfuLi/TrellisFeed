@@ -26,7 +26,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 54: Code Quality, Bugs & Tech Debt** - Inventory and resolve high-priority tech debt, audit and fix bugs, close carried-over debug sessions, verify auto-gen podcast on device
 - [ ] **Phase 55: Algorithm & Mechanism Tuning** - Review and tune numeric thresholds with documented rationale; test and tune filter, recommendation, feed randomizer, and "like" mechanisms; fix the curiosity-feed buffer-queue refill reliability bug; migrate the heavy store layer to SQLite-primary
 - [ ] **Phase 55.1 (INSERTED): Device-Test Bug Fixes** - Fix four on-device-test regressions: cross-session LLM response leakage, provider/locale-triggered text-art post truncation, Ask-screen nav-bar keyboard flicker, and the first-tap-dismisses-keyboard send bug
-- [ ] **Phase 56: UI Polish & Documentation** - Sweep screens against a polish checklist, fix animations and navigation paths, archive/update stale docs, verify CLAUDE.md against code
+- [x] **Phase 56: UI Polish & Documentation** - Sweep screens against a polish checklist, fix animations and navigation paths, archive/update stale docs, verify CLAUDE.md against code
 - [ ] **Phase 57: Rewards Foundation — Data Model & Service** - Lock cosmeticsService, credit subtraction, events, theme CSS blocks, Clear-All-Data preservation, and the non-pushy guardrail before any UI
 - [ ] **Phase 58: Rewards Core Shop Loop — Themes** - ShopScreen browse/preview/buy/equip with color themes, dual entry points, always-mounted resync, and 4-locale UI strings
 - [ ] **Phase 59: Rewards Pet Companion & Garden Cosmetics** - CSS/SVG idle pet behind a render abstraction plus garden/trellis cosmetics rendering in the Planner garden
@@ -194,7 +194,7 @@ Phases execute in numeric order: 54 → 55 → 55.1 → 56 → 57 → 58 → 59
 | 54. Code Quality, Bugs & Tech Debt | v1.7 | 5/4 | Complete    | 2026-05-21 |
 | 55. Algorithm & Mechanism Tuning | v1.7 | 7/6 | Complete    | 2026-05-21 |
 | 55.1. Device-Test Bug Fixes (INSERTED) | v1.7 | 11/11 | Complete   | 2026-05-22 |
-| 56. UI Polish & Documentation | v1.7 | 4/5 | In Progress | - |
+| 56. UI Polish & Documentation | v1.7 | 5/5 | Complete | 2026-07-08 |
 | 57. Rewards Foundation — Data Model & Service | v1.7 | 0/TBD | Not started | - |
 | 58. Rewards Core Shop Loop — Themes | v1.7 | 0/TBD | Not started | - |
 | 59. Rewards Pet Companion & Garden Cosmetics | v1.7 | 0/TBD | Not started | - |
