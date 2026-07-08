@@ -3,7 +3,7 @@
 ## Coding Standards
 - **Language**: [TypeScript](https://www.typescriptlang.org/) is used for all source files.
 - **Component Pattern**: [React](https://react.dev/) functional components with hooks.
-- **Styling**: [Tailwind CSS](https://tailwindcss.com/) for UI styling.
+- **Styling**: Tailwind CSS 4 is installed, but most app UI uses inline React styles backed by CSS variables from `app/src/index.css`. Match nearby code and prefer existing design tokens over new hardcoded values or Tailwind utility classes.
 - **Asynchronous Patterns**: Extensive use of `async/await` for service and provider interactions.
 - **Native Support**: Careful handling of native bridge calls via Capacitor.
 
