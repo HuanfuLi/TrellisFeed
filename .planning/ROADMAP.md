@@ -136,7 +136,7 @@ Plans:
 
 - [x] 56-03-PLAN.md — Animation/visual polish fixes (POLISH-01/02): jank keyframes → compositor-safe, prefers-reduced-motion, approved hex→token
 - [x] 56-04-PLAN.md — Navigation / Android back-button reconciliation (POLISH-03) on approved findings; preserve single global back handler + Header portal split
-- [ ] 56-05-PLAN.md — Doc archival to Legacy via git mv (DOCS-01) + confirm-first CLAUDE.md drift corrections (DOCS-02)
+- [x] 56-05-PLAN.md — Doc archival to Legacy via git mv (DOCS-01) + confirm-first CLAUDE.md drift corrections (DOCS-02)
 
 **UI hint**: yes
 
