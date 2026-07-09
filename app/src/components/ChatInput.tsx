@@ -22,13 +22,22 @@ export function ChatInput({ onSend, placeholder, disabled, webSearchEnabled, onT
 
   const resolvedPlaceholder = placeholder ?? t('chatInput.placeholder');
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  // Phase 55.1 BUGFIX-04: single-source send body shared by the Enter-key path
+  // (handleSubmit) and the pointerdown path (Send button). Keeping one body
+  // means a stray synthetic click after pointerdown is a no-op — setMessage('')
+  // already cleared the field so the trimmed guard short-circuits the second
+  // call (no double-send).
+  const submitMessage = () => {
     const trimmed = message.trim();
     if (trimmed && !disabled) {
       onSend(trimmed);
       setMessage('');
     }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    submitMessage();
   };
 
   const startRecording = async () => {
@@ -176,6 +185,20 @@ export function ChatInput({ onSend, placeholder, disabled, webSearchEnabled, onT
           <button
             type="submit"
             disabled={!canSend}
+            // Phase 55.1 BUGFIX-04: send on pointerDOWN, not the default
+            // click/form-submit (which fires on pointer-up after the focus
+            // change). On Android WebView the first tap's blur dismisses the
+            // keyboard and the submit never reaches handleSubmit, so the user
+            // had to tap twice. preventDefault() runs BEFORE the input blurs,
+            // preserving focus (keyboard stays open) and suppressing the
+            // synthetic click so the send fires exactly once. type="submit" is
+            // kept so the Enter-key path still routes through handleSubmit. Do
+            // NOT add an explicit blur() here — that would trigger
+            // SwipeTabContainer.onFocusOut nav drift.
+            onPointerDown={(e) => {
+              e.preventDefault();
+              submitMessage();
+            }}
             style={{
               flexShrink: 0,
               padding: '8px',

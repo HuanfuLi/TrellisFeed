@@ -1,0 +1,123 @@
+# Requirements: Trellis — v1.7 Cleanup, Hardening & Rewards
+
+**Defined:** 2026-05-20
+**Core Value:** AI-powered personalized learning that respects user attention — reward-based, non-pushy, local-first.
+
+## v1 Requirements
+
+Requirements for milestone v1.7. Each maps to exactly one roadmap phase.
+
+Six areas are internal cleanup/hardening (POLISH, DOCS, TECHDEBT, QUALITY, TUNE); one is a new feature (REWARDS — a coin-purchasable cosmetic shop).
+
+### UI Polish
+
+- [x] **POLISH-01**: Screens are swept against a UI-polish checklist; identified rough/skipped refinements (spacing, alignment, visual hierarchy) are fixed
+- [x] **POLISH-02**: Missing or janky animations and transitions are identified and added/fixed across screens, within the Android WebView performance budget
+- [x] **POLISH-03**: Navigation is audited end-to-end; wrong, dead-end, or broken back-button paths are fixed
+
+### Documentation
+
+- [x] **DOCS-01**: Stale documents in `Documents/` and `.planning/` are archived or updated to reflect current state
+- [x] **DOCS-02**: CLAUDE.md load-bearing sections are verified against current code; any drift is corrected
+
+### Tech Debt
+
+- [x] **TECHDEBT-13**: Accumulated tech debt across v1.4–v1.6 is inventoried, prioritized, and high-priority items are resolved
+- [x] **TECHDEBT-14**: Known-deferred test failures (e.g. the stale `buildFallbackPosts` test contract) are resolved or formally re-accepted with documented rationale
+
+### Code Quality & Bugs
+
+- [x] **QUALITY-01**: The codebase is audited for bugs (logic errors, edge cases, race conditions) and confirmed bugs are fixed
+- [x] **QUALITY-02**: Carried-over debug sessions are resolved (`feed-not-auto-populating-after-force-new-day`, `vine-chip-not-clearing-after-force-new-day`)
+- [x] **QUALITY-03**: Auto-generated podcast is verified working on device and any defects are fixed
+
+### Tuning & Mechanisms
+
+- [x] **TUNE-01**: Numeric algorithm thresholds (cosine similarity for classification dedup and the filter, etc.) are reviewed and tuned with documented rationale; the cosine-similarity threshold cache-miss todo is resolved
+- [x] **TUNE-02**: Filter, recommendation, feed randomizer, and "like" signal mechanisms are tested and tuned against expected behavior
+- [x] **TUNE-03**: The curiosity-feed buffer queue reliably refills — swipe-for-more yields the intended batch (8 posts) whenever the derived list has unread capacity; the intermittent under-refill (sometimes 1, 4, or 0 new posts) caused by unreliable queue-size checks / refill-threshold races is root-caused, fixed, and regression-tested
+
+### Device-Test Bug Fixes (folded 2026-05-21 — surfaced by on-device testing)
+
+- [ ] **BUGFIX-01**: A streaming LLM answer is bound to the chat session it was requested for — rapidly asking a question, creating a new session, asking again, and creating another session never leaks a prior session's response into a different session (observed: a 3rd-session answer appeared under a 5th-session question). Root-caused (request→session binding and/or in-flight abort on session switch) and regression-tested.
+- [ ] **BUGFIX-02**: Switching the LLM provider (e.g. to Gemini) or the locale never mutates or truncates already-generated post content — existing text-art posts that rendered full sentences keep their full text and do not collapse to a few words or a single token. The corrupting trigger is root-caused and persisted post content is treated as immutable by provider/locale changes.
+- [ ] **BUGFIX-03**: On the Ask screen, opening the keyboard moves the input island up smoothly without the bottom navigation bar flickering / moving up and down.
+- [ ] **BUGFIX-04**: On the Ask screen, tapping Send while the keyboard is open sends the message on the first tap — the tap is not consumed by keyboard dismissal (no need to dismiss the keyboard and tap again).
+
+### Rewards Shop
+
+- [ ] **REWARDS-01**: User can view their coin (fruit credit) balance and browse a catalog of purchasable cosmetics
+- [ ] **REWARDS-02**: User can preview a cosmetic before buying and complete a purchase with a confirmation step; the balance decrements atomically and ownership is granted with no double-spend
+- [ ] **REWARDS-03**: User can equip and unequip owned cosmetics, with owned / locked / equipped states clearly shown
+- [ ] **REWARDS-04**: User can purchase and equip color themes that apply app-wide via the CSS-variable theming system, independent of the light/dark setting
+- [ ] **REWARDS-05**: User can purchase and equip trellis/garden cosmetics (backgrounds, pots, vines, fruit skins) that render in the Planner garden visual
+- [ ] **REWARDS-06**: User can purchase and equip a pet/companion that appears in the garden, rendered as a CSS/SVG idle animation behind a render abstraction that leaves room for a future Rive upgrade
+- [ ] **REWARDS-07**: Shop is reachable from a Planner/garden entry point and from a one-line nudge after the harvest celebration
+- [ ] **REWARDS-08**: Purchased cosmetics persist across Clear-All-Data (rewards are earned, not cache), and the shop respects the non-pushy stance (no scarcity timers, loot boxes, streak-linked items, or functional power-ups) — codified as a guardrail test extension
+- [ ] **REWARDS-09**: All new shop UI strings land in all 4 locale bundles (en/zh/es/ja); cosmetic item names remain English branded identifiers
+
+## v2 Requirements
+
+Deferred to future milestones.
+
+### Rewards
+
+- **REWARDS-F1**: Rive-based interactive pet with a multi-state rig (idle / tap / celebrate / sleep), pending Android WASM device validation
+- **REWARDS-F2**: Empirical economy re-tuning after 2–3 weeks of real usage data (earn rate vs. price calibration)
+- **REWARDS-F3**: Seasonal or rotating cosmetic sets (only if reconcilable with the no-FOMO / permanent-availability stance)
+
+## Out of Scope
+
+Explicitly excluded. Documented to prevent scope creep.
+
+| Feature | Reason |
+|---------|--------|
+| Functional power-ups / pay-to-progress (extra generations, boosts purchasable with coins) | Violates the reward-based, non-pushy design stance (v1.6 LEARN-04/PRIVACY-01); creates earning pressure |
+| Scarcity timers, limited drops, loot boxes, randomized rewards | Dark-pattern FOMO mechanics; conflict with non-pushy stance and permanent-availability ethic |
+| Streak-linked, login-bonus, or time-multiplier coin earning | No streaks/daily-goals ruling; coins are earned only through genuine learning (harvest + daily read) |
+| Real-money purchases / payment SDK | Local-first, no backend, no monetization in scope |
+| Social comparison, rarity tiers, leaderboards for cosmetics | No leaderboards/public-likes ruling |
+| Backend-hosted cosmetic catalog / CMS | Local-first; catalog is a static in-repo TypeScript constant |
+| Translating cosmetic item names | Treated as branded identifiers (consistent with the never-translate proper-nouns rule) |
+
+## Traceability
+
+Which phases cover which requirements. Populated during roadmap creation.
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| QUALITY-01 | Phase 54 | Complete |
+| QUALITY-02 | Phase 54 | Complete |
+| QUALITY-03 | Phase 54 | Complete |
+| TECHDEBT-13 | Phase 54 | Complete |
+| TECHDEBT-14 | Phase 54 | Complete |
+| TUNE-01 | Phase 55 | Complete |
+| TUNE-02 | Phase 55 | Complete |
+| TUNE-03 | Phase 55 | Complete |
+| BUGFIX-01 | Phase 55.1 | Pending |
+| BUGFIX-02 | Phase 55.1 | Pending |
+| BUGFIX-03 | Phase 55.1 | Pending |
+| BUGFIX-04 | Phase 55.1 | Pending |
+| POLISH-01 | Phase 56 | Complete |
+| POLISH-02 | Phase 56 | Complete |
+| POLISH-03 | Phase 56 | Complete |
+| DOCS-01 | Phase 56 | Complete |
+| DOCS-02 | Phase 56 | Complete |
+| REWARDS-08 | Phase 57 | Pending |
+| REWARDS-01 | Phase 58 | Pending |
+| REWARDS-02 | Phase 58 | Pending |
+| REWARDS-03 | Phase 58 | Pending |
+| REWARDS-04 | Phase 58 | Pending |
+| REWARDS-07 | Phase 58 | Pending |
+| REWARDS-09 | Phase 58 | Pending |
+| REWARDS-05 | Phase 59 | Pending |
+| REWARDS-06 | Phase 59 | Pending |
+
+**Coverage:**
+- v1 requirements: 26 total
+- Mapped to phases: 26 ✓
+- Unmapped: 0
+
+---
+*Requirements defined: 2026-05-20*
+*Last updated: 2026-07-08 — Phase 56 POLISH-01..03 and DOCS-01..02 verified complete*

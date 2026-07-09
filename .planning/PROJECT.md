@@ -6,29 +6,43 @@ Trellis is an AI-powered personalized learning platform designed to facilitate n
 
 The platform prioritizes a high-quality, native-first mobile experience built with React 19, TypeScript 5.9, Vite 7, Tailwind CSS 4, and Capacitor 8, combining local-first privacy with seamless AI integration (OpenAI, Claude, Gemini, local endpoints like LM Studio).
 
-**Brand history:** Renamed EchoLearn → Trellis on 2026-05-07 (commit `9e5d1f38`). On-disk directory and SQLite connection name `'echolearn'` are intentionally preserved for backwards compatibility. localStorage keys migrated `echolearn_*` → `trellis_*` via `legacy-migration.service.ts` runtime migration.
+**Brand history:** Renamed EchoLearn → Trellis on 2026-05-07 (commit `9e5d1f38`). The on-disk directory remains EchoLearn-derived for backwards compatibility. Current durable app storage uses IndexedDB with `IDB_NAME = 'trellis'`; current localStorage keys use the `trellis_*` prefix.
 
 ## Core Value
 
 Enable learners to transform fragmented information into structured knowledge through AI-driven Q&A, visual mapping, and adaptive spaced repetition — all while maintaining complete local-first privacy.
 
-## Current State: v1.6 Shipped
+## Current State: v1.7 In Progress
 
-v1.6 Control, Graph Trust, Retrieval, and Ethical Engagement shipped on 2026-05-20. The milestone turned Trellis from a compelling learning feed into a more trustworthy, learner-controlled system: a redesigned off-topic/malicious-prompt filter (pre-LLM gate), a validated graph command service with a correction UI, retrieval/library/concept-dashboard recovery surfaces, podcast quality defaults + learner controls, and a provider-privacy boundary backed by a non-pushy-engagement guardrail.
+Phases 54–56 are complete: code quality and carried-over bugs were audited, algorithm/filter/feed mechanisms were tuned, device-test regressions were closed, and UI/navigation/documentation polish was verified. The rewards foundation and shop phases (57–59) remain.
 
-Audit status: `passed` — 23/23 requirements satisfied, cross-phase integration 6/6 WIRED, full suite green (1471 tests), `tsc` clean. (Initial audit was `tech_debt` over three verification paper-trail gaps in phases 49/50/52; all reconciled the same day.)
+## Current Milestone: v1.7 Cleanup, Hardening & Rewards
 
-## Current Milestone: None
+**Goal:** Polish and harden the app after v1.6's heavy feature push, then add a cosmetic rewards shop that gives earned coins (fruit credits) a purpose.
 
-No milestone is currently in progress. Run `/gsd:new-milestone` to scope the next one (questioning → research → requirements → roadmap). `.planning/REQUIREMENTS.md` is intentionally absent until the next milestone defines fresh requirements.
+**Target features:**
+- UI polish — sweep skipped/rough refinements, find missing animations, fix wrong navigation
+- Documentation cleanup — archive or update stale docs
+- Tech-debt cleanup — pay down debt accumulated across v1.4–v1.6
+- Code quality & bug audit — systematic review for bugs and quality issues
+- Algorithm tuning — fine-tune numeric thresholds (cosine similarity, etc.)
+- System mechanism tuning — test + tune filters, recommendations, feed randomizer, "like" algorithm
+- Rewards shop (full design + build) — coin-purchasable cosmetics: themes, pets/companions, trellis/garden cosmetics; no functional power-ups (preserves non-pushy stance)
 
-**Carried-forward deferred items (from v1.6 close):** 2 debug sessions (`feed-not-auto-populating-after-force-new-day`, `vine-chip-not-clearing-after-force-new-day`) + 2 todos (cosine-similarity threshold cache-miss, auto-gen podcast device verification). See STATE.md Deferred Items.
+**Key context:** v1.6 shipped 2026-05-20. 2 carried-over todos fold into this milestone (cosine-similarity threshold cache-miss → algorithm tuning; auto-gen podcast device verification → bug audit) plus 2 deferred debug sessions. Coins already exist as `trellis_fruit_credits`; rewards reuse the trellis metaphor + CSS-var theming.
 
 ## Active Requirements
 
-None — between milestones. Defined per-milestone in `.planning/REQUIREMENTS.md`.
+Defined for v1.7 in `.planning/REQUIREMENTS.md`.
 
 ## Validated Requirements
+
+### v1.7
+
+- QUALITY-01, QUALITY-02, QUALITY-03, TECHDEBT-13, TECHDEBT-14 — whole-codebase bug audit (one real bug fixed: PlannerScreen credit-balance resync) + scored severity×reach tech-debt inventory with top tier resolved (dead code deleted, scheduler logs → `console.warn`); both carried-over Force-New-Day debug threads confirmed already-fixed and moved to `debug/resolved/`; auto-gen podcast device-verified by operator; suite kept green (1635 tests) — a UTC-midnight date-test flake was fixed via an injectable clock in `lib/date.ts`. Validated in Phase 54.
+- TUNE-01, TUNE-02, TUNE-03 — numeric filter and dedup decisions, recommendation/like/style mechanisms, feed refill reliability, and IndexedDB-primary persistence were tuned and regression-tested. Validated in Phase 55.
+- BUGFIX-01, BUGFIX-02, BUGFIX-03, BUGFIX-04 — chat-session response binding, persisted post integrity, keyboard/nav stability, and first-tap Send behavior were corrected through Phase 55.1's device-test closure.
+- POLISH-01, POLISH-02, POLISH-03, DOCS-01, DOCS-02 — 18-screen audit and operator triage, compositor-safe/reduced-motion polish, history-back parity, history-preserving doc archival, and load-bearing documentation drift corrections. Validated in Phase 56.
 
 ### v1.6
 
@@ -147,4 +161,4 @@ _Last updated: 2026-05-19 — Phase 51 complete (RETRIEVE-03 + RETRIEVE-04 via t
 **Phase 46 complete (2026-05-13, verifier 8/8):** v1.5 milestone-audit gap closure closed CONTENT-03 on the queued-news prefetch path. `PreFetchCache.news` now stores filtered top-source arrays, direct and queued-prefetch news paths share `selectNewsTopSources`, and `mapNewsSourcesToNewsMeta` maps up to three sources with stable 1-based indexes before `generateNewsEssay` consumes `sources.slice(0, 3)`. The targeted CONTENT-03 regression passes 17/17 and final build/lint/test evidence is recorded in `46-VERIFY.md`; the only aggregate test caveat remains the known-deferred `tests/concept-feed.test.mjs` `buildFallbackPosts` baseline from Phase 45. Milestone v1.5 is ready for re-audit and archive.
 
 ---
-*Last updated: 2026-05-20 — v1.6 milestone shipped (Control, Graph Trust, Retrieval, and Ethical Engagement; audit passed, 23/23 requirements). Awaiting next milestone.*
+*Last updated: 2026-07-08 — Phase 56 complete (UI Polish & Documentation; verifier 5/5). v1.7 progress: 4 of 7 phases done; Phase 57 rewards foundation next.*

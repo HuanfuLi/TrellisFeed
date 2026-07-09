@@ -53,8 +53,10 @@ function conceptKey(p) {
 
 describe('refill-queue integration (Phase 36 GAP-1..4 composition)', () => {
   beforeEach(() => {
+    // Phase 55-07: queue mirror is in-memory + IndexedDB. resetForNewDay()
+    // resets _state to freshState() — the between-test isolation idiom now.
     localStorage.clear();
-    postQueueService.loadQueue();
+    postQueueService.resetForNewDay();
   });
 
   it('GAP-1 — derivedList grows monotonically across calls; cross-call dedup eliminates repeats', () => {

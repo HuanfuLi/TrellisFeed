@@ -46,6 +46,26 @@ describe('SettingsDataScreen force-new-day dev affordance (Phase 36 GAP-D Fix B)
     );
   });
 
+  it('handler computes yesterday with local calendar semantics, not UTC ISO slicing', () => {
+    const start = source.indexOf('const handleForceNewDay');
+    const next = source.indexOf('const refreshTokenUsage');
+    assert.ok(
+      start !== -1 && next !== -1 && next > start,
+      'Could not locate handleForceNewDay anchor pair (handleForceNewDay → refreshTokenUsage)',
+    );
+    const handlerBody = source.slice(start, next);
+    assert.match(
+      handlerBody,
+      /addDays\(today\(\),\s*-1\)/,
+      'handleForceNewDay must compute yesterday using local YYYY-MM-DD semantics to match postQueueService.today(); UTC ISO slicing can produce today during U.S. evening hours.',
+    );
+    assert.doesNotMatch(
+      handlerBody,
+      /toISOString\(\)\.slice\(0,\s*10\)/,
+      'handleForceNewDay must not use UTC ISO date slicing for the rollback date.',
+    );
+  });
+
   it('handler navigates to /home so the cold-start warm-start path runs', () => {
     assert.match(
       source,
@@ -68,34 +88,26 @@ describe('SettingsDataScreen force-new-day dev affordance (Phase 36 GAP-D Fix B)
     );
   });
 
-  it('handler mutates trellis_daily_posts.date so loadCache rejection fires symmetrically with queue rehydration', () => {
-    // Phase 36-15 inverts the negative regression assertion that Plan 36-13
-    // added (and that round-4 UAT proved wrong). Plan 36-11's loadCache
-    // date-rejection only fires on REAL midnight (where today() advances).
-    // The dev button cannot advance the wall clock, so today() returns the
-    // SAME value before and after this handler runs. If trellis_daily_posts
-    // is left untouched, its stored .date still equals today(), loadCache()
-    // returns truthy, getDailyPosts() hits its cache-hit branch and returns
-    // yesterday's served posts — the rehydrated _state.posts from
-    // post-queue.service.ts (Plan 36-11) is never reached.
+  it('handler clears the daily-posts cache so loadCache rejection fires symmetrically with queue rehydration', () => {
+    // Phase 36-15 established that the dev button cannot advance the wall clock,
+    // so the served-posts cache (which gates self-reject on parsed.date !==
+    // today()) must be explicitly invalidated to mirror the natural-midnight
+    // path. Phase 55-07: the served-posts cache is the in-memory _cache mirror
+    // (no localStorage backing), so the handler now calls
+    // conceptFeedService.clearCache() — which produces the SAME end state the
+    // prior localStorage date-mutation did (loadCache() returns null, so
+    // getDailyPosts() skips its cache-hit branch and the rehydrated _state.posts
+    // / HomeScreen getYesterdayQueue() fallback drive the feed).
     //
-    // Mirror the wall-clock-asymmetry pattern that the dailyReadService.reset()
-    // call already establishes: services that gate self-reset on today()
-    // comparisons cannot fire when the dev button doesn't (and shouldn't)
-    // advance the clock — so the handler must explicitly mutate every
-    // date-stamped cache key that natural midnight rollover would have
-    // tripped. trellis_post_queue and trellis_daily_posts are SYMMETRIC,
-    // not redundant.
-    //
-    // The runtime consequence (feed auto-populating from yesterday's queue
-    // when getCachedDailyPosts returns []) is owned by Plan 36-14's
-    // warm-start re-fallback effect in HomeScreen.tsx — see
+    // The runtime consequence (feed auto-populating from yesterday's queue when
+    // getCachedDailyPosts returns []) is owned by Plan 36-14's warm-start
+    // re-fallback effect in HomeScreen.tsx — see
     // tests/screens/HomeScreen.warm-start-refallback.test.mjs.
     //
-    // DO NOT FLIP THIS BACK to assert.doesNotMatch. The "redundant dual-cache
-    // hack" framing in Plan 36-13 was incorrect; round-4 UAT regressed
-    // sub-issue (b) because of it. See .planning/debug/feed-not-auto-
-    // populating-after-force-new-day.md and 36-15-SUMMARY.md.
+    // DO NOT remove this cache invalidation. The "redundant dual-cache hack"
+    // framing in Plan 36-13 was incorrect; round-4 UAT regressed sub-issue (b)
+    // because of it. See .planning/debug/feed-not-auto-populating-after-force-
+    // new-day.md and 36-15-SUMMARY.md.
     const start = source.indexOf('const handleForceNewDay');
     const next = source.indexOf('const refreshTokenUsage');
     assert.ok(
@@ -105,8 +117,8 @@ describe('SettingsDataScreen force-new-day dev affordance (Phase 36 GAP-D Fix B)
     const handlerBody = source.slice(start, next);
     assert.match(
       handlerBody,
-      /localStorage\.setItem\(['"]trellis_daily_posts['"]/,
-      'handleForceNewDay must call localStorage.setItem(\'trellis_daily_posts\', ...) to mutate the served-posts cache date to yesterday. Without this, loadCache()\'s parsed.date !== today() rejection (Plan 36-11) does not fire under the dev button (today() does not advance), and getDailyPosts() returns yesterday\'s served posts instead of dequeueing the rehydrated _state.posts. See round-4 sub-issue (b).',
+      /conceptFeedService\.clearCache\(\)/,
+      'handleForceNewDay must call conceptFeedService.clearCache() to invalidate the served-posts cache so loadCache() returns null and getDailyPosts() does not return yesterday\'s served posts instead of the rehydrated _state.posts. See round-4 sub-issue (b).',
     );
   });
 });

@@ -329,33 +329,18 @@ function findLinkedConceptIds(signal: string): string[] {
     .map((m) => m.id);
 }
 
-// ── Post lookup (avoids circular import with concept-feed.service) ─────────
-
-const POSTS_STORAGE_KEY = 'trellis_daily_posts';
-
-function findClosestCachedPost(conceptIds: string[], connectionOnly: boolean): string | null {
+// ── Post lookup ─────────────────────────────────────────────────────────────
+//
+// This used to reimplement the search against `localStorage[trellis_daily_posts]`
+// to dodge the concept-feed.service → planner.service import cycle. The
+// IndexedDB migration retired that key (the boot sweep deletes it), so the copy
+// silently began returning null for every lookup and check-in connections lost
+// their linked post. Delegate to the real owner instead, imported lazily so the
+// cycle stays broken.
+async function findClosestCachedPost(conceptIds: string[], connectionOnly: boolean): Promise<string | null> {
   try {
-    const raw = localStorage.getItem(POSTS_STORAGE_KEY);
-    if (!raw) return null;
-    const cached = JSON.parse(raw) as { posts?: Array<{ id: string; sourceType: string; sourceQuestionIds: unknown }> };
-    if (!Array.isArray(cached?.posts)) return null;
-
-    const posts = connectionOnly
-      ? cached.posts.filter((p) => p.sourceType === 'connection')
-      : cached.posts.filter((p) => p.sourceType !== 'connection');
-
-    const idSet = new Set(conceptIds);
-    let bestId: string | null = null;
-    let bestScore = 0;
-    for (const post of posts) {
-      if (!Array.isArray(post.sourceQuestionIds)) continue;
-      const overlap = (post.sourceQuestionIds as string[]).filter((id) => idSet.has(id)).length;
-      if (overlap > bestScore) {
-        bestScore = overlap;
-        bestId = post.id;
-      }
-    }
-    return bestId;
+    const { conceptFeedService } = await import('./concept-feed.service.ts');
+    return conceptFeedService.findClosestPost(conceptIds, connectionOnly)?.id ?? null;
   } catch {
     return null;
   }
@@ -550,7 +535,7 @@ export const plannerService = {
     // Process connections → compare chunks (connection post lookup)
     for (const item of signals.connections) {
       const conceptIds = findLinkedConceptIds(item);
-      const linkedPostId = findClosestCachedPost(conceptIds, true) ?? undefined;
+      const linkedPostId = (await findClosestCachedPost(conceptIds, true)) ?? undefined;
       makeChunk('compare', `Compare: ${item}`, conceptIds, 'connection', linkedPostId);
     }
 

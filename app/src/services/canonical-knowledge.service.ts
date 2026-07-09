@@ -712,8 +712,23 @@ export async function preCheckAnchorMatch(
   allQuestions: Question[],
 ): Promise<{ match: Question; similarity: number } | null> {
   const { settingsService } = await import('./settings.service.ts');
-  const embCfg = settingsService.getSync().embedding;
+  const settings = settingsService.getSync();
+  const embCfg = settings.embedding;
   if (!embCfg.isConfigured) return null;
+
+  // Phase 55 D-05/D-06: resolve the anchor-dedup threshold. In production
+  // (debugEnabled !== true) the hardcoded constant is used. In debug the live knob
+  // drives the pre-check, clamped to the empirical [0.78, 0.85] dedup band
+  // (CLAUDE.md §"Classification dedup — embedding pre-check"). The clamp mirrors the
+  // malicious clamp in question-filter.service.ts:getActiveThresholds — the operator
+  // cannot widen it to 0.75/0.95 from the debug panel. The pre-check itself still runs
+  // before the tree descent; only the comparison value is parameterized.
+  const embDebug = settings.embeddingDebug as
+    | { debugEnabled?: boolean; anchorDedupThreshold?: number }
+    | undefined;
+  const activeAnchorThreshold = embDebug?.debugEnabled === true
+    ? Math.min(0.85, Math.max(0.78, embDebug.anchorDedupThreshold ?? ANCHOR_PRE_CHECK_SIMILARITY_THRESHOLD))
+    : ANCHOR_PRE_CHECK_SIMILARITY_THRESHOLD;
 
   const anchors = allQuestions.filter(q => q.isAnchorNode === true);
   if (anchors.length === 0) return null;
@@ -725,7 +740,13 @@ export async function preCheckAnchorMatch(
   let queryVec = question.embeddingVector;
   if (!queryVec || queryVec.length === 0) {
     try {
-      queryVec = await embedText(question.content.trim(), embCfg);
+      // Phase 55 D-07: embed the BARE content (no .trim()) so this query vector
+      // shares the embed-cache key with the filter rawVec (question-filter:173)
+      // and the retrieval embed (question.service:253), which both embed the
+      // same raw `content`. The filter runs first in askStreaming, so this
+      // pre-check call is normally a cache hit (or skipped entirely when the
+      // pre-computed embeddingVector is already present).
+      queryVec = await embedText(question.content, embCfg);
     } catch (err) {
       console.warn('[Trellis] pre-check query embedding failed:', err instanceof Error ? err.message : err);
       return null;
@@ -750,14 +771,14 @@ export async function preCheckAnchorMatch(
   for (const a of anchors) {
     if (!a.embeddingVector || a.embeddingVector.length === 0) continue;
     const sim = cosine(queryVec, a.embeddingVector);
-    if (sim >= ANCHOR_PRE_CHECK_SIMILARITY_THRESHOLD && (!best || sim > best.similarity)) {
+    if (sim >= activeAnchorThreshold && (!best || sim > best.similarity)) {
       best = { match: a, similarity: sim };
     }
   }
 
   if (best && import.meta.env?.DEV) {
     console.debug(
-      `[classification] pre-check hit: anchor "${best.match.title}" similarity=${best.similarity.toFixed(3)} (threshold=${ANCHOR_PRE_CHECK_SIMILARITY_THRESHOLD})`,
+      `[classification] pre-check hit: anchor "${best.match.title}" similarity=${best.similarity.toFixed(3)} (threshold=${activeAnchorThreshold})`,
     );
   }
   return best;
@@ -856,13 +877,7 @@ async function commitClassificationResult(
       isClusterNode: true,
       qaCount: 0,
     };
-    const CLUSTER_STORAGE_KEY = 'trellis_questions';
-    try {
-      const storedRaw = localStorage.getItem(CLUSTER_STORAGE_KEY);
-      const store: Question[] = storedRaw ? JSON.parse(storedRaw) as Question[] : [];
-      store.unshift(clusterNode);
-      localStorage.setItem(CLUSTER_STORAGE_KEY, JSON.stringify(store));
-    } catch { /* storage error */ }
+    questionService.insertNode(clusterNode);
     clusterEntityId = clusterNode.id;
 
     // Refresh freshQuestions snapshot so anchor resolution sees the new cluster
@@ -933,15 +948,7 @@ async function commitClassificationResult(
         clusterNodeId: clusterEntityId,
       };
 
-      // Save anchor directly to localStorage (same storage key as questionService)
-      const ANCHOR_STORAGE_KEY = 'trellis_questions';
-      try {
-        const storedRaw = localStorage.getItem(ANCHOR_STORAGE_KEY);
-        const store: Question[] = storedRaw ? JSON.parse(storedRaw) as Question[] : [];
-        store.unshift(anchorNode);
-        localStorage.setItem(ANCHOR_STORAGE_KEY, JSON.stringify(store));
-      } catch { /* storage error — anchor won't be created */ }
-
+      questionService.insertNode(anchorNode);
       anchorId = anchorNode.id;
     }
   }
@@ -1418,8 +1425,11 @@ export function buildReflectionTree(questions: Question[]): Array<{
 
 // ─── Mindmap Reorganization ──────────────────────────────────────────────────
 
+// The reorg snapshot is a small structural-only payload and stays in
+// localStorage. The question store itself lives in IndexedDB behind
+// questionService — never touch `trellis_questions` directly (the boot sweep in
+// clearLegacyHeavyLocalStorageKeys deletes it).
 const REORG_SNAPSHOT_KEY = 'trellis_reorg_snapshot';
-const STORAGE_KEY = 'trellis_questions';
 
 // Module-level state so reorganization status persists across navigation
 let _reorgInProgress = false;
@@ -1559,7 +1569,7 @@ export function hasReorgBackup(): boolean {
   return localStorage.getItem(REORG_SNAPSHOT_KEY) !== null;
 }
 
-export function revertReorganization(): ServiceResult<void> {
+export async function revertReorganization(): Promise<ServiceResult<void>> {
   const snapshotRaw = localStorage.getItem(REORG_SNAPSHOT_KEY);
   if (!snapshotRaw) {
     return { success: false, error: { code: 'NO_BACKUP', message: 'No previous structure to revert to.', retryable: false } };
@@ -1567,8 +1577,9 @@ export function revertReorganization(): ServiceResult<void> {
 
   try {
     const snapshot = JSON.parse(snapshotRaw) as ReorgSnapshot;
-    const storeRaw = localStorage.getItem(STORAGE_KEY);
-    const store: Question[] = storeRaw ? JSON.parse(storeRaw) as Question[] : [];
+    // Lazy import to avoid the circular dependency (see commitClassificationResult).
+    const { questionService } = await import('./question.service.ts');
+    const store: Question[] = questionService.getAll({ includeFlagged: true });
 
     // Remove current anchor/cluster nodes (created by reorganization)
     const filtered = store.filter((q) => !q.isAnchorNode && !q.isClusterNode);
@@ -1588,8 +1599,10 @@ export function revertReorganization(): ServiceResult<void> {
 
     // Re-add old structural nodes
     const restored = [...snapshot.structuralNodes, ...filtered];
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(restored));
+    await questionService.replaceAll(restored);
     localStorage.removeItem(REORG_SNAPSHOT_KEY);
+    const { eventBus } = await import('../lib/event-bus.ts');
+    eventBus.emit({ type: 'GRAPH_UPDATED' });
     return { success: true };
   } catch {
     return { success: false, error: { code: 'REVERT_ERROR', message: 'Failed to parse revert snapshot.', retryable: false } };
@@ -1919,17 +1932,16 @@ async function _doReorganize(
     //     regression
     //   - wipe out new QAs that landed after the snapshot was taken
     //
-    // Read fresh localStorage, then:
+    // Re-read the live store, then:
     //   - drop any QA/flagged from newStore whose ID no longer exists in current
     //     storage (user deleted it mid-reorg)
     //   - append any QA/flagged present in current storage but NOT in the
     //     original snapshot (user asked a new question mid-reorg)
     //   - always keep newly-created cluster/anchor nodes (they're synthesized
     //     here, with new IDs not in any prior snapshot)
-    const currentStoreRaw = localStorage.getItem(STORAGE_KEY);
-    const currentStore: Question[] = currentStoreRaw
-      ? (JSON.parse(currentStoreRaw) as Question[])
-      : [];
+    // Lazy import to avoid the circular dependency (see commitClassificationResult).
+    const { questionService } = await import('./question.service.ts');
+    const currentStore: Question[] = questionService.getAll({ includeFlagged: true });
     const currentIds = new Set(currentStore.map((q) => q.id));
     const originalIds = new Set(allQuestions.map((q) => q.id));
 
@@ -1940,7 +1952,7 @@ async function _doReorganize(
       return currentIds.has(q.id);
     });
     const reconciledIds = new Set(reconciled.map((q) => q.id));
-    // Append QAs/flagged that appeared in localStorage after the snapshot
+    // Append QAs/flagged that appeared in the store after the snapshot
     // (new questions asked during reorg). Exclude anchor/cluster nodes so we
     // don't carry forward any pre-reorg structural remnants.
     for (const q of currentStore) {
@@ -1950,7 +1962,7 @@ async function _doReorganize(
       reconciled.push(q);
     }
 
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(reconciled));
+    await questionService.replaceAll(reconciled);
 
     eventBus.emit({ type: 'REORG_COMPLETED', payload: { anchorCount, clusterCount } });
     return { success: true, data: { anchorCount, clusterCount } };

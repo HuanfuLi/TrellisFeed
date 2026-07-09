@@ -1,113 +1,74 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.6
-milestone_name: milestone
-status: Awaiting next milestone
-stopped_at: Phase 53 rescoped + context gathered
-last_updated: "2026-05-20T09:57:59.936Z"
-last_activity: 2026-05-20 — Milestone v1.6 completed and archived
+milestone: v1.7
+milestone_name: Cleanup, Hardening & Rewards
+status: ready
+stopped_at: Phase 56 shipped in PR #4; Phase 57 ready for discussion and planning
+last_updated: "2026-07-09T00:13:45.000Z"
+last_activity: 2026-07-08
 progress:
   total_phases: 7
-  completed_phases: 7
-  total_plans: 39
-  completed_plans: 39
-  percent: 100
+  completed_phases: 4
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
-# Project State: v1.6 ROADMAP OVERHAULED — 2026-05-15
+# Project State
 
-## 2026-05-15 Overhaul (latest)
+## Project Reference
 
-The v1.6 milestone (drafted 2026-05-13 by a prior agent) was overhauled after the operator surfaced four corrections during /gsd-discuss-phase 47:
+See: .planning/PROJECT.md (updated 2026-07-08)
 
-1. **Some professor questions get private answers, not product features.** Q1 "how is the mind-map generated" is private (writeup/conversation), NOT a user-facing pipeline-transparency feature. Q2 "what's blocking filter reliability" diagnosis half is also private. The prior agent translated every professor question into product requirements, including pipeline-transparency surfaces the operator does not want built.
-2. **The off-topic + malicious-prompt filter needs redesign, not regex tuning.** The current regex pattern library (`question-filter.service.ts`) is "TOO reliant on regex" and "very ineffective." v1.6 must replace the approach (LLM-only / embedding-similarity / hybrid with much narrower regex), not add evals on top of regex. Malicious prompts must be **kept out of the LLM request entirely**, not flagged after the response.
-3. **No "learning metrics" topic was asked.** LEARN-04 ("metrics stay separate from engagement") was inferred by the prior agent. Professor Q4 asked about engagement-vs-learning *balance* (stop cues, goals, reflection), not a metrics tracking system. LEARN-04 dropped.
-4. **No demo urgency.** Presentation already happened; the questions came after. Plan for correctness.
-
-Plus the earlier 2026-05-15 corrections (during the same session, before the full overhaul):
-
-- Operator rejected the four-state ingestion triage (`Added to map / Chat only / Needs review / Security blocked`) the prior agent had introduced under INGEST-01..04.
-- Operator pushed back on the `normalizeQuestion()` migration framework I proposed under FOUND-02; for purely-additive optional fields, no normalize layer is needed.
-
-### Resulting milestone shape
-
-| Phase | Title | Reqs |
-|---|---|---|
-| 47 | Filter Redesign — Off-Topic + Malicious Prompt Prevention | FILTER-01..05 |
-| 48 | Graph Command Service and Trust Invariants | GRAPH-01..04 |
-| 49 | Graph Correction UI | GRAPHUI-01..03 |
-| 50 | Retrieval and Library Foundation | RETRIEVE-01..02 |
-| 51 | Concept Dashboard and Recovery Surfaces | RETRIEVE-03..04 |
-| 52 | Podcast Quality Defaults and Learner Controls | PODCAST-01..05 |
-| 53 | Engagement Guardrails + Provider Privacy | LEARN-01..04 + PRIVACY-01 |
-
-**Net change:** 8 phases / 30 reqs → 7 phases / 26 reqs.
-
-### What was dropped or reworked
-
-- **Phase 47 (was: Data, Events, Migration, and Privacy Foundation)** — dissolved entirely. FOUND-01 (umbrella schema) folded into each consuming phase. FOUND-02 (migration normalization) dropped as not-a-thing. FOUND-03 (event payload contract) dropped as already true. FOUND-04 (privacy sanitizer) folded into Phase 53 (PRIVACY-01) where the protected fields actually exist. FOUND-05 (structural bracketing) folded into the new Phase 47 (FILTER-03) where it directly enables FILTER-02.
-- **Phase 48 INGEST-01..04 (was: Off-Topic Classifier Robustness)** — replaced with FILTER-01..05 in the new Phase 47. Reframed from "tighten the regex thresholds" to "replace the classifier approach + add a pre-LLM gate."
-- **LEARN-04 (separate metrics)** — dropped as invented. LEARN-05 (no dark patterns) renumbered to LEARN-04.
-- **GRAPHUI-02 "inspect why a node was placed"** — partial drop; the inspection half is private-answer-only. The "see corrected graph after reload" half kept as new GRAPHUI-03.
-
-### Memory captured
-
-- `~/.claude/projects/-Users-Code-EchoLearn/memory/feedback_ingestion_filter_intent.md`
-- `~/.claude/projects/-Users-Code-EchoLearn/memory/feedback_no_normalize_for_optional_fields.md`
-- `~/.claude/projects/-Users-Code-EchoLearn/memory/feedback_professor_qs_private_vs_product.md`
-- `~/.claude/projects/-Users-Code-EchoLearn/memory/feedback_filter_redesign_not_tuning.md`
+**Core value:** AI-powered personalized learning that respects user attention — reward-based, non-pushy, local-first.
+**Current focus:** Phase 57 — Rewards Foundation — Data Model & Service
 
 ## Current Position
 
-Phase: Milestone v1.6 complete
-Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-05-20 — Milestone v1.6 completed and archived
+Phase: 57 (rewards-foundation-data-model-service) — READY
+Plan: Not planned
+Status: Phase 56 complete and shipped in PR #4; Phase 57 ready for discussion and planning
+Last activity: 2026-07-08
 
-## Milestone Shape
+Progress: Phase 57 [░░░░░░░░░░] 0% (not planned). Milestone v1.7: 4/7 phases complete; rewards phases 57–59 not started.
+
+## Milestone Shape (v1.7)
+
+Phase numbering continues from v1.6 (ended at Phase 53).
 
 | Phase | Focus | Requirements |
 |-------|-------|--------------|
-| 47 | Filter redesign (off-topic + malicious-prompt) | FILTER-01..05 |
-| 48 | Graph command service + trust invariants | GRAPH-01..04 |
-| 49 | Graph correction UI | GRAPHUI-01..03 |
-| 50 | Retrieval + library foundation | RETRIEVE-01..02 |
-| 51 | Concept dashboard + recovery surfaces | RETRIEVE-03..04 |
-| 52 | Podcast defaults + learner controls | PODCAST-01..05 |
-| 53 | Engagement guardrails + provider privacy | LEARN-01..04, PRIVACY-01 |
+| 54 | Code Quality, Bugs & Tech Debt | QUALITY-01, QUALITY-02, QUALITY-03, TECHDEBT-13, TECHDEBT-14 |
+| 55 | Algorithm & Mechanism Tuning | TUNE-01, TUNE-02, TUNE-03 |
+| 55.1 (INSERTED) | Device-Test Bug Fixes | BUGFIX-01, BUGFIX-02, BUGFIX-03, BUGFIX-04 |
+| 56 | UI Polish & Documentation | POLISH-01, POLISH-02, POLISH-03, DOCS-01, DOCS-02 |
+| 57 | Rewards Foundation — Data Model & Service | REWARDS-08 |
+| 58 | Rewards Core Shop Loop — Themes | REWARDS-01, REWARDS-02, REWARDS-03, REWARDS-04, REWARDS-07, REWARDS-09 |
+| 59 | Rewards Pet Companion & Garden Cosmetics | REWARDS-05, REWARDS-06 |
 
-## Requirement Coverage
-
-26 / 26 active v1.6 requirements mapped.
-
-| Category | Count | Phases |
-|----------|-------|--------|
-| FILTER | 5 | Phase 47 |
-| GRAPH | 4 | Phase 48 |
-| GRAPHUI | 3 | Phase 49 |
-| RETRIEVE | 4 | Phases 50–51 |
-| PODCAST | 5 | Phase 52 |
-| LEARN | 4 | Phase 53 |
-| PRIVACY | 1 | Phase 53 |
+**Coverage:** 26 / 26 v1.7 requirements mapped ✓ (added BUGFIX-01..04 in inserted Phase 55.1)
 
 ## Accumulated Context
 
 ### Decisions
 
-- v1.6 starts at Phase 47 because v1.5 completed through Phase 46.
-- No foundation phase. Optional `?:` fields don't need migration scaffolding; events already carry needed payloads; sanitizer ships with the fields it protects.
-- Phase 47 (filter redesign) replaces the regex approach entirely; pre-LLM gate blocks malicious prompts from the request itself; structural bracketing at provider boundary is defense in depth.
-- Mind-map generation transparency is a private answer to the professor (writeup), NOT a user-facing product feature.
-- "Learning metrics" was never a professor request and is not in scope.
-- **Phase 47 strategy locked in CONTEXT.md (not deferred to research):** hybrid — narrow regex (Layer 1) + embedding-similarity (Layer 2). No LLM in classifier path. Today's "regex first, LLM fallback" had the LLM fallback dead in practice.
-- **Phase 47 corpus design:** repo-only static JSON of text labels; embeddings runtime against user's configured embedding provider, cached with `(provider, model)` key, re-embedded on config change. Build-time embeddings rejected (model-incompatible with user's runtime config).
-- **Phase 47 malicious classifier scope:** narrow — DoS spam, known jailbreak templates, disallowed-content requests only. No override path on malicious; bracketing handles legitimate-looking-scary questions.
-- **Phase 47 override UI is already implemented** (`ChatMessage.tsx` + `AskScreen.tsx`); only gap to close is firing `classifyAndAnchorIncremental` when `flagged` flips true → false.
+Full log in PROJECT.md Key Decisions. Recent decisions affecting current work:
+
+- v1.7 starts at Phase 54 (v1.6 completed through Phase 53).
+- Cleanup/hardening grouped into 3 phases (quality+debt, tuning, polish+docs); REWARDS split into 3 phases following data → core-loop(themes) → pet/garden order. Data-before-UI dependency is hard.
+- Economy: keep current earn rate (~1 credit/harvest-node + 1/daily-read). Price cosmetics LOW (themes ~10–15, premium ~40–60) as tunable constants. (Resolves research OQ-1.)
+- Shop entry: BOTH a Planner/garden entry AND a one-line post-harvest nudge. (Resolves OQ-2.)
+- Pet: CSS/SVG idle pet behind a render abstraction; Rive deferred to v2 / REWARDS-F1. (Resolves OQ-4.)
+- Cosmetic item names: English branded identifiers (not translated); shop UI chrome localized in all 4 bundles. (Resolves OQ-3.)
+- Clear-All-Data preserves purchased cosmetics — `trellis_cosmetics` excluded from the reset path. (Resolves OQ-5.)
+- Non-pushy stance is load-bearing — no scarcity timers, loot boxes, streak-linked items, or functional power-ups; codified as a guardrail test extending v1.6 Phase 53.
 
 ### Pending Todos
 
-None recorded for v1.6 yet. The two pre-existing pending todos (cosine similarity threshold + auto-gen podcast device verification) remain in `.planning/todos/pending/` and are unrelated to v1.6 phase scope.
+2 pending todos in `.planning/todos/pending/`, both folded into v1.7 phases:
+
+- `2026-05-07-fix-cosine-similarity-threshold-cache-miss` → Phase 55 (TUNE-01)
+- `2026-05-09-inspect-auto-gen-podcast-working-or-not-and-debug` → Phase 54 (QUALITY-03)
 
 ### Blockers/Concerns
 
@@ -115,46 +76,29 @@ None.
 
 ## Deferred Items
 
-Items acknowledged and deferred at v1.6 milestone close on 2026-05-20. None are v1.6 requirement gaps (milestone audit: 23/23 satisfied) — they are older loose threads (May 7–9) carried forward to the next milestone's backlog.
+Carried forward from v1.6 close (2026-05-20). All four now have a v1.7 home.
 
-| Category | Item | Status |
-|----------|------|--------|
-| debug | feed-not-auto-populating-after-force-new-day | investigating |
-| debug | vine-chip-not-clearing-after-force-new-day | diagnosed |
-| todo | 2026-05-07-fix-cosine-similarity-threshold-cache-miss | pending |
-| todo | 2026-05-09-inspect-auto-gen-podcast-working-or-not-and-debug | pending |
+| Category | Item | Status | Folds into |
+|----------|------|--------|------------|
+| debug | feed-not-auto-populating-after-force-new-day | investigating | Phase 54 (QUALITY-02) |
+| debug | vine-chip-not-clearing-after-force-new-day | diagnosed | Phase 54 (QUALITY-02) |
+| todo | 2026-05-07-fix-cosine-similarity-threshold-cache-miss | pending | Phase 55 (TUNE-01) |
+| todo | 2026-05-09-inspect-auto-gen-podcast-working-or-not-and-debug | pending | Phase 54 (QUALITY-03) |
+| bug | feed buffer queue under-refill (swipe yields 1/4/0 instead of 8) | folded 2026-05-21 | Phase 55 (TUNE-03) |
+| bug | cross-session LLM response leakage (3rd-session answer under 5th-session question) | folded 2026-05-21 | Phase 55.1 (BUGFIX-01) |
+| bug | text-art posts truncate to a few words / "The" after provider (Gemini?) or locale switch | folded 2026-05-21 | Phase 55.1 (BUGFIX-02) |
+| bug | Ask-screen bottom nav bar flickers when keyboard opens | folded 2026-05-21 | Phase 55.1 (BUGFIX-03) |
+| bug | Ask-screen first Send tap dismisses keyboard instead of sending | folded 2026-05-21 | Phase 55.1 (BUGFIX-04) |
 
 ## Session Continuity
 
-Last session: 2026-05-20T07:19:58.559Z
-Stopped at: Phase 53 rescoped + context gathered
-Earlier 2026-05-18T15:39:48Z — Completed 50-13-PLAN.md
-Earlier 2026-05-17 — Phase 49 plan-phase complete. 5 plans written across 3 waves. Plan-checker iterated 2 times: iter 1 flagged 8 blockers (B-1 detach D-12 needs new anchorId but Phase 48 service returns void; B-2 questionService.getAll() shape mismatch x5 sites; B-3 merge/delete signature mismatches; B-4 useLocation not imported; B-5 UndoButton reads undoneCmd instead of summary; B-6 getActionsForNode edge cases; B-7 Wave 1 plans concurrently edit GraphScreen.tsx; B-8 Wave-0 scaffolds use describe.skip instead of failing tests) + 6 warnings. Planner revision applied all fixes; iter 2 PASS.
-
-Key Phase 49 artifacts:
-
-- 49-CONTEXT.md (D-01..D-17, iOS gesture model + corner Undo)
-- 49-DISCUSSION-LOG.md (operator reasoning audit; verbatim quotes for gesture + Undo placement)
-- 49-RESEARCH.md (R1..R19 + Files Inventory + Validation Architecture; Open Questions RESOLVED inline)
-- 49-VALIDATION.md (Nyquist contract: 14 new test files, ~60-100 new tests, ~6-8s full-suite impact)
-- 49-PATTERNS.md (existing-file analogs for 7 new production files)
-- 5 PLAN files: 49-01-PLAN.md..49-05-PLAN.md
-
-Critical resolution: detach D-12 (re-anchored vs no-op toast variants) implemented via TWO-EMIT GRAPH_UPDATED correlation in Plan 49-04 — captures originalParentId before detach, listens for the second GRAPH_UPDATED event (the classify-completion fire, Phase 48 R7), re-reads questionService.getAll({ includeFlagged: true }) to find newParentId, compares against original. 5s timeout silent fallback. NO Phase 48 service amendment needed.
-
-Wave 1 ordering: 49-02 declares `depends_on: ["49-01"]` to serialize edits on GraphScreen.tsx within Wave 1. Executor sees Wave 1 = sequential [49-01 → 49-02].
-
-Resume file: .planning/phases/53-engagement-guardrails-provider-privacy/53-CONTEXT.md
-
-Prior — Phase 48 (Graph Command Service) COMPLETE on 2026-05-17. Verifier 16/16 must-haves verified. Service signatures: rename(id, newTitle), move(id, newParentId), merge(loserId, survivorId) → ServiceResult<{ reparentedCount, newSurvivorQaCount }>, detach(qaId) → ServiceResult<void>, prune(id), delete(id) → ServiceResult<{ cascadedChildIds: string[] }>, undo() → ServiceResult<{ undoneCmd, targetIds, summary }>. questionService.getAll(opts?: { includeFlagged?: boolean }) returns Question[] directly. Critical inversion preserved: undo writes inverse journal entry with SAME cmd, swapped before/after.
-
-Key Phase 47 artifacts:
-
-- 6 plan summaries: `47-0{1..6}-SUMMARY.md`
-- Verification: `47-VERIFICATION.md`
-- Load-bearing CLAUDE.md sections added: "Question filter — dual-vector scoring (Phase 47 UAT-5)"
-- Critical commits: 47-04 wire-through (`79efe98f`), 47-06 D-06 re-fire (`067cde0a`), UAT-5 dual-vector fix (`122cda59`)
+Last session: 2026-07-09T00:13:45.000Z
+Stopped at: Phase 56 shipped in PR #4; Phase 57 ready for discussion and planning
+Resume file: .planning/phases/56-ui-polish-documentation/56-VERIFICATION.md
 
 ## Operator Next Steps
 
-- Start the next milestone with /gsd-new-milestone
+- Review and merge PR #4 (`codex/work-2026-05-22` → `main`) after any repository checks complete.
+- Discuss Phase 57's rewards persistence, service API, theme token, and Clear-All-Data guardrail decisions.
+- Plan Phase 57 before implementation; Phase 58 and 59 depend on its data/service contracts.
+- Phase 55.1 code and roadmap are complete, but historical notes still mention one device retest / requirements-status drift; use `.planning/reports/MILESTONE_SUMMARY-v1.7.md` plus `55.1-HUMAN-UAT.md` if reconciling the old paper trail.

@@ -2,7 +2,7 @@
 
 Project root instructions for Claude Code agents working on this repository.
 
-> **Brand history:** Renamed EchoLearn → Trellis on 2026-05-07. The on-disk directory, the SQLite connection name `'echolearn'` (in `db.service.ts`), and the `~/.claude/projects/-Users-Code-EchoLearn/` auto-memory path are intentionally preserved for backwards compat. All other surfaces — bundle IDs, localStorage keys (`trellis_*`), app name, user-facing copy — say Trellis.
+> **Brand history:** Renamed EchoLearn → Trellis on 2026-05-07. The on-disk directory and the `~/.claude/projects/-Users-Code-EchoLearn/` auto-memory path are intentionally preserved for backwards compatibility. Current durable app storage uses IndexedDB with `IDB_NAME = 'trellis'` in `db.service.ts`; current localStorage keys use the `trellis_*` prefix. All user-facing surfaces — app name, bundle-facing copy, and product docs — say Trellis.
 
 ## Project Overview
 
@@ -20,6 +20,47 @@ Trellis is an AI-powered personalized learning platform (React 19 + TypeScript 5
 - localStorage for all user preferences via `settingsService`
 - Event bus (`src/lib/event-bus.ts`) for cross-screen notifications (LOCALE_CHANGED, REVIEW_COMPLETED, etc.)
 - **Settings sub-page navigation:** SettingsScreen is a menu with 4 sub-pages at `/settings/{ai,content,features,data}`. Sub-screens live in `src/screens/settings/`. Shared components (SectionHeader, SettingRow, MaterialSwitch, SelectInput, TextInput with password reveal) in `settings/SettingsShared.tsx`. Each sub-screen reads from `settingsService.getSync()`. Header `backTo` prop renders a back-arrow.
+
+---
+
+## Agent Delegation Policy (operator preference — applies to every task)
+
+Claude (Opus / Fable) is the **planner and reviewer**, not the primary implementer. Spend Claude tokens on planning, discussion, architecture, and judgment. Hand off bulk execution to the external CLI agents below via `Bash`, then review what comes back.
+
+### Routing table
+
+| Work type | Delegate to | Command | Why |
+|---|---|---|---|
+| Mass reads (codebase sweeps, docs, images), UI-SPEC generation, other frontend/reading tasks | **Antigravity** (Gemini 3.1 Pro) | `agy` | Strong at reading and frontend/visual work; weak reasoning |
+| Complex coding, refactors, research, debugging | **Codex** (GPT) | `codex --yolo` | Strong reasoning and coding; weak UX logic and aesthetics |
+| Planning, discussion, design decisions, final review | **Claude** (this agent) | — | Best overall judgment; keep tokens here |
+
+### Hard rules
+
+1. **Antigravity must NEVER mutate code.** Gemini models are unreliable at coding. Use `agy` for read-only analysis and document generation only. If a task requires edits, route it to Codex or do it yourself.
+2. **Antigravity must use Gemini 3.1 Pro.** Never a Flash model (e.g. Gemini 3.5 Flash).
+3. **Claude reviews everything either agent produces** before it lands. Codex writes correct-but-inelegant code and has poor UX instincts; Antigravity's prose and specs need a factual check.
+4. **Avoid implementing directly in Claude** when a delegate can do it. Reserve Claude edits for small, load-bearing, or judgment-heavy changes (anything in the "load-bearing" sections of this file).
+
+---
+
+## Heavy stores live in IndexedDB — never touch the retired localStorage keys (load-bearing)
+
+Phase 55 moved every heavy store to IndexedDB. The 13 legacy keys are listed in `LEGACY_HEAVY_KEYS` (`db.service.ts`) and **deleted at every boot** by `clearLegacyHeavyLocalStorageKeys()`, called from `App.tsx` after hydration. Any direct `localStorage` read of one returns null; any direct write is discarded on next launch.
+
+The migration missed four services, which kept doing raw read-modify-write against `trellis_questions` and friends. Because `questionService` had switched to an in-memory mirror hydrated from IndexedDB, **every newly created anchor and cluster was silently dropped**, leaving each classified Q&A with a dangling `parentId`. Fixed 2026-07-08.
+
+### Rules
+
+1. **All question mutations go through `questionService`.** Use `insertNode()` for new anchor/cluster nodes and `replaceAll()` for bulk rebuilds (reorg reconcile / revert) — both write through to IndexedDB. Never write `trellis_questions` directly. `canonical-knowledge.service.ts` must not name that key at all; `tests/services/anchor-persistence.test.mjs` enforces this.
+2. **Generated post bodies are costly assets.** `patchPostEssayInCache` persists via `conceptFeedService.patchPost` + `postHistoryService.patchPost` — both, unconditionally. Post-history is the only durable full-content store, and is what keeps a body openable from `/post-history`, `/saved`, `/liked` after the midnight daily-cache rejection.
+3. **`concept-feed-dedup.ts` keeps zero transitive deps** (so `node --test` can import it without the i18n JSON-import chain). Its post-history backing store is *injected* via `setSeenVideoIdHistorySource` from `concept-feed.service.ts`. Don't import `postHistoryService` there.
+4. **`planner.service.ts` must not reimplement post lookup.** It delegates to `conceptFeedService.findClosestPost` behind a lazy `import()` (concept-feed imports planner, so a static import would cycle).
+5. **`LocalStorageBackend` and `IndexedDBBackend` must implement the same SQL subset.** They are the last-resort fallback and the real backend; a statement one handles and the other silently ignores is a live data bug.
+
+### Testing this area
+
+The Node suite is a **false-green risk here** — much of it reads source text rather than executing writes. In Node there is no `indexedDB`, so `db.service` falls back to `LocalStorageBackend`, a real backend behind the same `dbQuery`/`dbExecute` seam: assert durability *through `dbQuery`*, not through the in-memory mirror. See `tests/services/anchor-persistence.test.mjs`. A source-reading test that asserts a retired key is *present* actively pins the bug in place — three such tests did.
 
 ---
 
@@ -58,7 +99,7 @@ The home feed is driven by THREE LISTS in a strict pipeline. **Do not invent a f
 - Style weights: `app/src/services/style-assignment.ts:9-16` (`STYLE_WEIGHTS`).
 - Daily generation cap: `dailyGenerationCapMultiplier × max(anchors.length, 3)` — **gated by `allExplored`**. Cap only fires AFTER vine is finished; before that, generation is bounded by `buildConceptBatch` returning `[]` when all anchors explored. Rationale: local-first OSS (users provide own keys), unbounded pre-finished generation is not a cost concern. Revisit if a key-brokered commercial mode ships.
 - Walker termination guard: `walkDerivedList`'s `maxSteps = Math.max(count * 2, len)` (`post-queue.service.ts:301`). The `count * 2` factor preserves lazy-skip headroom; the `len` floor preserves "at least one full pass possible" when `count < len`. **Do not regress to `len * 2`** — that was the Phase 36 GAP-B bug pinning text-art at 50% (floor) instead of 56% (floor + bonus at N=16). Tests at `tests/services/derived-list.test.mjs` (Test 11/12) + `tests/services/refill-queue-integration.test.mjs` (Test 7).
-- Yesterday-queue snapshot: `STORAGE_KEY_YESTERDAY = 'trellis_post_queue_yesterday'` written by `postQueueService.load()` on date-mismatch. `getYesterdayQueue()` reads from this snapshot key (NOT live key) so warm-start path survives multiple cold-start mounts of a new day.
+- Yesterday-queue snapshot: the durable snapshot is stored in IndexedDB under `SQLITE_ROW_ID_YESTERDAY = 'queue_yesterday'` in `post-queue.service.ts`, with `_yesterday` as the synchronous in-memory read mirror for `getYesterdayQueue()`. `hydrateQueueFromSQLite()` and `normalizeState()` populate that snapshot on date mismatch before today's queue is rehydrated. The old localStorage key `trellis_post_queue_yesterday` is legacy-only and appears in `db.service.ts` solely as a stale key to purge after IndexedDB hydration.
 - **New-day rehydration:** `load()`'s date-mismatch branch in `post-queue.service.ts` snapshots yesterday's payload to `STORAGE_KEY_YESTERDAY` AND rehydrates today's `_state.posts` + `derivedList` + `cyclePosition` from `parsed.posts`. Yesterday's UNSERVED queue auto-populates today's feed. Counters reset to 0; `cycleNumber` inherits. After rehydration, `spreadByConcept` then `spreadByStyle` re-interleave to balance style mix. Symmetric counterpart in `concept-feed.service.ts`: `loadCache()` returns `null` when `cached.date !== today()` so yesterday's SERVED posts do NOT render across midnight.
 - **Always-mounted screens must explicitly re-read service state on navigation.** HomeScreen, PlannerScreen, AskScreen, GraphScreen, SettingsScreen are always-mounted slots in `SwipeTabContainer`. `useState(() => svc.get())` initializers fire ONCE at app boot — never on `navigate('/home')`. Any screen reading from a service whose state can change while another screen is foreground (e.g., `dailyReadService` reset by Force-New-Day) MUST add a `useEffect` re-reading the service when its `location.pathname` matches the screen's route. HomeScreen.tsx has the canonical pattern: one effect re-syncs `dailyPosts` from `conceptFeedService.getCachedDailyPosts()` with fallback to `postQueueService.getYesterdayQueue()`; another sibling re-syncs `exploredAnchors` + `creditAwardedRef` from `dailyReadService`. Tests at `tests/screens/HomeScreen.exploredAnchors-resync.test.mjs` and `HomeScreen.warm-start-refallback.test.mjs`. Related: when a dev affordance simulates a wall-clock event the service can't observe (e.g., Force-New-Day), the dev handler must call every service `reset()` AND mutate every date-stamped storage key the natural event would have triggered.
 
@@ -181,6 +222,26 @@ Three layers of defense:
 
 ---
 
+## Feed cold start — an empty feed is not an error (load-bearing)
+
+`getDailyPosts()` returns `[]` on a cold start **by design**: today's queue is empty and `refillQueue` is still working in the background. A real refill can take **minutes** (measured at 144s against a local LM Studio endpoint — LLM + YouTube + Tavily, serially).
+
+HomeScreen used to call that `[]` a failure and render *"Couldn't generate posts — check your API keys"* immediately, with a single 8s timer as its only recovery. A refill slower than 8s left the error on screen permanently, because `/home` is always-mounted and never remounts. Users with perfectly valid keys saw an API-key error. Fixed 2026-07-08.
+
+`refillQueue` now emits **`FEED_REFILL_COMPLETED`** `{ added, error? }` exactly once per cycle that actually runs.
+
+### Rules
+
+1. **Never treat an empty `getDailyPosts()` result as an error.** It means "still refilling". Stay in the loading state and let `FEED_REFILL_COMPLETED` decide.
+2. **Emit from inside the mutex body, in a `finally`.** Concurrent callers await the *same* in-flight Promise, so emitting outside `_refillMutex.run` fires once per caller. The `finally` covers the cycle's two "nothing to do" early returns (daily cap, empty concept batch) — without it a listener waits on a spinner forever.
+3. **`attempted > 0 && generated === 0` is the only signal a broken API key produces.** `generatePostBatch` catches and logs per-branch LLM failures, so zero posts from a non-empty concept batch must be reported as `error`. `attempted === 0` (nothing to generate) is a normal empty state.
+4. **The HomeScreen subscriber must no-op when the feed already has posts.** Refreshing a populated feed calls `getDailyPosts` → `refillQueue` → `FEED_REFILL_COMPLETED` again: an infinite loop.
+5. Don't reintroduce a timer-based recovery. The event is the signal.
+
+Tests: `tests/screens/HomeScreen.empty-questions-no-error.test.mjs`.
+
+---
+
 ## Event bus — unified GRAPH_UPDATED (Phase 32.1)
 
 There is **ONE event for graph mutations**: `GRAPH_UPDATED`. Used by `commitClassificationResult` (canonical-knowledge.service.ts), `trellisActionsService.replant`/`unpruneQuestion`, and any future code mutating anchors/clusters/questions.
@@ -259,27 +320,27 @@ Fix: **O(N_anchors) cosine pre-check BEFORE the tree descent** in `classifyAndAn
 
 ---
 
-## Question filter — dual-vector scoring (Phase 47 UAT-5 — load-bearing)
+## Question filter — RAW-ARGMAX gate + dual-vector scoring (Phase 47 UAT-5 + Phase 55 — load-bearing)
 
-`app/src/services/question-filter.service.ts:layer2Embedding` scores the three labels against **two different query vectors**:
+`app/src/services/question-filter.service.ts:layer2Embedding` decides the label with a **scale-invariant RAW-ARGMAX rule** (Phase 55, replacing the old absolute off-topic/malicious thresholds — see `.planning/phases/55-algorithm-mechanism-tuning/55-FILTER-TUNING-REPORT.md`). It still embeds **two query vectors** (the Phase 47 dual-vector split — preserved and now load-bearing for the security property):
 
-- **Malicious** is scored against the **raw content vector** (no prior-answer prefix).
-- **Off-topic + on-topic** are scored against the **D-11 contextualized vector** (`priorAnswer.slice(0, 240) + ' ' + content`).
+- **raw content vector** — `embedText(content)`, no prior-answer prefix.
+- **contextualized vector** — `priorAnswer.slice(0, 240) + ' ' + content` (D-11). When `context.priorAnswer` is empty/undefined it aliases the raw vector (no extra embed on first-turn questions).
 
-When `context.priorAnswer` is empty/undefined, both vectors alias the same `embedText(content)` call — no extra cost on first-turn questions.
+**Decision:**
+- **Malicious gate (security-critical):** argmax over the **RAW** vectors only — malicious iff `rawMal ≥ floor && rawMal ≥ rawOff && rawMal ≥ rawOn`. Context never enters this comparison, so a benign preamble cannot dilute the malicious score (the structural buried-payload defense). The `floor` comes from `resolveMaliciousFloor`: a validated per-`(provider,model,dims)` table (`VALIDATED_MALICIOUS_FLOORS`) for tested models, else corpus auto-calibration clamped to `[MALICIOUS_FLOOR_MIN, MALICIOUS_FLOOR_MAX]` = `[0.35, 0.70]`.
+- **Benign off/on split:** relative comparison on the **contextualized** vectors — off-topic iff `ctxOff − ctxOn ≥ OFF_TOPIC_MARGIN` (0.02), else on-topic (so unrelated/ambiguous/cross-lingual input defaults to on-topic, never flagged). Off-topic only flags; it carries no security weight.
 
 ### Why this exists
 
-The original D-11 design used a single contextualized vector everywhere so "but why?" follow-ups would stay on-topic when the prior answer was on-topic. UAT-5 (2026-05-17) surfaced that the 240-char benign prefix dilutes the embedding direction enough to drop verbatim-jailbreak cosine from **0.977 (raw)** to **0.755 (contextualized)** — silently below the 0.82 malicious threshold. A user asking a benign question then sending a verbatim jailbreak as turn 2 evaded the classifier entirely. Buried-payload / soft-prefix evasion is a published jailbreak technique; D-11 accidentally re-enabled it for our classifier.
-
-Dual-vector scoring keeps the D-11 follow-up benefit for off-topic detection where context genuinely matters, while denying malicious classification any contextual cover.
+The original D-11 single-contextualized-vector design let a 240-char benign prefix drop a verbatim jailbreak's cosine from **0.977 (raw)** to **0.755 (contextualized)** — buried-payload evasion. The Phase 47 dual-vector fix scored malicious on the raw vector. Phase 55 then replaced the absolute thresholds (mis-calibrated per embedding model: 4% malicious recall on OpenAI-3-small@256 at 0.82) with RAW-ARGMAX, lifting malicious recall 41%→96% and accuracy to 96.5–98.8% across qwen3-8b + OpenAI configs, **while keeping buried-payload closed by construction** (the malicious gate compares only raw vectors). Validated cross-model; buried-03 (educational preamble + extraction payload) blocks on all three configs.
 
 ### Rules
 
-1. **Don't unify the two vectors back into one.** `tests/services/filter-classifier.unit.test.mjs` Test 18d runs a benign 240-char preamble + verbatim mal-en-001 payload and asserts the result is `malicious`. Test 18a asserts the cold-cache call order is `[rawQuery, contextualizedQuery, ...corpus]`.
-2. **Don't add a priorAnswer prefix to the malicious cosine path.** The whole point of the fix is malicious scoring sees the raw payload, regardless of what came before in the chat.
-3. **Don't drop the contextVec → rawVec aliasing optimization** when no priorAnswer. Doubling embedText calls on first-turn questions is unnecessary cost.
-4. **Threshold tuning is empirical** — same band as Classification dedup: lower to 0.78 if missing real jailbreaks, raise to 0.85 if blocking legitimate questions. Raising too high re-opens the dilution surface even on raw vectors.
+1. **Never let context enter the malicious decision.** The malicious gate compares `rawMal/rawOff/rawOn` only — all from `embedText(content)`. `Test 18d` (benign 240-char preamble + verbatim mal-en-001 → `malicious`) and the golden buried-payload fixture are the load-bearing guards. Test 18a asserts the cold-cache embed order is `[rawQuery, contextualizedQuery, ...corpus]`.
+2. **Don't reintroduce absolute off-topic/malicious cosine thresholds.** The whole Phase 55 point is scale-invariance. The only absolute number in the malicious path is the `floor`, and it must stay clamped to `[0.35, 0.70]` in `resolveMaliciousFloor` (debug override included) — this is the security minimum that replaced the old `[0.78, 0.85]` clamp.
+3. **Don't drop the contextVec → rawVec aliasing** when no priorAnswer (avoids a duplicate embed).
+4. **Tuning a new model:** add a measured floor to `VALIDATED_MALICIOUS_FLOORS` (use `app/scripts/tune-decision-rule.mjs`); untested models auto-calibrate. Never widen the `[0.35, 0.70]` hard band. The anchor-dedup classifier (`canonical-knowledge.service.ts`) is SEPARATE and keeps its own `[0.78, 0.85]` band — RAW-ARGMAX does not touch it.
 
 ---
 

@@ -59,6 +59,14 @@ export interface CompletionOptions {
   jsonMode?: boolean;
   /** Caller-supplied abort signal (D-22 mid-stream cancellation on LOCALE_CHANGED). */
   signal?: AbortSignal;
+  /**
+   * Phase 55.1 BUGFIX-02: disable model "thinking" for short non-reasoning calls.
+   * On Gemini 2.5/3 thinking models, reasoning tokens count against maxOutputTokens,
+   * starving short calls (text-art headline) and returning empty/truncated text.
+   * When set, the Gemini path sends `generationConfig.thinkingConfig.thinkingBudget: 0`.
+   * No-op for non-Gemini providers.
+   */
+  disableThinking?: boolean;
 }
 
 export async function chatCompletion(messages: ChatMessage[], config: LLMConfig, options?: CompletionOptions): Promise<string> {
@@ -191,7 +199,19 @@ async function* openAIStream(messages: ChatMessage[], config: LLMConfig, options
   const response = await fetch(url, {
     method: 'POST',
     headers: isLocal ? { 'Content-Type': 'application/json' } : openAIHeaders(config),
-    body: JSON.stringify({ model: config.model, messages, max_tokens: 4096, stream: true }),
+    // Phase 55.1 GAP-E: on the fast-model path (disableThinking) for the OpenAI cloud
+    // provider, send `reasoning_effort: 'minimal'` so a reasoning-capable model (o-series /
+    // gpt-5*) does not stall the stream on internal reasoning before the first body token.
+    // Scoped to provider === 'openai' (skip local/lmstudio — their OpenAI-compatible servers
+    // vary and may reject the field). No-op when disableThinking is unset → byte-identical
+    // request to today's behavior.
+    body: JSON.stringify({
+      model: config.model,
+      messages,
+      max_tokens: 4096,
+      stream: true,
+      ...(options?.disableThinking && config.provider === 'openai' ? { reasoning_effort: 'minimal' } : {}),
+    }),
     signal: composeSignal(options?.signal, STREAM_TIMEOUT_MS),
   });
   if (!response.ok) {
@@ -253,6 +273,10 @@ async function* claudeStream(messages: ChatMessage[], config: LLMConfig, options
       'anthropic-version': '2023-06-01',
       'anthropic-dangerous-direct-browser-access': 'true',
     },
+    // Phase 55.1 GAP-E: the Anthropic fast-model path requires NO change — extended
+    // thinking is OPT-IN (a `thinking: { type: 'enabled', ... }` block), and we never
+    // send one. So Claude already streams without extended thinking by default; the
+    // `disableThinking` flag is intentionally a no-op here. Do NOT add a `thinking` block.
     body: JSON.stringify({ model: config.model, max_tokens: 4096, stream: true, system, messages: userMessages }),
     signal: composeSignal(options?.signal, STREAM_TIMEOUT_MS),
   });
@@ -270,7 +294,7 @@ async function* claudeStream(messages: ChatMessage[], config: LLMConfig, options
 
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta';
 
-function toGeminiPayload(messages: ChatMessage[], maxTokens = 4096, jsonMode = false) {
+function toGeminiPayload(messages: ChatMessage[], maxTokens = 4096, jsonMode = false, disableThinking = false) {
   const system = messages.find((m) => m.role === 'system')?.content;
   const contents = messages
     .filter((m) => m.role !== 'system')
@@ -284,6 +308,13 @@ function toGeminiPayload(messages: ChatMessage[], maxTokens = 4096, jsonMode = f
     generationConfig: {
       maxOutputTokens: maxTokens,
       ...(jsonMode ? { responseMimeType: 'application/json' } : {}),
+      // Phase 55.1 BUGFIX-02: disable thinking for short non-reasoning calls so the
+      // model doesn't spend the budget on reasoning tokens and return empty/truncated
+      // text. Gemini v1beta generationConfig.thinkingConfig.thinkingBudget (0 = off).
+      // VERIFIED field shape against Gemini API docs (thinkingConfig.thinkingBudget,
+      // A2) — emitted ONLY when the caller opts in (text-art path) so non-thinking
+      // models / other call sites are unaffected.
+      ...(disableThinking ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
     },
   };
 }
@@ -293,7 +324,7 @@ async function geminiCompletion(messages: ChatMessage[], config: LLMConfig, maxT
   const response = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': config.apiKey ?? '' },
-    body: JSON.stringify(toGeminiPayload(messages, maxTokens, options?.jsonMode ?? false)),
+    body: JSON.stringify(toGeminiPayload(messages, maxTokens, options?.jsonMode ?? false, options?.disableThinking ?? false)),
     signal: composeSignal(options?.signal, COMPLETION_TIMEOUT_MS),
   });
   if (!response.ok) {
@@ -315,7 +346,16 @@ async function* geminiStream(messages: ChatMessage[], config: LLMConfig, options
   const response = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': config.apiKey ?? '' },
-    body: JSON.stringify(toGeminiPayload(messages)),
+    // Phase 55.1 GAP-E: forward maxTokens / jsonMode / disableThinking so the fast-model
+    // streaming path sends `thinkingConfig.thinkingBudget: 0` (reuses the existing Gemini
+    // thinking-disable plumbing in toGeminiPayload). Previously the stream path dropped all
+    // options — disableThinking is now honored on BOTH completion and streaming paths.
+    body: JSON.stringify(toGeminiPayload(
+      messages,
+      options?.maxTokens ?? 4096,
+      options?.jsonMode ?? false,
+      options?.disableThinking ?? false,
+    )),
     signal: composeSignal(options?.signal, STREAM_TIMEOUT_MS),
   });
   if (!response.ok) {

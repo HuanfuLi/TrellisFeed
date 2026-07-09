@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, type ElementType } from 'react';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import type { TrellisLayout } from '../../services/trellis-state.service.ts';
@@ -9,6 +9,13 @@ import { leafAnimationMask, TAP_ANIMATION_THRESHOLD } from '../../services/trell
 export interface TrellisCanvasProps {
   layout: TrellisLayout;
   ambientEnabled: boolean;
+  /**
+   * Phase 55.1 GAP-B (BUGFIX-05) — master render-layer gate. When false (Planner
+   * off-screen), leaves render fully static: no entry spring re-trigger, no
+   * ambient sway keyframes, no pulse. Defaults to true to preserve existing call
+   * sites/tests. Computed in TrellisHero via shouldAnimateTrellis.
+   */
+  animationsEnabled?: boolean;
   focusedAnchorId?: string | null;
 }
 
@@ -31,7 +38,7 @@ export const isLeafFocused = (
   return focusedAnchorId === leafAnchorId;
 };
 
-export function TrellisCanvas({ layout, ambientEnabled, focusedAnchorId }: TrellisCanvasProps) {
+export function TrellisCanvas({ layout, ambientEnabled, animationsEnabled = true, focusedAnchorId }: TrellisCanvasProps) {
   const { t } = useTranslation();
   const { vines, nodes } = layout;
   const leafCount = nodes.length;
@@ -48,6 +55,16 @@ export function TrellisCanvas({ layout, ambientEnabled, focusedAnchorId }: Trell
   // animates; above it, we'd need real visibility info to suppress. Until IO
   // lands, leaves above the threshold still animate (graceful degradation).
   const perfGuardThresholdExceeded = leafCount > TAP_ANIMATION_THRESHOLD;
+
+  // Phase 55.1 GAP-B (BUGFIX-05, round 5) — when the Planner is off-screen, render
+  // the vine stems as PLAIN <path> (no framer-motion VisualElement). The draw-on
+  // (pathLength) animation only matters on first foreground paint; off-screen we
+  // want ZERO motion machinery. `VinePath` is `motion.path` when animating and the
+  // intrinsic `'path'` tag otherwise; the motion-only props (initial/animate/
+  // transition) are spread ONLY in the animating branch so the plain tag never
+  // receives invalid DOM attributes. Resting visual is identical (a fully-drawn
+  // stroke), so there is no pop when the Planner becomes active.
+  const VinePath = (animationsEnabled ? motion.path : 'path') as ElementType;
 
   return (
     <svg
@@ -66,16 +83,20 @@ export function TrellisCanvas({ layout, ambientEnabled, focusedAnchorId }: Trell
           return (
             <g key={v.branchId}>
               {/* Soft shadow for depth */}
-              <motion.path
+              <VinePath
                 d={v.spec.d}
                 stroke={v.color}
                 strokeWidth={8}
                 fill="none"
                 opacity={0.08}
                 strokeLinecap="round"
-                initial={{ pathLength: 0 }}
-                animate={{ pathLength: 1 }}
-                transition={{ duration: 1.2, delay: i * 0.2, ease: 'easeInOut' }}
+                {...(animationsEnabled
+                  ? {
+                      initial: { pathLength: 0 },
+                      animate: { pathLength: 1 },
+                      transition: { duration: 1.2, delay: i * 0.2, ease: 'easeInOut' },
+                    }
+                  : {})}
               />
               {/* Tapering segments: thick at base, thin at tip */}
               {Array.from({ length: Math.min(segCount, 6) }, (_, si) => {
@@ -83,7 +104,7 @@ export function TrellisCanvas({ layout, ambientEnabled, focusedAnchorId }: Trell
                 const sw = 5.5 - frac * 3;
                 const dashLen = 100 / segCount;
                 return (
-                  <motion.path
+                  <VinePath
                     key={si}
                     d={v.spec.d}
                     stroke={v.color}
@@ -94,9 +115,13 @@ export function TrellisCanvas({ layout, ambientEnabled, focusedAnchorId }: Trell
                     strokeDasharray={`${dashLen}% ${100 - dashLen}%`}
                     strokeDashoffset={`${-si * dashLen}%`}
                     pathLength={100}
-                    initial={{ pathLength: 0 }}
-                    animate={{ pathLength: 100 }}
-                    transition={{ duration: 1.2, delay: i * 0.2, ease: 'easeInOut' }}
+                    {...(animationsEnabled
+                      ? {
+                          initial: { pathLength: 0 },
+                          animate: { pathLength: 100 },
+                          transition: { duration: 1.2, delay: i * 0.2, ease: 'easeInOut' },
+                        }
+                      : {})}
                   />
                 );
               })}
@@ -152,10 +177,18 @@ export function TrellisCanvas({ layout, ambientEnabled, focusedAnchorId }: Trell
         {nodes.map((n, i) => {
           // D-13: when the canvas is large, gate the one-shot animations.
           // leafAnimationMask returns true when allowed; perfGuardActive is the
-          // complement. Without IO layered, inView=true is the conservative default.
-          const inView = true;
+          // complement.
+          //
+          // Phase 55.1 GAP-B (BUGFIX-05): wire real visibility into `inView`.
+          // When the master gate is off (Planner off-screen, !animationsEnabled),
+          // treat every leaf as out-of-view for the perf mask so perfGuardActive
+          // forces true above the count threshold (suppresses tap/pulse). The
+          // dominant cross-screen cost — the per-leaf entry spring + ambient sway
+          // keyframes — is removed in TrellisLeaf via the animationsEnabled prop.
+          const inView = animationsEnabled;
           const perfGuardActive =
-            perfGuardThresholdExceeded && !leafAnimationMask({ totalCount: leafCount, inView });
+            !animationsEnabled ||
+            (perfGuardThresholdExceeded && !leafAnimationMask({ totalCount: leafCount, inView }));
           return (
             <TrellisLeaf
               key={n.anchor.id}
@@ -170,6 +203,7 @@ export function TrellisCanvas({ layout, ambientEnabled, focusedAnchorId }: Trell
               animationDelay={0.8 + i * 0.05}
               focused={isLeafFocused(focusedAnchorId, n.anchor.id)}
               perfGuardActive={perfGuardActive}
+              animationsEnabled={animationsEnabled}
             />
           );
         })}

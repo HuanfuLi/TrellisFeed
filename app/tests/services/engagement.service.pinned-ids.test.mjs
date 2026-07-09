@@ -25,6 +25,9 @@ const { collectionService } = await import('../../src/services/collection.servic
 describe('engagementService.getPinnedIds — D-09 union with collection members', () => {
   beforeEach(() => {
     localStorage.clear();
+    // Phase 55-07: engagement + collections are in-memory mirrors — reset them.
+    engagementService.reset();
+    collectionService.reset();
   });
 
   it('returns Set([p1]) when only collectionService has p1 as a member (D-09)', () => {

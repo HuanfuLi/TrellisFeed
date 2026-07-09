@@ -16,6 +16,19 @@ const defaultSettings: AppSettings = {
     model: 'gpt-4o',
     isConfigured: false,
   },
+  // Phase 55.1 GAP-E — optional low-latency generation model. Disabled/unset by default
+  // so existing users see NO behavior change (resolveGenerationConfig falls back to `llm`).
+  // MUST be present here for deepMerge() to default pre-feature stored settings (deepMerge
+  // iterates Object.keys(defaults), so an absent key would never be filled in) — this is the
+  // additive-optional defaulting path, NOT a migration (CLAUDE.md feedback_no_normalize_for_optional_fields).
+  fastModel: {
+    enabled: false,
+    provider: 'openai',
+    apiKey: '',
+    baseUrl: '',
+    model: 'gpt-4o-mini',
+    isConfigured: false,
+  },
   embedding: {
     provider: 'openai',
     apiKey: '',
@@ -25,8 +38,17 @@ const defaultSettings: AppSettings = {
     isConfigured: false,
   },
   embeddingDebug: {
+    // Legacy dead slider value — kept for backwards-compat; UI no longer renders it (D-05).
     similarityThreshold: 0.65,
     showScores: false,
+    // Phase 55 D-05 per-threshold knobs. deepMerge() spreads { ...defaults, ...stored }
+    // for the embeddingDebug object, so a pre-feature stored config (with only
+    // similarityThreshold/showScores) loads these defaults automatically — this IS the
+    // Pitfall-3 shape-change defaulting for the kept settings key (no migration needed).
+    debugEnabled: false,
+    offTopicThreshold: 0.75,
+    maliciousThreshold: 0.82,
+    anchorDedupThreshold: 0.82,
   },
   tts: {
     provider: 'openai',

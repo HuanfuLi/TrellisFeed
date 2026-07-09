@@ -77,6 +77,7 @@ import {
   Folder,
   ChevronRight,
   Radio,
+  ArrowLeft,
 } from 'lucide-react';
 import Fuse, { type FuseResult, type FuseResultMatch } from 'fuse.js';
 import { Header, HEADER_HEIGHT } from '../components/ui/Header';
@@ -756,7 +757,18 @@ export default function SavedScreen() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
-      <Header backTo="/home" title={t('saved.title')} />
+      <Header
+        title={t('saved.title')}
+        centered
+        left={
+          <button
+            onClick={() => navigate(-1)}
+            style={{ background: 'none', border: 'none', padding: '12px', marginLeft: '-12px', color: 'var(--primary-40)', display: 'flex', alignItems: 'center' }}
+          >
+            <ArrowLeft size={20} />
+          </button>
+        }
+      />
 
       <style>{`
         @keyframes saved-card-in {

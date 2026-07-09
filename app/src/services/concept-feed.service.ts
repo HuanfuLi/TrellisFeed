@@ -15,7 +15,7 @@ import { sourceDiversityService, extractDomain } from './source-diversity.servic
 import { selectNewsTopSources, mapNewsSourcesToNewsMeta } from './news-source-metadata.ts';
 import { assignStyles, reassignFailures, type ApiAvailability } from './style-assignment.ts';
 import { computeLeafState } from './trellis-state.service.ts';
-import { hasSeenVideoId, addSeenVideoId } from './concept-feed-dedup.ts';
+import { hasSeenVideoId, addSeenVideoId, setSeenVideoIdHistorySource } from './concept-feed-dedup.ts';
 import { STARTER_POST_IDS, filterDecayedStarters } from './starter-posts-decay.ts';
 import {
   markYoutubeQuotaExhausted,
@@ -30,11 +30,34 @@ import {
 import { spreadByStyle, spreadByConcept } from './feed-spread.ts';
 export { spreadByStyle, spreadByConcept };
 import { createPromiseMutex } from './refill-mutex.ts';
+import { isUnusableTextArtFragment } from './text-art-fragment.ts';
+import { dbExecute, dbQuery } from './db.service.ts';
 
-const STORAGE_KEY = 'trellis_daily_posts';
 const CONNECTION_POSTS_KEY = 'trellis_connection_posts';
+// Phase 55-07: the daily-posts cache (a single JSON blob) persists ONLY to one
+// row in the IndexedDB `posts` table. The module-level `_cache` mirror is the
+// synchronous read+write path (starts empty, hydrated from IndexedDB at boot).
+// No localStorage write for `trellis_daily_posts` anymore.
+const DAILY_POSTS_SQLITE_ROW_ID = 'daily_posts_cache';
+
+// In-memory daily-posts cache mirror. Holds the LAST written CachedDailyPosts
+// blob; loadCache() applies the same midnight stale-date rejection the prior
+// localStorage read did.
+let _cache: CachedDailyPosts | null = null;
 const MAX_POSTS = 4;
 const CONTEXT_LIMIT = 10;
+
+// Supply the cross-cycle video dedup helper with its history backing store.
+// concept-feed-dedup.ts keeps zero transitive deps (so node --test can import it
+// without the i18n JSON-import chain), so the dependency is injected here rather
+// than imported there.
+setSeenVideoIdHistorySource((day) =>
+  postHistoryService
+    .getPosts()
+    .filter((p) => p.date === day)
+    .map((p) => p.videoMeta?.videoId)
+    .filter((v): v is string => typeof v === 'string' && v.length > 0),
+);
 
 /**
  * Produce a globally-unique post ID with a semantic prefix.
@@ -168,20 +191,19 @@ function isValidDailyPost(value: unknown): value is DailyPost {
 
 function loadCache(): CachedDailyPosts | null {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<CachedDailyPosts>;
+    const parsed = _cache;
     if (
-      typeof parsed?.date !== 'string' ||
-      typeof parsed?.fingerprint !== 'string' ||
-      !Array.isArray(parsed?.posts)
+      !parsed ||
+      typeof parsed.date !== 'string' ||
+      typeof parsed.fingerprint !== 'string' ||
+      !Array.isArray(parsed.posts)
     ) {
       return null;
     }
     // Phase 36-11: stale cache rejection. The served-posts cache must NOT
     // carry across midnight — yesterday's served posts have already been
     // shown to the user and should not render as "today's feed". This is the
-    // symmetric counterpart to post-queue.service.ts's load() rehydration.
+    // symmetric counterpart to post-queue.service.ts's new-day rehydration.
     // See .planning/phases/36-.../36-UAT.md round-3 sub-issue (b cause #2)
     // and (d) — second Force-New-Day was rendering the previous-state served
     // posts because of this missing date check.
@@ -211,10 +233,46 @@ function loadCache(): CachedDailyPosts | null {
 }
 
 function saveCache(cache: CachedDailyPosts): void {
+  _cache = cache;
+  // IndexedDB write-through (D-09/D-12) — fire-and-forget single-row upsert into
+  // the `posts` table. served_at carries the cache date as an epoch for coarse
+  // ordering; the full cache blob lives in `data`.
+  void dbExecute('INSERT OR REPLACE INTO posts (id, data, served_at) VALUES (?, ?, ?)', [
+    DAILY_POSTS_SQLITE_ROW_ID,
+    JSON.stringify(cache),
+    Date.parse(cache.date) || Date.now(),
+  ]).catch(() => { /* IndexedDB unavailable — in-memory mirror is the read path */ });
+}
+
+let _hydratedDailyPosts = false;
+
+/**
+ * Boot hydration (D-12) for the daily-posts cache. When the localStorage mirror
+ * is empty (D-11 clean-cutover state) restore the single cache row from SQLite.
+ * Guarded so a populated mirror is never overwritten. loadCache() already
+ * rejects a stale (non-today) cache, so writing the blob back and letting the
+ * normal read path validate it preserves the midnight stale-rejection semantics.
+ * Emits GRAPH_UPDATED so HomeScreen resyncs (no-refresh assumption).
+ */
+export async function hydrateDailyPostsFromSQLite(): Promise<void> {
+  if (_hydratedDailyPosts) return;
+  _hydratedDailyPosts = true;
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(cache));
+    if (_cache) return; // mirror already has data — trust it
+    const rows = await dbQuery<{ id: string; data: string }>(
+      'SELECT * FROM posts WHERE id = ?', [DAILY_POSTS_SQLITE_ROW_ID],
+    );
+    if (rows.length === 0) return;
+    let parsed: CachedDailyPosts | null = null;
+    try { parsed = JSON.parse(rows[0].data) as CachedDailyPosts; } catch { return; }
+    _cache = parsed;
+    // loadCache() validates date/shape on read (midnight stale rejection); only
+    // emit a resync if the restored cache is still valid for today.
+    if (loadCache()) {
+      eventBus.emit({ type: 'GRAPH_UPDATED' });
+    }
   } catch {
-    // ignore cache persistence failures
+    // IndexedDB unavailable — silently skip
   }
 }
 
@@ -635,6 +693,27 @@ function _backgroundGenerateTextArt(posts: DailyPost[]): void {
   }).catch(() => {}).finally(() => { _textArtBgRunning = false; });
 }
 
+/**
+ * Phase 55.1 BUGFIX-02: pure merge guard for text-art content. Treats persisted
+ * content as immutable unless `incoming` is a genuine improvement. A provider switch
+ * to a Gemini thinking model + locale change previously produced a starved fragment
+ * ("T" / "Is your") that the bare `incoming ?? existing` happily wrote over a full
+ * sentence. Rules:
+ *   - incoming empty/undefined         → keep existing
+ *   - existing empty                   → take valid incoming
+ *   - incoming strictly shorter        → keep existing (don't trade down)
+ *   - else                             → take incoming
+ * Scoped to textArtContent ONLY — news bodyMarkdown defer-to-streamer is untouched.
+ */
+function mergeTextArtContent(existing: string | undefined, incoming: string | undefined): string | undefined {
+  const inc = (incoming ?? '').trim();
+  const exi = (existing ?? '').trim();
+  if (!inc) return existing;            // empty/undefined incoming → keep existing
+  if (!exi) return incoming;            // existing empty → take valid incoming
+  if (inc.length < exi.length) return existing; // shorter regen → keep existing (anti-truncation)
+  return incoming;
+}
+
 /** Persist presentationStyle and textArtContent from styled posts back into the cache. */
 function _persistStylesToCache(styledPosts: DailyPost[]): void {
   const cachedNow = loadCache();
@@ -643,7 +722,10 @@ function _persistStylesToCache(styledPosts: DailyPost[]): void {
   cachedNow.posts = cachedNow.posts.map(p => {
     const info = styleMap.get(p.id);
     if (!info) return p;
-    return { ...p, presentationStyle: info.presentationStyle, textArtContent: info.textArtContent ?? p.textArtContent };
+    // Phase 55.1 BUGFIX-02: never overwrite a non-empty textArtContent with a
+    // shorter/empty regeneration — route through mergeTextArtContent instead of
+    // the old bare nullish-coalesce that let a starved regen replace good content.
+    return { ...p, presentationStyle: info.presentationStyle, textArtContent: mergeTextArtContent(p.textArtContent, info.textArtContent) };
   });
   saveCache(cachedNow);
 }
@@ -652,6 +734,13 @@ function _persistStylesToCache(styledPosts: DailyPost[]): void {
 // posts (and any cached text-art posts) regenerate under the new locale.
 // Without this, text-art generated under one locale stays in the cache
 // forever and renders mismatched against the user's UI locale.
+//
+// Phase 55.1 BUGFIX-02 (Open Question 2 — default keep+gate): this strip is KEPT
+// as-is. The safety net against a failed/starved regeneration corrupting the feed
+// is NOT here — it lives in `tightenTextArtContent` (rejects empty/fragments) +
+// `mergeTextArtContent` (never overwrites a non-empty value with a shorter/empty
+// one) + the raised Gemini token budget (Task 3). So even though we strip here, a
+// truncated regen can no longer be persisted on top of good content.
 eventBus.subscribe('LOCALE_CHANGED', () => {
   const cached = loadCache();
   if (!cached) return;
@@ -702,6 +791,16 @@ function tightenTextArtContent(raw: string): string | null {
     const lastSpace = cut.lastIndexOf(' ');
     s = (lastSpace > 40 ? cut.slice(0, lastSpace) : cut).trim() + '…';
   }
+  if (!s) return null;
+  // Phase 55.1 BUGFIX-02 (+ CR-01 fix): reject too-short fragments. A Gemini thinking
+  // model on the old 80-token budget returned starved fragments like "T" or a dangling
+  // "Is your" (no sentence terminator). The predicate is CJK-aware so short-but-valid
+  // zh/ja headlines (no inter-word spaces) are NOT discarded after a LOCALE_CHANGED, and
+  // it catches dangling multi-word Latin fragments the old `!/\s/` gate missed. Returning
+  // null makes the call site fall back to `teaser.hook || title` instead of persisting
+  // garbage. Applies to textArtContent ONLY; news essay content (defer-to-streamer,
+  // empty-string shell) is never routed here. See `text-art-fragment.ts` for the rules.
+  if (isUnusableTextArtFragment(s)) return null;
   return s || null;
 }
 
@@ -745,7 +844,14 @@ Return ONLY the single sentence, nothing else.`;
       const result = await chatCompletion(
         [{ role: 'user', content: prompt }],
         settings.llm,
-        { maxTokens: 80, serviceName: 'text-art' },
+        // Phase 55.1 BUGFIX-02: raise the budget off 80. On Gemini 2.5/3 thinking
+        // models, internal reasoning tokens count against maxOutputTokens — an
+        // 80-token budget is consumed by thinking and the visible text comes back
+        // empty/truncated (finishReason: MAX_TOKENS), collapsing the card to "T".
+        // A1 conservative value 512. Output is still capped to ONE sentence by
+        // tightenTextArtContent, so the rendered card does NOT lengthen.
+        // `disableThinking` belts the budget on the Gemini path (see toGeminiPayload).
+        { maxTokens: 512, serviceName: 'text-art', disableThinking: true },
       );
       return { postId: post.id, content: result };
     }),
@@ -831,11 +937,37 @@ export function buildPostOriginContext(post: DailyPost, questions: Question[]): 
  */
 const BASE_ENTRIES_PER_CONCEPT = 4;
 
+// Phase 55 D-14 like-boost rationale (kept above the function — load-bearing):
+// A like reuses the EXISTING 4→8 multiplicity lever, the SAME mechanism the 3-list
+// pipeline already uses for importance/overdue (CLAUDE.md §"Concept Feed Generation
+// Pipeline"). The like signal must NOT invent a fourth list, must NOT add a pipeline
+// stage, and must NOT mutate the derived list inside this function — buildConceptBatch
+// only returns conceptIds for the caller to append to the append-only derived list.
+//
+// Liked postIds are resolved → anchor conceptIds via engagementService.getLikedPostIds()
+// (the recorded like signal) + postHistoryService.getPosts(). A post maps to its anchor
+// via sourceQuestionIds[0] — the established pipeline convention (see the dismiss-filter
+// at line ~245: "post.sourceQuestionIds[0] is the anchor.id"; DailyPost has no conceptId
+// field). Both reads are synchronous. Liked posts pin against postHistory purge via
+// engagementService.getPinnedIds() (Pitfall 6 already handled), so getPosts() returns them.
+//
+// Boost is OR (isImportant || isLiked), NOT additive: worst-case multiplicity stays
+// BASE*2 — identical to the pre-existing all-important case — so the like-boost adds
+// no new starvation vector (T-55-04a / A4). Due-for-review (overdue/important) concepts
+// still receive BASE*2 entries and remain present regardless of what else is liked.
 function buildConceptBatch(questions: Question[]): string[] {
   const exploredIds = new Set(dailyReadService.getExploredAnchors());
 
   const anchors = questions.filter(q => q.isAnchorNode);
   const dueAnchors = anchors.filter(a => !exploredIds.has(a.id));
+
+  // Phase 55 D-14 like-boost setup: resolve liked postIds → conceptIds once.
+  const likedPostIds = new Set(engagementService.getLikedPostIds());
+  const likedConceptIds = new Set<string>();
+  for (const p of postHistoryService.getPosts()) {
+    const anchorId = p.sourceQuestionIds?.[0];
+    if (likedPostIds.has(p.id) && anchorId) likedConceptIds.add(anchorId);
+  }
 
   const conceptIds: string[] = [];
   for (const anchor of dueAnchors) {
@@ -847,8 +979,22 @@ function buildConceptBatch(questions: Question[]): string[] {
         isImportant = leaf === 'dying' || leaf === 'falling' || leaf === 'dead';
       } catch { /* non-critical — default to not important */ }
     }
-    const count = isImportant ? BASE_ENTRIES_PER_CONCEPT * 2 : BASE_ENTRIES_PER_CONCEPT;
+
+    // Phase 55 D-14: like counts as a boost equal to importance (see rationale above).
+    const isLiked = likedConceptIds.has(anchor.id);
+    const isBoosted = isImportant || isLiked;
+    const count = isBoosted ? BASE_ENTRIES_PER_CONCEPT * 2 : BASE_ENTRIES_PER_CONCEPT;
+
+    // ── Phase 55 D-02 instrumentation (dev-gated, stripped in production) ──────
+    if (typeof import.meta !== 'undefined' && import.meta.env?.DEV) {
+      console.info(`[buildConceptBatch] anchor=${anchor.id} isImportant=${isImportant} isLiked=${isLiked} count=${count}`);
+    }
+
     for (let i = 0; i < count; i++) conceptIds.push(anchor.id);
+  }
+
+  if (typeof import.meta !== 'undefined' && import.meta.env?.DEV) {
+    console.info(`[buildConceptBatch] likedConceptIds=${likedConceptIds.size} total=${conceptIds.length}`);
   }
   return conceptIds;
 }
@@ -1261,6 +1407,16 @@ const _refillMutex = createPromiseMutex();
  * reassigns failures, generates posts, and enqueues results.
  */
 export async function refillQueue(questions: Question[]): Promise<void> {
+  // Phase 55-06 (TUNE-03) D-02 instrumentation — record when the cheap pre-check
+  // is about to short-circuit (queue at/above REFILL_THRESHOLD). Logged BEFORE the
+  // guard so the early-return statement below stays a single byte-stable line
+  // (refill-mutex.test.mjs source-asserts `if (!needsRefill()) return;`).
+  // Dev-gated, no shipped log noise.
+  if (typeof import.meta !== 'undefined' && import.meta.env?.DEV && !postQueueService.needsRefill()) {
+    console.info('[refillQueue] early-return: needsRefill=false', {
+      queueSize: postQueueService.size(),
+    });
+  }
   // Cheap pre-check: skip the mutex entirely if a refill isn't needed.
   // (The mutex's run() also short-circuits if a body is in-flight.)
   if (!postQueueService.needsRefill()) return;
@@ -1269,245 +1425,320 @@ export async function refillQueue(questions: Question[]): Promise<void> {
   // the SAME Promise and await this exact execution. The mutex's internal
   // try/finally clears the in-flight reference in BOTH success AND error
   // paths so a failed refill does not permanently lock subsequent callers.
+  // One completion signal per cycle that actually runs. Emitted from inside the
+  // mutex body so concurrent callers awaiting the same in-flight Promise don't
+  // each emit a duplicate. `finally` covers the cycle's early returns (daily cap
+  // reached, nothing left to generate) as well as the throw path, so a listener
+  // can always distinguish "still working" from "done, nothing to add" from
+  // "genuinely failed".
   return _refillMutex.run(async () => {
-    const settings = settingsService.getSync();
-    // Daily generation cap — gate only applies AFTER the vine is finished.
-    //
-    // Phase 33 gap fix (2026-04-19): the cap was previously unconditional at this
-    // point, which caused a "vine unfinished but No more posts" regression — the
-    // cap counted totalGenerated (feed supply) while VineProgress counts
-    // exploredAnchors (user progress). The two counters drifted apart whenever
-    // the user swiped through posts without opening them, so the cap could fire
-    // while buildConceptBatch still had unexplored anchors to generate for.
-    //
-    // Fix (Option B): bypass the cap until allExplored. Once the vine is finished,
-    // the bonus-post regime takes over (see `allExplored` gate in generateMorePosts
-    // below) and the cap becomes a meaningful safety rail again.
-    //
-    // Trellis is local-first OSS where users provide their own LLM/YouTube/Tavily
-    // keys, so unbounded generation during the pre-finished window is NOT a cost
-    // concern for the project. If a commercial / key-brokered mode ships later,
-    // revisit this gate and reintroduce a pre-finished cap (e.g., scale with
-    // `unexploredAnchors.length` so the cap shrinks as the user reads).
-    //
-    // Previous context: D-38 + G1 / UAT-31-13 (Phase 32.1-02) added the `max(N, 3)`
-    // floor so 1-concept users didn't saturate after one batch. That floor is
-    // retained below for when the gate does eventually fire.
-    const anchors = questions.filter(q => q.isAnchorNode);
-    const exploredIds = new Set(dailyReadService.getExploredAnchors());
-    const allExplored = anchors.length > 0 && anchors.every(a => exploredIds.has(a.id));
-    const maxPosts = (settings.feed?.dailyGenerationCapMultiplier ?? FEED_DEFAULTS.dailyGenerationCapMultiplier) * Math.max(anchors.length, 3);
-    if (allExplored && postQueueService.getTotalGenerated() >= maxPosts) return;
-
-    // Step 1: Build concept batch + append-only persist + cyclic walk
-    // (Phase 36 GAP-1 + GAP-2). buildConceptBatch still filters explored anchors
-    // (Phase 33 gap fix line ~798 — DO NOT remove that filter; it gates fresh
-    // appends). The derived list is now PERSISTED in QueueState and grows
-    // append-only across refill cycles within the same day; the walker resumes
-    // from saved cyclePosition rather than restarting from index 0 each time.
-    //
-    // Removal-on-read is LAZY: walkDerivedList skips conceptIds in `exploredIds`
-    // (already computed at line ~1199) AND in `dismissedIds` (Phase 39 D-07 —
-    // engagementService.getDismissedAnchorIds()). Physical splice would corrupt
-    // the walker's index — see RESEARCH § Pitfall 1.
-    const dueConceptIds = buildConceptBatch(questions);
-    postQueueService.appendToDerivedList(dueConceptIds);
-    // Walk batchSize entries — large enough to refill the queue past REFILL_THRESHOLD
-    // (24, bumped from 16 for masonry on 2026-05-10) up toward MAX_QUEUE_SIZE (32).
-    // 24 keeps the walker batch proportional to the new threshold so a single refill
-    // restores ~one swipe of headroom (8) on top of the 24-post threshold.
-    const dismissedIds = new Set(engagementService.getDismissedAnchorIds());
-    const conceptIds = postQueueService.walkDerivedList(24, exploredIds, dismissedIds);
-    if (conceptIds.length === 0) return;
-
-    // Step 2: Pre-check API keys — validate non-empty strings (D-20, D-21 step 1).
-    // Phase 33 quota-burn fix (2026-04-20): also honor the runtime availability
-    // circuit breaker. If a 403/quotaExceeded response flipped the flag earlier
-    // today, keep that key "unavailable" for the rest of the day so assignStyles
-    // redirects weight to text-art instead of burning more calls on a dead quota.
-    const youtubeKeyPresent = typeof settings.youtube?.apiKey === 'string' && settings.youtube.apiKey.trim().length > 0;
-    const tavilyKeyPresent = typeof settings.webSearch?.tavilyApiKey === 'string' && settings.webSearch.tavilyApiKey.trim().length > 0;
-    // Phase 33 UAT-4 fix (2026-04-20): honor EITHER image-gen key. imageGeneration.bootstrap.ts
-    // registers the Gemini provider when only geminiApiKey is set (no nanoBanana key), so
-    // image generation IS possible — but assignStyles would skip the 'image' style weight
-    // because this check was nanoBanana-only. Result: no image posts despite a working key.
-    const nanoBananaKeyPresent = typeof settings.imageGeneration?.nanoBananaApiKey === 'string' && settings.imageGeneration.nanoBananaApiKey.trim().length > 0;
-    const geminiImageKeyPresent = typeof settings.imageGeneration?.geminiApiKey === 'string' && settings.imageGeneration.geminiApiKey.trim().length > 0;
-    // 2026-04-21: honor the `enabled` toggle in hasImageGenKey so assignStyles
-    // and InfoFlow's per-card gate agree. Prior mismatch: assignStyles checked
-    // only key presence (so it kept assigning 'image' even when the toggle was
-    // off), while InfoFlow.tsx:113 short-circuited on !enabled before calling
-    // generateImage — resulting in silent text-art fallback at line 159 with
-    // zero observable "I assigned image but nothing rendered" signal.
-    const imageGenEnabled = settings.imageGeneration?.enabled !== false;
-    const availability: ApiAvailability = {
-      hasYoutubeKey: youtubeKeyPresent && isYoutubeRuntimeAvailable(),
-      hasTavilyKey: tavilyKeyPresent && isTavilyRuntimeAvailable(),
-      hasImageGenKey: imageGenEnabled && (nanoBananaKeyPresent || geminiImageKeyPresent),
-    };
-
-    // Step 3: Assign styles before generation (D-18)
-    let assignments = assignStyles(conceptIds, availability);
-
-    // Step 4: Pre-validate YouTube/Tavily in parallel AND cache results for reuse
-    // by the generation loops (D-21 step 2, D-20 fallback + Phase 33 quota-burn fix 2026-04-20).
-    //
-    // Before: pre-validation called searchVideos/webSearch with maxResults=1; the
-    // generation loops RE-called the same query with maxResults=15 — 2× the YouTube
-    // quota burn per assignment (200 units each at 100 units/search). After my
-    // cap-bypass fix (003b8e32) removed the implicit ~2-cycle cap, this doubled
-    // burn exhausted the user's 10,000-unit/day YouTube quota in ~10 cycles.
-    //
-    // Now: pre-validation fetches at full pool size (YOUTUBE_FETCH_POOL_SIZE for
-    // YouTube, maxResults:3 for Tavily so the news loop can map the filtered
-    // top 2-3 results into newsMeta.sources) and stores the result in preFetched.
-    // Generation loops read from the cache.
-    // Halves YouTube calls per cycle; also halves Tavily calls.
-    const videoAssigns = assignments.filter(a => a.style === 'video');
-    const newsAssigns = assignments.filter(a => a.style === 'news');
-    const failedIds = new Set<string>();
-    const preFetched: PreFetchCache = {
-      youtube: new Map<string, YouTubeSearchResult[]>(),
-      news: new Map<string, WebSearchResult[]>(),
-    };
-
-    const getConceptName = (id: string) => {
-      const q = questions.find(q => q.id === id);
-      return q?.title ?? q?.content?.slice(0, 50) ?? id;
-    };
-
-    // Pre-validation must use the SAME modifier as the actual fetch so a passing
-    // pre-check doesn't get falsified by the fetch's varied query.
-    const validationCycle = postQueueService.getCycleNumber();
-    await Promise.all([
-      ...videoAssigns.map(async (a) => {
-        try {
-          const conceptName = getConceptName(a.conceptId);
-          const query = buildYoutubeQuery(conceptName, validationCycle);
-          const searchResult = await youtubeService.searchVideos(query, YOUTUBE_FETCH_POOL_SIZE);
-          if (!searchResult.success || !searchResult.data?.length) {
-            // Phase 33 quota-burn fix (2026-04-20): on quota-exhausted, flip the
-            // circuit breaker so subsequent cycles skip YouTube entirely.
-            if (searchResult.error?.code === 'API_QUOTA_EXCEEDED') {
-              markYoutubeQuotaExhausted();
-            }
-            failedIds.add(a.conceptId);
-          } else {
-            preFetched.youtube.set(`${a.conceptId}:${a.style}`, searchResult.data);
-          }
-        } catch {
-          failedIds.add(a.conceptId);
-        }
-      }),
-      ...newsAssigns.map(async (a) => {
-        try {
-          const conceptName = getConceptName(a.conceptId);
-          // Phase 41 D-02 + Pattern 2 — getUsedDomains → exclude → filterForDiversity → recordServedDomain
-          const usedDomains = sourceDiversityService.getUsedDomains(a.conceptId);
-          const results = await webSearch(
-            conceptName + ' latest research findings',
-            { maxResults: 3, excludeDomains: [...usedDomains] },
-          );
-          if (!results.success || !results.data?.results.length) {
-            // Tavily doesn't distinguish a dedicated quota code today, but if the
-            // error message indicates 403/auth failure, treat as quota-exhausted
-            // for the rest of the day to stop burning calls on a dead key.
-            const msg = results.error?.message?.toLowerCase() ?? '';
-            if (msg.includes('403') || msg.includes('quota') || msg.includes('unauthorized')) {
-              markTavilyQuotaExhausted();
-            }
-            failedIds.add(a.conceptId);
-          } else {
-            const topSources = selectNewsTopSources(results.data.results, usedDomains);
-            const chosen = topSources[0];
-            if (!chosen) {
-              failedIds.add(a.conceptId);
-              return;
-            }
-            preFetched.news.set(a.conceptId, topSources);
-            // Phase 41 D-02 — record AFTER commit. extractDomain undefined-guard.
-            const domain = extractDomain(chosen.url);
-            if (domain) sourceDiversityService.recordServedDomain(a.conceptId, domain);
-          }
-        } catch {
-          failedIds.add(a.conceptId);
-        }
-      }),
-    ]);
-
-    // Step 5: Reassign failures to text-art (D-20, D-21 step 3)
-    assignments = reassignFailures(assignments, failedIds);
-
-    // Step 6: Generate posts with pre-assigned styles (D-21 step 4).
-    // Pass the pre-fetched cache so YouTube/Tavily loops reuse validated results
-    // instead of issuing a second call per assignment.
-    const posts = await generatePostBatch(questions, assignments, preFetched);
-
-    // Step 6b: Pre-generate images for image-styled posts so the queue buffer
-    // is ACTUALLY pre-warmed (2026-04-21 architectural fix). Any post whose
-    // image generation FAILS gets its presentationStyle downgraded to 'text-art'
-    // BEFORE enqueue — so the queue only contains "ready" posts. InfoFlow
-    // never has to retry at mount time, no late-arriving images popping in,
-    // no duplicate-log racing. The queue promise is: "if it's in the queue,
-    // it's renderable right now."
-    const imagePosts = posts.filter((p) => p.presentationStyle === 'image');
-    if (imagePosts.length > 0) {
-      const { imageGenerationService } = await import('./imageGeneration.service');
-      const { inferImageStyle, buildImagePrompt } = await import('./postFormatting.service');
-      if (import.meta.env?.DEV) {
-        console.info(`[refillQueue] pre-generating ${imagePosts.length} image(s) before enqueue`);
+    const queueSizeAtStart = postQueueService.size();
+    let refillError: string | undefined;
+    try {
+      const { attempted, generated } = await runRefillCycle(questions);
+      // The cycle had work to do and produced nothing: every generation path
+      // failed. generatePostBatch logs and swallows per-branch failures, so
+      // without this check a broken API key looks identical to "all caught up".
+      if (attempted > 0 && generated === 0) {
+        refillError = 'Refill produced no posts — every generation path failed.';
       }
-      const results = await Promise.allSettled(
-        imagePosts.map((p) => {
-          const style = inferImageStyle(p);
-          const prompt = buildImagePrompt(p);
-          return imageGenerationService.generateImage(p.id, prompt, style);
-        }),
-      );
-      // Downgrade any post whose image-gen failed so the queue never serves
-      // a post that would immediately fall back to text-art at render time.
-      // Mutation is safe here — these DailyPost objects haven't been enqueued
-      // or cached yet, so we're the only owner.
-      let downgraded = 0;
-      for (let i = 0; i < imagePosts.length; i++) {
-        const r = results[i];
-        const ok = r.status === 'fulfilled' && r.value.success;
-        if (!ok) {
-          imagePosts[i].presentationStyle = 'text-art';
-          downgraded++;
-        }
-      }
-      if (import.meta.env?.DEV && downgraded > 0) {
-        console.info(`[refillQueue] downgraded ${downgraded}/${imagePosts.length} image post(s) to text-art after pre-gen failure`);
-      }
+    } catch (err) {
+      refillError = err instanceof Error ? err.message : String(err);
+      throw err;
+    } finally {
+      eventBus.emit({
+        type: 'FEED_REFILL_COMPLETED',
+        payload: { added: postQueueService.size() - queueSizeAtStart, error: refillError },
+      });
     }
-
-    // Step 6c + 7: Interleave styles ACROSS the unserved queue tail + this
-    // fresh batch (2026-04-21). Previously spreadByStyle ran on `posts` only,
-    // then enqueue concatenated — so cross-batch clustering was possible: a
-    // user popping 4 posts could slice entirely across one batch's tail or
-    // another batch's head, landing in a single-style run. enqueueInterleaved
-    // does dedup + combines queue-tail-with-new-batch + runs the mixer over
-    // the full combined list before writing back, so every refill re-mixes
-    // the pending queue with the new arrivals.
-    for (const p of posts) { try { postHistoryService.addPost(p); } catch { /* non-critical */ } }
-    if (typeof import.meta !== 'undefined' && import.meta.env?.DEV) {
-      const batchStyles: Record<string, number> = {};
-      for (const p of posts) {
-        const k = p.presentationStyle ?? 'unknown';
-        batchStyles[k] = (batchStyles[k] ?? 0) + 1;
-      }
-      console.info('[refillQueue] batch styles:', batchStyles, 'batch size:', posts.length);
-    }
-    // Phase 36 GAP-4 — run concept-axis spread BEFORE style-axis spread so
-    // dominant anchors (important / overdue with 2× entries) don't cluster
-    // in the served window. See spreadByConcept JSDoc + RESEARCH § Pattern 3.
-    postQueueService.enqueueInterleaved(posts, (combined) => {
-      spreadByConcept(combined);
-      spreadByStyle(combined);
-    });
-    postQueueService.incrementCycle();
   });
+}
+
+/**
+ * Outcome of one refill cycle.
+ *
+ * `attempted` is how many concepts the walker handed to generation; `generated`
+ * is how many posts came back. The pair distinguishes the two ways a cycle can
+ * add nothing: `attempted === 0` means there was genuinely nothing to generate
+ * (daily cap reached, every anchor explored) — a normal empty state — whereas
+ * `attempted > 0 && generated === 0` means every generation path failed, which
+ * IS an error. generatePostBatch swallows LLM failures per-branch, so this
+ * count is the only place a broken API key becomes visible.
+ */
+interface RefillOutcome {
+  attempted: number;
+  generated: number;
+}
+
+/**
+ * The refill cycle proper. Extracted from refillQueue so the mutex wrapper above
+ * can emit exactly one FEED_REFILL_COMPLETED regardless of which exit path the
+ * cycle takes — including the two "nothing to do" early returns below, which are
+ * normal states and NOT errors.
+ */
+async function runRefillCycle(questions: Question[]): Promise<RefillOutcome> {
+  const settings = settingsService.getSync();
+  // Daily generation cap — gate only applies AFTER the vine is finished.
+  //
+  // Phase 33 gap fix (2026-04-19): the cap was previously unconditional at this
+  // point, which caused a "vine unfinished but No more posts" regression — the
+  // cap counted totalGenerated (feed supply) while VineProgress counts
+  // exploredAnchors (user progress). The two counters drifted apart whenever
+  // the user swiped through posts without opening them, so the cap could fire
+  // while buildConceptBatch still had unexplored anchors to generate for.
+  //
+  // Fix (Option B): bypass the cap until allExplored. Once the vine is finished,
+  // the bonus-post regime takes over (see `allExplored` gate in generateMorePosts
+  // below) and the cap becomes a meaningful safety rail again.
+  //
+  // Trellis is local-first OSS where users provide their own LLM/YouTube/Tavily
+  // keys, so unbounded generation during the pre-finished window is NOT a cost
+  // concern for the project. If a commercial / key-brokered mode ships later,
+  // revisit this gate and reintroduce a pre-finished cap (e.g., scale with
+  // `unexploredAnchors.length` so the cap shrinks as the user reads).
+  //
+  // Previous context: D-38 + G1 / UAT-31-13 (Phase 32.1-02) added the `max(N, 3)`
+  // floor so 1-concept users didn't saturate after one batch. That floor is
+  // retained below for when the gate does eventually fire.
+  const anchors = questions.filter(q => q.isAnchorNode);
+  const exploredIds = new Set(dailyReadService.getExploredAnchors());
+  const allExplored = anchors.length > 0 && anchors.every(a => exploredIds.has(a.id));
+  const maxPosts = (settings.feed?.dailyGenerationCapMultiplier ?? FEED_DEFAULTS.dailyGenerationCapMultiplier) * Math.max(anchors.length, 3);
+  if (allExplored && postQueueService.getTotalGenerated() >= maxPosts) return { attempted: 0, generated: 0 };
+
+  // Step 1: Build concept batch + append-only persist + cyclic walk
+  // (Phase 36 GAP-1 + GAP-2). buildConceptBatch still filters explored anchors
+  // (Phase 33 gap fix line ~798 — DO NOT remove that filter; it gates fresh
+  // appends). The derived list is now PERSISTED in QueueState and grows
+  // append-only across refill cycles within the same day; the walker resumes
+  // from saved cyclePosition rather than restarting from index 0 each time.
+  //
+  // Removal-on-read is LAZY: walkDerivedList skips conceptIds in `exploredIds`
+  // (already computed at line ~1199) AND in `dismissedIds` (Phase 39 D-07 —
+  // engagementService.getDismissedAnchorIds()). Physical splice would corrupt
+  // the walker's index — see RESEARCH § Pitfall 1.
+  const dueConceptIds = buildConceptBatch(questions);
+  postQueueService.appendToDerivedList(dueConceptIds);
+  // Walk batchSize entries — large enough to refill the queue past REFILL_THRESHOLD
+  // (24, bumped from 16 for masonry on 2026-05-10) up toward MAX_QUEUE_SIZE (32).
+  // 24 keeps the walker batch proportional to the new threshold so a single refill
+  // restores ~one swipe of headroom (8) on top of the 24-post threshold.
+  const dismissedIds = new Set(engagementService.getDismissedAnchorIds());
+  const conceptIds = postQueueService.walkDerivedList(24, exploredIds, dismissedIds);
+  // Phase 55-06 (TUNE-03) D-02 instrumentation — record the walker decision state
+  // so a sub-24 conceptIds yield (cause (c) candidate) is visible against the
+  // derivedList length + cyclePosition. Dev-gated.
+  if (typeof import.meta !== 'undefined' && import.meta.env?.DEV) {
+    console.info('[refillQueue] walkDerivedList', {
+      requested: 24,
+      returned: conceptIds.length,
+      derivedListLength: postQueueService.getDerivedList().length,
+      cyclePosition: postQueueService.getCyclePosition(),
+      queueSizeBeforeEnqueue: postQueueService.size(),
+    });
+  }
+  if (conceptIds.length === 0) return { attempted: 0, generated: 0 };
+
+  // Step 2: Pre-check API keys — validate non-empty strings (D-20, D-21 step 1).
+  // Phase 33 quota-burn fix (2026-04-20): also honor the runtime availability
+  // circuit breaker. If a 403/quotaExceeded response flipped the flag earlier
+  // today, keep that key "unavailable" for the rest of the day so assignStyles
+  // redirects weight to text-art instead of burning more calls on a dead quota.
+  const youtubeKeyPresent = typeof settings.youtube?.apiKey === 'string' && settings.youtube.apiKey.trim().length > 0;
+  const tavilyKeyPresent = typeof settings.webSearch?.tavilyApiKey === 'string' && settings.webSearch.tavilyApiKey.trim().length > 0;
+  // Phase 33 UAT-4 fix (2026-04-20): honor EITHER image-gen key. imageGeneration.bootstrap.ts
+  // registers the Gemini provider when only geminiApiKey is set (no nanoBanana key), so
+  // image generation IS possible — but assignStyles would skip the 'image' style weight
+  // because this check was nanoBanana-only. Result: no image posts despite a working key.
+  const nanoBananaKeyPresent = typeof settings.imageGeneration?.nanoBananaApiKey === 'string' && settings.imageGeneration.nanoBananaApiKey.trim().length > 0;
+  const geminiImageKeyPresent = typeof settings.imageGeneration?.geminiApiKey === 'string' && settings.imageGeneration.geminiApiKey.trim().length > 0;
+  // 2026-04-21: honor the `enabled` toggle in hasImageGenKey so assignStyles
+  // and InfoFlow's per-card gate agree. Prior mismatch: assignStyles checked
+  // only key presence (so it kept assigning 'image' even when the toggle was
+  // off), while InfoFlow.tsx:113 short-circuited on !enabled before calling
+  // generateImage — resulting in silent text-art fallback at line 159 with
+  // zero observable "I assigned image but nothing rendered" signal.
+  const imageGenEnabled = settings.imageGeneration?.enabled !== false;
+  const availability: ApiAvailability = {
+    hasYoutubeKey: youtubeKeyPresent && isYoutubeRuntimeAvailable(),
+    hasTavilyKey: tavilyKeyPresent && isTavilyRuntimeAvailable(),
+    hasImageGenKey: imageGenEnabled && (nanoBananaKeyPresent || geminiImageKeyPresent),
+  };
+
+  // Step 3: Assign styles before generation (D-18)
+  let assignments = assignStyles(conceptIds, availability);
+
+  // Step 4: Pre-validate YouTube/Tavily in parallel AND cache results for reuse
+  // by the generation loops (D-21 step 2, D-20 fallback + Phase 33 quota-burn fix 2026-04-20).
+  //
+  // Before: pre-validation called searchVideos/webSearch with maxResults=1; the
+  // generation loops RE-called the same query with maxResults=15 — 2× the YouTube
+  // quota burn per assignment (200 units each at 100 units/search). After my
+  // cap-bypass fix (003b8e32) removed the implicit ~2-cycle cap, this doubled
+  // burn exhausted the user's 10,000-unit/day YouTube quota in ~10 cycles.
+  //
+  // Now: pre-validation fetches at full pool size (YOUTUBE_FETCH_POOL_SIZE for
+  // YouTube, maxResults:3 for Tavily so the news loop can map the filtered
+  // top 2-3 results into newsMeta.sources) and stores the result in preFetched.
+  // Generation loops read from the cache.
+  // Halves YouTube calls per cycle; also halves Tavily calls.
+  const videoAssigns = assignments.filter(a => a.style === 'video');
+  const newsAssigns = assignments.filter(a => a.style === 'news');
+  const failedIds = new Set<string>();
+  const preFetched: PreFetchCache = {
+    youtube: new Map<string, YouTubeSearchResult[]>(),
+    news: new Map<string, WebSearchResult[]>(),
+  };
+
+  const getConceptName = (id: string) => {
+    const q = questions.find(q => q.id === id);
+    return q?.title ?? q?.content?.slice(0, 50) ?? id;
+  };
+
+  // Pre-validation must use the SAME modifier as the actual fetch so a passing
+  // pre-check doesn't get falsified by the fetch's varied query.
+  const validationCycle = postQueueService.getCycleNumber();
+  await Promise.all([
+    ...videoAssigns.map(async (a) => {
+      try {
+        const conceptName = getConceptName(a.conceptId);
+        const query = buildYoutubeQuery(conceptName, validationCycle);
+        const searchResult = await youtubeService.searchVideos(query, YOUTUBE_FETCH_POOL_SIZE);
+        if (!searchResult.success || !searchResult.data?.length) {
+          // Phase 33 quota-burn fix (2026-04-20): on quota-exhausted, flip the
+          // circuit breaker so subsequent cycles skip YouTube entirely.
+          if (searchResult.error?.code === 'API_QUOTA_EXCEEDED') {
+            markYoutubeQuotaExhausted();
+          }
+          failedIds.add(a.conceptId);
+        } else {
+          preFetched.youtube.set(`${a.conceptId}:${a.style}`, searchResult.data);
+        }
+      } catch {
+        failedIds.add(a.conceptId);
+      }
+    }),
+    ...newsAssigns.map(async (a) => {
+      try {
+        const conceptName = getConceptName(a.conceptId);
+        // Phase 41 D-02 + Pattern 2 — getUsedDomains → exclude → filterForDiversity → recordServedDomain
+        const usedDomains = sourceDiversityService.getUsedDomains(a.conceptId);
+        const results = await webSearch(
+          conceptName + ' latest research findings',
+          { maxResults: 3, excludeDomains: [...usedDomains] },
+        );
+        if (!results.success || !results.data?.results.length) {
+          // Tavily doesn't distinguish a dedicated quota code today, but if the
+          // error message indicates 403/auth failure, treat as quota-exhausted
+          // for the rest of the day to stop burning calls on a dead key.
+          const msg = results.error?.message?.toLowerCase() ?? '';
+          if (msg.includes('403') || msg.includes('quota') || msg.includes('unauthorized')) {
+            markTavilyQuotaExhausted();
+          }
+          failedIds.add(a.conceptId);
+        } else {
+          const topSources = selectNewsTopSources(results.data.results, usedDomains);
+          const chosen = topSources[0];
+          if (!chosen) {
+            failedIds.add(a.conceptId);
+            return;
+          }
+          preFetched.news.set(a.conceptId, topSources);
+          // Phase 41 D-02 — record AFTER commit. extractDomain undefined-guard.
+          const domain = extractDomain(chosen.url);
+          if (domain) sourceDiversityService.recordServedDomain(a.conceptId, domain);
+        }
+      } catch {
+        failedIds.add(a.conceptId);
+      }
+    }),
+  ]);
+
+  // Step 5: Reassign failures to text-art (D-20, D-21 step 3)
+  assignments = reassignFailures(assignments, failedIds);
+
+  // Step 6: Generate posts with pre-assigned styles (D-21 step 4).
+  // Pass the pre-fetched cache so YouTube/Tavily loops reuse validated results
+  // instead of issuing a second call per assignment.
+  const posts = await generatePostBatch(questions, assignments, preFetched);
+
+  // Step 6b: Pre-generate images for image-styled posts so the queue buffer
+  // is ACTUALLY pre-warmed (2026-04-21 architectural fix). Any post whose
+  // image generation FAILS gets its presentationStyle downgraded to 'text-art'
+  // BEFORE enqueue — so the queue only contains "ready" posts. InfoFlow
+  // never has to retry at mount time, no late-arriving images popping in,
+  // no duplicate-log racing. The queue promise is: "if it's in the queue,
+  // it's renderable right now."
+  const imagePosts = posts.filter((p) => p.presentationStyle === 'image');
+  if (imagePosts.length > 0) {
+    const { imageGenerationService } = await import('./imageGeneration.service');
+    const { inferImageStyle, buildImagePrompt } = await import('./postFormatting.service');
+    if (import.meta.env?.DEV) {
+      console.info(`[refillQueue] pre-generating ${imagePosts.length} image(s) before enqueue`);
+    }
+    const results = await Promise.allSettled(
+      imagePosts.map((p) => {
+        const style = inferImageStyle(p);
+        const prompt = buildImagePrompt(p);
+        return imageGenerationService.generateImage(p.id, prompt, style);
+      }),
+    );
+    // Downgrade any post whose image-gen failed so the queue never serves
+    // a post that would immediately fall back to text-art at render time.
+    // Mutation is safe here — these DailyPost objects haven't been enqueued
+    // or cached yet, so we're the only owner.
+    let downgraded = 0;
+    for (let i = 0; i < imagePosts.length; i++) {
+      const r = results[i];
+      const ok = r.status === 'fulfilled' && r.value.success;
+      if (!ok) {
+        imagePosts[i].presentationStyle = 'text-art';
+        downgraded++;
+      }
+    }
+    if (import.meta.env?.DEV && downgraded > 0) {
+      console.info(`[refillQueue] downgraded ${downgraded}/${imagePosts.length} image post(s) to text-art after pre-gen failure`);
+    }
+  }
+
+  // Step 6c + 7: Interleave styles ACROSS the unserved queue tail + this
+  // fresh batch (2026-04-21). Previously spreadByStyle ran on `posts` only,
+  // then enqueue concatenated — so cross-batch clustering was possible: a
+  // user popping 4 posts could slice entirely across one batch's tail or
+  // another batch's head, landing in a single-style run. enqueueInterleaved
+  // does dedup + combines queue-tail-with-new-batch + runs the mixer over
+  // the full combined list before writing back, so every refill re-mixes
+  // the pending queue with the new arrivals.
+  for (const p of posts) { try { postHistoryService.addPost(p); } catch { /* non-critical */ } }
+  if (typeof import.meta !== 'undefined' && import.meta.env?.DEV) {
+    const batchStyles: Record<string, number> = {};
+    for (const p of posts) {
+      const k = p.presentationStyle ?? 'unknown';
+      batchStyles[k] = (batchStyles[k] ?? 0) + 1;
+    }
+    console.info('[refillQueue] batch styles:', batchStyles, 'batch size:', posts.length);
+  }
+  // Phase 36 GAP-4 — run concept-axis spread BEFORE style-axis spread so
+  // dominant anchors (important / overdue with 2× entries) don't cluster
+  // in the served window. See spreadByConcept JSDoc + RESEARCH § Pattern 3.
+  // Phase 55-06 (TUNE-03) D-02 instrumentation — record the enqueue realized-add
+  // (queue size before vs after) so a near-full-queue cap (cause (b) candidate)
+  // that clamps fresh additions toward zero is visible. Dev-gated.
+  const queueSizeBeforeEnqueue = postQueueService.size();
+  postQueueService.enqueueInterleaved(posts, (combined) => {
+    spreadByConcept(combined);
+    spreadByStyle(combined);
+  });
+  if (typeof import.meta !== 'undefined' && import.meta.env?.DEV) {
+    console.info('[refillQueue] enqueueInterleaved', {
+      offered: posts.length,
+      queueSizeBeforeEnqueue,
+      queueSizeAfterEnqueue: postQueueService.size(),
+      realizedAdd: postQueueService.size() - queueSizeBeforeEnqueue,
+    });
+  }
+  postQueueService.incrementCycle();
+  return { attempted: conceptIds.length, generated: posts.length };
 }
 
 export const conceptFeedService = {
@@ -1598,24 +1829,12 @@ export const conceptFeedService = {
     // Fall back to sessionStorage-based connection post store
     const connectionPost = getConnectionPostFromStore(id);
     if (connectionPost) return connectionPost;
-    // Check video cache
-    try {
-      const videoRaw = localStorage.getItem('trellis_video_cache');
-      if (videoRaw) {
-        const videoCache = JSON.parse(videoRaw) as { posts?: DailyPost[] };
-        const videoPost = videoCache.posts?.find((p: DailyPost) => p.id === id);
-        if (videoPost) return videoPost;
-      }
-    } catch { /* ignore */ }
-    // Check news cache
-    try {
-      const newsRaw = localStorage.getItem('trellis_news_posts');
-      if (newsRaw) {
-        const newsCache = JSON.parse(newsRaw) as { posts?: DailyPost[] };
-        const newsPost = newsCache.posts?.find((p: DailyPost) => p.id === id);
-        if (newsPost) return newsPost;
-      }
-    } catch { /* ignore */ }
+    // The `trellis_video_cache` / `trellis_news_posts` localStorage fallbacks that
+    // used to sit here were removed with the IndexedDB migration: both keys are
+    // deleted at boot by clearLegacyHeavyLocalStorageKeys, so they only ever
+    // returned null. Video and news posts reach post-history like every other
+    // post, and the fallback below covers them.
+    //
     // 2026-05-12 — final fallback to postHistoryService, the only persistent
     // store of full post content. Without this, the daily-cache stale-rejection
     // at midnight (Phase 36-11) makes EVERY past post unreachable from
@@ -1685,9 +1904,27 @@ export const conceptFeedService = {
     saveCache(cached);
   },
 
+  /**
+   * Merge a partial patch onto a post in today's cache, writing through to
+   * IndexedDB. Returns true if the post was present and patched.
+   *
+   * The caller owns the merge policy (see post-essay.service.ts's selective
+   * merge); this only persists the result.
+   */
+  patchPost(postId: string, patch: Partial<DailyPost>): boolean {
+    const cached = loadCache();
+    if (!cached) return false;
+    const idx = cached.posts.findIndex((p) => p.id === postId);
+    if (idx === -1) return false;
+    cached.posts[idx] = { ...cached.posts[idx], ...patch };
+    saveCache(cached);
+    return true;
+  },
+
   /** Explicitly clear the post cache (e.g. after "Clear All Data"). */
   clearCache(): void {
-    try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
+    _cache = null;
+    void dbExecute('DELETE FROM posts WHERE id = ?', [DAILY_POSTS_SQLITE_ROW_ID]).catch(() => { /* ignore */ });
     try { sessionStorage.removeItem(CONNECTION_POSTS_KEY); } catch { /* ignore */ }
   },
 
@@ -1709,13 +1946,58 @@ export const conceptFeedService = {
       if (postQueueService.getTotalServed() >= postQueueService.getTotalGenerated() + bonusCap) return [];
     }
 
+    // Phase 55-06 (TUNE-03) D-02 instrumentation — log the swipe-for-more decision
+    // state BEFORE the dequeue so the operator can reproduce the 1/4/0 under-refill
+    // in `npm run dev`. Dev-gated so it ships no log noise.
+    if (typeof import.meta !== 'undefined' && import.meta.env?.DEV) {
+      console.info('[generateMorePosts] pre-dequeue', {
+        requestedCount: count,
+        queueSize: postQueueService.size(),
+        needsRefill: postQueueService.needsRefill(),
+      });
+    }
+
     // Drain from queue
     let posts = postQueueService.dequeue(count);
 
-    // If queue was empty, await refill then try again (BLOCKER 3 fix)
-    if (posts.length === 0 && postQueueService.needsRefill()) {
+    // Phase 55-06 (TUNE-03) — SHORTFALL refill, not empty-only refill.
+    //
+    // Root cause of the intermittent 1/4/0 under-refill: the prior guard awaited a
+    // refill ONLY when the queue popped EXACTLY zero (`posts.length === 0`). When a
+    // swipe popped a NON-empty-but-short queue (e.g. dequeue(8) returning 4), the
+    // empty branch was skipped and the user was served the short count instead of
+    // the intended 8 — even though the derived list still had unread capacity. This
+    // was a dequeue-before-refill race: the background refill from the PREVIOUS swipe
+    // (fire-and-forget below) had not yet landed enough posts when the next swipe ran.
+    //
+    // Fix: await a refill whenever the served batch falls SHORT of the requested
+    // `count` AND a refill is warranted, then re-dequeue the remainder to top up to
+    // the intended batch. The `_refillMutex` single-body guarantee (refillQueue)
+    // means a concurrent background refill is awaited rather than re-run, so at most
+    // one extra LLM body per swipe. The `allExplored`/`bonusCap` early-returns above
+    // already short-circuit a genuinely exhausted vine, so a finished list still
+    // correctly yields fewer than `count` (that is NOT the bug) and refillQueue's own
+    // `walkDerivedList(...).length === 0` guard keeps the top-up from looping on an
+    // exhausted derived list.
+    const refillBranchFired = posts.length < count && postQueueService.needsRefill();
+    if (refillBranchFired) {
       await refillQueue(questions);
-      posts = postQueueService.dequeue(count);
+      const topUp = postQueueService.dequeue(count - posts.length);
+      posts = posts.concat(topUp);
+    }
+    const emptyRefillBranchFired = refillBranchFired; // retained for instrumentation key compat
+
+    // Phase 55-06 (TUNE-03) D-02 instrumentation — log the realized served count
+    // AFTER the dequeue (+ optional empty-queue refill). A served < requested with
+    // emptyRefillBranchFired === false is the dequeue-before-refill shortfall (a).
+    if (typeof import.meta !== 'undefined' && import.meta.env?.DEV) {
+      console.info('[generateMorePosts] post-dequeue', {
+        requestedCount: count,
+        served: posts.length,
+        postPopQueueSize: postQueueService.size(),
+        shortfallRefillFired: emptyRefillBranchFired,
+        shortfall: posts.length < count,
+      });
     }
 
     // Persist to history (D-33)

@@ -71,3 +71,61 @@ describe('text-art content tightener (Phase 42 UAT-6, 3B)', () => {
     );
   });
 });
+
+describe('text-art tightener reject-empty/fragment gate (Phase 55.1 BUGFIX-02)', () => {
+  // Root cause (BUGFIX-02): a Gemini thinking model + locale switch starved the
+  // 80-token budget, so the LLM returned a truncated fragment ("T", "Is your")
+  // that the tightener happily persisted, collapsing the card. The fix adds a
+  // reject branch so a too-short / non-sentence fragment returns null and the
+  // call site falls back to teaser.hook || title instead of persisting garbage.
+  //
+  // Source-reading guard (helper is private to concept-feed.service.ts): assert
+  // the tightener delegates its fragment-reject decision to the pure, CJK-aware
+  // `isUnusableTextArtFragment` predicate and returns null when it fires. The
+  // predicate's behavior (CJK kept, "T"/"Is your" rejected) is covered by the
+  // EXECUTING test in `text-art-fragment.test.mjs` — the original inline
+  // `!/\s/ && length < 8` gate was a CJK-locale regression (CR-01). The gate
+  // applies to textArtContent ONLY — never bodyMarkdown.
+
+  it('tightenTextArtContent delegates the fragment-reject gate to isUnusableTextArtFragment and returns null', () => {
+    // Extract the body of tightenTextArtContent so we don't false-match a reject
+    // branch from some other helper.
+    const fnStart = source.indexOf('function tightenTextArtContent');
+    assert.ok(fnStart >= 0, 'tightenTextArtContent must exist');
+    // Body runs until the next top-level `async function` / `function` decl.
+    const after = source.slice(fnStart + 'function tightenTextArtContent'.length);
+    const nextFn = after.search(/\n(?:async )?function /);
+    const body = nextFn >= 0 ? after.slice(0, nextFn) : after;
+
+    // The reject gate must call the CJK-aware predicate, then return null.
+    assert.ok(
+      /if\s*\(\s*isUnusableTextArtFragment\(/.test(body),
+      'tightenTextArtContent must gate on `isUnusableTextArtFragment(...)` (CJK-aware, ' +
+      'catches single-token "T" and dangling "Is your") rather than an inline ' +
+      '`!/\\s/ && length < 8` check, which discarded valid short zh/ja headlines (CR-01). ' +
+      'See text-art-fragment.test.mjs for the executing behavior coverage.',
+    );
+    assert.ok(
+      /isUnusableTextArtFragment\([^)]*\)\s*\)\s*return null/.test(body),
+      'the reject branch must `return null` so the call site uses the teaser.hook || title fallback.',
+    );
+    // And the module must import the predicate.
+    assert.ok(
+      /import\s*\{[^}]*isUnusableTextArtFragment[^}]*\}\s*from\s*['"]\.\/text-art-fragment\.ts['"]/.test(source),
+      'concept-feed.service.ts must import isUnusableTextArtFragment from ./text-art-fragment.ts.',
+    );
+  });
+
+  it('reject gate is scoped to textArtContent only — does NOT touch bodyMarkdown', () => {
+    // Negative invariant: the tightener body must not reference bodyMarkdown.
+    const fnStart = source.indexOf('function tightenTextArtContent');
+    const after = source.slice(fnStart + 'function tightenTextArtContent'.length);
+    const nextFn = after.search(/\n(?:async )?function /);
+    const body = nextFn >= 0 ? after.slice(0, nextFn) : after;
+    assert.ok(
+      !/bodyMarkdown/.test(body),
+      'tightenTextArtContent must never reference bodyMarkdown — the news defer-to-streamer ' +
+      'design (bodyMarkdown: "") is untouched by the text-art reject gate (CLAUDE.md News pipeline).',
+    );
+  });
+});

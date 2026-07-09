@@ -237,6 +237,20 @@ export interface ImageGenerationSettings {
 
 export interface AppSettings {
   llm: LLMConfig;
+  /**
+   * Phase 55.1 GAP-E (BUGFIX-08) — optional low-latency generation model.
+   * When `enabled` and configured, the on-open one-shot generators (post body,
+   * news essay, post-context Q&A) stream from THIS model with thinking/reasoning
+   * DISABLED, so the body starts streaming immediately on tap-in (no multi-second
+   * "thinking" stall). When unset/disabled, those generators fall back to `llm`
+   * with NO behavior change. Mirrors LLMConfig so users can point it at a wholly
+   * different provider/model/key (e.g. a fast local LM Studio model while `llm`
+   * is a cloud reasoning model). Additive-optional — pre-feature stored settings
+   * load the default (disabled) via deepMerge; no migration (CLAUDE.md
+   * feedback_no_normalize_for_optional_fields). Ask Q&A / classification / planner /
+   * podcast / flashcard are NOT routed through this — they keep `llm`.
+   */
+  fastModel?: FastModelConfig;
   tts: TTSConfig;
   embedding: EmbeddingConfig;
   embeddingDebug: EmbeddingDebugConfig;
@@ -269,8 +283,20 @@ export interface EmbeddingConfig {
 }
 
 export interface EmbeddingDebugConfig {
+  // Legacy field — retained for backwards-compat read side. Phase 55 D-05 stops
+  // rendering its slider (it never mapped to any real threshold). Do NOT reconnect
+  // this to anchor dedup.
   similarityThreshold: number;
   showScores: boolean;
+  // Phase 55 D-05: per-threshold live tuning knobs. Optional + additive — pre-feature
+  // stored settings load with these undefined and every read path falls back to the
+  // hardcoded service constant (no normalize framework per CLAUDE.md
+  // feedback_no_normalize_for_optional_fields). debugEnabled is the master gate:
+  // false/undefined = production mode (constants used unconditionally).
+  debugEnabled?: boolean;        // master gate; false/undefined = production mode
+  offTopicThreshold?: number;    // RETIRED by RAW-ARGMAX (Phase 55): the filter's off/on split is now relative, no absolute off-topic threshold. Field kept for stored-settings backward-compat; not read.
+  maliciousThreshold?: number;   // RAW-ARGMAX malicious-FLOOR debug override; clamped to [0.35, 0.70] by resolveMaliciousFloor (was the absolute malicious threshold pre-Phase-55)
+  anchorDedupThreshold?: number; // default 0.82 when undefined; clamped to [0.78, 0.85] by service (separate anchor-dedup classifier — unaffected by RAW-ARGMAX)
 }
 
 export interface LLMConfig {
@@ -280,6 +306,17 @@ export interface LLMConfig {
   baseUrl?: string;
   model: string;
   isConfigured: boolean;
+}
+
+/**
+ * Phase 55.1 GAP-E — low-latency generation model config. Mirrors LLMConfig (so the
+ * Settings UI + provider plumbing reuse existing patterns) plus an `enabled` master gate.
+ * `resolveGenerationConfig` returns this config (with thinking disabled) ONLY when
+ * `enabled === true` AND `isConfigured === true`; otherwise it falls back to the main
+ * `llm` config with thinking left on (byte-identical request to today).
+ */
+export interface FastModelConfig extends LLMConfig {
+  enabled: boolean;
 }
 
 export interface TTSConfig {
@@ -743,6 +780,13 @@ export type AppEvent =
   | { type: 'ZEROTIER_STATUS_CHANGED'; payload: ZeroTierConfig }
   | { type: 'NETWORK_STATUS_CHANGED'; payload: { isOnline: boolean } }
   | { type: 'POST_DELETED'; payload: { id: string } }
+  // Emitted once per refill cycle that actually RUNS (the `needsRefill()`
+  // early-return does not emit). `added` is the realized queue growth; `error`
+  // is set only when the cycle threw. HomeScreen needs this because
+  // getDailyPosts() returns [] on a cold start BY DESIGN while refillQueue
+  // works in the background — without a completion signal an empty feed is
+  // indistinguishable from a broken API key.
+  | { type: 'FEED_REFILL_COMPLETED'; payload: { added: number; error?: string } }
   | { type: 'SESSION_CREATED'; payload: ChatSession }
   | { type: 'SESSION_UPDATED'; payload: { id: string } }
   | { type: 'FLASHCARDS_CREATED'; payload: { sessionId: string; count: number } }

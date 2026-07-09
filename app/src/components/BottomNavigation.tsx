@@ -172,7 +172,11 @@ export function BottomNavigation({
       // of vertical nav movement.
       initial={false}
       animate={{ y: getNavYTarget(isTopLevelScreen, keyboardOpen) }}
-      transition={SLIDE_SPRING}
+      // BUGFIX-03 (gap closure): hide INSTANTLY when the keyboard opens so the
+      // bar is gone before Android adjustResize can re-anchor the fixed element
+      // upward (the rise-then-collapse flicker). Show keeps the spring. Pairs
+      // with the focus-driven front-run in useKeyboard.ts / keyboard-hysteresis.ts.
+      transition={keyboardOpen ? { duration: 0 } : SLIDE_SPRING}
       style={{
         position: 'fixed',
         bottom: 0,

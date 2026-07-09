@@ -85,3 +85,53 @@ describe('Cap formula uses dueConcepts.length floor of 3 (G1 / UAT-31-13)', () =
     assert.equal(computeMax(10), 50, '10 due concepts -> 50');
   });
 });
+
+
+// --- Persistence backfill via injected history source -----------------------
+// The backfill used to read `localStorage[trellis_post_history]` directly. The
+// IndexedDB migration retired that key (the boot sweep deletes it), so the
+// backfill silently no-opped and the same YouTube video reappeared after every
+// restart — the exact symptom the persistence was added to fix. The source is
+// now injected (concept-feed.service.ts supplies it), keeping this module's
+// zero-transitive-deps property. These tests exercise that seam.
+describe('seen-set backfill from the injected post-history source', () => {
+  function currentDay() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  it('seeds today\'s videoIds from history, so they survive a restart', () => {
+    dedup.setSeenVideoIdHistorySource((day) => (day === currentDay() ? ['VID_SEEN'] : []));
+    dedup.__resetSeenVideoIdsForTesting();
+
+    assert.equal(dedup.hasSeenVideoId('VID_SEEN'), true, 'history videoId must be treated as seen');
+    assert.equal(dedup.hasSeenVideoId('VID_OTHER'), false, 'unrelated videoId stays unseen');
+  });
+
+  it('only seeds the tracked day — older videoIds do not block today\'s pool', () => {
+    dedup.setSeenVideoIdHistorySource((day) => (day === '1999-01-01' ? ['VID_OLD'] : []));
+    dedup.__resetSeenVideoIdsForTesting();
+
+    assert.equal(dedup.hasSeenVideoId('VID_OLD'), false, "yesterday's videoId must not block today");
+  });
+
+  it('a throwing history source cannot break dedup', () => {
+    dedup.setSeenVideoIdHistorySource(() => { throw new Error('history unavailable'); });
+    dedup.__resetSeenVideoIdsForTesting();
+
+    assert.equal(dedup.hasSeenVideoId('anything'), false);
+    dedup.addSeenVideoId('now-seen');
+    assert.equal(dedup.hasSeenVideoId('now-seen'), true);
+  });
+
+  it('backfills at most once per day (source is not re-queried on every check)', () => {
+    let calls = 0;
+    dedup.setSeenVideoIdHistorySource(() => { calls += 1; return []; });
+    dedup.__resetSeenVideoIdsForTesting();
+
+    dedup.hasSeenVideoId('a');
+    dedup.hasSeenVideoId('b');
+    dedup.addSeenVideoId('c');
+    assert.equal(calls, 1, 'lazy backfill must run once per session/day');
+  });
+});

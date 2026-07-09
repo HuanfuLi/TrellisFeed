@@ -44,9 +44,14 @@
 import type { DailyPost, Collection } from '../types/index.ts';
 import { eventBus } from '../lib/event-bus.ts';
 import { postHistoryService } from './post-history.service.ts';
+import { dbExecute, dbQuery } from './db.service.ts';
 
-const STORAGE_KEY = 'trellis_collections_v1';
 const MAX_NAME_LENGTH = 50;
+// Phase 55-07: collections state (a single JSON blob) persists to one row in the
+// IndexedDB `collections` table. The in-memory mirror is the sync read path; the
+// legacy `trellis_collections_v1` localStorage key is no longer written (cleared
+// on the D-11 cutover sweep in db.service.ts clearAllTables).
+const SQLITE_ROW_ID = 'collections_state';
 
 // Locked ServiceResult shape per 50-PATTERNS.md §"ServiceResult<T> Return Type":
 //   { success: true; data: T } | { success: false; error: <i18n key suffix> }
@@ -66,26 +71,54 @@ function freshState(): CollectionsState {
   return { collections: [] };
 }
 
+// Phase 55-07: collections persist ONLY to IndexedDB (single-row blob). The
+// module-level `_state` is the synchronous read+write mirror (starts empty,
+// hydrated from IndexedDB at boot). No localStorage write for `trellis_collections_v1`.
+let _state: CollectionsState = freshState();
+
 function loadState(): CollectionsState {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return freshState();
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object') return freshState();
-    const p = parsed as Partial<CollectionsState>;
-    return {
-      collections: Array.isArray(p.collections) ? p.collections : [],
-    };
-  } catch {
-    return freshState();
-  }
+  // Return a structural copy so callers that mutate (push to .collections /
+  // .postIds) don't corrupt the mirror until they call saveState.
+  return { collections: _state.collections.map((c) => ({ ...c, postIds: [...c.postIds] })) };
 }
 
 function saveState(state: CollectionsState): void {
+  _state = { collections: state.collections.map((c) => ({ ...c, postIds: [...c.postIds] })) };
+  // IndexedDB write-through (D-09/D-12) — fire-and-forget single-row upsert.
+  void dbExecute('INSERT OR REPLACE INTO collections (id, data) VALUES (?, ?)', [
+    SQLITE_ROW_ID,
+    JSON.stringify(state),
+  ]).catch(() => { /* IndexedDB unavailable — in-memory mirror is the read path */ });
+}
+
+let _hydratedCollections = false;
+
+/**
+ * Boot hydration (D-12). Restore the collections mirror from SQLite's single row
+ * when the localStorage mirror is empty (D-11 clean-cutover state). Guarded so a
+ * populated mirror is never overwritten. Emits COLLECTIONS_CHANGED so the Saved
+ * Collections sub-tab re-reads (no-refresh assumption).
+ */
+export async function hydrateCollectionsFromSQLite(): Promise<void> {
+  if (_hydratedCollections) return;
+  _hydratedCollections = true;
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    if (loadState().collections.length > 0) return; // mirror already has data — trust it
+    const rows = await dbQuery<{ id: string; data: string }>(
+      'SELECT * FROM collections WHERE id = ?', [SQLITE_ROW_ID],
+    );
+    if (rows.length === 0) return;
+    let parsed: CollectionsState | null = null;
+    try { parsed = JSON.parse(rows[0].data) as CollectionsState; } catch { return; }
+    if (parsed && Array.isArray(parsed.collections) && parsed.collections.length > 0) {
+      _state = { collections: parsed.collections };
+      eventBus.emit({
+        type: 'COLLECTIONS_CHANGED',
+        payload: { kind: 'create', collectionId: '*' },
+      });
+    }
   } catch {
-    // localStorage quota exceeded — silently drop (T-50-QUOTA).
+    // IndexedDB unavailable — silently skip
   }
 }
 

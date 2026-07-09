@@ -1,12 +1,24 @@
 /**
  * Database abstraction layer.
- * Uses Capacitor Community SQLite when running on native (iOS/Android).
- * Falls back to localStorage on web/browser environments.
  *
- * All public methods mirror a simple key-value + table-query interface so
- * callers don't depend on either backend directly.
+ * ONE backend on every platform (Phase 55, unified 2026-05-21): IndexedDB —
+ * used identically in the browser AND inside the iOS/Android Capacitor WebView.
+ * IndexedDB quota is disk-based (hundreds of MB+), escaping the ~5MB localStorage
+ * cap that motivated the migration, and — unlike main-thread WASM SQLite — needs
+ * no Web Worker or COOP/COEP cross-origin isolation (which would have broken the
+ * app's YouTube iframe embeds + cross-origin API calls). A single backend across
+ * web and device keeps behaviour identical and debuggable from the browser console.
+ *
+ * LocalStorageBackend remains ONLY for environments without IndexedDB (the Node
+ * test runner) and as a last-resort fallback if IndexedDB init throws.
+ *
+ * All public methods mirror a simple key-value + table-query interface (a tiny
+ * SQL subset) so callers don't depend on the backend directly.
+ *
+ * Caveat (tracked for the future client/server split): iOS WebView may evict
+ * IndexedDB under storage pressure. Acceptable pre-server (device is a cache once
+ * the server owns the source of truth); mitigated by navigator.storage.persist().
  */
-import { Capacitor } from '@capacitor/core';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -18,72 +30,61 @@ interface DBBackend {
   query<T extends Row>(sql: string, values?: (string | number | null)[]): Promise<T[]>;
 }
 
-// ─── SQLite Backend (Capacitor native) ───────────────────────────────────────
+// ─── Schema (table set) ───────────────────────────────────────────────────────
+// Phase 55 D-09/D-13: the unified IndexedDBBackend derives one object store per
+// table from this list (see TABLE_NAMES below). The DDL form is kept as the
+// documented schema/column source-of-truth and as the LocalStorageBackend's
+// no-op CREATE input; IndexedDB itself stores rows schemalessly with the first
+// column as the row key.
+//
+// `questions.embedding BLOB` (D-13): the Float32 vector is stored base64-encoded
+// in a dedicated column (see question.service.ts vectorToBase64) instead of as a
+// JSON array inside `data` — ~3x smaller than the JSON form, eliminating the
+// localStorage quota wall that motivated this migration.
+const SHARED_DDL: string[] = [
+  `CREATE TABLE IF NOT EXISTS questions (
+    id TEXT PRIMARY KEY,
+    data TEXT NOT NULL,
+    embedding BLOB
+  )`,
+  `CREATE TABLE IF NOT EXISTS edge_weights (
+    edge_key TEXT PRIMARY KEY,
+    weight INTEGER NOT NULL DEFAULT 0
+  )`,
+  `CREATE TABLE IF NOT EXISTS planner_chunks (
+    id TEXT PRIMARY KEY,
+    data TEXT NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS planner_threads (
+    id TEXT PRIMARY KEY,
+    data TEXT NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS planner_checkins (
+    id TEXT PRIMARY KEY,
+    data TEXT NOT NULL
+  )`,
+  // ── Phase 55 heavy-store tables (D-09) ──────────────────────────────────────
+  `CREATE TABLE IF NOT EXISTS sessions (id TEXT PRIMARY KEY, data TEXT NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS posts (id TEXT PRIMARY KEY, data TEXT NOT NULL, served_at INTEGER)`,
+  `CREATE TABLE IF NOT EXISTS post_queue (id TEXT PRIMARY KEY, data TEXT NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS post_history (id TEXT PRIMARY KEY, data TEXT NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS flashcards (id TEXT PRIMARY KEY, data TEXT NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS collections (id TEXT PRIMARY KEY, data TEXT NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS engagement (id TEXT PRIMARY KEY, data TEXT NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS podcasts (id TEXT PRIMARY KEY, data TEXT NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS news_posts (id TEXT PRIMARY KEY, data TEXT NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS video_cache (id TEXT PRIMARY KEY, data TEXT NOT NULL)`,
+];
 
-class SQLiteBackend implements DBBackend {
-  private db: import('@capacitor-community/sqlite').SQLiteDBConnection | null = null;
+// Object-store names for the IndexedDB backend, derived from SHARED_DDL so the
+// store set never drifts from the documented schema. (SHARED_DDL is retained as
+// the schema source-of-truth + column documentation even though IndexedDB stores
+// rows schemalessly; the first column of each table is the row key by convention.)
+const TABLE_NAMES: string[] = SHARED_DDL
+  .map((ddl) => ddl.match(/CREATE TABLE IF NOT EXISTS (\w+)/i)?.[1])
+  .filter((n): n is string => !!n);
 
-  async init() {
-    // Phase 33 UAT-4 fix (2026-04-20): CapacitorSQLite.getConnection does not
-    // exist on the native plugin — calling it throws "not implemented on
-    // android". The correct API is the SQLiteConnection wrapper, which
-    // tracks connections in a JS-side map keyed by database name. Use
-    // isConnection to reuse across hot reloads, createConnection otherwise.
-    const { CapacitorSQLite, SQLiteConnection } = await import('@capacitor-community/sqlite');
-    const sqlite = new SQLiteConnection(CapacitorSQLite);
-    // SQLite connection name kept as 'echolearn' for backwards compat with
-    // existing native installs — renaming would orphan the on-disk DB file
-    // and force a data wipe. User-facing brand is Trellis; this internal
-    // handle is never visible.
-    const existing = await sqlite.isConnection('echolearn', false);
-    this.db = existing.result
-      ? await sqlite.retrieveConnection('echolearn', false)
-      : await sqlite.createConnection('echolearn', false, 'no-encryption', 1, false);
-    await this.db.open();
-    await this._runMigrations();
-  }
-
-  private async _runMigrations() {
-    const ddl = [
-      `CREATE TABLE IF NOT EXISTS questions (
-        id TEXT PRIMARY KEY,
-        data TEXT NOT NULL
-      )`,
-      `CREATE TABLE IF NOT EXISTS edge_weights (
-        edge_key TEXT PRIMARY KEY,
-        weight INTEGER NOT NULL DEFAULT 0
-      )`,
-      `CREATE TABLE IF NOT EXISTS planner_chunks (
-        id TEXT PRIMARY KEY,
-        data TEXT NOT NULL
-      )`,
-      `CREATE TABLE IF NOT EXISTS planner_threads (
-        id TEXT PRIMARY KEY,
-        data TEXT NOT NULL
-      )`,
-      `CREATE TABLE IF NOT EXISTS planner_checkins (
-        id TEXT PRIMARY KEY,
-        data TEXT NOT NULL
-      )`,
-    ];
-    for (const sql of ddl) {
-      await this.execute(sql);
-    }
-  }
-
-  async execute(sql: string, values: (string | number | null)[] = []) {
-    if (!this.db) throw new Error('DB not initialised');
-    await this.db.run(sql, values);
-  }
-
-  async query<T extends Row>(sql: string, values: (string | number | null)[] = []): Promise<T[]> {
-    if (!this.db) throw new Error('DB not initialised');
-    const result = await this.db.query(sql, values);
-    return (result.values ?? []) as T[];
-  }
-}
-
-// ─── localStorage Backend (Web fallback) ─────────────────────────────────────
+// ─── localStorage Backend (Node test runner + last-resort fallback) ──────────
 
 const PREFIX = 'trellis_db_';
 
@@ -151,6 +152,16 @@ class LocalStorageBackend implements DBBackend {
       this.persist();
       return;
     }
+
+    // DELETE FROM table  (no WHERE → clear the table). Parity with
+    // IndexedDBBackend, which implements this: without it "Clear All Data"
+    // silently no-ops whenever this backend is active (private mode fallback).
+    const deleteAllMatch = s.match(/^DELETE\s+FROM\s+(\w+)\s*$/i);
+    if (deleteAllMatch) {
+      this.tables[deleteAllMatch[1]] = [];
+      this.persist();
+      return;
+    }
   }
 
   async query<T extends Row>(sql: string, values: (string | number | null)[] = []): Promise<T[]> {
@@ -174,6 +185,120 @@ class LocalStorageBackend implements DBBackend {
   }
 }
 
+// ─── IndexedDB Backend (web + native WebView — Phase 55, unified) ────────────
+// THE backend on every platform. Each SHARED_DDL table maps to one IndexedDB
+// object store with out-of-line keys (the row's first column is the key).
+// IndexedDB quota is disk-based, escaping the localStorage cap, with none of the
+// Worker / COOP / COEP constraints that block main-thread WASM SQLite. The
+// DBBackend methods are already async, so the in-memory-mirror + async
+// write-through design (D-12) is unchanged — services read synchronously from
+// their mirror and write through here. Implements the same minimal SQL subset as
+// LocalStorageBackend (INSERT OR REPLACE / DELETE [WHERE] / SELECT *; BEGIN/
+// COMMIT/ROLLBACK and CREATE TABLE are no-ops — each op is its own auto-committed
+// IDB transaction and stores are created at open()).
+
+const IDB_NAME = 'trellis';
+const IDB_VERSION = 1;
+
+class IndexedDBBackend implements DBBackend {
+  private db: IDBDatabase | null = null;
+
+  async init() {
+    this.db = await new Promise<IDBDatabase>((resolve, reject) => {
+      const req = indexedDB.open(IDB_NAME, IDB_VERSION);
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        for (const name of TABLE_NAMES) {
+          if (!db.objectStoreNames.contains(name)) db.createObjectStore(name);
+        }
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error ?? new Error('IndexedDB open failed'));
+      req.onblocked = () => reject(new Error('IndexedDB open blocked'));
+    });
+  }
+
+  private store(table: string, mode: IDBTransactionMode): IDBObjectStore {
+    if (!this.db) throw new Error('IndexedDB not initialised');
+    return this.db.transaction(table, mode).objectStore(table);
+  }
+
+  private static wrap<T>(req: IDBRequest<T>): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error ?? new Error('IndexedDB request failed'));
+    });
+  }
+
+  async execute(sql: string, values: (string | number | null)[] = []): Promise<void> {
+    const s = sql.trim();
+    // Transaction verbs + DDL: no-ops (each op below auto-commits its own IDB
+    // transaction; object stores are created at open()).
+    if (/^(BEGIN|COMMIT|ROLLBACK|CREATE\s+TABLE)/i.test(s)) return;
+
+    // INSERT OR REPLACE INTO <table> (cols) VALUES (?, ...)
+    const insertMatch = s.match(/^INSERT\s+OR\s+REPLACE\s+INTO\s+(\w+)\s*\(([^)]+)\)\s*VALUES\s*\(([^)]+)\)/i);
+    if (insertMatch) {
+      const table = insertMatch[1];
+      const cols = insertMatch[2].split(',').map((c) => c.trim());
+      const row: Row = {};
+      cols.forEach((c, i) => { row[c] = values[i] ?? null; });
+      const key = (values[0] ?? '') as IDBValidKey; // first column is the PK by convention
+      await IndexedDBBackend.wrap(this.store(table, 'readwrite').put(row, key));
+      return;
+    }
+
+    // DELETE FROM <table> WHERE <col> = ?
+    const deleteWhereMatch = s.match(/^DELETE\s+FROM\s+(\w+)\s+WHERE\s+(\w+)\s*=\s*\?/i);
+    if (deleteWhereMatch) {
+      const table = deleteWhereMatch[1];
+      const col = deleteWhereMatch[2];
+      const target = values[0] ?? null;
+      const st = this.store(table, 'readwrite');
+      await new Promise<void>((resolve, reject) => {
+        const cursorReq = st.openCursor();
+        cursorReq.onsuccess = () => {
+          const cursor = cursorReq.result;
+          if (!cursor) { resolve(); return; }
+          if ((cursor.value as Row)[col] === target) cursor.delete();
+          cursor.continue();
+        };
+        cursorReq.onerror = () => reject(cursorReq.error ?? new Error('IndexedDB delete failed'));
+      });
+      return;
+    }
+
+    // DELETE FROM <table>  (no WHERE → clear the whole store; D-11 cutover + Clear-All-Data)
+    const deleteAllMatch = s.match(/^DELETE\s+FROM\s+(\w+)\s*$/i);
+    if (deleteAllMatch) {
+      await IndexedDBBackend.wrap(this.store(deleteAllMatch[1], 'readwrite').clear());
+      return;
+    }
+  }
+
+  async query<T extends Row>(sql: string, values: (string | number | null)[] = []): Promise<T[]> {
+    const s = sql.trim();
+
+    // SELECT * FROM <table> WHERE <col> = ?
+    const selectWhereMatch = s.match(/^SELECT\s+\*\s+FROM\s+(\w+)\s+WHERE\s+(\w+)\s*=\s*\?/i);
+    if (selectWhereMatch) {
+      const col = selectWhereMatch[2];
+      const target = values[0] ?? null;
+      const all = await IndexedDBBackend.wrap(this.store(selectWhereMatch[1], 'readonly').getAll());
+      return (all as T[]).filter((r) => r[col] === target);
+    }
+
+    // SELECT * FROM <table>
+    const selectMatch = s.match(/^SELECT\s+\*\s+FROM\s+(\w+)/i);
+    if (selectMatch) {
+      const all = await IndexedDBBackend.wrap(this.store(selectMatch[1], 'readonly').getAll());
+      return all as T[];
+    }
+
+    return [];
+  }
+}
+
 // ─── Singleton ────────────────────────────────────────────────────────────────
 
 let backend: DBBackend | null = null;
@@ -183,10 +308,26 @@ export async function getDB(): Promise<DBBackend> {
   if (backend) return backend;
   if (initPromise) { await initPromise; return backend!; }
 
-  const candidate = Capacitor.isNativePlatform() ? new SQLiteBackend() : new LocalStorageBackend();
+  // One backend on ALL platforms (browser + Capacitor WebView): IndexedDB.
+  // LocalStorageBackend is used only where IndexedDB is absent (Node test runner)
+  // or as a last-resort fallback if IndexedDB init throws (private mode / disabled
+  // storage) so a backend-init failure never crashes the app.
+  const candidate: DBBackend = typeof indexedDB !== 'undefined'
+    ? new IndexedDBBackend()
+    : new LocalStorageBackend();
   initPromise = candidate.init().then(() => {
     backend = candidate;
-  }).catch((err) => {
+    // Logged so the operator can confirm the active backend (IndexedDB vs fallback)
+    // from the browser/WebView console.
+    console.info('[Trellis] DB backend active:', candidate.constructor.name);
+  }).catch(async (err) => {
+    if (!(candidate instanceof LocalStorageBackend)) {
+      console.warn('[Trellis] IndexedDB unavailable, falling back to LocalStorageBackend:', err);
+      const fb = new LocalStorageBackend();
+      await fb.init();
+      backend = fb;
+      return;
+    }
     // Reset so callers can retry after a transient failure
     initPromise = null;
     throw err;
@@ -207,7 +348,51 @@ export async function dbQuery<T extends Row>(sql: string, values?: (string | num
   return db.query<T>(sql, values);
 }
 
-/** Wipe all known application tables. Called by "Clear All Data" in Settings. */
+// The 13 legacy heavy-store localStorage keys retired by the Phase 55 migration.
+// Tiny boot-critical prefs (trellis_settings, trellis_fruit_credits,
+// trellis_dev_mode, trellis_ask_rate_limit, trellis_blossom_dates,
+// trellis_token_usage, trellis_daily_read, trellis_trajectory_signals,
+// trellis_active_session) are intentionally NOT listed — they stay in localStorage.
+const LEGACY_HEAVY_KEYS = [
+  'trellis_questions',
+  'trellis_daily_posts',
+  'trellis_post_history',
+  'trellis_post_queue',
+  'trellis_post_queue_yesterday',
+  'trellis_sessions',
+  'trellis_flashcards',
+  'trellis_db_tables',
+  'trellis_collections_v1',
+  'trellis_engagement_v1',
+  'trellis_podcasts',
+  'trellis_news_posts',
+  'trellis_video_cache',
+];
+
+/**
+ * One-time D-11 cutover sweep: remove the now-stale legacy heavy-store
+ * localStorage keys. Phase 55-07 calls this from App.tsx boot AFTER hydration
+ * has populated every in-memory mirror from IndexedDB, so the user's data is
+ * already restored from the durable store before the stale localStorage copies
+ * are deleted (a stale shadow copy could otherwise re-seed a mirror — T-55-05e).
+ *
+ * NOTE: in 55-07 the heavy services no longer READ these keys, so this sweep is
+ * pure quota reclamation — it does not change runtime behaviour, only frees the
+ * ~5MB localStorage the dual-write was still consuming.
+ */
+export function clearLegacyHeavyLocalStorageKeys(): void {
+  for (const k of LEGACY_HEAVY_KEYS) {
+    try { localStorage.removeItem(k); } catch { /* ignore */ }
+  }
+}
+
+/**
+ * Wipe all known application tables. Called by "Clear All Data" in Settings AND
+ * used as the D-11 clean-cutover sweep (pre-release, no real users): clears every
+ * migrated SQLite table AND removes the legacy heavy-store localStorage keys so
+ * no migrated store survives in localStorage after the cutover (a stale shadow
+ * copy could otherwise re-seed an in-memory mirror — T-55-05e).
+ */
 export async function clearAllTables(): Promise<void> {
   try {
     await dbExecute('DELETE FROM questions');
@@ -215,7 +400,22 @@ export async function clearAllTables(): Promise<void> {
     await dbExecute('DELETE FROM planner_chunks');
     await dbExecute('DELETE FROM planner_threads');
     await dbExecute('DELETE FROM planner_checkins');
+    // ── Phase 55 heavy-store tables (D-09) ──────────────────────────────────
+    await dbExecute('DELETE FROM sessions');
+    await dbExecute('DELETE FROM posts');
+    await dbExecute('DELETE FROM post_queue');
+    await dbExecute('DELETE FROM post_history');
+    await dbExecute('DELETE FROM flashcards');
+    await dbExecute('DELETE FROM collections');
+    await dbExecute('DELETE FROM engagement');
+    await dbExecute('DELETE FROM podcasts');
+    await dbExecute('DELETE FROM news_posts');
+    await dbExecute('DELETE FROM video_cache');
   } catch {
     // DB may not be available (e.g. tables not yet created) — silently ignore
   }
+  // ── D-11 cutover: remove the legacy heavy-store localStorage keys ──────────
+  // Enumerated in LEGACY_HEAVY_KEYS (all 13 heavy-store keys); tiny boot-critical
+  // prefs are intentionally excluded from that list and stay in localStorage.
+  clearLegacyHeavyLocalStorageKeys();
 }

@@ -1,5 +1,11 @@
 import assert from 'node:assert/strict';
-import test from 'node:test';
+import test, { before, after } from 'node:test';
+import { today, addDays, __setNowForTesting } from '../../src/lib/date.ts';
+
+// Pin the clock to local noon 2026-05-20 (midnight-safe) so dyingSchedule's
+// "yesterday" computation is deterministic regardless of wall-clock.
+before(() => __setNowForTesting(new Date(2026, 4, 20, 12, 0, 0).getTime()));
+after(() => __setNowForTesting(null));
 
 // localStorage shim
 const storage = new Map();
@@ -77,9 +83,7 @@ test('replant bumps anchor reviewSchedule to dyingSchedule (nextReviewDate yeste
 
   const sched = stored.reviewSchedule;
   // nextReviewDate must be yesterday (1 day before today)
-  const today = new Date();
-  today.setDate(today.getDate() - 1);
-  const expectedYesterday = today.toISOString().split('T')[0];
+  const expectedYesterday = addDays(today(), -1);
   assert.equal(sched.nextReviewDate, expectedYesterday, 'nextReviewDate must be yesterday');
   assert.ok(sched.reviewCount >= 1, 'reviewCount must be >= 1');
   assert.equal(sched.easeFactor, 2.7, 'easeFactor must be preserved from prior schedule');
@@ -97,9 +101,7 @@ test('replant bumps each QA child to dyingSchedule', async () => {
   const { trellisActionsService } = await import('../../src/services/trellis-actions.service.ts');
   trellisActionsService.replant('anchor-sr2', anchor, ['qa-1', 'qa-2']);
 
-  const today = new Date();
-  today.setDate(today.getDate() - 1);
-  const yesterday = today.toISOString().split('T')[0];
+  const yesterday = addDays(today(), -1);
 
   const stored = _getStore();
   for (const id of ['qa-1', 'qa-2']) {

@@ -1,6 +1,13 @@
 import { useEffect, useState } from 'react';
+import {
+  MIN_KEYBOARD_HEIGHT,
+  CLOSE_KEYBOARD_HEIGHT,
+  INITIAL_KEYBOARD_NAV_STATE,
+  nextKeyboardState,
+  type KeyboardEventKind,
+  type KeyboardNavState,
+} from './keyboard-hysteresis';
 
-const MIN_KEYBOARD_HEIGHT = 150;
 const VIEWPORT_WIDTH_RESET_DELTA = 40;
 const NON_TEXT_INPUT_TYPES = new Set([
   'button',
@@ -47,53 +54,63 @@ export function useKeyboard() {
       baselineHeight: Math.max(viewport.height, window.innerHeight || 0),
       width: viewport.width,
     };
-    let appliedKeyboardOpen: boolean | null = null;
+    // Focus front-run (instant hide) only applies where a virtual keyboard
+    // exists — on desktop/web, focusing the Ask input must NOT hide the nav.
+    const isTouchDevice =
+      (navigator.maxTouchPoints ?? 0) > 0 || 'ontouchstart' in window;
+    let navState: KeyboardNavState = INITIAL_KEYBOARD_NAV_STATE;
 
-    const applyKeyboardOpen = (nextOpen: boolean) => {
-      document.body.classList.toggle('keyboard-open', nextOpen);
-      if (appliedKeyboardOpen === nextOpen) return;
-      appliedKeyboardOpen = nextOpen;
-      setKeyboardOpen(nextOpen);
+    const applyState = (next: KeyboardNavState) => {
+      document.body.classList.toggle('keyboard-open', next.open);
+      if (navState.open !== next.open) setKeyboardOpen(next.open);
+      navState = next;
     };
 
-    const handleResize = () => {
+    // BUGFIX-03 (gap closure): a single handler drives the focus-aware state
+    // machine. `focusin` hides the nav instantly (front-running adjustResize);
+    // `resize` confirms/closes via hysteresis; `focusout` shows. See
+    // keyboard-hysteresis.ts and CLAUDE.md "SwipeTabContainer resize + keyboard".
+    const handle = (kind: KeyboardEventKind) => {
       const currentHeight = viewport.height;
       const currentWidth = viewport.width;
       const widthChanged = Math.abs(currentWidth - viewportState.width) > VIEWPORT_WIDTH_RESET_DELTA;
       if (widthChanged) {
         viewportState.width = currentWidth;
         viewportState.baselineHeight = currentHeight;
-      }
-
-      const editableFocused = isEditableElement(document.activeElement);
-      if (!editableFocused) {
-        if (!widthChanged && currentHeight > viewportState.baselineHeight) {
-          viewportState.baselineHeight = currentHeight;
-        }
-        applyKeyboardOpen(false);
-        return;
-      }
-
-      if (!widthChanged && currentHeight > viewportState.baselineHeight) {
+      } else if (currentHeight > viewportState.baselineHeight) {
+        // Track the tallest seen height as the keyboard-closed baseline.
         viewportState.baselineHeight = currentHeight;
       }
 
+      const editableFocused = isEditableElement(document.activeElement);
       const heightDelta = viewportState.baselineHeight - currentHeight;
-      const nextOpen = editableFocused && heightDelta > MIN_KEYBOARD_HEIGHT;
-      applyKeyboardOpen(nextOpen);
+      applyState(
+        nextKeyboardState(navState, {
+          kind,
+          editableFocused,
+          heightDelta,
+          isTouchDevice,
+          openThreshold: MIN_KEYBOARD_HEIGHT,
+          closeThreshold: CLOSE_KEYBOARD_HEIGHT,
+        }),
+      );
     };
+
+    const handleResize = () => handle('resize');
+    const handleFocusIn = () => handle('focusin');
+    const handleFocusOut = () => handle('focusout');
 
     viewport.addEventListener('resize', handleResize);
     window.addEventListener('resize', handleResize);
-    document.addEventListener('focusin', handleResize);
-    document.addEventListener('focusout', handleResize);
+    document.addEventListener('focusin', handleFocusIn);
+    document.addEventListener('focusout', handleFocusOut);
     handleResize();
 
     return () => {
       viewport.removeEventListener('resize', handleResize);
       window.removeEventListener('resize', handleResize);
-      document.removeEventListener('focusin', handleResize);
-      document.removeEventListener('focusout', handleResize);
+      document.removeEventListener('focusin', handleFocusIn);
+      document.removeEventListener('focusout', handleFocusOut);
       document.body.classList.remove('keyboard-open');
     };
   }, []);

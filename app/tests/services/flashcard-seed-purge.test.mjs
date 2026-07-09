@@ -49,14 +49,15 @@ const mkReal = (id, sessionId = 'sess-real') => ({
   reviewSchedule: { nextReviewDate: '2026-05-20', reviewCount: 0, easeFactor: 2.5 },
 });
 
-test('loadAll() purges fc-seed-* cards with sessionId=seed (UAT Bug 3)', async () => {
-  storage.clear();
-  storage.set(STORAGE_KEY, JSON.stringify([
-    mkSeed(1), mkSeed(2), mkSeed(3), mkSeed(4), mkSeed(5),
-    mkReal('fc-real-1'),
-  ]));
+// Phase 55-07: flashcards are an in-memory mirror (IndexedDB-backed), not
+// localStorage. The seed-purge migration now runs in loadAll() against the
+// in-memory mirror. These tests seed the mirror through the public save() API
+// (save appends, getAll purges) instead of seeding the localStorage key.
 
-  const { flashcardService } = await import(`../../src/services/flashcard.service.ts?seed-purge=${Date.now()}`);
+test('loadAll() purges fc-seed-* cards with sessionId=seed (UAT Bug 3)', async () => {
+  const { flashcardService } = await import('../../src/services/flashcard.service.ts');
+  flashcardService.clear();
+  flashcardService.save([mkSeed(1), mkSeed(2), mkSeed(3), mkSeed(4), mkSeed(5), mkReal('fc-real-1')]);
   const all = flashcardService.getAll();
 
   assert.equal(all.length, 1, 'all 5 fc-seed-* cards must be purged; one real card kept');
@@ -64,44 +65,34 @@ test('loadAll() purges fc-seed-* cards with sessionId=seed (UAT Bug 3)', async (
 });
 
 test('loadAll() writes back the purged array so the migration is self-disabling', async () => {
-  storage.clear();
-  storage.set(STORAGE_KEY, JSON.stringify([mkSeed(1), mkReal('fc-real-1')]));
-
-  const { flashcardService } = await import(`../../src/services/flashcard.service.ts?seed-purge-writeback=${Date.now()}`);
+  const { flashcardService } = await import('../../src/services/flashcard.service.ts');
+  flashcardService.clear();
+  flashcardService.save([mkSeed(1), mkReal('fc-real-1')]);
+  // First read purges and writes back the cleaned mirror.
   flashcardService.getAll();
-
-  const persistedRaw = storage.get(STORAGE_KEY);
-  const persisted = JSON.parse(persistedRaw);
-  assert.equal(persisted.length, 1, 'storage must be rewritten without the seed card');
+  // Second read sees no seed cards — the mirror was rewritten.
+  const persisted = flashcardService.getAll();
+  assert.equal(persisted.length, 1, 'mirror must be rewritten without the seed card');
   assert.equal(persisted[0].id, 'fc-real-1');
 });
 
 test('loadAll() does NOT touch cards with fc-seed-* id but different sessionId (defensive AND-gate)', async () => {
-  storage.clear();
-  // Hypothetical: a legitimate card that happens to have an fc-seed-shaped id
-  // (e.g., from a user-imported set). The AND-gate on sessionId === 'seed'
-  // ensures we only strip the original placeholder records.
-  storage.set(STORAGE_KEY, JSON.stringify([
-    { ...mkReal('fc-seed-imported'), sessionId: 'user-import' },
-  ]));
-
-  const { flashcardService } = await import(`../../src/services/flashcard.service.ts?seed-purge-andgate=${Date.now()}`);
+  const { flashcardService } = await import('../../src/services/flashcard.service.ts');
+  flashcardService.clear();
+  // A legitimate card with an fc-seed-shaped id but sessionId != 'seed'.
+  flashcardService.save([{ ...mkReal('fc-seed-imported'), sessionId: 'user-import' }]);
   const all = flashcardService.getAll();
   assert.equal(all.length, 1, 'cards with fc-seed-* id but sessionId != "seed" must NOT be purged');
 });
 
-test('loadAll() is a no-op when storage holds no seed cards', async () => {
-  storage.clear();
-  storage.set(STORAGE_KEY, JSON.stringify([mkReal('fc-real-1'), mkReal('fc-real-2')]));
-
-  const { flashcardService } = await import(`../../src/services/flashcard.service.ts?seed-purge-noop=${Date.now()}`);
+test('loadAll() is a no-op when the store holds no seed cards', async () => {
+  const { flashcardService } = await import('../../src/services/flashcard.service.ts');
+  flashcardService.clear();
+  flashcardService.save([mkReal('fc-real-1'), mkReal('fc-real-2')]);
   const all = flashcardService.getAll();
   assert.equal(all.length, 2);
-
-  // Storage should be byte-identical when no purge happens (no spurious writeback).
-  const after = storage.get(STORAGE_KEY);
-  const expected = JSON.stringify([mkReal('fc-real-1'), mkReal('fc-real-2')]);
-  assert.equal(after, expected, 'no writeback when no seed cards present');
+  // A second read returns the same two cards (no spurious mutation).
+  assert.deepEqual(flashcardService.getAll().map((c) => c.id), ['fc-real-1', 'fc-real-2']);
 });
 
 test('source: purgeStaleSeedCards filter is AND-gated on id-prefix and sessionId', () => {
@@ -114,10 +105,12 @@ test('source: purgeStaleSeedCards filter is AND-gated on id-prefix and sessionId
   );
 });
 
-test('source: purgeStaleSeedCards writes back when purged > 0', () => {
+test('source: loadAll writes back the purged array when purged > 0 (self-disabling)', () => {
+  // Phase 55-07: writeback now mutates the in-memory mirror (_store = cards)
+  // instead of localStorage.setItem.
   assert.match(
     source,
-    /purged\s*>\s*0[\s\S]{0,160}localStorage\.setItem\(\s*STORAGE_KEY/,
-    'flashcard.service.ts must call localStorage.setItem(STORAGE_KEY, ...) when purged > 0 so the migration is self-disabling.',
+    /purged\s*>\s*0[\s\S]{0,160}_store\s*=\s*cards/,
+    'flashcard.service.ts must rewrite the in-memory mirror (_store = cards) when purged > 0 so the migration is self-disabling.',
   );
 });

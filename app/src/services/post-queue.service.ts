@@ -7,17 +7,31 @@ import type { DailyPost } from '../types/index.ts';
 // feed-spread.ts (zero transitive deps on settings/locales chains, so this
 // import is safe under node --test).
 import { spreadByConcept, spreadByStyle } from './feed-spread.ts';
+import { eventBus } from '../lib/event-bus.ts';
+import { dbExecute, dbQuery } from './db.service.ts';
 
-const STORAGE_KEY = 'trellis_post_queue';
-// Phase 36 GAP-D Fix A (2026-05-07): durable yesterday snapshot key. The live
-// STORAGE_KEY is overwritten by the very first save() of today's queue, so a
-// single-key implementation of getYesterdayQueue() is destroyed within
-// milliseconds of any new-day cold start. We snapshot yesterday's payload to
-// this separate key in load()'s date-mismatch branch BEFORE returning
-// freshState, making the warm-start path durable across multiple cold-start
-// mounts of the new day. See .planning/debug/cold-start-warm-start-fragile.md
-// and the CLAUDE.md "Numeric defaults" bullet for the durable-snapshot rationale.
-const STORAGE_KEY_YESTERDAY = 'trellis_post_queue_yesterday';
+// Phase 55-07: IndexedDB is the SOLE persistence for the queue state. The
+// in-memory `_state` is the synchronous read+write mirror; it starts EMPTY
+// (freshState()) at module init and is populated from IndexedDB by
+// hydrateQueueFromSQLite() at boot. The whole QueueState serializes to one row
+// keyed by SQLITE_ROW_ID; the durable yesterday snapshot is a SECOND row keyed
+// by SQLITE_ROW_ID_YESTERDAY. No localStorage write for `trellis_post_queue`.
+const SQLITE_ROW_ID = 'queue_state';
+// Phase 36 GAP-D Fix A (2026-05-07), re-homed to IndexedDB in 55-07: durable
+// yesterday snapshot. The live queue row is overwritten by the very first save()
+// of today's queue, so a single-row getYesterdayQueue() would be destroyed
+// within milliseconds of any new-day cold start. We snapshot yesterday's payload
+// to a SEPARATE IndexedDB row (and an in-memory mirror for sync reads) in the
+// date-mismatch branch BEFORE rehydrating today's _state, making the warm-start
+// path durable across multiple cold-start mounts of the new day. See
+// .planning/debug/cold-start-warm-start-fragile.md and the CLAUDE.md "Numeric
+// defaults" bullet for the durable-snapshot rationale.
+const SQLITE_ROW_ID_YESTERDAY = 'queue_yesterday';
+
+// In-memory mirror of the durable yesterday snapshot (sync read path for
+// getYesterdayQueue()). Populated by hydrateQueueFromSQLite() on a date mismatch
+// and by the date-mismatch branch of normalizeState().
+let _yesterday: { date: string; posts: DailyPost[] } | null = null;
 // 2026-04-21 bump: refill threshold 8 → 12. refillQueue now pre-generates
 // images before enqueue (moved from pop-time to enqueue-time), so each
 // refill cycle takes longer. Triggering refill earlier (at 12 remaining
@@ -70,83 +84,132 @@ function freshState(): QueueState {
   };
 }
 
-function load(): QueueState {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return freshState();
-    const parsed = JSON.parse(raw) as Partial<QueueState>;
-    if (parsed.date !== today()) {
-      // Date mismatch — snapshot yesterday's payload to a separate key BEFORE
-      // rehydrating today's _state. This makes getYesterdayQueue() durable
-      // across multiple cold-start mounts of the new day (Plan 36-09 contract);
-      // without it, the very first save() of today's queue (in
-      // enqueue/markServed/etc.) overwrites the live STORAGE_KEY with
-      // {date: today, ...} and yesterday's posts are lost. See
-      // .planning/debug/cold-start-warm-start-fragile.md and CLAUDE.md
-      // "Numeric defaults" for the durable-snapshot rationale.
-      try {
-        if (Array.isArray(parsed.posts) && parsed.posts.length > 0) {
-          localStorage.setItem(STORAGE_KEY_YESTERDAY, JSON.stringify({
-            date: parsed.date,
-            posts: parsed.posts,
-          }));
-        }
-      } catch (err) {
-        console.warn('[postQueueService] yesterday snapshot failed:', err);
-      }
-      // Phase 36-11: rehydrate today's _state from yesterday's UNSERVED queue.
-      // Yesterday's snapshot contains posts that were generated but never popped
-      // by the user — they remain valid content and should auto-populate today's
-      // feed (no manual swipe needed, no LLM-pipeline wait). Counters reset to 0
-      // (new day's totals start fresh). cycleNumber inherits for continuity.
-      // After rehydrating, re-interleave by spreadByConcept + spreadByStyle to
-      // balance the style mix — yesterday's leftover is style-biased toward
-      // minority styles (text-art was popped first as plurality), so renders
-      // as video → news → video → news without re-interleave. See round-3
-      // sub-issue (c). The mixers mutate the array in place.
-      const rehydrated: DailyPost[] = Array.isArray(parsed.posts) ? parsed.posts : [];
-      if (rehydrated.length > 0) {
-        spreadByConcept(rehydrated);
-        spreadByStyle(rehydrated);
-      }
-      return {
-        date: today(),
-        posts: rehydrated,
-        cycleNumber: typeof parsed.cycleNumber === 'number' ? parsed.cycleNumber : 0,
-        totalGenerated: 0,
-        totalServed: 0,
-        derivedList: Array.isArray(parsed.derivedList) ? parsed.derivedList : [],
-        cyclePosition: typeof parsed.cyclePosition === 'number' ? parsed.cyclePosition : 0,
-      };
+// Apply the LOAD-BEARING 3-list-pipeline normalization to a parsed QueueState
+// payload (CLAUDE.md "Concept Feed Generation Pipeline" / "New-day rehydration").
+// This is the exact body the prior load() ran against the localStorage payload —
+// re-homed here so it runs against the IndexedDB-loaded payload during hydrate.
+// Do NOT change the numeric defaults or the rehydration semantics.
+function normalizeState(parsed: Partial<QueueState>): QueueState {
+  if (parsed.date !== today()) {
+    // Date mismatch — snapshot yesterday's payload to the durable yesterday
+    // mirror + IndexedDB row BEFORE rehydrating today's _state. This makes
+    // getYesterdayQueue() durable across multiple cold-start mounts of the new
+    // day (Plan 36-09 contract); without it, the very first save() of today's
+    // queue overwrites the live row and yesterday's posts are lost. See
+    // .planning/debug/cold-start-warm-start-fragile.md and CLAUDE.md "Numeric
+    // defaults" for the durable-snapshot rationale.
+    if (Array.isArray(parsed.posts) && parsed.posts.length > 0) {
+      // Copy the posts array — the rehydration below reuses parsed.posts as the
+      // live _state.posts and mutates it in place (spreadByConcept/spreadByStyle,
+      // enqueue), which would otherwise corrupt the yesterday snapshot via shared
+      // reference.
+      const snapshot = { date: parsed.date ?? '', posts: [...parsed.posts] };
+      _yesterday = snapshot;
+      void dbExecute('INSERT OR REPLACE INTO post_queue (id, data) VALUES (?, ?)', [
+        SQLITE_ROW_ID_YESTERDAY,
+        JSON.stringify(snapshot),
+      ]).catch(() => { /* IndexedDB unavailable — in-memory mirror is the read path */ });
     }
-    // Phase 36 GAP-1 — defensive read for users on the prior schema.
-    // localStorage payloads written before 2026-05-06 lack derivedList +
-    // cyclePosition. Treat missing fields as their fresh defaults so the
-    // queue does NOT crash on load — the new walker will append on next
-    // refill cycle and the user's day starts as if cycle position = 0.
+    // Phase 36-11: rehydrate today's _state from yesterday's UNSERVED queue.
+    // Yesterday's snapshot contains posts that were generated but never popped
+    // by the user — they remain valid content and should auto-populate today's
+    // feed (no manual swipe needed, no LLM-pipeline wait). Counters reset to 0
+    // (new day's totals start fresh). cycleNumber inherits for continuity.
+    // After rehydrating, re-interleave by spreadByConcept + spreadByStyle to
+    // balance the style mix — yesterday's leftover is style-biased toward
+    // minority styles (text-art was popped first as plurality), so renders
+    // as video → news → video → news without re-interleave. See round-3
+    // sub-issue (c). The mixers mutate the array in place.
+    const rehydrated: DailyPost[] = Array.isArray(parsed.posts) ? parsed.posts : [];
+    if (rehydrated.length > 0) {
+      spreadByConcept(rehydrated);
+      spreadByStyle(rehydrated);
+    }
     return {
-      date: parsed.date ?? today(),
-      posts: Array.isArray(parsed.posts) ? parsed.posts : [],
+      date: today(),
+      posts: rehydrated,
       cycleNumber: typeof parsed.cycleNumber === 'number' ? parsed.cycleNumber : 0,
-      totalGenerated: typeof parsed.totalGenerated === 'number' ? parsed.totalGenerated : 0,
-      totalServed: typeof parsed.totalServed === 'number' ? parsed.totalServed : 0,
+      totalGenerated: 0,
+      totalServed: 0,
       derivedList: Array.isArray(parsed.derivedList) ? parsed.derivedList : [],
       cyclePosition: typeof parsed.cyclePosition === 'number' ? parsed.cyclePosition : 0,
     };
-  } catch {
-    return freshState();
   }
+  // Phase 36 GAP-1 — defensive read for payloads on the prior schema, which
+  // lack derivedList + cyclePosition. Treat missing fields as their fresh
+  // defaults so the queue does NOT crash — the walker will append on the next
+  // refill cycle and the day starts as if cycle position = 0.
+  return {
+    date: parsed.date ?? today(),
+    posts: Array.isArray(parsed.posts) ? parsed.posts : [],
+    cycleNumber: typeof parsed.cycleNumber === 'number' ? parsed.cycleNumber : 0,
+    totalGenerated: typeof parsed.totalGenerated === 'number' ? parsed.totalGenerated : 0,
+    totalServed: typeof parsed.totalServed === 'number' ? parsed.totalServed : 0,
+    derivedList: Array.isArray(parsed.derivedList) ? parsed.derivedList : [],
+    cyclePosition: typeof parsed.cyclePosition === 'number' ? parsed.cyclePosition : 0,
+  };
 }
 
 function save(state: QueueState): void {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  } catch (err) {
-    console.warn('[postQueueService] localStorage save failed:', err);
-  }
+  // IndexedDB write-through (D-09/D-12) — fire-and-forget single-row upsert.
+  // No localStorage write for `trellis_post_queue` anymore.
+  void dbExecute('INSERT OR REPLACE INTO post_queue (id, data) VALUES (?, ?)', [
+    SQLITE_ROW_ID,
+    JSON.stringify(state),
+  ]).catch(() => { /* IndexedDB unavailable — in-memory mirror is the read path */ });
 }
 
-let _state: QueueState = load();
+// The mirror starts EMPTY (clean cutover). hydrateQueueFromSQLite() populates it
+// from IndexedDB at boot (App.tsx awaits before first render).
+let _state: QueueState = freshState();
+
+let _hydratedQueue = false;
+
+/**
+ * Boot hydration (D-12). When the in-memory mirror is empty (D-11 clean-cutover
+ * state) restore the queue state from SQLite's single row. Guarded so a
+ * populated mirror is never overwritten. Re-runs the same-day / new-day branch
+ * logic of load() against the SQLite payload so the 3-list pipeline semantics
+ * (derived-list append-only, cyclic queue, new-day rehydration) are preserved.
+ * Emits GRAPH_UPDATED so always-mounted screens resync (no-refresh assumption).
+ */
+export async function hydrateQueueFromSQLite(): Promise<void> {
+  if (_hydratedQueue) return;
+  _hydratedQueue = true;
+  try {
+    // First restore the durable yesterday snapshot so getYesterdayQueue() works
+    // on a warm-start mount even if today's queue row drives a same-day branch.
+    try {
+      const yRows = await dbQuery<{ id: string; data: string }>(
+        'SELECT * FROM post_queue WHERE id = ?', [SQLITE_ROW_ID_YESTERDAY],
+      );
+      if (yRows.length > 0) {
+        const ySnap = JSON.parse(yRows[0].data) as { date: string; posts: DailyPost[] };
+        if (Array.isArray(ySnap.posts)) _yesterday = ySnap;
+      }
+    } catch { /* no yesterday snapshot — fine */ }
+
+    if (_state.posts.length > 0 || _state.derivedList.length > 0) return; // mirror has data — trust it
+    const rows = await dbQuery<{ id: string; data: string }>(
+      'SELECT * FROM post_queue WHERE id = ?', [SQLITE_ROW_ID],
+    );
+    if (rows.length === 0) return;
+    let parsed: Partial<QueueState>;
+    try { parsed = JSON.parse(rows[0].data) as Partial<QueueState>; } catch { return; }
+    // Run the LOAD-BEARING normalization against the IndexedDB payload — this is
+    // where the date-mismatch rehydration + yesterday-snapshot + defensive-default
+    // branches now run (moved off the module-init localStorage read).
+    _state = normalizeState(parsed);
+    // Persist the normalized state back so a same-day branch's defaults / a
+    // new-day rehydration are durable for the next mount.
+    save(_state);
+    if (_state.posts.length > 0 || _state.derivedList.length > 0) {
+      eventBus.emit({ type: 'GRAPH_UPDATED' });
+    }
+  } catch {
+    // IndexedDB unavailable — silently skip
+  }
+}
 
 export const postQueueService = {
   /** Get a shallow copy of the current queue. */
@@ -308,15 +371,51 @@ export const postQueueService = {
     save(_state);
   },
 
-  /** Reset the queue for a new day — clears posts, resets cycle to 0. */
+  /**
+   * Reset the queue for a new day — clears posts, resets cycle to 0. Does NOT
+   * clear the durable yesterday snapshot (the "Reset today" button preserves
+   * yesterday's leftover so getYesterdayQueue() still works).
+   */
   resetForNewDay(): void {
     _state = freshState();
     save(_state);
   },
 
-  /** Reload queue state from localStorage (detects date mismatch). */
+  /**
+   * Full wipe of BOTH the live queue AND the yesterday snapshot (in-memory +
+   * IndexedDB). Used by Clear-All-Data; without clearing _yesterday a stale
+   * yesterday mirror would survive a Clear-All-Data until the next reload.
+   */
+  resetAll(): void {
+    _state = freshState();
+    _yesterday = null;
+    void dbExecute('DELETE FROM post_queue WHERE id = ?', [SQLITE_ROW_ID]).catch(() => { /* ignore */ });
+    void dbExecute('DELETE FROM post_queue WHERE id = ?', [SQLITE_ROW_ID_YESTERDAY]).catch(() => { /* ignore */ });
+  },
+
+  /**
+   * Re-normalize the current in-memory queue state (detects date mismatch and
+   * triggers the new-day rehydration + yesterday snapshot). Phase 55-07: the
+   * queue mirror is in-memory + IndexedDB, so this re-runs normalizeState over
+   * the live _state rather than re-reading localStorage. The dev Force-New-Day
+   * affordance rolls _state.date back via simulateDateRollback() then calls this.
+   */
   loadQueue(): void {
-    _state = load();
+    _state = normalizeState(_state);
+    save(_state);
+  },
+
+  /**
+   * DEV-ONLY (Force-New-Day): roll the in-memory queue date back to `date` so
+   * the next loadQueue() detects a mismatch and runs the new-day rehydration +
+   * yesterday-snapshot path. Replaces the old dev affordance that mutated the
+   * `trellis_post_queue` localStorage key directly (which no longer backs the
+   * mirror). Returns true if there was a queue to roll back.
+   */
+  simulateDateRollback(date: string): boolean {
+    if (_state.posts.length === 0 && _state.derivedList.length === 0) return false;
+    _state = { ..._state, date };
+    return true;
   },
 
   /**
@@ -327,14 +426,10 @@ export const postQueueService = {
    * and .planning/debug/cold-start-warm-start-fragile.md.
    */
   getYesterdayQueue(): DailyPost[] {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY_YESTERDAY);
-      if (!raw) return [];
-      const parsed = JSON.parse(raw) as { date?: string; posts?: DailyPost[] };
-      return Array.isArray(parsed.posts) ? parsed.posts : [];
-    } catch {
-      return [];
-    }
+    // Reads the in-memory yesterday snapshot (durable mirror of the IndexedDB
+    // `queue_yesterday` row). NOT the live queue (which the first save() of
+    // today's queue would overwrite). See Phase 36 GAP-D Fix A.
+    return _yesterday && Array.isArray(_yesterday.posts) ? [..._yesterday.posts] : [];
   },
 
   // ─── Phase 36 GAP-1 + GAP-2 — persistent derived list + cyclic walker ───

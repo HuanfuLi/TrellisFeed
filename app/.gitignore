@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Phase 55 threshold-tuning local vector cache (can hold thousands of embeddings)
+.tune-cache.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

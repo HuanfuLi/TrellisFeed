@@ -65,7 +65,7 @@ function computeCap(multiplier, dueConcepts) {
 describe('D-38 daily generation cap', () => {
   beforeEach(() => {
     localStorage.clear();
-    postQueueService.loadQueue();
+    postQueueService.resetForNewDay();
   });
 
   it('FEED_DEFAULTS.dailyGenerationCapMultiplier is 5', () => {

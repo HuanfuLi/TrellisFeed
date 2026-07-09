@@ -33,13 +33,21 @@ import type { EmbeddingConfig } from '../types/index.ts';
 import { embedText } from '../providers/embedding/index.ts';
 import corpus from '../data/filter-corpus.json' with { type: 'json' };
 
+// ─── Boot pre-warm guard (Phase 55.1-07, GAP-C / BUGFIX-06) ──────────────────
+// Single-flight latch so concurrent boot callers (and a boot pre-warm racing
+// the user's first ask) share ONE warm-up Promise instead of N corpus embeds.
+let _prewarmInFlight: Promise<void> | null = null;
+
 // ─── Public exports ──────────────────────────────────────────────────────────
 
 /**
  * Cache-schema version for this loader. Bump when the FilterCorpusCache
- * shape changes; old payloads will be discarded as stale.
+ * shape changes OR the corpus content changes; old payloads will be discarded
+ * as stale. v2 (2026-05-21): added 20 real-world off-topic exemplars
+ * (off-en-041..060 — weather/food/sports/logistics/travel/tasks) to close the
+ * greeting-only off-topic coverage gap found in Phase 55 threshold tuning.
  */
-export const FILTER_CORPUS_VERSION = 1;
+export const FILTER_CORPUS_VERSION = 2;
 
 /**
  * localStorage key for the embedded corpus cache. Single key for the whole
@@ -157,4 +165,74 @@ export async function loadCorpusEmbeddings(
   }
 
   return entries;
+}
+
+// ─── Boot pre-warm (Phase 55.1-07, GAP-C / BUGFIX-06 — MEASURED FIX) ──────────
+//
+// MEASUREMENT (55.1-07 Task 1, scripts/profile-cold-start.mjs): on a COLD
+// filter-corpus cache, `filterQuestion` dominated the in-process first-ask cost
+// at ~6875ms / 89.6% — the 124 SEQUENTIAL corpus embeds (filter-corpus.json)
+// it pays inside `loadCorpusEmbeddings`. The malicious RAW-ARGMAX pre-gate runs
+// `filterQuestion` BEFORE `chatStream` on every ask, so on the FIRST ask after a
+// cold launch this serial embed loop blocks the entire roundtrip → the device's
+// ~1-min first-response stall (GAP-C).
+//
+// FIX: warm the SAME `loadCorpusEmbeddings` cache at app boot, fire-and-forget,
+// so the first ask hits the warm localStorage cache (O(1) read) instead of the
+// 124-embed cold path. The filter→chatStream order and the RAW-ARGMAX gate are
+// untouched — only WHEN the corpus is embedded changes (boot vs first-ask).
+//
+// Invariants (load-bearing — see CLAUDE.md):
+//   - NON-BLOCKING: returns a Promise the caller does NOT await on the render
+//     path; App.tsx fires it without gating first paint.
+//   - KEY-ABSENT / OFFLINE-SAFE: no-ops when embedding is unconfigured; swallows
+//     any embed error (it's a best-effort warm-up — the first ask still works,
+//     just paying the cold cost as before if the warm-up failed).
+//   - SINGLE-FLIGHT: `_prewarmInFlight` dedups concurrent callers AND a boot
+//     warm-up racing the user's very-first ask, so the corpus is embedded once.
+//
+/**
+ * Best-effort, non-blocking boot warm-up of the filter-corpus embedding cache.
+ *
+ * Idempotent: `loadCorpusEmbeddings` returns immediately on a warm cache, so
+ * repeated calls (and the post-warm first ask) cost an O(1) localStorage read.
+ * Returns a Promise for testability; callers on the render path MUST NOT await
+ * it (App.tsx fires it fire-and-forget).
+ *
+ * @param embConfig the user's embedding config (settingsService.getSync().embedding)
+ */
+export function prewarmFilterCorpus(embConfig: EmbeddingConfig): Promise<void> {
+  // Key-absent guard: never attempt embeds without a configured provider/key.
+  // Mirrors question-filter.service.ts D-12 graceful-degradation behavior.
+  if (!embConfig?.isConfigured) return Promise.resolve();
+
+  // Single-flight: share one warm-up Promise across concurrent callers.
+  if (_prewarmInFlight) return _prewarmInFlight;
+
+  _prewarmInFlight = (async () => {
+    try {
+      // Populates FILTER_CORPUS_CACHE_KEY exactly as the first ask would, but at
+      // boot. On a warm cache this is an O(1) read + early return (zero embeds).
+      await loadCorpusEmbeddings(embConfig);
+    } catch (e: unknown) {
+      // Offline / missing key / quota — best-effort only. The first ask still
+      // works (it re-attempts the embed and falls back to on-topic on failure
+      // per D-12). Logged at warn for diagnostic visibility.
+      console.warn(
+        '[Trellis] filter-corpus boot pre-warm failed (non-fatal):',
+        e instanceof Error ? e.message : e,
+      );
+    } finally {
+      // Release the latch so a later config change (clearEmbedCache + cache
+      // invalidation) can re-warm under the new provider/model.
+      _prewarmInFlight = null;
+    }
+  })();
+
+  return _prewarmInFlight;
+}
+
+/** Test-only: resets the single-flight latch so a test can drive multiple warm-ups. */
+export function _resetPrewarmLatch(): void {
+  _prewarmInFlight = null;
 }

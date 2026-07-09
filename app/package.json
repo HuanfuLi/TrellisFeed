@@ -22,6 +22,7 @@
     "@capacitor/haptics": "^8.0.1",
     "@capacitor/ios": "^8.3.3",
     "@capacitor/local-notifications": "^8.0.2",
+    "@sqlite.org/sqlite-wasm": "^3.53.0-build1",
     "@tailwindcss/vite": "^4.3.0",
     "capacitor-voice-recorder": "^7.0.6",
     "framer-motion": "^12.38.0",

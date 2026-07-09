@@ -1,14 +1,15 @@
 import type { FlashCard, ChatSession, ReviewSchedule } from '../types';
 import { today } from '../lib/date.ts';
 import { eventBus } from '../lib/event-bus.ts';
-import { toast } from '../lib/toast.ts';
-import { t } from '../lib/i18n-leaf.ts';
 import { settingsService } from './settings.service.ts';
 import { chatCompletion } from '../providers/llm/index.ts';
 import { questionService } from './question.service.ts';
+import { dbExecute, dbQuery } from './db.service.ts';
 // Projected flashcards removed (D-02 revised: only LLM-extracted flashcards shown)
 
-const STORAGE_KEY = 'trellis_flashcards';
+// Phase 55-07: the legacy `trellis_flashcards` localStorage key is no longer
+// written — flashcards persist to the IndexedDB `flashcards` table (the key is
+// cleared on the D-11 cutover sweep in db.service.ts clearAllTables).
 
 let idCounter = Date.now();
 function newId(): string {
@@ -34,30 +35,63 @@ function purgeStaleSeedCards(cards: FlashCard[]): { cards: FlashCard[]; purged: 
   return { cards: filtered, purged: cards.length - filtered.length };
 }
 
+// Phase 55-07: flashcards persist ONLY to IndexedDB. The module-level `_store`
+// is the synchronous read+write mirror (starts empty, hydrated from IndexedDB at
+// boot). No localStorage write-through for `trellis_flashcards`.
+let _store: FlashCard[] = [];
+
 function loadAll(): FlashCard[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as FlashCard[];
-    const { cards, purged } = purgeStaleSeedCards(parsed);
-    if (purged > 0) {
-      // Self-disabling: write the cleaned array back so subsequent loads
-      // see no seed records and the filter becomes a no-op.
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(cards));
-    }
-    return cards;
-  } catch {
-    return [];
+  const { cards, purged } = purgeStaleSeedCards(_store);
+  if (purged > 0) {
+    // Self-disabling: replace the mirror with the cleaned array so subsequent
+    // loads see no seed records and the filter becomes a no-op.
+    _store = cards;
   }
+  return cards;
 }
 
 function saveAll(cards: FlashCard[]): void {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(cards));
-  } catch (e) {
-    if (e instanceof DOMException && e.name === 'QuotaExceededError') {
-      toast(t('common.toast.storageFullFlashcards'), 'error');
+  _store = cards;
+  // IndexedDB write-through (D-09/D-12) — transaction-wrapped full-table
+  // snapshot. The in-memory mirror is the synchronous read path.
+  void (async () => {
+    try {
+      await dbExecute('BEGIN');
+      await dbExecute('DELETE FROM flashcards');
+      for (const c of cards) {
+        await dbExecute('INSERT OR REPLACE INTO flashcards (id, data) VALUES (?, ?)', [c.id, JSON.stringify(c)]);
+      }
+      await dbExecute('COMMIT');
+    } catch {
+      try { await dbExecute('ROLLBACK'); } catch { /* ignore */ }
     }
+  })();
+}
+
+let _hydratedFlashcards = false;
+
+/**
+ * Boot hydration (D-12). Restore the flashcards mirror from SQLite when the
+ * mirror is empty (D-11 clean-cutover state). Guarded so a populated mirror is
+ * never overwritten. Emits FLASHCARDS_CREATED (count) so Review consumers re-read.
+ */
+export async function hydrateFlashcardsFromSQLite(): Promise<void> {
+  if (_hydratedFlashcards) return;
+  _hydratedFlashcards = true;
+  try {
+    if (loadAll().length > 0) return; // mirror already has data — trust it
+    const rows = await dbQuery<{ id: string; data: string }>('SELECT * FROM flashcards');
+    if (rows.length === 0) return;
+    const toAdd: FlashCard[] = [];
+    for (const row of rows) {
+      try { toAdd.push(JSON.parse(row.data) as FlashCard); } catch { /* skip corrupt */ }
+    }
+    if (toAdd.length > 0) {
+      _store = toAdd;
+      eventBus.emit({ type: 'FLASHCARDS_CREATED', payload: { sessionId: '*', count: toAdd.length } });
+    }
+  } catch {
+    // IndexedDB unavailable — silently skip
   }
 }
 
@@ -149,6 +183,11 @@ export const flashcardService = {
 
   deleteBySession(sessionId: string): void {
     saveAll(loadAll().filter((c) => c.sessionId !== sessionId));
+  },
+
+  /** Wipe all flashcards (mirror + IndexedDB). Used by Clear-All-Data + tests. */
+  clear(): void {
+    saveAll([]);
   },
 
   async processSession(session: ChatSession): Promise<FlashCard[]> {

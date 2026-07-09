@@ -1,15 +1,15 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Brain, Volume2, Network, Sparkles } from 'lucide-react';
+import { Brain, Volume2, Network, Sparkles, Zap } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Header } from '../../components/ui/Header';
 import { settingsService } from '../../services/settings.service';
 import { testLLMConnection } from '../../providers/llm';
 import { testTTSConnection } from '../../providers/tts';
-import { embedText } from '../../providers/embedding';
+import { embedText, clearEmbedCache } from '../../providers/embedding';
 import { toast } from '../../lib/toast';
-import type { LLMConfig, TTSConfig, EmbeddingConfig, EmbeddingDebugConfig } from '../../types';
+import type { LLMConfig, TTSConfig, EmbeddingConfig, EmbeddingDebugConfig, FastModelConfig } from '../../types';
 import {
   SectionHeader,
   SettingRow,
@@ -27,6 +27,14 @@ export function SettingsAIScreen() {
   const [isTesting, setIsTesting] = useState<Record<string, boolean>>({});
 
   const [llm, setLlm] = useState<LLMConfig>(() => settingsService.getSync().llm);
+  // Phase 55.1 GAP-E — optional low-latency generation model. The default-defaulting in
+  // settings.service.ts guarantees getSync().fastModel is present, but keep a defensive
+  // fallback for any older runtime path.
+  const [fastModel, setFastModel] = useState<FastModelConfig>(() =>
+    settingsService.getSync().fastModel ?? {
+      enabled: false, provider: 'openai', apiKey: '', baseUrl: '', model: 'gpt-4o-mini', isConfigured: false,
+    },
+  );
   const [tts, setTts] = useState<TTSConfig>(() => settingsService.getSync().tts);
   const [embedding, setEmbedding] = useState<EmbeddingConfig>(() => settingsService.getSync().embedding);
   const [embeddingDebug, setEmbeddingDebug] = useState<EmbeddingDebugConfig>(() => settingsService.getSync().embeddingDebug);
@@ -43,6 +51,11 @@ export function SettingsAIScreen() {
     }
   };
 
+  const saveFastModel = (current: FastModelConfig = fastModel) => {
+    const isConfigured = noKeyRequired(current.provider) ? !!current.baseUrl : !!current.apiKey;
+    settingsService.set('fastModel', { ...current, isConfigured });
+  };
+
   // The effective TTS API key: use the dedicated TTS key if set, otherwise fall back
   // to the LLM key when both provider is OpenAI (they share the same credentials).
   const effectiveTtsApiKey = tts.apiKey || (tts.provider === 'openai' ? (llm.apiKey ?? '') : '');
@@ -51,6 +64,13 @@ export function SettingsAIScreen() {
     const isConfigured =
       current.provider === 'local' || current.provider === 'lmstudio' ? !!current.baseUrl :
         !!current.apiKey;
+    // Phase 55 D-07 / Pitfall 5: when the embedding provider or model changes,
+    // invalidate the in-memory session embed cache so a stale, wrong-dimensionality
+    // vector from the previous model can never be returned for the new one.
+    const prev = settingsService.getSync().embedding;
+    if (prev.provider !== current.provider || prev.model !== current.model) {
+      clearEmbedCache();
+    }
     settingsService.set('embedding', { ...current, isConfigured });
   };
 
@@ -218,6 +238,100 @@ export function SettingsAIScreen() {
         </div>
       </Card>
 
+      {/* Fast Generation Model Section (Phase 55.1 GAP-E) — optional low-latency model for
+          on-open post-body / news-essay / post-context-Q&A streaming, thinking disabled. */}
+      <SectionHeader icon={<Zap size={20} />} title={t('settings.sections.fastModel')} />
+      <Card style={{ marginBottom: '8px' }}>
+        <p style={{ fontSize: '0.8rem', color: 'var(--muted-foreground)', marginBottom: '12px', lineHeight: 1.5 }}>
+          {t('settings.descriptions.fastModelBlurb')}
+        </p>
+        <SettingRow label={t('settings.fields.fastModelEnabled')} description={t('settings.descriptions.fastModelEnabled')}>
+          <MaterialSwitch
+            checked={fastModel.enabled}
+            onChange={() => {
+              const next = { ...fastModel, enabled: !fastModel.enabled };
+              setFastModel(next);
+              saveFastModel(next);
+            }}
+          />
+        </SettingRow>
+        {fastModel.enabled && (
+          <>
+            <SettingRow label={t('settings.fields.provider')}>
+              <SelectInput
+                value={fastModel.provider}
+                onChange={(v) => {
+                  const p = v as FastModelConfig['provider'];
+                  const defaults: Record<string, Partial<FastModelConfig>> = {
+                    openai: { model: 'gpt-4o-mini', baseUrl: '', apiKey: '' },
+                    claude: { model: 'claude-haiku-4-5', baseUrl: '', apiKey: '' },
+                    gemini: { model: 'gemini-3.1-flash', baseUrl: '', apiKey: '' },
+                    local: { model: 'llama3', baseUrl: 'http://localhost:11434/v1', apiKey: '' },
+                    lmstudio: { model: 'local-model', baseUrl: 'http://localhost:1234', apiKey: '' },
+                  };
+                  const savedKeys = { ...(fastModel.apiKeys ?? {}), [fastModel.provider]: fastModel.apiKey ?? '' };
+                  const restoredKey = savedKeys[p] ?? '';
+                  const next = { ...fastModel, provider: p, ...defaults[p], apiKey: restoredKey, apiKeys: savedKeys } as FastModelConfig;
+                  setFastModel(next);
+                  saveFastModel(next);
+                }}
+                options={[
+                  { value: 'openai', label: t('settings.providerLabels.openai') },
+                  { value: 'claude', label: t('settings.providerLabels.claude') },
+                  { value: 'gemini', label: t('settings.providerLabels.gemini') },
+                  { value: 'lmstudio', label: t('settings.providerLabels.lmstudio') },
+                  { value: 'local', label: t('settings.providerLabels.localOllama') },
+                ]}
+              />
+            </SettingRow>
+            {!noKeyRequired(fastModel.provider) && (
+              <SettingRow label={t('settings.fields.apiKey')}>
+                <TextInput
+                  type="password"
+                  value={fastModel.apiKey ?? ''}
+                  onChange={(v) => setFastModel((prev) => ({ ...prev, apiKey: v, apiKeys: { ...(prev.apiKeys ?? {}), [prev.provider]: v } }))}
+                  onBlur={() => saveFastModel()}
+                  placeholder={
+                    fastModel.provider === 'claude' ? t('settings.placeholders.claudeKey') :
+                      fastModel.provider === 'gemini' ? t('settings.placeholders.geminiKey') :
+                        t('settings.placeholders.apiKey')
+                  }
+                />
+              </SettingRow>
+            )}
+            {(fastModel.provider === 'local' || fastModel.provider === 'lmstudio') && (
+              <SettingRow
+                label={t('settings.fields.baseUrl')}
+                description={fastModel.provider === 'lmstudio' ? t('settings.descriptions.lmStudioServer') : t('settings.descriptions.ollamaServer')}
+              >
+                <TextInput
+                  value={fastModel.baseUrl ?? ''}
+                  onChange={(v) => setFastModel((prev) => ({ ...prev, baseUrl: v }))}
+                  onBlur={() => saveFastModel()}
+                  placeholder={fastModel.provider === 'lmstudio' ? t('settings.placeholders.lmStudioUrl') : t('settings.placeholders.ollamaUrl')}
+                />
+              </SettingRow>
+            )}
+            <SettingRow label={t('settings.fields.model')} description={t('settings.descriptions.fastModelHint')}>
+              <TextInput
+                value={fastModel.model}
+                onChange={(v) => setFastModel((prev) => ({ ...prev, model: v }))}
+                onBlur={() => saveFastModel()}
+                placeholder={
+                  fastModel.provider === 'gemini' ? 'gemini-3.1-flash' :
+                    fastModel.provider === 'claude' ? 'claude-haiku-4-5' :
+                      fastModel.provider === 'lmstudio' ? 'local-model' :
+                        'gpt-4o-mini'
+                }
+              />
+            </SettingRow>
+            <div style={{ display: 'flex', gap: '8px', paddingTop: '12px', alignItems: 'center' }}>
+              <Button size="sm" onClick={() => { saveFastModel(); toast(t('settings.toast.fastModelSaved'), 'success'); }} variant="primary">{t('settings.buttons.save')}</Button>
+            </div>
+          </>
+        )}
+      </Card>
+
       {/* Embedding Model Section */}
       <SectionHeader icon={<Sparkles size={20} />} title={t('settings.sections.embeddingModel')} />
       <Card style={{ marginBottom: '8px' }}>
@@ -318,24 +432,74 @@ export function SettingsAIScreen() {
           <p style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--muted-foreground)', marginBottom: '12px' }}>
             {t('settings.debug')}
           </p>
-          <SettingRow
-            label={t('settings.fields.similarityThreshold')}
-            description={t('settings.descriptions.similarityThreshold', { score: embeddingDebug.similarityThreshold.toFixed(2) })}
-          >
-            <input
-              type="range"
-              min={0.40}
-              max={0.95}
-              step={0.05}
-              value={embeddingDebug.similarityThreshold}
-              onChange={(e) => {
-                const next = { ...embeddingDebug, similarityThreshold: parseFloat(e.target.value) };
+          {/*
+            Phase 55: per-knob tuning controls, dev-only (rendered only when debugEnabled).
+            Labels stay English and are NOT added to locale bundles. Post-RAW-ARGMAX
+            (55-FILTER-TUNING-REPORT.md): the question filter no longer uses an absolute
+            off-topic OR malicious threshold — it uses a scale-invariant relative rule with
+            a malicious FLOOR. So the off-topic slider is retired and the malicious slider now
+            overrides the floor, clamped to [0.35, 0.70] in BOTH the UI and the service read
+            path (resolveMaliciousFloor). The anchor-dedup knob is a SEPARATE classifier
+            (canonical-knowledge.service.ts) and keeps its [0.78, 0.85] band.
+          */}
+          {/* Master debug-mode gate — knobs hidden in release when off (D-04). */}
+          <SettingRow label="Debug mode" description="Show per-threshold tuning controls (dev only)">
+            <MaterialSwitch
+              checked={embeddingDebug.debugEnabled ?? false}
+              onChange={() => {
+                const next = { ...embeddingDebug, debugEnabled: !(embeddingDebug.debugEnabled ?? false) };
                 setEmbeddingDebug(next);
                 saveEmbeddingDebug(next);
               }}
-              style={{ width: '120px', accentColor: 'var(--primary-40)', cursor: 'pointer' }}
             />
           </SettingRow>
+          {embeddingDebug.debugEnabled && (
+            <>
+              {/* Malicious FLOOR override (RAW-ARGMAX) — clamped to [0.35, 0.70]. */}
+              {(() => {
+                const floorValue = Math.min(0.70, Math.max(0.35, embeddingDebug.maliciousThreshold ?? 0.50));
+                return (
+                  <SettingRow
+                    label={`Malicious floor: ${floorValue.toFixed(2)}`}
+                    description="RAW-ARGMAX floor, clamped 0.35-0.70. Lower = catches more attacks but risks blocking benign; higher = misses attacks. Production uses the validated per-model floor."
+                  >
+                    <input
+                      type="range"
+                      min={0.35}
+                      max={0.70}
+                      step={0.01}
+                      value={floorValue}
+                      onChange={(e) => {
+                        const next = { ...embeddingDebug, maliciousThreshold: parseFloat(e.target.value) };
+                        setEmbeddingDebug(next);
+                        saveEmbeddingDebug(next);
+                      }}
+                      style={{ width: '120px', accentColor: 'var(--primary-40)', cursor: 'pointer' }}
+                    />
+                  </SettingRow>
+                );
+              })()}
+              {/* Anchor-dedup threshold — CLAMPED to 0.78-0.85 (CLAUDE.md dedup band). */}
+              <SettingRow
+                label={`Anchor dedup threshold: ${(embeddingDebug.anchorDedupThreshold ?? 0.82).toFixed(2)}`}
+                description="Clamped 0.78-0.85 — lower = missed dedups, higher = wrong merges"
+              >
+                <input
+                  type="range"
+                  min={0.78}
+                  max={0.85}
+                  step={0.01}
+                  value={embeddingDebug.anchorDedupThreshold ?? 0.82}
+                  onChange={(e) => {
+                    const next = { ...embeddingDebug, anchorDedupThreshold: parseFloat(e.target.value) };
+                    setEmbeddingDebug(next);
+                    saveEmbeddingDebug(next);
+                  }}
+                  style={{ width: '120px', accentColor: 'var(--primary-40)', cursor: 'pointer' }}
+                />
+              </SettingRow>
+            </>
+          )}
           <SettingRow label={t('settings.fields.showSimilarityScores')} description={t('settings.descriptions.showScoresHint')}>
             <MaterialSwitch
               checked={embeddingDebug.showScores}

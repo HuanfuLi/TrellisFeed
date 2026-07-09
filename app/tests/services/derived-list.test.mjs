@@ -15,8 +15,11 @@ const { postQueueService } = await import('../../src/services/post-queue.service
 
 describe('derived list (GAP-1 + GAP-2)', () => {
   beforeEach(() => {
+    // Phase 55-07: the queue mirror is in-memory + IndexedDB (no localStorage
+    // backing for trellis_post_queue). resetForNewDay() resets the in-memory
+    // _state to freshState() — the correct between-test isolation idiom now.
     localStorage.clear();
-    postQueueService.loadQueue();
+    postQueueService.resetForNewDay();
   });
 
   // Test 1 — append-only across two calls
@@ -50,21 +53,14 @@ describe('derived list (GAP-1 + GAP-2)', () => {
     assert.equal(postQueueService.getCyclePosition(), 0);
   });
 
-  // Test 5 — migration: existing localStorage without new fields still loads
-  it('loadQueue defensively defaults missing derivedList + cyclePosition', () => {
-    const today = new Date().toISOString().slice(0, 10);
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({
-        date: today,
-        posts: [],
-        cycleNumber: 3,
-        totalGenerated: 0,
-        totalServed: 0,
-        // intentionally NO derivedList, NO cyclePosition
-      }),
-    );
-    postQueueService.loadQueue();
+  // Test 5 — defensive defaults: a fresh queue exposes derivedList=[] and
+  // cyclePosition=0 (the safe defaults normalizeState applies to any payload
+  // missing those fields). Phase 55-07: the prior schema-migration variant
+  // seeded a partial trellis_post_queue localStorage payload; that key no
+  // longer backs the mirror, so the user-facing guarantee (no crash, safe
+  // defaults) is asserted against the in-memory reset path instead.
+  it('fresh queue defaults derivedList to [] and cyclePosition to 0', () => {
+    postQueueService.resetForNewDay();
     assert.deepEqual(postQueueService.getDerivedList(), []);
     assert.equal(postQueueService.getCyclePosition(), 0);
   });
@@ -159,7 +155,7 @@ describe('derived list (GAP-1 + GAP-2)', () => {
 describe('walkDerivedList — dismissedIds skip (Phase 39 D-07)', () => {
   beforeEach(() => {
     localStorage.clear();
-    postQueueService.loadQueue();
+    postQueueService.resetForNewDay();
   });
 
   // 5a — lazy-skip dismissed while honoring count; cyclePosition advances past skipped entry

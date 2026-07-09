@@ -3,9 +3,15 @@ import { eventBus } from '../lib/event-bus';
 import { toast } from '../lib/toast';
 import { t } from '../lib/i18n-leaf.ts';
 import { conceptFeedService } from './concept-feed.service';
+import { dbExecute, dbQuery } from './db.service.ts';
 
-const SESSIONS_KEY = 'trellis_sessions';
+// Phase 55-07: the sessions ARRAY persists ONLY to IndexedDB. The module-level
+// `_store` is the synchronous read+write mirror (starts empty, hydrated from
+// IndexedDB at boot). The tiny active-session-ID pointer (ACTIVE_ID_KEY) stays
+// in localStorage — it is a boot-critical pref, not a heavy store.
 const ACTIVE_ID_KEY = 'trellis_active_session';
+
+let _store: ChatSession[] = [];
 
 let idCounter = Date.now();
 function newId(): string {
@@ -13,24 +19,52 @@ function newId(): string {
 }
 
 function loadAll(): ChatSession[] {
-  try {
-    const raw = localStorage.getItem(SESSIONS_KEY);
-    if (!raw) return [];
-    return JSON.parse(raw) as ChatSession[];
-  } catch (e) {
-    toast(t('common.toast.chatHistoryLoadFailed'), 'error');
-    console.error('sessionService.loadAll:', e);
-    return [];
-  }
+  return _store;
 }
 
 function saveAll(sessions: ChatSession[]): void {
-  try {
-    localStorage.setItem(SESSIONS_KEY, JSON.stringify(sessions));
-  } catch (e) {
-    if (e instanceof DOMException && e.name === 'QuotaExceededError') {
-      toast(t('common.toast.storageFullChatHistory'), 'error');
+  _store = sessions;
+  // IndexedDB write-through (D-09/D-12) — transaction-wrapped full-table
+  // snapshot. The in-memory mirror is the synchronous read path; IndexedDB is
+  // the sole durable store.
+  void (async () => {
+    try {
+      await dbExecute('BEGIN');
+      await dbExecute('DELETE FROM sessions');
+      for (const s of sessions) {
+        await dbExecute('INSERT OR REPLACE INTO sessions (id, data) VALUES (?, ?)', [s.id, JSON.stringify(s)]);
+      }
+      await dbExecute('COMMIT');
+    } catch {
+      try { await dbExecute('ROLLBACK'); } catch { /* ignore */ }
     }
+  })();
+}
+
+let _hydratedSessions = false;
+
+/**
+ * Boot hydration (D-12). Restore the sessions mirror from SQLite when the mirror
+ * is empty (D-11 clean-cutover state). Guarded so a populated mirror is never
+ * overwritten. Emits SESSION_UPDATED so always-mounted Ask consumers re-read.
+ */
+export async function hydrateSessionsFromSQLite(): Promise<void> {
+  if (_hydratedSessions) return;
+  _hydratedSessions = true;
+  try {
+    if (loadAll().length > 0) return; // mirror already has data — trust it
+    const rows = await dbQuery<{ id: string; data: string }>('SELECT * FROM sessions');
+    if (rows.length === 0) return;
+    const toAdd: ChatSession[] = [];
+    for (const row of rows) {
+      try { toAdd.push(JSON.parse(row.data) as ChatSession); } catch { /* skip corrupt */ }
+    }
+    if (toAdd.length > 0) {
+      _store = toAdd;
+      eventBus.emit({ type: 'SESSION_UPDATED', payload: { id: '*' } });
+    }
+  } catch {
+    // IndexedDB unavailable — silently skip
   }
 }
 

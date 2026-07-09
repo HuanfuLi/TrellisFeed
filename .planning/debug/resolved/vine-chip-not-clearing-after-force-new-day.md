@@ -1,8 +1,8 @@
 ---
-status: diagnosed
+status: resolved
 trigger: "Phase 36 round-4 UAT regression: vine progress chip not clearing after Force New Day, despite Plan 36-13 (committed 2026-05-07) shipping dailyReadService.reset() in handleForceNewDay"
 created: 2026-05-07
-updated: 2026-05-07
+updated: 2026-05-20
 goal: find_root_cause_only
 ---
 
@@ -106,6 +106,33 @@ started: Discovered round-4 UAT 2026-05-07 after Phase 36-13 landed.
 
 root_cause: HomeScreen's `exploredAnchors` React state at `HomeScreen.tsx:442` is initialized once-on-mount via `useState(() => dailyReadService.getExploredAnchors())` and only updated thereafter via a `CONCEPT_EXPLORED` event-bus subscription at `HomeScreen.tsx:478-483`. Because HomeScreen is one of 5 always-mounted slots inside `SwipeTabContainer` (App.tsx:141-189; CLAUDE.md "Header positioning" architecture note), it does NOT remount on the react-router `navigate('/home')` call inside `handleForceNewDay` (SettingsDataScreen.tsx:105). And because `dailyReadService.reset()` (daily-read.service.ts:86-88) writes to localStorage but emits no event, neither the useState initializer nor the CONCEPT_EXPLORED subscription fires. Result: persistence is cleared (Plan 36-13 shipped that correctly) but the React state retains yesterday's array, and the derived `exploredCount` (HomeScreen.tsx:443) keeps showing yesterday's value until a real page reload (or until a new CONCEPT_EXPLORED event happens to push a fresh read). The Plan 36-13 source-reading test passes because it only checks `dailyReadService.reset()` exists in source — it cannot observe runtime React-state staleness.
 
-fix: (not applied — find_root_cause_only mode)
-verification: (not applied — find_root_cause_only mode)
-files_changed: []
+fix: |
+  Already shipped in production code (Phase 36-14). HomeScreen.tsx:667-672 adds a
+  `[location.pathname] === '/home'` effect that, on every navigation to /home,
+  re-reads the always-mounted screen's vine state from the service:
+    useEffect(() => {
+      if (location.pathname === '/home') {
+        setExploredAnchors(dailyReadService.getExploredAnchors());
+        creditAwardedRef.current = dailyReadService.isCreditAwarded();
+      }
+    }, [location.pathname]);
+  This closes both the primary (stale `exploredAnchors` → chip count) and the
+  secondary (frozen `creditAwardedRef` → celebration gate permanently closed)
+  staleness paths identified above. No source change was made in Phase 54 — the
+  fix was already present and was re-verified via the existing regression test.
+
+verification: |
+  app/tests/screens/HomeScreen.exploredAnchors-resync.test.mjs — 3 assertions, all
+  passing (re-run 2026-05-20):
+    - declares the `[location.pathname] === '/home'` effect that re-syncs
+      setExploredAnchors
+    - the same effect resets creditAwardedRef from dailyReadService.isCreditAwarded()
+    - preserves the CONCEPT_EXPLORED subscription (in-session updates without a
+      route change)
+  Re-run command:
+    cd app && node --test tests/screens/HomeScreen.exploredAnchors-resync.test.mjs
+  → tests 3 / pass 3 / fail 0.
+
+files_changed:
+  - app/src/screens/HomeScreen.tsx (Phase 36-14 — the fix; not re-touched in Phase 54)
+  - app/tests/screens/HomeScreen.exploredAnchors-resync.test.mjs (guarding regression test)

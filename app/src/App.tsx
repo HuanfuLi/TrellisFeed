@@ -27,6 +27,21 @@ import { CollectionDrillInScreen } from './screens/CollectionDrillInScreen';
 import { settingsService } from './services/settings.service';
 import { hydrateFromSQLite } from './services/question.service';
 import { hydratePlannerFromSQLite } from './services/planner.service';
+// Phase 55 D-12 boot orchestration — every migrated heavy-store service's hydrate.
+import { hydrateDailyPostsFromSQLite } from './services/concept-feed.service';
+import { hydrateQueueFromSQLite } from './services/post-queue.service';
+import { hydratePostHistoryFromSQLite } from './services/post-history.service';
+import { hydrateSessionsFromSQLite } from './services/session.service';
+import { hydrateFlashcardsFromSQLite } from './services/flashcard.service';
+import { hydrateCollectionsFromSQLite } from './services/collection.service';
+import { hydrateEngagementFromSQLite } from './services/engagement.service';
+import { hydratePodcastsFromSQLite } from './services/podcast.service';
+import { hydrateVideoCacheFromSQLite } from './services/youtube.service';
+import { clearLegacyHeavyLocalStorageKeys } from './services/db.service';
+// Phase 55.1-07 GAP-C — boot pre-warm of the filter-corpus embedding cache so the
+// first ask doesn't pay the 124-sequential-embed cold path (measured dominant
+// cold-start stall — see scripts/profile-cold-start.mjs).
+import { prewarmFilterCorpus } from './services/filter-corpus.service';
 import { useKeyboard } from './state/useKeyboard';
 import { bootstrapImageGeneration } from './services/imageGeneration.bootstrap';
 import { applyTheme } from './lib/theme';
@@ -325,18 +340,65 @@ const router = createBrowserRouter([
   },
 ]);
 
+// Phase 55-07: hydrate EVERY migrated heavy-store service's in-memory mirror
+// from IndexedDB once on boot. AWAITED (Promise.all) before the main app
+// renders — IndexedDB reads are async and the in-memory mirrors are now the SOLE
+// synchronous read path, so first render MUST wait for hydration or post-boot
+// reads return empty (empty-feed flash, premature refill against an empty queue).
+// Each hydrate emits its own resync event (GRAPH_UPDATED / SESSION_UPDATED /
+// ENGAGEMENT_CHANGED / COLLECTIONS_CHANGED / FLASHCARDS_CREATED) so always-mounted
+// screens re-read without a refresh.
+//
+// AFTER hydration completes, the one-time D-11 cutover sweep removes the now-stale
+// legacy heavy localStorage keys — ONLY after the mirrors are restored from
+// IndexedDB, never before (a pre-hydrate clear would discard data if IndexedDB
+// were somehow staler; the dual-write means IndexedDB is current).
+async function hydrateAllFromSQLite(): Promise<void> {
+  await Promise.all([
+    hydrateFromSQLite(),            // questions
+    hydratePlannerFromSQLite(),     // planner chunks/threads/checkins
+    hydrateDailyPostsFromSQLite(),  // concept-feed daily-posts cache
+    hydrateQueueFromSQLite(),       // post-queue state
+    hydratePostHistoryFromSQLite(), // post history
+    hydrateSessionsFromSQLite(),    // chat sessions
+    hydrateFlashcardsFromSQLite(),  // flashcards
+    hydrateCollectionsFromSQLite(), // collections
+    hydrateEngagementFromSQLite(),  // saved/liked/dismissed
+    hydratePodcastsFromSQLite(),    // podcast metadata
+    hydrateVideoCacheFromSQLite(),  // youtube video cache
+  ]);
+  // One-time stale-key sweep (quota reclamation) — safe now that every mirror is
+  // populated from the durable IndexedDB store.
+  clearLegacyHeavyLocalStorageKeys();
+}
+
 export default function App() {
-  // Hydrate data from SQLite on app start (no-op on web)
+  // Gate first render on hydration so post-boot synchronous mirror reads have
+  // data (no empty-feed flash, no premature refill against an empty queue).
+  const [hydrated, setHydrated] = useState(false);
+
+  // Hydrate data from IndexedDB on app start, THEN reveal the app.
   useEffect(() => {
-    void hydrateFromSQLite();
-    void hydratePlannerFromSQLite();
+    let cancelled = false;
+    void hydrateAllFromSQLite().finally(() => {
+      if (!cancelled) setHydrated(true);
+    });
     // Bootstrap image generation providers with keys from user settings.
     bootstrapImageGeneration();
+    // Phase 55.1-07 GAP-C — fire-and-forget boot warm-up of the filter-corpus
+    // embedding cache. The malicious RAW-ARGMAX pre-gate runs filterQuestion
+    // BEFORE chatStream on every ask; on a cold cache that pays 124 sequential
+    // corpus embeds (~6.9s in-process, measured) and dominates the first
+    // roundtrip. Warming it here at boot — NOT awaited, so it never delays first
+    // paint — lets the first ask hit the warm localStorage cache. Non-blocking,
+    // key-absent/offline-safe (no-ops when embedding is unconfigured, swallows
+    // embed errors). See scripts/profile-cold-start.mjs for the measurement.
+    void prewarmFilterCorpus(settingsService.getSync().embedding);
     // Start foreground scheduler (60s poll + app resume checks)
     startScheduler();
     // Schedule native OS notifications for podcast/review reminders
     void scheduleNativeNotifications();
-    return () => { stopScheduler(); };
+    return () => { cancelled = true; stopScheduler(); };
   }, []);
 
   // Keep theme in sync when the OS switches between light/dark while app is open
@@ -376,6 +438,29 @@ export default function App() {
     }).then((handle) => { listenerHandle = handle; });
     return () => { void listenerHandle?.remove(); };
   }, []);
+
+  // Minimal neutral loading placeholder until the IndexedDB hydration resolves.
+  // Plain on purpose — a spinner on the app surface color avoids a flash of an
+  // empty feed / premature feed-refill against an empty in-memory queue.
+  if (!hydrated) {
+    return (
+      <div
+        style={{
+          position: 'fixed',
+          inset: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'var(--surface)',
+        }}
+      >
+        <Loader2
+          size={28}
+          style={{ animation: 'spin 1s linear infinite', color: 'var(--primary-40)' }}
+        />
+      </div>
+    );
+  }
 
   return <RouterProvider router={router} />;
 }

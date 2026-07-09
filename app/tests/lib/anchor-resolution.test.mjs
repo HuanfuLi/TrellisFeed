@@ -22,8 +22,11 @@ globalThis.localStorage = {
 };
 
 const { resolveAnchorId } = await import('../../src/lib/anchor-resolution.ts');
+const { questionService } = await import('../../src/services/question.service.ts');
 
-const STORAGE_KEY = 'trellis_questions';
+// Phase 55-07: questions are an in-memory mirror (IndexedDB-backed). resolveAnchorId
+// reads questionService.getAll(), so tests seed the mirror via restoreDeleted()
+// (the one sanctioned direct-insert seam) instead of writing the localStorage key.
 
 // Minimal Question shape — only the fields the helper actually reads.
 function q(overrides) {
@@ -45,12 +48,16 @@ function q(overrides) {
 }
 
 function seed(questions) {
-  globalThis.localStorage.setItem(STORAGE_KEY, JSON.stringify(questions));
+  for (const question of questions) questionService.restoreDeleted(question);
 }
 
 describe('resolveAnchorId (Phase 51-01 Task 1)', () => {
   beforeEach(() => {
     globalThis.localStorage.clear();
+    // Clear the in-memory question mirror between tests.
+    for (const existing of questionService.getAll({ includeFlagged: true })) {
+      void questionService.delete(existing.id);
+    }
   });
 
   it('returns parent.id when Q&A.parent is an anchor', () => {

@@ -6,6 +6,7 @@ import { chatCompletion } from '../providers/llm/index.ts';
 import { flashcardService } from './flashcard.service.ts';
 import { questionService } from './question.service.ts';
 import { buildYoutubeSearchUrl } from './youtube-locale-url.ts';
+import { dbExecute, dbQuery } from './db.service.ts';
 
 // ─── Local Types ──────────────────────────────────────────────────────────────
 
@@ -24,29 +25,54 @@ interface VideoCacheEntry {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const VIDEO_CACHE_KEY = 'trellis_video_cache';
+// Single-row id for the video cache blob in the IndexedDB `video_cache` table.
+// This cache used to live in `localStorage[trellis_video_cache]`, but the
+// IndexedDB migration retired that key and the boot sweep
+// (clearLegacyHeavyLocalStorageKeys) deletes it — so the cache never survived a
+// restart and every cold start re-paid 100 quota units per search.
+const VIDEO_CACHE_ROW_ID = 'video_cache';
 
 // Quota cost: 100 units per search call (YouTube Data API v3).
 // Keep this in mind when calling searchVideos in batch.
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+// In-memory mirror — the synchronous read+write path, hydrated from IndexedDB at
+// boot (D-12), mirroring the daily-posts cache in concept-feed.service.ts.
+let _videoCache: VideoCacheEntry | null = null;
+
 function readVideoCache(): VideoCacheEntry | null {
-  try {
-    const raw = localStorage.getItem(VIDEO_CACHE_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as VideoCacheEntry;
-  } catch {
-    return null;
-  }
+  return _videoCache;
 }
 
 function writeVideoCache(posts: DailyPost[]): void {
+  const entry: VideoCacheEntry = { date: today(), posts };
+  _videoCache = entry;
+  void dbExecute('INSERT OR REPLACE INTO video_cache (id, data) VALUES (?, ?)', [
+    VIDEO_CACHE_ROW_ID,
+    JSON.stringify(entry),
+  ]).catch(() => { /* IndexedDB unavailable — in-memory mirror is the read path */ });
+}
+
+let _hydratedVideoCache = false;
+
+/**
+ * Boot hydration for the video cache. Guarded so a populated mirror is never
+ * overwritten. Callers already compare `entry.date` against today, so a stale
+ * blob is rejected on read exactly as before.
+ */
+export async function hydrateVideoCacheFromSQLite(): Promise<void> {
+  if (_hydratedVideoCache) return;
+  _hydratedVideoCache = true;
   try {
-    const entry: VideoCacheEntry = { date: today(), posts };
-    localStorage.setItem(VIDEO_CACHE_KEY, JSON.stringify(entry));
+    if (_videoCache) return; // mirror already has data — trust it
+    const rows = await dbQuery<{ id: string; data: string }>(
+      'SELECT * FROM video_cache WHERE id = ?', [VIDEO_CACHE_ROW_ID],
+    );
+    if (rows.length === 0) return;
+    _videoCache = JSON.parse(rows[0].data) as VideoCacheEntry;
   } catch {
-    // localStorage may be full; silently ignore
+    // IndexedDB unavailable (Node test runner) or corrupt row — start empty.
   }
 }
 

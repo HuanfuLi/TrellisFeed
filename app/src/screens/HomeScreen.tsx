@@ -84,6 +84,11 @@ export function HomeScreen() {
   //    time, read in async callbacks" data.
   // See .planning/debug/cold-start-empty-feed.md.
   const warmStartHadPostsRef = useRef(dailyPosts.length > 0);
+  // Latest dailyPosts for the FEED_REFILL_COMPLETED subscriber, whose closure is
+  // created once per effect run. Synced in an effect, not during render
+  // (react-hooks/refs).
+  const dailyPostsRef = useRef(dailyPosts);
+  useEffect(() => { dailyPostsRef.current = dailyPosts; }, [dailyPosts]);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationError, setGenerationError] = useState(false);
@@ -211,18 +216,18 @@ export function HomeScreen() {
         if (posts.length > 0) {
           setDailyPosts(posts);
         }
-        setIsGenerating(false);
-        // Error-gate suppression (Phase 36 GAP-A): only flag generationError when
-        // BOTH today's getDailyPosts returned [] AND no warm-start fallback was
-        // seeded at mount (warmStartHadPostsRef captured pre-fetch). If warm-start
-        // was present, the user can see content and the empty `posts` is a normal
-        // cold-start condition, not an error. Original 6cda914e error-gate intent
-        // (genuinely broken API keys) is preserved by the !warmStartHadPostsRef.current
-        // condition — no warm-start AND no fetch result = real error.
-        // Top-level conditional setter (no nested setState — Strict Mode safe).
-        if (posts.length === 0 && questions.length > 0 && !warmStartHadPostsRef.current) {
-          setGenerationError(true);
-        }
+        // An empty `posts` here is NOT an error. getDailyPosts returns [] on a
+        // cold start BY DESIGN — today's queue is empty and refillQueue is still
+        // running in the background. This used to setGenerationError(true), so a
+        // perfectly healthy cold start rendered "Couldn't generate posts — check
+        // your API keys" instantly, and stayed there because nothing told
+        // HomeScreen when the refill landed. Stay in the loading state and let
+        // FEED_REFILL_COMPLETED below decide: posts added, nothing to add, or a
+        // real failure. Warm-start content (yesterday's queue) means we already
+        // have something to show, so drop the spinner immediately.
+        const awaitingRefill =
+          posts.length === 0 && questions.length > 0 && !warmStartHadPostsRef.current;
+        if (!awaitingRefill) setIsGenerating(false);
       }
     }).catch((err) => {
       console.warn('[HomeScreen] feed generation failed:', err);
@@ -245,15 +250,38 @@ export function HomeScreen() {
       setDailyPosts((prev) => prev.filter((p) => p.id !== event.payload.id));
     });
 
-    const delayedRefreshTimer = setTimeout(() => {
-      if (!cancelled) refreshFeed();
-    }, 8000);
+    // Authoritative signal that a refill cycle finished. Replaces a blind 8s
+    // timer that fired once and never retried: a refill slower than 8s (LLM +
+    // YouTube + Tavily, easily longer on a phone or a local endpoint) left the
+    // feed stuck on the API-key error forever, since /home is always-mounted and
+    // never remounts to re-run this effect.
+    const unsubRefill = eventBus.subscribe('FEED_REFILL_COMPLETED', (event) => {
+      if (cancelled) return;
+      // Only act while the feed is still empty. A populated feed needs no
+      // refresh, and refreshing would call getDailyPosts → refillQueue → another
+      // FEED_REFILL_COMPLETED, i.e. a loop.
+      if (dailyPostsRef.current.length > 0) return;
+
+      const { added, error } = event.payload;
+      setIsGenerating(false);
+      if (error) {
+        // The one case the error state was always meant for.
+        console.warn('[HomeScreen] feed refill failed:', error);
+        setGenerationError(true);
+        return;
+      }
+      setGenerationError(false);
+      // added === 0 with no error is a normal "nothing left to generate" state
+      // (daily cap reached, or every anchor explored) — the empty state, not an
+      // error. Only pull posts through when the cycle actually produced some.
+      if (added > 0) refreshFeed();
+    });
 
     return () => {
       cancelled = true;
-      clearTimeout(delayedRefreshTimer);
       unsubPlanner();
       unsubPostDeleted();
+      unsubRefill();
     };
   }, [questions, questionsLoading]);
 
@@ -389,10 +417,11 @@ export function HomeScreen() {
     setGenerationError(false);
     void conceptFeedService.getDailyPosts(questionsRef.current).then((posts) => {
       setDailyPosts(posts);
-      setIsGenerating(false);
-      if (posts.length === 0 && questionsRef.current.length > 0) {
-        setGenerationError(true);
-      }
+      // Same contract as the mount effect: [] means the refill kicked off by
+      // getDailyPosts is still running, not that the key is bad. Stay in the
+      // loading state; the FEED_REFILL_COMPLETED subscriber resolves it.
+      const awaitingRefill = posts.length === 0 && questionsRef.current.length > 0;
+      if (!awaitingRefill) setIsGenerating(false);
     }).catch((err) => {
       console.warn('[HomeScreen] feed retry failed:', err);
       setIsGenerating(false);
@@ -955,8 +984,8 @@ export function HomeScreen() {
           </div>
         )}
 
-        {/* Empty state when feed has posts but no concept posts (D-17) */}
-        {conceptQuota === 0 && dailyPosts.length > 0 && questions.length > 0 && (
+        {/* Empty state — only on a genuinely empty feed (D-17; GAP-D HIDE: do not render above a populated feed) */}
+        {conceptQuota === 0 && dailyPosts.length === 0 && questions.length > 0 && (
           <div style={{
             display: 'flex',
             flexDirection: 'column',

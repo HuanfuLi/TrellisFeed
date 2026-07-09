@@ -59,20 +59,6 @@ function loadFeedViews(): FeedViewEntry[] {
   }
 }
 
-/** Record a feed post view for trajectory tracking. */
-export function recordFeedView(questionId: string): void {
-  try {
-    const views = loadFeedViews();
-    // Keep only last 7 days and cap at 200 entries
-    const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
-    const pruned = views.filter((v) => v.viewedAt > cutoff).slice(-199);
-    pruned.push({ questionId, viewedAt: Date.now() });
-    localStorage.setItem(FEED_VIEWS_KEY, JSON.stringify(pruned));
-    // Invalidate cache
-    localStorage.removeItem(SIGNAL_CACHE_KEY);
-  } catch { /* ignore */ }
-}
-
 // ── Signal computation ─────────────────────────────────────────────────────
 
 function computeReviewPerformance(cards: ReturnType<typeof flashcardService.getAll>): number {
@@ -112,6 +98,11 @@ function computeWeakAreas(
   // Weak = user reviewed this concept and struggled (low SM-2 ease factor).
   // Only flashcard easeFactor is reliable — question.reviewSchedule is never
   // updated after creation, so we derive weakness purely from card scores.
+  // Rationale (Phase 55 D-15 verify-and-keep): the 2.0 weak threshold sits below the
+  // SM-2 default ease of 2.5 — a card whose ease has decayed under 2.0 has been graded
+  // "hard"/"again" at least once, the canonical SM-2 weakness signal. reviewCount > 0
+  // excludes never-reviewed cards (default ease, not real weakness). Kept (no drift);
+  // raise toward 2.5 if too few weak areas surface, lower if too many false positives.
   for (const card of cards) {
     if (card.reviewSchedule.easeFactor < 2.0 && card.reviewSchedule.reviewCount > 0 && card.nodeId) {
       weakIds.add(card.nodeId);
@@ -146,6 +137,11 @@ export const trajectoryAnalyzerService = {
     const questions = questionService.getAll();
     const cards = flashcardService.getAll();
     const feedViews = loadFeedViews();
+    // Rationale (Phase 55 D-15 verify-and-keep): the 7-day window scopes
+    // questionFrequency + feedEngagement to recent activity so the trajectory signal
+    // tracks the user's CURRENT learning momentum, not lifetime totals. 7 days matches
+    // the SM-2 review cadence and the 7-day post-history rolling purge — kept (no drift
+    // observed in dev instrumentation); re-tune only if the signal lags real engagement.
     const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
 
     const questionFrequency = questions.filter((q) => q.createdAt > sevenDaysAgo).length;

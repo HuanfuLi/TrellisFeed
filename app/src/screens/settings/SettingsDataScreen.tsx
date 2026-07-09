@@ -15,6 +15,7 @@ import { clearAllTables } from '../../services/db.service';
 import { dailyReadService } from '../../services/daily-read.service';
 import { postQueueService } from '../../services/post-queue.service';
 import { engagementService } from '../../services/engagement.service';
+import { addDays, today } from '../../lib/date';
 import { SectionHeader, SettingRow, MaterialSwitch, SelectInput, TextInput, SUB_SCREEN_STYLE } from './SettingsShared';
 
 export function SettingsDataScreen() {
@@ -54,8 +55,9 @@ export function SettingsDataScreen() {
     // Clear all trellis_ keys from localStorage (except settings)
     const keys = Object.keys(localStorage).filter((k) => k.startsWith('trellis_') && k !== 'trellis_settings');
     for (const k of keys) localStorage.removeItem(k);
-    // Explicitly set an empty array so flashcardService doesn't auto-re-seed on next load
-    localStorage.setItem('trellis_flashcards', '[]');
+    // No `trellis_flashcards = '[]'` re-seed guard here anymore: flashcards live in
+    // IndexedDB and are wiped by clearAllTables() below. Writing the retired
+    // localStorage key back would just leave a stale shadow copy.
     // Clear sessionStorage (connection post cache, etc.)
     const sessionKeys = Object.keys(sessionStorage).filter((k) => k.startsWith('trellis_'));
     for (const k of sessionKeys) sessionStorage.removeItem(k);
@@ -77,20 +79,19 @@ export function SettingsDataScreen() {
   // See .planning/debug/cold-start-warm-start-fragile.md for full context.
   const handleForceNewDay = () => {
     try {
-      const raw = localStorage.getItem('trellis_post_queue');
-      if (!raw) {
-        toast('No post queue to roll back. Generate some posts first.', 'info');
+      // Phase 55-07: the queue + daily-posts cache are in-memory + IndexedDB
+      // (no localStorage backing). Roll the IN-MEMORY queue date back to
+      // yesterday via simulateDateRollback() so the next loadQueue() detects the
+      // mismatch and (a) snapshots the current payload to the durable yesterday
+      // row (Plan 36-09); (b) rehydrates _state.posts from yesterday's UNSERVED
+      // queue (Plan 36-11) so it auto-populates today's feed. See round-3
+      // sub-issue (b cause #1) and Plan 36-11.
+      const yesterday = addDays(today(), -1);
+      const rolled = postQueueService.simulateDateRollback(yesterday);
+      if (!rolled) {
+        toast(t('settings.toast.noPostQueueRollback'), 'info');
         return;
       }
-      const parsed = JSON.parse(raw);
-      // Set date to yesterday so the next loadQueue() detects the mismatch
-      // and (a) snapshots the current payload to STORAGE_KEY_YESTERDAY
-      // (Plan 36-09); (b) rehydrates _state.posts from parsed.posts
-      // (Plan 36-11) so yesterday's UNSERVED queue auto-populates today's
-      // feed. See round-3 sub-issue (b cause #1) and Plan 36-11.
-      const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-      parsed.date = yesterday;
-      localStorage.setItem('trellis_post_queue', JSON.stringify(parsed));
       postQueueService.loadQueue();
       // Phase 36-15 (round-4 sub-issue b storage): also mutate the served-
       // posts cache key. Plan 36-11's loadCache() rejection fires only when
@@ -115,16 +116,12 @@ export function SettingsDataScreen() {
       // mutation alone produces an empty feed. The two plans are
       // complementary, not duplicative.
       // See .planning/debug/feed-not-auto-populating-after-force-new-day.md.
-      const dailyRaw = localStorage.getItem('trellis_daily_posts');
-      if (dailyRaw) {
-        try {
-          const dailyParsed = JSON.parse(dailyRaw);
-          dailyParsed.date = yesterday;
-          localStorage.setItem('trellis_daily_posts', JSON.stringify(dailyParsed));
-        } catch {
-          // Malformed cache — leave it; loadCache() will reject on parse failure anyway.
-        }
-      }
+      // Phase 55-07: the served-posts cache is the in-memory _cache mirror (no
+      // localStorage backing). clearCache() produces the SAME end state the prior
+      // date-mutation did — loadCache() now returns null, so getDailyPosts()
+      // skips its cache-hit branch and the rehydrated _state.posts / the
+      // HomeScreen getYesterdayQueue() fallback (Plan 36-14) drive the feed.
+      conceptFeedService.clearCache();
       // Reset vine progress (trellis_daily_read). On a real midnight,
       // dailyReadService.loadState() self-resets via the parsed.date !==
       // today() check, but the dev button cannot advance today() — so the
@@ -140,11 +137,11 @@ export function SettingsDataScreen() {
       // Clear-All-Data / settingsService.reset() paths. See
       // .planning/debug/force-new-day-wipes-saved-liked.md.
       engagementService.resetDismissedOnly();
-      toast('Queue + daily-posts cache rolled back; vine progress reset. Navigating to /home.', 'success');
+      toast(t('settings.toast.forceNewDayRollbackSuccess'), 'success');
       navigate('/home');
     } catch (err) {
       console.warn('[SettingsDataScreen] force-new-day failed:', err);
-      toast('Force new day failed. Check console.', 'error');
+      toast(t('settings.toast.forceNewDayFailed'), 'error');
     }
   };
 

@@ -19,9 +19,12 @@ globalThis.localStorage = {
 };
 
 const { engagementService } = await import('../../src/services/engagement.service.ts');
+const { postHistoryService } = await import('../../src/services/post-history.service.ts');
 const { eventBus } = await import('../../src/lib/event-bus.ts');
 
-const STORAGE_KEY = 'trellis_engagement_v1';
+// Phase 55-07: engagement + post-history are now in-memory mirrors persisted to
+// IndexedDB (not localStorage). Tests reset via the services' own reset/clear
+// methods and assert through public getters instead of reading localStorage.
 
 // Capture buckets refreshed in beforeEach so prior-test subscribers can no-op.
 let dismissEvents;
@@ -48,14 +51,16 @@ function captureAll() {
 describe('engagementService — Phase 39', () => {
   beforeEach(() => {
     localStorage.clear();
+    // Reset the in-memory mirrors (the localStorage clear no longer does this
+    // now that the stores are in-memory + IndexedDB).
+    engagementService.reset();
+    postHistoryService.clear();
     captureAll();
   });
 
-  it('savePost adds postId to saved array and persists to trellis_engagement_v1', () => {
+  it('savePost adds postId to the saved set', () => {
     engagementService.savePost('p1');
     assert.deepEqual(engagementService.getSavedPostIds(), ['p1']);
-    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    assert.deepEqual(raw.saved, ['p1']);
   });
 
   it('savePost is idempotent — duplicate calls do not add twice and emit only one event', () => {
@@ -135,10 +140,7 @@ describe('engagementService — Phase 39', () => {
 
   it('getSavedPosts resolves through postHistoryService and silently drops missing posts', () => {
     // Pre-seed post-history so 'p1' resolves but 'p-missing' does not.
-    localStorage.setItem(
-      'trellis_post_history',
-      JSON.stringify([{ id: 'p1', generatedAt: Date.now(), title: 'one' }]),
-    );
+    postHistoryService.addPost({ id: 'p1', generatedAt: Date.now(), title: 'one' });
     engagementService.savePost('p1');
     engagementService.savePost('p-missing');
     assert.equal(engagementService.getSavedPostIds().length, 2);
@@ -147,12 +149,14 @@ describe('engagementService — Phase 39', () => {
     assert.equal(posts[0].id, 'p1');
   });
 
-  it('state persists across same-day reload (round-trip via raw JSON)', () => {
+  it('state round-trips through the public getters (saved/liked/dismissed)', () => {
     engagementService.savePost('p1');
     engagementService.likePost('p2');
     engagementService.dismissAnchor('a1');
-    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    assert.deepEqual(raw, { saved: ['p1'], liked: ['p2'], dismissed: ['a1'], savedPodcasts: [] });
+    assert.deepEqual(engagementService.getSavedPostIds(), ['p1']);
+    assert.deepEqual(engagementService.getLikedPostIds(), ['p2']);
+    assert.deepEqual(engagementService.getDismissedAnchorIds(), ['a1']);
+    assert.deepEqual(engagementService.getSavedPodcastIds(), []);
   });
 
   it("savePodcast / removeSavedPodcast / isPodcastSaved round-trip with kind 'save-podcast'/'unsave-podcast'", () => {
@@ -203,8 +207,11 @@ describe('engagementService — Phase 39', () => {
     assert.equal(exploredEvents.length, 0, 'reset() must not emit CONCEPT_EXPLORED');
   });
 
-  it('corrupted localStorage value loads as freshState (no throw)', () => {
-    localStorage.setItem(STORAGE_KEY, '{not valid json');
+  it('a freshly-reset store reports empty saved/liked/dismissed (no throw)', () => {
+    // Phase 55-07: the prior variant seeded corrupt localStorage JSON. The store
+    // no longer reads localStorage, so the equivalent guarantee is that a fresh
+    // (reset) mirror reports empty arrays.
+    engagementService.reset();
     assert.deepEqual(engagementService.getSavedPostIds(), []);
     assert.deepEqual(engagementService.getLikedPostIds(), []);
     assert.deepEqual(engagementService.getDismissedAnchorIds(), []);
@@ -246,8 +253,7 @@ describe('engagementService — Phase 39', () => {
     engagementService.savePost('p-no-snapshot');
     assert.deepEqual(engagementService.getSavedPostIds(), ['p-no-snapshot']);
     // History remains untouched.
-    const raw = localStorage.getItem('trellis_post_history');
-    assert.equal(raw, null, 'savePost without snapshot must not create a history entry');
+    assert.equal(postHistoryService.getPosts().length, 0, 'savePost without snapshot must not create a history entry');
     // getSavedPosts silently drops the unresolved id (T-50-ORPHAN / D-04).
     assert.equal(engagementService.getSavedPosts().length, 0);
   });

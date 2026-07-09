@@ -1,265 +1,265 @@
 # Stack Research
 
-**Domain:** Local-first AI learning app v1.6 stack additions: ingestion triage, graph correction, retrieval, podcast controls, ethical engagement
-**Researched:** 2026-05-13
-**Confidence:** HIGH for dependency/version recommendations; MEDIUM for OpenAI TTS model migration impact until device audio UAT
+**Domain:** Local-first cosmetic rewards shop — coin-purchasable themes, pets/companions, and garden cosmetics on React 19 + Vite + Tailwind CSS 4 + Capacitor 8
+**Researched:** 2026-05-20
+**Confidence:** HIGH for all reuse-first decisions; MEDIUM for pet animation library choice (final decision depends on asset authoring workflow and designer preference)
 
 ## Scope
 
-This research covers only stack additions or changes needed for v1.6. Trellis already has a working React 19 / TypeScript / Vite / Tailwind / Capacitor local-first app with AI Q&A, incremental graph classification, MindElixir rendering, embeddings, SM-2 review, feed engagement, saved/liked/history archives, web search grounding, and TTS podcasts.
+This research covers only what must be **added or changed** for v1.7's cosmetic rewards shop. Trellis's full existing stack (React 19, TypeScript 5.9, Vite 7, Tailwind CSS 4, Capacitor 8, framer-motion 12, lucide-react, localStorage + SQLite, settingsService, eventBus) is already validated and must not be replaced or restructured.
 
-The v1.6 stack should stay conservative: keep the existing service-oriented local-first architecture, add a small local search index, add runtime validation at LLM/storage boundaries, upgrade only the graph and SQLite packages that directly support the new work, and avoid backend, analytics, agent-framework, and vector-database additions.
+Three shop categories to support:
+
+1. **Themes / color skins** — dynamic CSS custom-property overrides beyond the existing two-theme (light/dark) system.
+2. **Pets / companions** — collectible animated creature that lives near the Planner garden and unlocks cosmetic variants over time.
+3. **Garden cosmetics** — pots, vine skins, fruit skins, backgrounds; layered SVG/CSS overlays on the existing Planner garden visual.
 
 ## Recommended Stack
 
-### Core Technologies
+### Core Technologies — All Reused, None Changed
 
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| React / React DOM | Keep `^19.2.6` | UI framework | Already validated in v1.5. v1.6 is mostly service/UI composition work, not a React architecture change. |
-| TypeScript | Keep `~5.9.3` | Static types | Current build is validated. Keep tilde pin while adding schema-validated boundaries. |
-| Vite | Keep `^7.3.1` | Build/dev server | No v1.6 feature needs a build-system migration. Avoid Vite major churn during data-model work. |
-| Capacitor | Keep `^8.3.3` | Native shell | Already aligned across core/android/ios/cli. No new native plugin is required for v1.6. |
-| `@capacitor-community/sqlite` | Upgrade lockfile/package to `^8.1.0` | Native cold backup and durable graph/search metadata tables | Current lockfile is 8.0.1 while npm latest is 8.1.0 and peer-compatible with Capacitor `>=8.0.0`. Upgrade before adding v1.6 tables/migrations. |
-| MindElixir | Upgrade lockfile/package from 5.9.3 to `^5.11.0` | Mind-map rendering and edit affordances | Existing `GraphScreen.tsx` already uses MindElixir. v1.6 should enable controlled edit mode on the same library rather than introducing a second graph renderer. |
-| Existing LLM provider layer | No package change | Ingestion classifiers, podcast scripts, reflection prompts | `chatCompletion` already supports OpenAI/Claude/Gemini/local endpoints. Use it with stricter schema validation instead of adding LangChain/Agents. |
-| Existing embedding provider layer | No package change | Semantic candidate ranking and graph-trust checks | `embedText` + `cosine` already back query context and anchor pre-checks. Use the same vectors for retrieval ranking and merge suggestions. |
-| Existing local-first storage | No wholesale change | Active app state | Keep `localStorage` as active source of truth and SQLite as cold backup per `question.service.ts`. Add narrowly scoped versioned records, not a database rewrite. |
+| Technology | Version | Purpose | Why No Change Needed |
+|------------|---------|---------|----------------------|
+| React 19 | `^19.2.6` | UI composition | Shop screen, pet renderer, purchase flow all fit standard React component patterns. |
+| TypeScript 5.9 | `~5.9.3` | Types | New service types fit existing `ServiceResult<T>` pattern; no schema-validation library needed for cosmetic purchases. |
+| Vite 7 | `^7.3.1` | Build | Static asset handling (pet sprite PNGs, Rive `.riv` files if used) already supported via `import`/`URL`. |
+| Capacitor 8 | `^8.3.3` | Native shell | No native plugin needed; shop data stays in localStorage. |
+| Tailwind CSS 4 | `^4.3.0` | Utility | Used sparingly per project convention (most UI is inline styles + CSS vars). New theme blocks extend `index.css`, not Tailwind config. |
+| framer-motion | `^12.39.0` (already installed) | Purchase animations, stagger entrance for shop grid, coin-fly particle | Already in `package.json`. Sufficient for all UI motion in the shop. No additional animation library needed for the shop UI itself. |
+| lucide-react | `^0.575.0` (already installed) | Shop icons (lock, coin, checkmark, basket) | Existing icon vocabulary is adequate. |
+| localStorage (via `trellisCreditsService` + `settingsService`) | — | Coin balance, owned inventory, equipped cosmetics | The coin store `trellis_fruit_credits` already exists. Ownership and equipped state go in new parallel localStorage keys (`trellis_shop_*`), following the same pattern. |
+| `eventBus` (`src/lib/event-bus.ts`) | — | Broadcast `COSMETIC_PURCHASED`, `COSMETIC_EQUIPPED`, `CREDITS_CHANGED` | Existing typed pub/sub is exactly right for notifying PlannerScreen, HomeScreen, and SettingsScreen of theme/cosmetic changes without prop drilling. |
 
-### Supporting Libraries
+### New Supporting Libraries
 
-| Library | Version | Purpose | When to Use |
-|---------|---------|---------|-------------|
-| `zod` | `^4.4.3` | Runtime validation for LLM JSON, storage migrations, and edit commands | Add now. Use for ingestion decisions, graph edit operations, podcast option profiles, and engagement-goal records. |
-| `minisearch` | `^7.2.0` | Browser-local full-text index | Add now for saved/history/search/tag retrieval across questions, anchors, posts, and podcast scripts. |
-| `idb` | `^8.0.3` | Promise wrapper around IndexedDB | Optional but recommended if v1.6 persists MiniSearch indexes, dashboard rollups, or more podcast/audio metadata in IndexedDB. If only audio blobs stay in IDB, existing raw helpers are enough. |
-| `lucide-react` | Keep `^0.575.0` | UI icons | Existing icon system is enough for edit/search/tag/goal controls. Do not add another icon library. |
-| `framer-motion` | Keep `^12.38.0` | Existing lightweight transitions | Enough for edit confirmations, stop cues, and dashboard transitions. Keep reduced-motion discipline from v1.5. |
+Only one library addition is warranted. Everything else ships with existing tools.
 
-### Development Tools
+| Library | Version | Purpose | Why Warranted |
+|---------|---------|---------|---------------|
+| `@rive-app/react-canvas` | `^4.28.5` | Animated pet/companion with interactive state machine (idle, happy, sleeping, level-up) | **Warranted only for the pet companion.** CSS spritesheet animation (`@keyframes steps()`) is sufficient for simple 2-frame idle animations but breaks down for multi-state character rigs (idle → tap → celebrate → sleep transitions). Rive's state machine covers all pet states in one `.riv` file, is designer-authored, ships a 78KB WASM runtime (lazy-loadable), and produces `.riv` files that are ~10× smaller than equivalent Lottie JSON. The `useRive` hook integrates cleanly with React. Code-split it with `React.lazy` so it does not affect app startup. |
+
+### Development Tools — No Change
 
 | Tool | Purpose | Notes |
 |------|---------|-------|
-| Node `node:test` | Service and source-reading tests | Continue leaf-module pattern. Add tests for ingestion false positives, edit-command invariants, search index rebuild, and ethical guardrail anti-wire behavior. |
-| ESLint / TypeScript | Regression guard | Add source-reading tests where behavior is structural, such as no raw MindElixir export overwrite and no analytics SDK import. |
-| OpenSpec / `.planning` | Requirement traceability | v1.6 changes alter behavior and user trust; update specs for ingestion, graph correction, retrieval, and guardrail semantics. |
+| `node --test` with esbuild tsx loader | Unit tests for shop service logic | Follow existing `tests/services/` pattern for `cosmetic-shop.service.ts`. Test purchase deduction, inventory serialization, re-equip on boot. |
+| ESLint / TypeScript | Regression guard | Add source-reading negative assertion that `trellisCreditsService.add()` is never called inside shop purchase path (debits only, no credit grants at purchase). |
 
 ## Installation
 
 ```bash
-# Required production additions
-npm install zod minisearch
-
-# Recommended package updates before graph/storage work
-npm install mind-elixir@^5.11.0 @capacitor-community/sqlite@^8.1.0
-
-# Optional only if v1.6 persists search/dashboard/audio metadata in IndexedDB
-npm install idb
+# Only new production dependency
+npm install @rive-app/react-canvas
 ```
 
-Do not add dev dependencies for this milestone unless tests reveal a concrete gap.
+No dev-dependency additions needed.
 
-## Integration Recommendations
+## Integration Points with Existing Stack
 
-### 1. Knowledge-Ingestion Triage
+### 1. Coin Balance — Extend `trellisCreditsService`
 
-Use the existing answer flow and split it into two decisions:
-
-| Decision | Owner | Storage Effect |
-|----------|-------|----------------|
-| Answer disposition | `useQuestions.ts` / existing LLM flow | Chat can answer natural conversation. |
-| Graph ingestion disposition | New `ingestion-triage.service.ts` | Only durable learning material updates `trellis_questions` and graph hierarchy. |
-
-Add `zod` schemas for a versioned ingestion result:
+`trellis_fruit_credits` already stores the balance. The shop needs a `spend(amount)` method:
 
 ```ts
-const IngestionDecisionV2 = z.object({
-  schemaVersion: z.literal(2),
-  answerable: z.boolean(),
-  ingest: z.boolean(),
-  category: z.enum([
-    'learning',
-    'follow_up_learning',
-    'small_talk',
-    'app_meta',
-    'prompt_leak_attempt',
-    'jailbreak',
-    'unsafe',
-    'low_signal',
-  ]),
-  rationale: z.string().max(240),
-  targetNodeId: z.string().optional(),
-});
-```
-
-Why: `question-filter.service.ts` currently uses broad regexes that can flag legitimate learning questions like "What is a system prompt?" because the filter conflates prompt-leak attempts with conceptual questions about prompts. v1.6 needs a durable ingestion gate, not a chat presentation filter. Zod gives a strict runtime boundary for LLM JSON while preserving TypeScript inference.
-
-Keep deterministic rules for obvious cases, but route ambiguous cases through the existing `chatCompletion` provider. Do not add OpenAI Moderation as the primary classifier; Trellis supports non-OpenAI and local providers, and the main issue is educational durability, not generic safety classification.
-
-### 2. Editable / Correctable Mind Maps
-
-Keep MindElixir, upgrade to `^5.11.0`, and make edits command-driven:
-
-| Capability | Integration Point | Stack Choice |
-|------------|-------------------|--------------|
-| Rename anchor/cluster | New `graph-edit.service.ts` calling `questionService.patchQuestion` | No new dependency beyond Zod. |
-| Move anchor between clusters | `graphService.moveToParent` plus branch/cluster label patching | Reuse existing graph service. |
-| Merge anchors | Existing canonical merge fields: `aliases`, `sourcePrompts`, `sourceQuestionIds`, child Q&A reassignment | Reuse `canonical-knowledge.service.ts` patterns. |
-| Detach/correct node | Patch `parentId`, `clusterNodeId`, labels, and trust metadata | Reuse local store + SQLite backup. |
-| Undo recent edit | Store inverse `GraphEditCommand` records in `trellis_graph_edits_v1` and optionally SQLite | No graph database. |
-
-Do not let MindElixir become the source of truth. `GraphScreen.tsx` should enable edit affordances only in an explicit edit mode, translate UI actions into validated commands, apply them through services, then rebuild `MindElixirData` from canonical questions. Avoid raw `mei.getData()` overwrite of `trellis_questions`; it would lose Trellis-specific fields such as review schedules, source prompts, embeddings, aliases, and cluster metadata.
-
-### 3. Retrieval / Search / Tags / Dashboards
-
-Add MiniSearch as the local full-text index. It is small, browser-compatible, supports field boosts/search options, and can serialize/deserialize indexes. Use embeddings as a reranker, not as the only retrieval layer.
-
-Recommended index service:
-
-| Document Type | Source | Indexed Fields |
-|---------------|--------|----------------|
-| Concept/anchor/Q&A | `questionService.getAll({ includeFlagged: true })` | title, content, answer, summary, keywords, aliases, root/branch/cluster labels, user tags |
-| Feed posts | `postHistoryService.getPosts()` | title, hook/body, contextLabel, source domains, concept id, saved/liked flags |
-| Podcasts | `podcastService.getAll()` | script, questionIds, date, style/length profile |
-| Dashboard rollups | `trajectoryAnalyzerService` + graph summaries | concept labels, weak-area ids, review counts |
-
-Suggested pattern:
-
-- New `search-index.service.ts` owns MiniSearch construction, incremental updates, and rebuild.
-- New `tag.service.ts` stores explicit user tags as ID-only records: `trellis_tags_v1`.
-- Use existing `eventBus` events (`GRAPH_UPDATED`, `ENGAGEMENT_CHANGED`, podcast generation events) to mark the search index dirty.
-- Search result ranking should blend lexical score, saved/liked boosts, recent review signals, and optional cosine rerank when embedding vectors exist.
-- Persist only lightweight metadata in localStorage. Persist larger serialized MiniSearch indexes in IndexedDB only if rebuild latency becomes visible; otherwise rebuild on app start from local stores.
-
-This avoids overbuilding a database layer while giving users real retrieval across the local corpus.
-
-### 4. Higher-Quality Configurable Podcasts
-
-Keep `podcast.service.ts`, IndexedDB audio blob storage, and the existing TTS provider abstraction. Add configuration fields; do not add a podcast framework.
-
-Recommended data additions:
-
-```ts
-type PodcastLength = 'short' | 'standard' | 'deep';
-type PodcastStyle = 'calm_tutor' | 'socratic' | 'story_driven' | 'exam_review';
-
-interface PodcastProfile {
-  length: PodcastLength;
-  style: PodcastStyle;
-  includeReviewPrompts: boolean;
-  conceptIds?: string[];
+// Extend trellisCreditsService (src/services/trellis-credits.service.ts)
+spend(amount: number): ServiceResult<number> {
+  const current = readTotal();
+  if (current < amount) return { success: false, error: { code: 'INSUFFICIENT_CREDITS', ... } };
+  const next = current - Math.max(0, Math.floor(amount));
+  writeTotal(next);
+  return { success: true, data: next };
 }
 ```
 
-OpenAI TTS change: replace the hard-coded `model: 'tts-1'` in `providers/tts/index.ts` with a configurable model defaulting to `gpt-4o-mini-tts` for OpenAI, and pass style instructions when the provider supports them. Keep the existing fallback behavior where the OpenAI TTS key can reuse the LLM key.
+Return `ServiceResult<number>` (new balance) so the UI can update the coin counter optimistically. The debit and purchase write must happen atomically in the same synchronous block — localStorage writes are synchronous so no transaction machinery is needed.
 
-Implementation points:
+### 2. Ownership + Equipment State — New `cosmetic-shop.service.ts`
 
-- `settings.service.ts`: add `tts.model` and podcast defaults.
-- `SettingsAIScreen.tsx`: expose model/voice/speed only where provider supports it.
-- `podcast.service.ts`: compile script prompts from length/style, target word counts, review prompts, and source concept IDs.
-- `providers/tts/index.ts`: include `model`, `voice`, `speed`, and optional provider-specific `instructions`.
-- Keep raw IndexedDB blob storage unless `idb` is adopted for shared storage cleanup.
+New localStorage keys, following `trellis_*` convention:
 
-Do not add `ffmpeg.wasm`, audio mixing, background music, or multi-track editing in v1.6. Those add large bundles and distract from learner-directed content quality.
+| Key | Shape | Purpose |
+|-----|-------|---------|
+| `trellis_shop_owned` | `string[]` (cosmetic IDs) | Purchased items; append-only |
+| `trellis_shop_equipped` | `Record<SlotName, string>` | Currently active cosmetic per slot |
 
-### 5. Ethical Engagement Guardrails
+`SlotName = 'theme' | 'pet' | 'pot' | 'vine' | 'fruit' | 'background'`
 
-No new third-party stack is required. Build these as local services over existing data:
+Service methods: `getOwned()`, `getEquipped()`, `purchase(id)` (calls `trellisCreditsService.spend`, appends to owned), `equip(slot, id)` (validates ownership, writes equipped), `isOwned(id)`. All synchronous, all return `ServiceResult<T>`.
 
-| Capability | Service | Data Source |
-|------------|---------|-------------|
-| Learning goals | `learning-goal.service.ts` | localStorage/SQLite backup |
-| Stop cues | `engagement-guardrail.service.ts` | feed views, session duration, repeated dismiss/scroll behavior |
-| Reflection prompts | `reflection-prompt.service.ts` | recent saved/liked/history + weak areas |
-| Retrieval prompts | `retrieval-cue.service.ts` | SM-2 due cards, MiniSearch hits, concept dashboard state |
-| Learning metrics dashboard | Extend `trajectoryAnalyzer.service.ts` | review performance, concept coverage, retrieval actions, reflections |
+Catalog of available cosmetics lives as a **static TypeScript constant** (no API, no CMS). Each `CosmeticItem` has `{ id, name, slot, cost, unlockRequirement? }`. Static catalog means no network, no backend, and no localStorage bloat for catalog data.
 
-Use the existing `@capacitor/local-notifications` only for user-scheduled learning reminders. Do not add push notifications, remote analytics, growth-event SDKs, A/B testing SDKs, streak engines, or social-feed recommender packages. v1.6 should make engagement legible and bounded, not more addictive.
+### 3. Dynamic Theming Beyond Light/Dark — Pure CSS Custom Properties
+
+The existing two-theme system uses `document.documentElement.classList.toggle('dark', ...)` in `src/lib/theme.ts`. Color themes extend this using a `data-theme` attribute on `<html>`:
+
+```css
+/* In src/index.css — add after the .dark block */
+[data-theme="forest"] {
+  --primary-40: #2E7D32;
+  --primary-80: #81C784;
+  --primary-90: #C8E6C9;
+  --surface: #F1F8E9;
+  --surface-variant: #DCEDC8;
+  /* ...override only what changes */
+}
+
+[data-theme="ocean"] {
+  --primary-40: #0277BD;
+  --primary-80: #4FC3F7;
+  /* ... */
+}
+```
+
+`theme.ts` gets a new `applyColorTheme(themeId: string)` that does:
+
+```ts
+document.documentElement.dataset.theme = themeId === 'default' ? '' : themeId;
+```
+
+The dark-mode class and the `data-theme` attribute are **orthogonal** — a user can pick "Forest" theme and dark mode simultaneously. The `.dark` block overrides light defaults, and `[data-theme="forest"]` overrides the palette. Both apply to the same `:root` element. No Tailwind config change needed. No additional library needed.
+
+Equipped theme is stored in `trellis_shop_equipped.theme`. `App.tsx` or a new `ThemeProvider` component reads it on mount and re-applies on `COSMETIC_EQUIPPED` events.
+
+### 4. Pet/Companion Animation — `@rive-app/react-canvas`
+
+The pet lives in the Planner screen near the garden visual. It is lazy-loaded:
+
+```tsx
+// src/components/PetCompanion.tsx
+import { lazy, Suspense } from 'react';
+const PetCanvas = lazy(() => import('./PetCanvas'));
+
+export function PetCompanion({ petId }: { petId: string }) {
+  return (
+    <Suspense fallback={<div style={{ width: 80, height: 80 }} />}>
+      <PetCanvas petId={petId} />
+    </Suspense>
+  );
+}
+```
+
+```tsx
+// src/components/PetCanvas.tsx
+import { useRive } from '@rive-app/react-canvas';
+
+export default function PetCanvas({ petId }: { petId: string }) {
+  const { RiveComponent } = useRive({
+    src: `/pets/${petId}.riv`,   // Vite static assets
+    stateMachines: 'PetMachine',
+    autoplay: true,
+  });
+  return <RiveComponent style={{ width: 80, height: 80 }} />;
+}
+```
+
+WASM loads once and is cached by the Rive runtime across all `useRive` instances on the page. Preload with `<link rel="preload">` if Planner load time measurement shows visible delay.
+
+**When CSS spritesheet suffices instead:** If the team produces only a simple 2-frame idle PNG spritesheet (no designer tooling for Rive), a 20-line CSS `@keyframes steps()` component is better — zero dependency, instant load. Use Rive when you need the state machine (idle → tap reaction → celebrate). Use CSS sprite for a purely decorative bobbing pet with no interactivity.
+
+### 5. Garden Cosmetics (Pots, Vine Skins, Backgrounds) — CSS + SVG Layers
+
+The existing Planner garden visual uses CSS custom properties for colors and SVG elements for vines/fruit. Garden cosmetics work as **CSS variable overrides + SVG `<use>` symbol swaps**:
+
+- **Backgrounds / surface tints:** Override `--surface`, `--surface-variant`, or add new cosmetic-specific CSS vars (`--garden-bg`) via `document.documentElement.style.setProperty()` when a background cosmetic is equipped.
+- **Vine / fruit skins:** Define named SVG `<symbol>` elements for each skin variant in a hidden `<svg>` at the app root. Equipped skin changes which `href` the garden uses in its `<use>` references. No new library.
+- **Pots:** Pure SVG component variants. The shop equips a `potVariant` prop that the Planner garden component reads from `cosmeticShopService.getEquipped().pot`.
+
+All garden cosmetic state is read once on Planner mount and refreshed on `COSMETIC_EQUIPPED` event via the `[location.pathname]` `useEffect` resync pattern (canonical pattern from `HomeScreen.tsx`).
+
+### 6. Event Bus — New Events
+
+Add to `AppEvent` union in `src/types/index.ts`:
+
+```ts
+| { type: 'COSMETIC_PURCHASED'; payload: { id: string; slot: SlotName } }
+| { type: 'COSMETIC_EQUIPPED'; payload: { slot: SlotName; id: string } }
+| { type: 'CREDITS_CHANGED'; payload: { balance: number } }
+```
+
+`CREDITS_CHANGED` allows the coin counter in the Shop screen header and the Planner screen to stay in sync without prop drilling.
 
 ## Alternatives Considered
 
 | Recommended | Alternative | When to Use Alternative |
 |-------------|-------------|-------------------------|
-| `minisearch` | `fuse.js` | Use Fuse only for tiny fuzzy picker lists. It is not a full retrieval layer for posts/questions/scripts. |
-| `minisearch` | `flexsearch` | Use FlexSearch only if profiling shows MiniSearch too slow at much larger corpus sizes. It is more complex than Trellis needs now. |
-| Zod schemas | Hand-written validators | Use hand-written validators only for tiny hot-path shape checks. LLM/storage boundaries need reusable schemas and parse errors. |
-| MindElixir controlled edit mode | React Flow / Cytoscape | Use those only if Trellis abandons mind-map layout for freeform graph editing. v1.6 needs correction controls on the current map, not a renderer replacement. |
-| Existing provider fetch layer | OpenAI SDK / Agents SDK / LangChain | Use framework SDKs only after Trellis needs multi-step hosted tool orchestration. Current local-first browser provider layer is simpler and provider-neutral. |
-| Existing local stores + SQLite backup | Supabase/Firebase/Postgres | Use a backend only for multi-device sync or collaboration. v1.6 is local-first learner control. |
-| Existing IndexedDB helpers | `idb` | Add `idb` if more than audio blobs need IndexedDB. Otherwise raw helpers are adequate. |
+| CSS `data-theme` attribute + custom properties | Dedicated theming library (next-themes, styled-components ThemeProvider) | Use a theming library only if Trellis adds server-side rendering or needs theme hydration. For a local-first Capacitor app, direct `dataset.theme` manipulation is simpler and has zero bundle cost. |
+| `@rive-app/react-canvas` for pet | `react-lottie-player` (lottie-web wrapper, ~82KB gzip) | Use Lottie if the design team already works in After Effects + Bodymovin and doesn't want to learn Rive. Lottie has a larger existing asset library on LottieFiles. Tradeoff: larger runtime, no built-in state machine, animation files are larger. |
+| `@rive-app/react-canvas` for pet | CSS spritesheet `@keyframes steps()` | Use CSS sprite if the pet is purely decorative (single idle loop, no tap reaction). Zero dependency, zero WASM, trivial implementation. Only inadequate if multi-state character rig is required. |
+| `@rive-app/react-canvas` for pet | framer-motion keyframes on an SVG | Use framer-motion (already installed) for simple path morphs or scale/bounce. Adequate for abstract creatures; breaks down for frame-by-frame character animation. |
+| Static TypeScript catalog | CMS / remote catalog API | Use a remote catalog only if cosmetics need server-side gating (e.g., seasonal events, A/B pricing). For a local-first no-backend app the static catalog is correct. |
+| `trellis_shop_*` localStorage keys | Extend `trellis_settings` | Extending settings is tempting but mixes concerns. Shop state (owned inventory) is not a preference; it is append-only ledger data. Separate keys keep the `settingsService.reset()` safe (a reset should not wipe the shop inventory). |
+| Separate `trellis_shop_owned` key | SQLite table | Use SQLite only if inventory grows beyond ~200 items. At shop launch, serialized ID arrays in localStorage are adequate. |
 
-## What NOT to Use
+## What NOT to Add
 
 | Avoid | Why | Use Instead |
 |-------|-----|-------------|
-| LangChain, LlamaIndex, OpenAI Agents SDK | Too much orchestration for local-first browser flows; adds abstraction around provider calls Trellis already owns. | Existing `chatCompletion`, `chatStream`, `embedText`, plus Zod schemas. |
-| Vector database (`pgvector`, Chroma, LanceDB, Pinecone) | Requires backend/runtime complexity and duplicates existing local embeddings for current corpus scale. | MiniSearch lexical index + existing embedding rerank. |
-| Graph database (`neo4j`, `d3-force` rewrite, Cytoscape) | v1.6 needs correction commands, not a graph-storage rewrite. | MindElixir controlled edit mode + canonical question store. |
-| Redux/Zustand/Jotai | Existing services + eventBus already work. New global state library would create parallel state ownership. | Local services, eventBus subscriptions, route resync pattern. |
-| Analytics SDKs / growth engagement SDKs | Conflicts with local-first privacy and ethical engagement goal. | Local metrics in `trajectoryAnalyzer.service.ts` and user-visible dashboard. |
-| Push notification services | Remote nudging undermines learning-first guardrails and requires backend credentials. | Existing local notifications only for user-set reminders. |
-| `ffmpeg.wasm` / audio editing stack | Large mobile bundle and unnecessary for configurable spoken recaps. | Better script prompts + higher-quality TTS model + voice/style controls. |
-| Raw regex-only ingestion filters | Current broad patterns create false positives for legitimate learning questions. | Two-stage ingestion triage with deterministic rules + Zod-validated LLM decision. |
+| Any payment SDK (RevenueCat, Stripe, IAP) | Rewards are earned through learning, never purchased with real money. No payment infrastructure exists or is needed. | `trellisCreditsService.spend()` |
+| Backend / API server | Local-first — user data and purchases are device-local. No sync, no cloud. | localStorage with `trellis_shop_*` keys |
+| Redux / Zustand / Jotai | Existing services + eventBus already provide reactive state. Adding a global store creates parallel ownership. | `cosmeticShopService` + `eventBus` subscription + route resync `useEffect` |
+| `@lottiefiles/react-lottie-player` | Deprecated; `@lottiefiles/dotlottie-react` is its replacement, but either adds ~82KB gzip runtime without the state machine advantage that justifies Rive. If Lottie-based assets exist, `react-lottie-player@2.1.0` (the mifi fork) is still maintained but adds the same runtime weight. | Rive (state machine needed) or CSS sprite (decorative only) |
+| Heavy game engine (Phaser, Three.js, PixiJS) | Massive bundle for what is a cosmetic layer on a learning app. Garden visuals are simple SVG compositions, not a game scene graph. | SVG symbols + CSS custom properties |
+| `@capacitor/purchases` or native IAP plugin | No real-money transactions; earned coins only. Plugin would trigger App Store billing review. | None |
+| Persistent pet growth server-side state | No backend; pet growth tracks locally via time-in-app or review milestones stored in localStorage | New `trellis_pet_state` localStorage key |
+| Color theme CSS-in-JS runtime | `document.documentElement.dataset.theme` + CSS blocks in `index.css` is already zero-runtime. CSS-in-JS adds bundle overhead for no benefit in a CSS-var-first project. | Extend `index.css` + `applyColorTheme()` in `theme.ts` |
 
-## Stack Patterns by Variant
+## Stack Patterns for This Feature
 
-**If a feature changes durable learning data:**
-- Add a versioned local service and Zod schema.
-- Apply changes through `questionService.patchQuestion` or a small service wrapper.
-- Emit one semantic event through `eventBus`.
-- Add a source-reading or behavioral test for the invariant.
+**Adding a new color theme skin:**
+1. Add a `[data-theme="name"]` block to `src/index.css` overriding only changed CSS vars.
+2. Add an entry to the static cosmetic catalog with `slot: 'theme'`.
+3. `applyColorTheme(id)` in `theme.ts` sets `document.documentElement.dataset.theme`.
+4. No build step, no Tailwind config change, no library import.
 
-**If a feature is read-only retrieval/dashboard UI:**
-- Build from `questionService`, `postHistoryService`, `engagementService`, `trajectoryAnalyzerService`, and MiniSearch.
-- Rebuild derived views from source stores rather than duplicating snapshots.
+**Adding a new pet:**
+1. Author `.riv` file in Rive editor with `PetMachine` state machine (idle, happy, sleeping states).
+2. Drop `.riv` in `app/public/pets/`.
+3. Add catalog entry with `slot: 'pet'`, reference file name.
+4. `PetCompanion` component picks up the new pet by `petId` prop automatically.
 
-**If a feature affects graph structure:**
-- Treat MindElixir as renderer/input surface only.
-- Store edit commands and canonical field patches in Trellis data models.
-- Keep an undo/inverse command log for recent user corrections.
+**Adding a garden cosmetic (pot, vine, fruit):**
+1. Define SVG `<symbol id="pot-clay">` etc. in a shared `GardenSymbols.tsx` mounted once at app root.
+2. Equipped cosmetic ID drives `href` in `<use href="#pot-clay">` within the Planner garden component.
+3. No CSS var change needed unless it is also a color variant.
 
-**If a feature affects podcast quality:**
-- Add provider-neutral script/profile settings first.
-- Use OpenAI-specific TTS instructions only behind provider capability checks.
-- Keep TTS failure non-fatal: script should remain readable if audio generation fails.
-
-**If a feature affects engagement:**
-- Prefer stop cues, reflection prompts, and retrieval prompts over streaks or infinite-feed rewards.
-- Store all metrics locally and show them as learning outcomes, not growth metrics.
+**Purchase flow pattern:**
+1. User taps "Buy" → `cosmeticShopService.purchase(id)` → calls `trellisCreditsService.spend(cost)`.
+2. On success: append to `trellis_shop_owned`, emit `COSMETIC_PURCHASED`, emit `CREDITS_CHANGED`.
+3. On failure (`INSUFFICIENT_CREDITS`): show toast, no state change.
+4. Auto-equip on first purchase per slot (UX: immediate gratification).
 
 ## Version Compatibility
 
-| Package A | Compatible With | Notes |
-|-----------|-----------------|-------|
-| `@capacitor-community/sqlite@^8.1.0` | `@capacitor/core@^8.3.3` | npm metadata lists peer dependency `@capacitor/core >=8.0.0`; keep all Capacitor packages on 8.x together. |
-| `mind-elixir@^5.11.0` | React wrapper pattern in `GraphScreen.tsx` | MindElixir is not React-native state. Destroy/re-init discipline in `GraphScreen.tsx` should remain. |
-| `minisearch@^7.2.0` | Browser + Node | Good fit for app runtime and `node:test`; serialize index only if rebuild cost matters. |
-| `zod@^4.4.3` | TypeScript 5.9 | Use schemas in leaf modules to avoid i18n/import chains in tests. |
-| OpenAI `gpt-4o-mini-tts` | Existing fetch-based TTS provider | Official OpenAI TTS guide documents `gpt-4o-mini-tts`; test on device because audio latency/voice quality are experiential. |
+| Package | Compatible With | Notes |
+|---------|----------------|-------|
+| `@rive-app/react-canvas@^4.28.5` | React 19, Vite 7, Capacitor 8 WebView | WASM loads via fetch; works in Capacitor WebView. Self-host the WASM file (`@rive-app/canvas/rive.wasm`) in `app/public/` to avoid CDN dependency. Check `capacitor.config.ts` `server.androidScheme` if WASM fetch returns opaque response on Android. |
+| framer-motion `^12.39.0` (existing) | React 19 | Already validated in v1.4–v1.6. No version change needed for shop animations. |
+| CSS `data-theme` on `<html>` | Tailwind CSS 4 `@custom-variant dark` | The existing `@custom-variant dark (&:is(.dark *))` declaration in `index.css` is orthogonal to `data-theme`; both can be active simultaneously. Verify that adding `[data-theme="X"]` blocks after `.dark` does not accidentally reset dark-mode vars back to light values — only override vars that differ from the base theme, not all vars. |
 
 ## Confidence Assessment
 
 | Area | Confidence | Rationale |
 |------|------------|-----------|
-| Existing stack reuse | HIGH | Required files show mature services for graph, embeddings, podcasts, engagement, storage, and eventing. |
-| `zod` addition | HIGH | v1.6 introduces LLM JSON and migration boundaries where runtime validation directly prevents corruption. |
-| `minisearch` addition | HIGH | Retrieval/search/tag support needs local indexing; npm/docs confirm browser full-text use and serialization support. |
-| MindElixir upgrade/editing | MEDIUM | Staying on MindElixir is clearly right, but exact editing event hooks need implementation-time validation against 5.11.0 docs/source. |
-| OpenAI TTS model change | MEDIUM | Official docs support the model, but voice quality, latency, and mobile playback need UAT. |
-| SQLite upgrade | HIGH | Minor-compatible with Capacitor 8; do before adding migration surface. |
+| Coin balance extension (`trellisCreditsService.spend`) | HIGH | Pattern is already implemented; adding `spend()` is symmetric to existing `add()`. |
+| Ownership/equipment localStorage service | HIGH | Mirrors `trellisCreditsService` and `settingsService` patterns exactly; no new complexity. |
+| CSS `data-theme` multi-theme system | HIGH | Verified against Tailwind CSS 4 docs and existing `index.css` structure; `data-theme` + `.dark` are orthogonal. |
+| Garden cosmetic SVG layering | HIGH | SVG symbols + `<use>` is a well-established pattern; existing Planner SVG structure supports it. |
+| `@rive-app/react-canvas` for pet animation | MEDIUM | Library is well-documented and React-compatible; MEDIUM because WASM fetch in Capacitor Android WebView has one known edge case (opaque response if server scheme not set). Validate on Android device before ship. |
+| Pet animation CSS-sprite fallback | HIGH | Zero-dependency CSS `@keyframes steps()` is fully understood; confirmed adequate for single-state idle pet. |
+| framer-motion sufficiency for shop UI | HIGH | Already running at v12.39.0; variants, spring, and stagger cover purchase confirmations and shop grid. |
 
 ## Sources
 
-- Local repo: `.planning/PROJECT.md`, `.planning/MILESTONES.md`, `question-filter.service.ts`, `canonical-knowledge.service.ts`, `GraphScreen.tsx`, `podcast.service.ts`, `SavedScreen.tsx`, `question.service.ts`, `db.service.ts`, `engagement.service.ts`, `trajectoryAnalyzer.service.ts`.
-- npm registry queried 2026-05-13: `zod@4.4.3`, `minisearch@7.2.0`, `idb@8.0.3`, `mind-elixir@5.11.0`, `@capacitor-community/sqlite@8.1.0`, `fuse.js@7.3.0`, `flexsearch@0.8.212`.
-- MiniSearch official docs: https://lucaong.github.io/minisearch/ — browser/Node full-text search, fields, search options, serialization.
-- Zod official docs: https://zod.dev/ — TypeScript-first runtime schema validation and parsing.
-- idb official README: https://github.com/jakearchibald/idb — IndexedDB promise wrapper and `openDB` pattern.
-- MindElixir official site/GitHub: https://mind-elixir.com/ and https://github.com/SSShooter/mind-elixir-core — mind-map core and editable mind-map APIs.
-- Capacitor Community SQLite GitHub/npm metadata: https://github.com/capacitor-community/sqlite — Capacitor 8 peer compatibility.
-- OpenAI official TTS docs: https://platform.openai.com/docs/guides/text-to-speech — `gpt-4o-mini-tts` and speech generation options.
+- Local repo inspection 2026-05-20: `app/src/services/trellis-credits.service.ts`, `app/src/services/settings.service.ts`, `app/src/lib/theme.ts`, `app/src/lib/event-bus.ts`, `app/src/index.css`, `app/src/types/index.ts`, `app/package.json`.
+- Context7 `/mifi/react-lottie-player` — lazy load pattern, LottiePlayerLight CSP-safe build, npm install; verified 2026-05-20.
+- Context7 `/grx7/framer-motion` — variants, spring animation, staggered children; confirmed existing install at `^12.39.0` is current.
+- Rive official docs: https://rive.app/docs/runtimes/react/react — `useRive` hook, state machines, `@rive-app/react-canvas` React integration.
+- Pixel Point blog on Rive optimizations: https://pixelpoint.io/blog/rive-react-optimizations/ — WASM is 78KB, lazy-load + self-host pattern.
+- DEV Community: https://dev.to/uianimation/rive-vs-lottie-which-animation-tool-should-you-use-in-2025-p4m — Rive state machine advantage vs Lottie for character animation, 2025.
+- Medium (Ramin Yavari): https://medium.com/@sir.raminyavari/theming-in-tailwind-css-v4-support-multiple-color-schemes-and-dark-mode-ba97aead5c14 — `data-theme` attribute pattern in Tailwind CSS v4; confirmed CSS-only, no library.
+- Tailwind CSS v4 official docs: https://tailwindcss.com/docs/theme — `@custom-variant` and CSS variable theming.
+- npm registry 2026-05-20: `@rive-app/react-canvas@4.28.5`, `react-lottie-player@2.1.0`, `@lottiefiles/dotlottie-react@0.19.3`, `framer-motion@12.39.0`.
 
 ---
-*Stack research for: Trellis v1.6 Control, Graph Trust, Retrieval, and Ethical Engagement*
-*Researched: 2026-05-13*
+*Stack research for: Trellis v1.7 cosmetic rewards shop*
+*Researched: 2026-05-20*

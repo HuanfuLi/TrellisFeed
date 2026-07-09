@@ -48,8 +48,11 @@ const settingsStub = await import('./_filter-mock-settings.mjs');
 const {
   evaluateQuestion,
   layer1Regex,
-  OFF_TOPIC_SIMILARITY_THRESHOLD,
-  MALICIOUS_SIMILARITY_THRESHOLD,
+  resolveMaliciousFloor,
+  VALIDATED_MALICIOUS_FLOORS,
+  MALICIOUS_FLOOR_MIN,
+  MALICIOUS_FLOOR_MAX,
+  DEFAULT_MALICIOUS_FLOOR,
 } = await import('../../src/services/question-filter.service.ts');
 
 const filterSource = fs.readFileSync(
@@ -61,41 +64,72 @@ const filterSource = fs.readFileSync(
 // Mirrors classification-dedup.test.mjs threshold-band pattern.
 
 describe('question-filter.service.ts — source-reading invariants', () => {
-  it('Test 1 — exports evaluateQuestion, layer1Regex, OFF_TOPIC_SIMILARITY_THRESHOLD, MALICIOUS_SIMILARITY_THRESHOLD', () => {
+  it('Test 1 — exports evaluateQuestion, layer1Regex, resolveMaliciousFloor + floor band constants (RAW-ARGMAX)', () => {
     assert.match(filterSource, /export\s+async\s+function\s+evaluateQuestion/, 'must export evaluateQuestion');
     assert.match(filterSource, /export\s+function\s+layer1Regex/, 'must export layer1Regex');
     assert.match(
       filterSource,
-      /export\s+const\s+OFF_TOPIC_SIMILARITY_THRESHOLD/,
-      'must export OFF_TOPIC_SIMILARITY_THRESHOLD',
+      /export\s+function\s+resolveMaliciousFloor/,
+      'must export resolveMaliciousFloor (RAW-ARGMAX malicious-gate floor resolver)',
     );
     assert.match(
       filterSource,
-      /export\s+const\s+MALICIOUS_SIMILARITY_THRESHOLD/,
-      'must export MALICIOUS_SIMILARITY_THRESHOLD',
+      /export\s+const\s+VALIDATED_MALICIOUS_FLOORS/,
+      'must export the validated per-model floor table',
     );
   });
 
-  it('Test 2 — OFF_TOPIC_SIMILARITY_THRESHOLD is in [0.72, 0.88]', () => {
-    assert.ok(typeof OFF_TOPIC_SIMILARITY_THRESHOLD === 'number');
+  it('Test 2 — malicious floor hard band is [MIN, MAX] with MIN < MAX and within (0,1)', () => {
+    assert.ok(typeof MALICIOUS_FLOOR_MIN === 'number' && typeof MALICIOUS_FLOOR_MAX === 'number');
     assert.ok(
-      OFF_TOPIC_SIMILARITY_THRESHOLD >= 0.72 && OFF_TOPIC_SIMILARITY_THRESHOLD <= 0.88,
-      `OFF_TOPIC_SIMILARITY_THRESHOLD must be in [0.72, 0.88] band per RESEARCH §"Layer 2 Decision Rule" — got ${OFF_TOPIC_SIMILARITY_THRESHOLD}`,
+      MALICIOUS_FLOOR_MIN > 0 && MALICIOUS_FLOOR_MIN < MALICIOUS_FLOOR_MAX && MALICIOUS_FLOOR_MAX < 1,
+      `Floor band must satisfy 0 < MIN < MAX < 1 — got [${MALICIOUS_FLOOR_MIN}, ${MALICIOUS_FLOOR_MAX}]`,
     );
   });
 
-  it('Test 3 — MALICIOUS_SIMILARITY_THRESHOLD is in [0.78, 0.92]', () => {
-    assert.ok(typeof MALICIOUS_SIMILARITY_THRESHOLD === 'number');
-    assert.ok(
-      MALICIOUS_SIMILARITY_THRESHOLD >= 0.78 && MALICIOUS_SIMILARITY_THRESHOLD <= 0.92,
-      `MALICIOUS_SIMILARITY_THRESHOLD must be in [0.78, 0.92] band per RESEARCH §"Layer 2 Decision Rule" — got ${MALICIOUS_SIMILARITY_THRESHOLD}`,
-    );
+  it('Test 3 — every validated floor sits inside the hard band (no entry can disable detection or over-block)', () => {
+    assert.ok(Array.isArray(VALIDATED_MALICIOUS_FLOORS) && VALIDATED_MALICIOUS_FLOORS.length > 0);
+    for (const e of VALIDATED_MALICIOUS_FLOORS) {
+      assert.ok(
+        e.floor >= MALICIOUS_FLOOR_MIN && e.floor <= MALICIOUS_FLOOR_MAX,
+        `validated floor ${e.floor} must be within the hard band [${MALICIOUS_FLOOR_MIN}, ${MALICIOUS_FLOOR_MAX}]`,
+      );
+    }
   });
 
-  it('Test 4 — MALICIOUS_SIMILARITY_THRESHOLD > OFF_TOPIC_SIMILARITY_THRESHOLD (D-02 conservative bias)', () => {
+  it('Test 4 — resolveMaliciousFloor clamps a debug override to the hard band (security: cannot be detuned out of band)', () => {
+    const cfg = { provider: 'openai', model: 'text-embedding-3-small', dimensions: 256, isConfigured: true };
+    const tooLow = resolveMaliciousFloor(cfg, [], { debugEnabled: true, maliciousThreshold: 0.0 });
+    const tooHigh = resolveMaliciousFloor(cfg, [], { debugEnabled: true, maliciousThreshold: 0.99 });
+    assert.equal(tooLow, MALICIOUS_FLOOR_MIN, 'debug override below MIN must clamp up to MIN');
+    assert.equal(tooHigh, MALICIOUS_FLOOR_MAX, 'debug override above MAX must clamp down to MAX');
+  });
+
+  it('Test 4a — validated model uses its table floor; unknown model auto-calibrates within the hard band', () => {
+    const qwen = { provider: 'lmstudio', model: 'text-embedding-qwen3-embedding-8b', isConfigured: true };
+    assert.equal(
+      resolveMaliciousFloor(qwen, [], undefined),
+      0.615,
+      'a validated model must take its measured floor from the table (no recompute)',
+    );
+    // Unknown model → auto-calibrate from corpus: floor sits just above the most
+    // malicious-looking benign exemplar, clamped to [MIN, MAX]. mal=[1,0]; the
+    // closest benign ([0.7,0.7], cosine ~0.707) pushes the raw value to the MAX clamp.
+    const corpus = [
+      { label: 'malicious', text: 'm', vector: [1, 0] },
+      { label: 'on-topic', text: 'a', vector: [0.7, 0.7] },
+      { label: 'off-topic', text: 'b', vector: [0, 1] },
+    ];
+    const auto = resolveMaliciousFloor({ provider: 'local', model: 'mystery-embed', isConfigured: true }, corpus, undefined);
     assert.ok(
-      MALICIOUS_SIMILARITY_THRESHOLD > OFF_TOPIC_SIMILARITY_THRESHOLD,
-      `Malicious threshold must be strictly stricter — false positives BLOCK the LLM call (no override per D-02). Got OFF=${OFF_TOPIC_SIMILARITY_THRESHOLD}, MAL=${MALICIOUS_SIMILARITY_THRESHOLD}`,
+      auto >= MALICIOUS_FLOOR_MIN && auto <= MALICIOUS_FLOOR_MAX,
+      `auto-calibrated floor must be within the hard band — got ${auto}`,
+    );
+    // Empty corpus → safe default.
+    assert.equal(
+      resolveMaliciousFloor({ provider: 'local', model: 'empty-embed', isConfigured: true }, [], undefined),
+      DEFAULT_MALICIOUS_FLOOR,
+      'empty corpus must fall back to DEFAULT_MALICIOUS_FLOOR',
     );
   });
 
@@ -208,9 +242,10 @@ describe('evaluateQuestion Layer 2 (deterministic FNV-1a mock against real corpu
       `exact corpus match must yield malicious label — got ${result.label}, bestMatch=${JSON.stringify(result.bestMatch)}`,
     );
     assert.ok(result.bestMatch, 'malicious result must include bestMatch for dev/eval visibility');
+    assert.equal(result.bestMatch.label, 'malicious', 'bestMatch label must be malicious');
     assert.ok(
-      result.bestMatch.score >= MALICIOUS_SIMILARITY_THRESHOLD,
-      `bestMatch.score must be >= MALICIOUS_SIMILARITY_THRESHOLD — got ${result.bestMatch.score}`,
+      result.bestMatch.score >= MALICIOUS_FLOOR_MIN,
+      `RAW-ARGMAX: a malicious classification's raw score must clear at least the floor minimum — got ${result.bestMatch.score}`,
     );
   });
 
@@ -228,14 +263,14 @@ describe('evaluateQuestion Layer 2 (deterministic FNV-1a mock against real corpu
   });
 
   it('Test 17 — input with no corpus match above thresholds returns on-topic', async () => {
-    // A novel input chosen empirically so its FNV-1a-projected vector stays
-    // below BOTH thresholds (off=0.64, mal=0.53 against every corpus entry).
-    // The deterministic mock has high baseline cosine variance because every
-    // 64-dim L2-normalized vector is on the unit sphere — most random pairs
-    // share substantial direction. This input was selected from a candidate
-    // sweep (see commit message) as one of the few that avoids spurious
-    // false-positives in the mock vector space.
-    const novelInput = 'my unique test input that should not match';
+    // A novel input chosen so its max trigram-Jaccard overlap with EVERY corpus
+    // entry stays below the mock's MIN_OVERLAP_FOR_ANCHOR (0.10) — forcing the
+    // no-anchor fallback path, which yields on-topic. Re-picked for corpus v2
+    // (2026-05-21): the prior input ('my unique test input that should not
+    // match') began colliding with the new off-topic exemplar 'what should I
+    // cook for dinner tonight?' via the shared word 'should'. This nonsense
+    // sentence has ~0.05 max overlap across all 124 entries.
+    const novelInput = 'xylophone marmot saunters through quizzical vortex';
     const result = await evaluateQuestion(novelInput);
     assert.equal(
       result.label,

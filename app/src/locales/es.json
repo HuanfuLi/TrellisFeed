@@ -387,6 +387,7 @@
     },
     "sections": {
       "languageModel": "Modelo de lenguaje",
+      "fastModel": "Modelo de generación rápida",
       "embeddingModel": "Modelo de embeddings",
       "tts": "Voz y Reconocimiento",
       "zerotier": "Red ZeroTier",
@@ -406,6 +407,7 @@
       "apiKey": "Clave de API",
       "baseUrl": "URL base",
       "model": "Modelo",
+      "fastModelEnabled": "Usar un modelo de generación rápida",
       "modelId": "ID del modelo",
       "dimensions": "Dimensiones",
       "voice": "Voz",
@@ -443,6 +445,9 @@
       "ttsModelHd": "HD (tts-1-hd)"
     },
     "descriptions": {
+      "fastModelBlurb": "Opcional. Genera los cuerpos de las publicaciones y las respuestas de seguimiento con un modelo de baja latencia independiente y con el razonamiento desactivado, para que el contenido aparezca al instante. Déjalo desactivado para usar tu modelo principal.",
+      "fastModelEnabled": "Generar los cuerpos de las publicaciones, los resúmenes de noticias y los seguimientos con este modelo",
+      "fastModelHint": "Elige un modelo pequeño y sin razonamiento para la transmisión más rápida.",
       "embeddingBlurb": "Usado para la similitud semántica entre conceptos. Impulsa la calidad de las tarjetas de conexión. Independiente del LLM — Anthropic no tiene modelo de embeddings.",
       "lmStudioServer": "URL del servidor LM Studio",
       "ollamaServer": "URL del servidor Ollama",
@@ -575,6 +580,7 @@
     },
     "toast": {
       "llmSaved": "Ajustes de LLM guardados.",
+      "fastModelSaved": "Modelo de generación rápida guardado.",
       "embeddingSaved": "Ajustes de embeddings guardados.",
       "ttsSaved": "Ajustes de TTS guardados.",
       "zerotierSaved": "Ajustes de ZeroTier guardados.",
@@ -594,6 +600,9 @@
       "importing": "Importando datos…",
       "imageCacheCleared": "Caché de imágenes borrado.",
       "tokenUsageCleared": "Datos de uso de tokens borrados.",
+      "noPostQueueRollback": "No hay cola de publicaciones para revertir. Genera algunas publicaciones primero.",
+      "forceNewDayRollbackSuccess": "Cola y caché de publicaciones diarias revertidas; progreso de la vid restablecido. Navegando a /home.",
+      "forceNewDayFailed": "Falló forzar un nuevo día. Revisa la consola.",
       "trellisDevOn": "Modo dev enrejado activado — mostrando todos los estados",
       "trellisDevOff": "Modo dev enrejado desactivado",
       "settingsReset": "Ajustes restablecidos — recargando…",

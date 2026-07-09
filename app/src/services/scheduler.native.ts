@@ -103,12 +103,12 @@ export async function scheduleNativeNotifications(): Promise<void> {
 
     if (notifications.length > 0) {
       await LocalNotifications.schedule({ notifications });
-      console.log('[NativeScheduler] Scheduled', notifications.length, 'notification(s)');
+      console.warn('[NativeScheduler] Scheduled', notifications.length, 'notification(s)');
     }
 
     // Listen for notification taps — app opens and foreground scheduler handles the task
     await LocalNotifications.addListener('localNotificationActionPerformed', (action) => {
-      console.log('[NativeScheduler] Notification tapped:', action.notification.id);
+      console.warn('[NativeScheduler] Notification tapped:', action.notification.id);
       // The foreground scheduler (scheduler.service.ts) will run checks on app resume
     });
   } catch (err) {

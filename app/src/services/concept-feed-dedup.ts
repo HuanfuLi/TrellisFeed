@@ -4,15 +4,18 @@
 // are blocked across multiple refillQueue invocations within a session.
 //
 // Persistence (added 2026-04-19, supersedes the original D-02 in-memory-only choice):
-//   - On first access in a session, lazily backfill the seen-set from videoIds present
-//     in trellis_post_history (already persisted by postHistoryService). This makes
-//     the dedup survive page reloads and app restarts on Capacitor Android, fixing the
-//     "same YouTube video keeps reappearing on swipe-for-more" symptom.
+//   - On first access in a session, lazily backfill the seen-set from videoIds already
+//     persisted by postHistoryService. This makes the dedup survive page reloads and
+//     app restarts on Capacitor Android, fixing the "same YouTube video keeps
+//     reappearing on swipe-for-more" symptom.
 //   - We deliberately do NOT import postHistoryService here — that would pull
 //     settings.service → llm-provider chain → i18n bundles, breaking this module's
 //     "zero transitive deps" property used by node --test (see deferred-items.md).
-//     Direct localStorage access is gated by a `typeof localStorage` check so tests
-//     without a DOM continue to pass.
+//     Instead the history source is INJECTED via setSeenVideoIdHistorySource; the
+//     dependency points inward, so this module still imports nothing.
+//     This used to read `trellis_post_history` from localStorage directly, but the
+//     IndexedDB migration retired that key (the boot sweep deletes it), so the
+//     backfill silently became a no-op and videos began repeating across restarts.
 // Reset semantics:
 //   - Cleared on day boundary (maybeResetForNewDay()) — yesterday's videoIds don't
 //     block today's pool. The history-backed backfill respects the same day cutoff.
@@ -20,11 +23,22 @@
 // This module has zero transitive deps on i18n / locales bundles, so it can be
 // imported directly from `node --test` without the JSON-import-attribute chain.
 
-const POST_HISTORY_KEY = 'trellis_post_history';
+/** Returns the videoIds of posts generated on `day`. Injected — see module header. */
+type VideoIdHistorySource = (day: string) => string[];
 
+let _historySource: VideoIdHistorySource | null = null;
 let _seenVideoIds = new Set<string>();
 let _trackedDay: string = currentDay();
 let _backfilledFromHistory = false;
+
+/**
+ * Register the post-history backing store for the lazy backfill. Called once at
+ * import time by concept-feed.service.ts, which already depends on
+ * postHistoryService. Without a source the backfill is skipped (node --test).
+ */
+export function setSeenVideoIdHistorySource(source: VideoIdHistorySource): void {
+  _historySource = source;
+}
 
 // Inline today() to avoid i18next dependency chain from lib/date.ts
 // (mirrors post-queue.service.ts:18-25 pattern).
@@ -53,31 +67,20 @@ function maybeResetForNewDay(): void {
 }
 
 /**
- * Lazy backfill from trellis_post_history. Runs once per session/day.
+ * Lazy backfill from post history. Runs once per session/day.
  * Only seeds today's videoIds — older entries don't block today's pool.
- * Tolerates missing localStorage (node --test) and corrupted JSON.
+ * No-ops when no source is registered (node --test).
  */
 function maybeBackfillFromHistory(): void {
   if (_backfilledFromHistory) return;
   _backfilledFromHistory = true;
-  if (typeof localStorage === 'undefined') return;
+  if (!_historySource) return;
   try {
-    const raw = localStorage.getItem(POST_HISTORY_KEY);
-    if (!raw) return;
-    const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed)) return;
-    const today = _trackedDay;
-    for (const entry of parsed) {
-      if (!entry || typeof entry !== 'object') continue;
-      const post = entry as { date?: unknown; videoMeta?: { videoId?: unknown } };
-      if (post.date !== today) continue;
-      const vid = post.videoMeta?.videoId;
-      if (typeof vid === 'string' && vid.length > 0) {
-        _seenVideoIds.add(vid);
-      }
+    for (const vid of _historySource(_trackedDay)) {
+      if (typeof vid === 'string' && vid.length > 0) _seenVideoIds.add(vid);
     }
   } catch {
-    // Ignore — corrupted history shouldn't break dedup.
+    // Ignore — a failing history read shouldn't break dedup.
   }
 }
 

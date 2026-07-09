@@ -1,6 +1,13 @@
 import { chatStream, chatCompletion } from '../providers/llm/index.ts';
 import type { DailyPost, Question } from '../types';
 import { settingsService } from './settings.service.ts';
+import { resolveGenerationConfig } from './generation-config.ts';
+import { conceptFeedService } from './concept-feed.service.ts';
+import { postHistoryService } from './post-history.service.ts';
+
+// Phase 55.1 GAP-E — re-export so the fast-model resolver is reachable from this module's
+// public surface (and source-grep acceptance) while its definition stays React-free.
+export { resolveGenerationConfig };
 
 /**
  * On-enter essay generation service.
@@ -87,6 +94,9 @@ export async function generateEssayMeta(post: DailyPost, bodyMarkdown: string, o
 
 async function* generateStandardEssay(post: DailyPost, questions: Question[], options?: EssayOptions): AsyncGenerator<string> {
   const settings = settingsService.getSync();
+  // Phase 55.1 GAP-E — route the on-open body through the optional low-latency model
+  // (thinking disabled) when configured; else fall back to the main model unchanged.
+  const { config, disableThinking } = resolveGenerationConfig(settings);
   const sourceQs = questions.filter(q => post.sourceQuestionIds.includes(q.id));
   const contextBlock = sourceQs.length > 0
     ? sourceQs.map(q => `Q: ${q.title || q.content.slice(0, 80)}\nA: ${(q.summary || q.answer).slice(0, 300)}`).join('\n\n')
@@ -110,13 +120,14 @@ async function* generateStandardEssay(post: DailyPost, questions: Question[], op
         content: `Write an essay titled "${post.title}" with this hook: "${post.teaser.hook}"\n\nContext from the learner's knowledge:\n${contextBlock}`,
       },
     ],
-    settings.llm,
-    { serviceName: 'posts', signal: options?.signal },
+    config,
+    { serviceName: 'posts', signal: options?.signal, disableThinking },
   );
 }
 
 async function* generateVideoEssay(post: DailyPost, options?: EssayOptions): AsyncGenerator<string> {
   const settings = settingsService.getSync();
+  const { config, disableThinking } = resolveGenerationConfig(settings);
   const transcript = post.videoMeta?.transcript;
   const videoTitle = post.videoMeta?.channelTitle ? `${post.title} (${post.videoMeta.channelTitle})` : post.title;
 
@@ -146,13 +157,17 @@ async function* generateVideoEssay(post: DailyPost, options?: EssayOptions): Asy
         content: userContent,
       },
     ],
-    settings.llm,
-    { serviceName: 'video-summary', signal: options?.signal },
+    config,
+    { serviceName: 'video-summary', signal: options?.signal, disableThinking },
   );
 }
 
 async function* generateNewsEssay(post: DailyPost, options?: EssayOptions): AsyncGenerator<string> {
   const settings = settingsService.getSync();
+  // Phase 55.1 GAP-E — fast-model routing. NOTE: this only changes WHICH model streams the
+  // news body on open; the news creation branch in concept-feed.service.ts still sets
+  // bodyMarkdown:'' (defer-to-streamer). Do NOT eagerly generate the body here.
+  const { config, disableThinking } = resolveGenerationConfig(settings);
   const sources = post.newsMeta?.sources ?? [];
   // Phase 41 SC-4 — multi-snippet grounding via sources.slice(0, 3). Plan 41-01 widened
   // Tavily maxResults 1 → 3 and stores up to 3 indexed entries in newsMeta.sources; this
@@ -198,13 +213,14 @@ async function* generateNewsEssay(post: DailyPost, options?: EssayOptions): Asyn
         content: `Headline: ${post.title}\nSources:\n${sourceText}\n\nConcept context: ${post.keywords.join(', ')}`,
       },
     ],
-    settings.llm,
-    { serviceName: 'news', signal: options?.signal },
+    config,
+    { serviceName: 'news', signal: options?.signal, disableThinking },
   );
 }
 
 async function* generateTextArtEssay(post: DailyPost, questions: Question[], options?: EssayOptions): AsyncGenerator<string> {
   const settings = settingsService.getSync();
+  const { config, disableThinking } = resolveGenerationConfig(settings);
   const sourceQs = questions.filter(q => post.sourceQuestionIds.includes(q.id));
   const contextBlock = sourceQs.length > 0
     ? sourceQs.map(q => `Q: ${q.title || q.content.slice(0, 80)}\nA: ${(q.summary || q.answer).slice(0, 300)}`).join('\n\n')
@@ -228,17 +244,24 @@ async function* generateTextArtEssay(post: DailyPost, questions: Question[], opt
         content: `Write a social media post about "${post.title}" with the hook: "${post.teaser.hook}"\n\nConcept context:\n${contextBlock}`,
       },
     ],
-    settings.llm,
-    { serviceName: 'posts', signal: options?.signal },
+    config,
+    { serviceName: 'posts', signal: options?.signal, disableThinking },
   );
 }
 
 /**
- * Patch a post's essay content into the correct localStorage cache after generation.
- * Checks daily cache, video cache, and news cache.
- * (Phase 38 / TECHDEBT-06): the legacy shorts cache key was removed — short post type
- * was deleted entirely. Stale data in user localStorage is harmless once the read
- * site is gone (Bucket C cleanup deferred per CONTEXT.md).
+ * Patch a post's generated essay content into the durable stores.
+ *
+ * Both stores are patched, never just the first match: a post can live in the
+ * daily cache AND post-history simultaneously, and post-history is what keeps
+ * the body openable from /post-history, /saved and /liked after the daily cache
+ * is rejected at midnight (Phase 36-11). Generated bodies are costly assets —
+ * LLM tokens, image gen, Tavily and YouTube quota.
+ *
+ * This used to read-modify-write four localStorage keys directly. The IndexedDB
+ * migration retired all four (and the boot sweep deletes them), which silently
+ * turned this function into a no-op and made every post body regenerate on open.
+ * Route through the owning services so the write reaches IndexedDB.
  *
  * Phase 41 D-03 + RESEARCH Pitfall 9 — selective merge so partial essays don't clobber.
  * When the generator was called with depth: 'deep' it returns bodyMarkdownDeep populated
@@ -248,37 +271,14 @@ async function* generateTextArtEssay(post: DailyPost, questions: Question[], opt
  * (empty array is meaningful, replace it).
  */
 export function patchPostEssayInCache(postId: string, essay: EssayContent): void {
-  // 2026-05-12 — `trellis_post_history` added as a write target so the streamed
-  // body persists across the midnight stale-cache rejection (Phase 36-11). The
-  // early `return` after first match was also removed: a post can live in BOTH
-  // the daily cache and post-history simultaneously, and both need the patch
-  // for the body to survive the daily cache rollover. Generated post bodies
-  // are costly assets — LLM tokens + image gen + Tavily + YouTube quota — and
-  // must remain openable from /post-history + /saved + /liked indefinitely.
-  const cacheKeys = ['trellis_daily_posts', 'trellis_video_cache', 'trellis_news_posts', 'trellis_post_history'];
-  for (const key of cacheKeys) {
-    try {
-      const raw = localStorage.getItem(key);
-      if (!raw) continue;
-      const cached = JSON.parse(raw);
-      const posts: DailyPost[] = cached?.posts ?? (Array.isArray(cached) ? cached : []);
-      const idx = posts.findIndex((p: DailyPost) => p.id === postId);
-      if (idx >= 0) {
-        const merged: DailyPost = { ...posts[idx] };
-        if (essay.bodyMarkdown && essay.bodyMarkdown.trim() !== '') merged.bodyMarkdown = essay.bodyMarkdown;
-        if (essay.bodyMarkdownDeep && essay.bodyMarkdownDeep.trim() !== '') merged.bodyMarkdownDeep = essay.bodyMarkdownDeep;
-        if (essay.whyCare) merged.whyCare = essay.whyCare;
-        if (essay.takeaway) merged.takeaway = essay.takeaway;
-        if (essay.quickAskPrompts) merged.quickAskPrompts = essay.quickAskPrompts;
-        posts[idx] = merged;
-        if (cached?.posts) {
-          cached.posts = posts;
-          localStorage.setItem(key, JSON.stringify(cached));
-        } else {
-          localStorage.setItem(key, JSON.stringify(posts));
-        }
-        // Continue scanning — patch every cache that has this post, not just the first.
-      }
-    } catch { /* ignore */ }
-  }
+  const patch: Partial<DailyPost> = {};
+  if (essay.bodyMarkdown && essay.bodyMarkdown.trim() !== '') patch.bodyMarkdown = essay.bodyMarkdown;
+  if (essay.bodyMarkdownDeep && essay.bodyMarkdownDeep.trim() !== '') patch.bodyMarkdownDeep = essay.bodyMarkdownDeep;
+  if (essay.whyCare) patch.whyCare = essay.whyCare;
+  if (essay.takeaway) patch.takeaway = essay.takeaway;
+  if (essay.quickAskPrompts) patch.quickAskPrompts = essay.quickAskPrompts;
+  if (Object.keys(patch).length === 0) return;
+
+  try { conceptFeedService.patchPost(postId, patch); } catch { /* ignore */ }
+  try { postHistoryService.patchPost(postId, patch); } catch { /* ignore */ }
 }
