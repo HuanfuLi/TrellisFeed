@@ -1,17 +1,17 @@
 ---
-status: partial
+status: testing
 phase: 56-ui-polish-documentation
 source: [56-01-SUMMARY.md, 56-02-SUMMARY.md, 56-03-SUMMARY.md, 56-04-SUMMARY.md, 56-05-SUMMARY.md, 56-VERIFICATION.md]
 started: 2026-07-08T23:25:00Z
-updated: 2026-07-08T23:50:00Z
+updated: 2026-07-09T00:25:00Z
 ---
 
 ## Current Test
 
 number: 12
-name: Android 真机最终手感检查
+name: Android 真机最终手感复测
 expected: |
-  在 Android 真机上启用 Trellis Dev Mode，然后快速切换 Home → Planner → Ask → Home，并滚动 Home 信息流。31 节点的大型 trellis 不应造成明显的切屏或滚动卡顿；同时简单确认更新后的 Planner、Saved 和返回按钮看起来、用起来正常。
+  安装包含 b367e773 的新 APK，在 Android 真机上启用 Trellis Dev Mode，然后快速切换 Home → Planner → Ask → Home，并滚动 Home 信息流。31 节点 trellis 在切回 Planner 时应保持原有 SVG，不再整树重绘或重播所有入场动画；切屏和滚动不应有明显卡顿。
 awaiting: user response
 
 ## Tests
@@ -74,6 +74,11 @@ evidence: `npx cap sync android` passed with 6 plugins; `./gradlew assembleDebug
 ### 12. Android 真机最终手感检查
 expected: 在 Android 真机上启用 Trellis Dev Mode，然后快速切换 Home → Planner → Ask → Home，并滚动 Home 信息流。31 节点的大型 trellis 不应造成明显的切屏或滚动卡顿；同时简单确认更新后的 Planner、Saved 和返回按钮看起来、用起来正常。
 result: [pending]
+previous_result: issue
+reported: "说实话还是有点卡顿。而且我不知道是不是这个开发者模式的原因。切回 Planner 时看起来会重新绘制所有叶子、水果等元素，并重新播放全部动画；这些元素原先应该渲染后保持不动。"
+severity: minor
+fix: "b367e773 — dev/large trellis always keeps one plain-SVG tree; normal small trellis animates only on its first visit, then stays static on subsequent returns."
+automated_recheck: "Chrome node-identity probe changed from false/false to true/true across Home→Planner→Home; group count stays 118; production browser UAT 9/9; main 1598/1598; actions 149/149."
 
 ## Summary
 
@@ -86,4 +91,17 @@ blocked: 0
 
 ## Gaps
 
-[none]
+- truth: "切回 Planner 时复用已经渲染的 trellis，不替换全部 SVG 元素、不重播所有入场动画；Home↔Planner↔Ask 和 Home 滚动保持流畅"
+  status: resolved_pending_verification
+  reason: "用户报告：真机仍有点卡顿；返回 Planner 时看起来会重新绘制全部叶子/水果并重播动画，开发者模式可能放大问题"
+  severity: minor
+  test: 12
+  root_cause: "animationsEnabled previously equaled isPlannerActive, switching intrinsic SVG to motion.* components on entry and back on exit. React replaced the full subtree and Framer replayed initial animations. Dev Mode magnified the replacement with 31 nodes."
+  artifacts:
+    - path: "app/src/components/trellis/TrellisHero.tsx"
+      issue: "Route changes flipped the whole-tree render type without a first-visit lifecycle latch."
+    - path: "app/src/services/trellis-animation-gate.ts"
+      issue: "The gate ignored devMode, nodeCount, and prior visits; every active Planner route returned true."
+  missing:
+    - "Android physical re-test of commit b367e773"
+  debug_session: ".planning/debug/planner-trellis-remount-on-return.md"
