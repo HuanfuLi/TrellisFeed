@@ -1,8 +1,8 @@
 ---
-status: verifying
+status: resolved
 slug: planner-trellis-remount-on-return
 created: 2026-07-08T20:05:00-04:00
-updated: 2026-07-08T20:25:00-04:00
+updated: 2026-07-08T20:35:00-04:00
 severity: minor
 source: .planning/phases/56-ui-polish-documentation/56-UAT.md
 ---
@@ -84,6 +84,11 @@ Commit `b367e773`:
 - TypeScript, lint (0 errors), production build: pass.
 - Production browser UAT: 9/9.
 
-## Pending
+## Resolution
 
-Physical Android confirmation that the visible swipe/scroll hitch is gone.
+Operator re-tested the rebuilt Android APK on 2026-07-08 and accepted the fix:
+
+- Significantly better than the previous build.
+- Overall frame rate remains somewhat low.
+- Motion is smooth and there are no significant frame drops.
+- Keep the current implementation; no further optimization is required for this phase.
