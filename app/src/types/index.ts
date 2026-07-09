@@ -780,6 +780,13 @@ export type AppEvent =
   | { type: 'ZEROTIER_STATUS_CHANGED'; payload: ZeroTierConfig }
   | { type: 'NETWORK_STATUS_CHANGED'; payload: { isOnline: boolean } }
   | { type: 'POST_DELETED'; payload: { id: string } }
+  // Emitted once per refill cycle that actually RUNS (the `needsRefill()`
+  // early-return does not emit). `added` is the realized queue growth; `error`
+  // is set only when the cycle threw. HomeScreen needs this because
+  // getDailyPosts() returns [] on a cold start BY DESIGN while refillQueue
+  // works in the background — without a completion signal an empty feed is
+  // indistinguishable from a broken API key.
+  | { type: 'FEED_REFILL_COMPLETED'; payload: { added: number; error?: string } }
   | { type: 'SESSION_CREATED'; payload: ChatSession }
   | { type: 'SESSION_UPDATED'; payload: { id: string } }
   | { type: 'FLASHCARDS_CREATED'; payload: { sessionId: string; count: number } }

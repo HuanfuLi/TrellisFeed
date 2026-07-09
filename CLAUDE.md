@@ -222,6 +222,26 @@ Three layers of defense:
 
 ---
 
+## Feed cold start — an empty feed is not an error (load-bearing)
+
+`getDailyPosts()` returns `[]` on a cold start **by design**: today's queue is empty and `refillQueue` is still working in the background. A real refill can take **minutes** (measured at 144s against a local LM Studio endpoint — LLM + YouTube + Tavily, serially).
+
+HomeScreen used to call that `[]` a failure and render *"Couldn't generate posts — check your API keys"* immediately, with a single 8s timer as its only recovery. A refill slower than 8s left the error on screen permanently, because `/home` is always-mounted and never remounts. Users with perfectly valid keys saw an API-key error. Fixed 2026-07-08.
+
+`refillQueue` now emits **`FEED_REFILL_COMPLETED`** `{ added, error? }` exactly once per cycle that actually runs.
+
+### Rules
+
+1. **Never treat an empty `getDailyPosts()` result as an error.** It means "still refilling". Stay in the loading state and let `FEED_REFILL_COMPLETED` decide.
+2. **Emit from inside the mutex body, in a `finally`.** Concurrent callers await the *same* in-flight Promise, so emitting outside `_refillMutex.run` fires once per caller. The `finally` covers the cycle's two "nothing to do" early returns (daily cap, empty concept batch) — without it a listener waits on a spinner forever.
+3. **`attempted > 0 && generated === 0` is the only signal a broken API key produces.** `generatePostBatch` catches and logs per-branch LLM failures, so zero posts from a non-empty concept batch must be reported as `error`. `attempted === 0` (nothing to generate) is a normal empty state.
+4. **The HomeScreen subscriber must no-op when the feed already has posts.** Refreshing a populated feed calls `getDailyPosts` → `refillQueue` → `FEED_REFILL_COMPLETED` again: an infinite loop.
+5. Don't reintroduce a timer-based recovery. The event is the signal.
+
+Tests: `tests/screens/HomeScreen.empty-questions-no-error.test.mjs`.
+
+---
+
 ## Event bus — unified GRAPH_UPDATED (Phase 32.1)
 
 There is **ONE event for graph mutations**: `GRAPH_UPDATED`. Used by `commitClassificationResult` (canonical-knowledge.service.ts), `trellisActionsService.replant`/`unpruneQuestion`, and any future code mutating anchors/clusters/questions.
