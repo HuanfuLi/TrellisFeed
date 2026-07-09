@@ -11,7 +11,7 @@ updated: 2026-07-09T00:25:00Z
 number: 12
 name: Android 真机最终手感复测
 expected: |
-  安装包含 b367e773 的新 APK，在 Android 真机上启用 Trellis Dev Mode，然后快速切换 Home → Planner → Ask → Home，并滚动 Home 信息流。31 节点 trellis 在切回 Planner 时应保持原有 SVG，不再整树重绘或重播所有入场动画；切屏和滚动不应有明显卡顿。
+  安装包含 b367e773 的新 APK（app/android/app/build/outputs/apk/debug/app-debug.apk），在 Android 真机上启用 Trellis Dev Mode，然后快速切换 Home → Planner → Ask → Home，并滚动 Home 信息流。31 节点 trellis 在切回 Planner 时应保持原有 SVG，不再整树重绘或重播所有入场动画；切屏和滚动不应有明显卡顿。
 awaiting: user response
 
 ## Tests
