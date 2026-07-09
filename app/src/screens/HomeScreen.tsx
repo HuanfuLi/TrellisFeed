@@ -31,6 +31,9 @@ import { today, getGreeting } from '../lib/date';
 import { toast } from '../lib/toast';
 import { findPostForConcept } from '../lib/concept-target';
 
+/** Vertical travel (px) that resolves a bottom-edge touch into a pull-up vs. a scroll-back-up. */
+const DIRECTION_SLOP = 4;
+
 
 
 export function HomeScreen() {
@@ -438,6 +441,7 @@ export function HomeScreen() {
 
     let touchStartY = 0;
     let tracking = false;
+    let claimed = false;
     let currentPull = 0;
 
     const onTouchStart = (e: TouchEvent) => {
@@ -447,18 +451,32 @@ export function HomeScreen() {
       if (isLoadingMoreRef.current) return;
       touchStartY = e.touches[0].clientY;
       tracking = true;
+      claimed = false;
       currentPull = 0;
     };
 
     const onTouchMove = (e: TouchEvent) => {
       if (!tracking) return;
-      // Claim the gesture immediately — must be before any early-return so the
-      // browser never gets a chance to rubber-band the page on the first event.
-      e.preventDefault();
       const dy = touchStartY - e.touches[0].clientY; // positive = pull up
+
+      // Resolve direction BEFORE claiming the gesture. WKWebView cancels the
+      // native scroll for the entire touch sequence if the first touchmove is
+      // preventDefault()ed, so an unconditional claim here locks vertical
+      // scrolling at the bottom of the feed until the finger lifts.
+      if (!claimed) {
+        if (dy < DIRECTION_SLOP) {
+          if (dy < -DIRECTION_SLOP) tracking = false; // scrolling back up — hand the gesture back
+          return;
+        }
+        claimed = true;
+      }
+
+      // Pull-up confirmed: own the gesture so the browser can't rubber-band.
+      e.preventDefault();
       if (dy < -10) {
         // Clear intentional downward swipe — cancel the pull gesture
         tracking = false;
+        claimed = false;
         if (currentPull > 0) {
           currentPull = 0;
           setPullDistance(0);
@@ -474,6 +492,7 @@ export function HomeScreen() {
       if (!tracking) return;
       const pd = currentPull;
       tracking = false;
+      claimed = false;
       currentPull = 0;
       setPullDistance(0); // triggers CSS snap-back transition in PullUpHint
       if (pd >= PULL_THRESHOLD) {

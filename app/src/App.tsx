@@ -56,6 +56,11 @@ import { HeaderScrollContext } from './lib/header-scroll-context';
 
 const SCREEN_ROUTES = ['/home', '/planner', '/ask', '/graph', '/settings'] as const;
 
+/** Left-edge band (px) where a back-swipe can begin — matches iOS's own screen-edge gesture. */
+const EDGE_SWIPE_ZONE = 28;
+/** Horizontal travel (px) needed to commit the back-swipe on release. */
+const EDGE_SWIPE_COMMIT_PX = 70;
+
 function RootLayout() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -81,6 +86,38 @@ function RootLayout() {
   prevIsTopLevelRef.current = isTopLevelScreen;
 
   const showSubScreen = !isTopLevelScreen || subScreenClosing;
+
+  // ── iOS-style edge-swipe back (sub-screens only) ────────────────────────
+  // Commit-on-release rather than a finger-following drag: sub-screen Headers
+  // portal to document.body (see Header.tsx), so translating this overlay
+  // would slide the content out from under a header pinned to the viewport.
+  // Navigating instead reuses the existing `sub-screen-out` exit animation.
+  const edgeSwipeRef = useRef({ x: 0, y: 0, active: false });
+
+  const onSubScreenTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length !== 1) {
+      edgeSwipeRef.current.active = false;
+      return;
+    }
+    const t = e.touches[0];
+    edgeSwipeRef.current = { x: t.clientX, y: t.clientY, active: t.clientX <= EDGE_SWIPE_ZONE };
+  };
+
+  const onSubScreenTouchEnd = (e: React.TouchEvent) => {
+    const start = edgeSwipeRef.current;
+    if (!start.active) return;
+    edgeSwipeRef.current.active = false;
+    const t = e.changedTouches[0];
+    if (!t) return;
+    const dx = t.clientX - start.x;
+    const dy = Math.abs(t.clientY - start.y);
+    // Rightward, decisively horizontal, past the commit distance.
+    if (dx >= EDGE_SWIPE_COMMIT_PX && dx > dy * 1.5) navigate(-1);
+  };
+
+  const onSubScreenTouchCancel = () => {
+    edgeSwipeRef.current.active = false;
+  };
 
   useEffect(() => {
     if (subScreenClosing) {
@@ -272,6 +309,9 @@ function RootLayout() {
             const nextScrolled = e.currentTarget.scrollTop > 4;
             if (nextScrolled !== headerScrolled) setHeaderScrolled(nextScrolled);
           }}
+          onTouchStart={onSubScreenTouchStart}
+          onTouchEnd={onSubScreenTouchEnd}
+          onTouchCancel={onSubScreenTouchCancel}
           style={{
             position: 'fixed',
             top: 0,
