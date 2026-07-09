@@ -15,21 +15,21 @@
  *
  * Contract for `shouldAnimateTrellis`:
  *   - isPlannerActive === false → ALWAYS false. Off-screen leaves do ZERO
- *     per-frame motion work, regardless of nodeCount / devMode / inView. This
- *     is the dominant lever for the cross-screen lag.
- *   - isPlannerActive === true  → ALWAYS true. Foreground Planner animates
- *     exactly as before (entry spring + ambient sway for small graphs +
- *     pulse-on-focus). The nodeCount / inView / devMode inputs do NOT suppress
- *     animation here — above the count threshold the canvas still composes with
- *     the existing `leafAnimationMask` to suppress individual off-VIEW leaves,
- *     but that is a separate, finer-grained gate at the call site.
+ *     per-frame motion work.
+ *   - Dev layouts and layouts above TAP_ANIMATION_THRESHOLD → false even while
+ *     Planner is active. They stay on one plain-SVG tree across route changes,
+ *     avoiding the full intrinsic↔motion subtree replacement seen in UAT.
+ *   - firstVisitComplete === true → false. A small normal trellis gets one
+ *     animated first visit; after the user leaves, subsequent returns reuse the
+ *     static tree and never replay all entrance animations.
  *
- * The route check (`isPlannerActive`) is the dominant lever; `nodeCount`,
- * `inView`, and `devMode` are accepted only so the gate can compose with the
- * existing count/visibility logic in TrellisCanvas without re-plumbing inputs.
+ * `inView` remains accepted for call-site compatibility with the finer-grained
+ * leaf mask; it does not override these whole-tree lifecycle gates.
  *
  * @module trellis-animation-gate
  */
+
+import { TAP_ANIMATION_THRESHOLD } from './trellis-perf-mask.ts';
 
 export interface ShouldAnimateTrellisInput {
   /** True when the Planner route is the active/foreground screen. Dominant lever. */
@@ -38,20 +38,23 @@ export interface ShouldAnimateTrellisInput {
   devMode?: boolean;
   /** Number of trellis nodes — accepted for composition; does NOT override the route gate. */
   nodeCount?: number;
-  /** Whether the leaf/canvas is in the viewport — accepted for composition; does NOT override the route gate. */
+ /** Whether the leaf/canvas is in the viewport — accepted for composition; does NOT override the route gate. */
   inView?: boolean;
+  /** True after the first animated Planner visit has ended. Prevents replay on return. */
+  firstVisitComplete?: boolean;
 }
 
 /**
- * Returns `true` when the trellis leaf framer-motion animations should run.
- *
- * Deterministic and DOM-free. The ONLY decision is the route gate: animations
- * run iff the Planner is the active route. Off-screen Planner → no animation.
+ * Returns `true` only for the first active visit of a small, non-dev trellis.
+ * Every other state uses the stable plain-SVG branch.
  */
-export const shouldAnimateTrellis = ({ isPlannerActive }: ShouldAnimateTrellisInput): boolean => {
-  // Route gate is dominant and sufficient. When the Planner is off-screen, no
-  // leaf may animate — that is the entire point of GAP-B. nodeCount / inView /
-  // devMode never flip a false route into true (or vice versa); they exist for
-  // call-site composition with leafAnimationMask only.
-  return isPlannerActive === true;
+export const shouldAnimateTrellis = ({
+  isPlannerActive,
+  devMode = false,
+  nodeCount = 0,
+  firstVisitComplete = false,
+}: ShouldAnimateTrellisInput): boolean => {
+  if (!isPlannerActive) return false;
+  if (devMode || nodeCount > TAP_ANIMATION_THRESHOLD || firstVisitComplete) return false;
+  return true;
 };

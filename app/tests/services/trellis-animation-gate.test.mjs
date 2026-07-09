@@ -7,9 +7,10 @@ import { shouldAnimateTrellis } from '../../src/services/trellis-animation-gate.
 
 // ── Phase 55.1 GAP-B (BUGFIX-05) — render-layer animation gate ──────────────
 //
-// Pure .ts file — Node loads directly, no JSX transform needed. The gate's ONLY
-// decision is the Planner-active route check; the cross-screen lag fix is that
-// off-screen Planner leaves do zero per-frame motion work.
+// Pure .ts file — Node loads directly, no JSX transform needed. The gate keeps
+// the off-screen tree static, prevents large/dev layouts from ever swapping to
+// a motion subtree, and allows a small normal trellis to animate only on its
+// first Planner visit.
 
 test('Planner inactive → false even with devMode + 31 nodes + inView (the GAP-B case)', () => {
   assert.equal(
@@ -24,21 +25,45 @@ test('Planner inactive → false regardless of any composition input', () => {
   assert.equal(shouldAnimateTrellis({ isPlannerActive: false, devMode: false, nodeCount: 100, inView: true }), false);
 });
 
-test('Planner active → true (foreground animates as before)', () => {
+test('Planner active + small normal layout + first visit → true', () => {
   assert.equal(shouldAnimateTrellis({ isPlannerActive: true }), true);
-  assert.equal(shouldAnimateTrellis({ isPlannerActive: true, devMode: true, nodeCount: 31, inView: false }), true);
   assert.equal(shouldAnimateTrellis({ isPlannerActive: true, devMode: false, nodeCount: 1, inView: true }), true);
 });
 
-test('route gate is dominant — nodeCount/inView/devMode never flip the route decision', () => {
-  // Small + inView + Planner-off must still be false.
-  assert.equal(shouldAnimateTrellis({ isPlannerActive: false, nodeCount: 1, inView: true }), false);
-  // Large + offView + Planner-on must still be true.
-  assert.equal(shouldAnimateTrellis({ isPlannerActive: true, nodeCount: 999, inView: false }), true);
+test('Planner active + dev layout → false so route changes preserve plain-SVG identity', () => {
+  assert.equal(
+    shouldAnimateTrellis({ isPlannerActive: true, devMode: true, nodeCount: 31, inView: true }),
+    false,
+  );
+});
+
+test('Planner active + large normal layout → false', () => {
+  assert.equal(
+    shouldAnimateTrellis({ isPlannerActive: true, devMode: false, nodeCount: 31, inView: true }),
+    false,
+  );
+});
+
+test('Planner active after first visit completed → false so entrance animation never replays', () => {
+  assert.equal(
+    shouldAnimateTrellis({
+      isPlannerActive: true,
+      devMode: false,
+      nodeCount: 12,
+      firstVisitComplete: true,
+    }),
+    false,
+  );
 });
 
 test('idempotent — same inputs return the same boolean', () => {
-  const input = { isPlannerActive: true, devMode: true, nodeCount: 12, inView: true };
+  const input = {
+    isPlannerActive: true,
+    devMode: false,
+    nodeCount: 12,
+    inView: true,
+    firstVisitComplete: false,
+  };
   const a = shouldAnimateTrellis(input);
   const b = shouldAnimateTrellis(input);
   assert.equal(a, b);

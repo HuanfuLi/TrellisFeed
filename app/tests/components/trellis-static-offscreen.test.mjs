@@ -24,6 +24,30 @@ const canvasSrc = readFileSync(
   new URL('../../src/components/trellis/TrellisCanvas.tsx', import.meta.url),
   'utf8',
 );
+const heroSrc = readFileSync(
+  new URL('../../src/components/trellis/TrellisHero.tsx', import.meta.url),
+  'utf8',
+);
+
+// ── TrellisHero: route lifecycle must not replay the whole tree ─────────────
+
+test('TrellisHero latches completion after the first active Planner visit', () => {
+  assert.match(
+    heroSrc,
+    /const \[firstVisitComplete, setFirstVisitComplete\] = useState\(false\)/,
+    'Hero must persist a first-visit lifecycle latch while its Planner slot stays mounted',
+  );
+  assert.match(
+    heroSrc,
+    /hasBeenActiveRef\.current && !firstVisitComplete[\s\S]*?setFirstVisitComplete\(true\)/,
+    'leaving Planner after the first visit must freeze future visits on the static branch',
+  );
+});
+
+test('TrellisHero passes dev-layout and first-visit state into the master gate', () => {
+  assert.match(heroSrc, /devMode:\s*isDevLayout/);
+  assert.match(heroSrc, /firstVisitComplete,/);
+});
 
 // ── TrellisLeaf: static early-return branch ─────────────────────────────────
 
