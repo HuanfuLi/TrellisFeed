@@ -36,6 +36,7 @@ import { hydrateFlashcardsFromSQLite } from './services/flashcard.service';
 import { hydrateCollectionsFromSQLite } from './services/collection.service';
 import { hydrateEngagementFromSQLite } from './services/engagement.service';
 import { hydratePodcastsFromSQLite } from './services/podcast.service';
+import { hydrateVideoCacheFromSQLite } from './services/youtube.service';
 import { clearLegacyHeavyLocalStorageKeys } from './services/db.service';
 // Phase 55.1-07 GAP-C — boot pre-warm of the filter-corpus embedding cache so the
 // first ask doesn't pay the 124-sequential-embed cold path (measured dominant
@@ -364,6 +365,7 @@ async function hydrateAllFromSQLite(): Promise<void> {
     hydrateCollectionsFromSQLite(), // collections
     hydrateEngagementFromSQLite(),  // saved/liked/dismissed
     hydratePodcastsFromSQLite(),    // podcast metadata
+    hydrateVideoCacheFromSQLite(),  // youtube video cache
   ]);
   // One-time stale-key sweep (quota reclamation) — safe now that every mirror is
   // populated from the durable IndexedDB store.

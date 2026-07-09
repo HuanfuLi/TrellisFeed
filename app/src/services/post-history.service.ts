@@ -89,6 +89,23 @@ export const postHistoryService = {
     return loadPosts().sort((a, b) => b.generatedAt - a.generatedAt);
   },
 
+  /**
+   * Merge a partial patch onto a stored post, writing through to IndexedDB.
+   * Returns true if the post was present and patched.
+   *
+   * Post history is the only durable full-content store, so this is what keeps
+   * a streamed essay body openable from /post-history, /saved and /liked after
+   * the daily cache is rejected at midnight.
+   */
+  patchPost(postId: string, patch: Partial<DailyPost>): boolean {
+    const posts = loadPosts();
+    const idx = posts.findIndex((p) => p.id === postId);
+    if (idx === -1) return false;
+    posts[idx] = { ...posts[idx], ...patch };
+    savePosts(posts);
+    return true;
+  },
+
   /** Group posts by date string, each group sorted by generatedAt desc. */
   getPostsByDay(): Map<string, DailyPost[]> {
     const posts = this.getPosts();

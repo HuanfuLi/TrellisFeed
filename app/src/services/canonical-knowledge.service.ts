@@ -877,13 +877,7 @@ async function commitClassificationResult(
       isClusterNode: true,
       qaCount: 0,
     };
-    const CLUSTER_STORAGE_KEY = 'trellis_questions';
-    try {
-      const storedRaw = localStorage.getItem(CLUSTER_STORAGE_KEY);
-      const store: Question[] = storedRaw ? JSON.parse(storedRaw) as Question[] : [];
-      store.unshift(clusterNode);
-      localStorage.setItem(CLUSTER_STORAGE_KEY, JSON.stringify(store));
-    } catch { /* storage error */ }
+    questionService.insertNode(clusterNode);
     clusterEntityId = clusterNode.id;
 
     // Refresh freshQuestions snapshot so anchor resolution sees the new cluster
@@ -954,15 +948,7 @@ async function commitClassificationResult(
         clusterNodeId: clusterEntityId,
       };
 
-      // Save anchor directly to localStorage (same storage key as questionService)
-      const ANCHOR_STORAGE_KEY = 'trellis_questions';
-      try {
-        const storedRaw = localStorage.getItem(ANCHOR_STORAGE_KEY);
-        const store: Question[] = storedRaw ? JSON.parse(storedRaw) as Question[] : [];
-        store.unshift(anchorNode);
-        localStorage.setItem(ANCHOR_STORAGE_KEY, JSON.stringify(store));
-      } catch { /* storage error — anchor won't be created */ }
-
+      questionService.insertNode(anchorNode);
       anchorId = anchorNode.id;
     }
   }
@@ -1439,8 +1425,11 @@ export function buildReflectionTree(questions: Question[]): Array<{
 
 // ─── Mindmap Reorganization ──────────────────────────────────────────────────
 
+// The reorg snapshot is a small structural-only payload and stays in
+// localStorage. The question store itself lives in IndexedDB behind
+// questionService — never touch `trellis_questions` directly (the boot sweep in
+// clearLegacyHeavyLocalStorageKeys deletes it).
 const REORG_SNAPSHOT_KEY = 'trellis_reorg_snapshot';
-const STORAGE_KEY = 'trellis_questions';
 
 // Module-level state so reorganization status persists across navigation
 let _reorgInProgress = false;
@@ -1580,7 +1569,7 @@ export function hasReorgBackup(): boolean {
   return localStorage.getItem(REORG_SNAPSHOT_KEY) !== null;
 }
 
-export function revertReorganization(): ServiceResult<void> {
+export async function revertReorganization(): Promise<ServiceResult<void>> {
   const snapshotRaw = localStorage.getItem(REORG_SNAPSHOT_KEY);
   if (!snapshotRaw) {
     return { success: false, error: { code: 'NO_BACKUP', message: 'No previous structure to revert to.', retryable: false } };
@@ -1588,8 +1577,9 @@ export function revertReorganization(): ServiceResult<void> {
 
   try {
     const snapshot = JSON.parse(snapshotRaw) as ReorgSnapshot;
-    const storeRaw = localStorage.getItem(STORAGE_KEY);
-    const store: Question[] = storeRaw ? JSON.parse(storeRaw) as Question[] : [];
+    // Lazy import to avoid the circular dependency (see commitClassificationResult).
+    const { questionService } = await import('./question.service.ts');
+    const store: Question[] = questionService.getAll({ includeFlagged: true });
 
     // Remove current anchor/cluster nodes (created by reorganization)
     const filtered = store.filter((q) => !q.isAnchorNode && !q.isClusterNode);
@@ -1609,8 +1599,10 @@ export function revertReorganization(): ServiceResult<void> {
 
     // Re-add old structural nodes
     const restored = [...snapshot.structuralNodes, ...filtered];
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(restored));
+    await questionService.replaceAll(restored);
     localStorage.removeItem(REORG_SNAPSHOT_KEY);
+    const { eventBus } = await import('../lib/event-bus.ts');
+    eventBus.emit({ type: 'GRAPH_UPDATED' });
     return { success: true };
   } catch {
     return { success: false, error: { code: 'REVERT_ERROR', message: 'Failed to parse revert snapshot.', retryable: false } };
@@ -1940,17 +1932,16 @@ async function _doReorganize(
     //     regression
     //   - wipe out new QAs that landed after the snapshot was taken
     //
-    // Read fresh localStorage, then:
+    // Re-read the live store, then:
     //   - drop any QA/flagged from newStore whose ID no longer exists in current
     //     storage (user deleted it mid-reorg)
     //   - append any QA/flagged present in current storage but NOT in the
     //     original snapshot (user asked a new question mid-reorg)
     //   - always keep newly-created cluster/anchor nodes (they're synthesized
     //     here, with new IDs not in any prior snapshot)
-    const currentStoreRaw = localStorage.getItem(STORAGE_KEY);
-    const currentStore: Question[] = currentStoreRaw
-      ? (JSON.parse(currentStoreRaw) as Question[])
-      : [];
+    // Lazy import to avoid the circular dependency (see commitClassificationResult).
+    const { questionService } = await import('./question.service.ts');
+    const currentStore: Question[] = questionService.getAll({ includeFlagged: true });
     const currentIds = new Set(currentStore.map((q) => q.id));
     const originalIds = new Set(allQuestions.map((q) => q.id));
 
@@ -1961,7 +1952,7 @@ async function _doReorganize(
       return currentIds.has(q.id);
     });
     const reconciledIds = new Set(reconciled.map((q) => q.id));
-    // Append QAs/flagged that appeared in localStorage after the snapshot
+    // Append QAs/flagged that appeared in the store after the snapshot
     // (new questions asked during reorg). Exclude anchor/cluster nodes so we
     // don't carry forward any pre-reorg structural remnants.
     for (const q of currentStore) {
@@ -1971,7 +1962,7 @@ async function _doReorganize(
       reconciled.push(q);
     }
 
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(reconciled));
+    await questionService.replaceAll(reconciled);
 
     eventBus.emit({ type: 'REORG_COMPLETED', payload: { anchorCount, clusterCount } });
     return { success: true, data: { anchorCount, clusterCount } };

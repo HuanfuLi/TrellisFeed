@@ -23,6 +23,47 @@ Trellis is an AI-powered personalized learning platform (React 19 + TypeScript 5
 
 ---
 
+## Agent Delegation Policy (operator preference — applies to every task)
+
+Claude (Opus / Fable) is the **planner and reviewer**, not the primary implementer. Spend Claude tokens on planning, discussion, architecture, and judgment. Hand off bulk execution to the external CLI agents below via `Bash`, then review what comes back.
+
+### Routing table
+
+| Work type | Delegate to | Command | Why |
+|---|---|---|---|
+| Mass reads (codebase sweeps, docs, images), UI-SPEC generation, other frontend/reading tasks | **Antigravity** (Gemini 3.1 Pro) | `agy` | Strong at reading and frontend/visual work; weak reasoning |
+| Complex coding, refactors, research, debugging | **Codex** (GPT) | `codex --yolo` | Strong reasoning and coding; weak UX logic and aesthetics |
+| Planning, discussion, design decisions, final review | **Claude** (this agent) | — | Best overall judgment; keep tokens here |
+
+### Hard rules
+
+1. **Antigravity must NEVER mutate code.** Gemini models are unreliable at coding. Use `agy` for read-only analysis and document generation only. If a task requires edits, route it to Codex or do it yourself.
+2. **Antigravity must use Gemini 3.1 Pro.** Never a Flash model (e.g. Gemini 3.5 Flash).
+3. **Claude reviews everything either agent produces** before it lands. Codex writes correct-but-inelegant code and has poor UX instincts; Antigravity's prose and specs need a factual check.
+4. **Avoid implementing directly in Claude** when a delegate can do it. Reserve Claude edits for small, load-bearing, or judgment-heavy changes (anything in the "load-bearing" sections of this file).
+
+---
+
+## Heavy stores live in IndexedDB — never touch the retired localStorage keys (load-bearing)
+
+Phase 55 moved every heavy store to IndexedDB. The 13 legacy keys are listed in `LEGACY_HEAVY_KEYS` (`db.service.ts`) and **deleted at every boot** by `clearLegacyHeavyLocalStorageKeys()`, called from `App.tsx` after hydration. Any direct `localStorage` read of one returns null; any direct write is discarded on next launch.
+
+The migration missed four services, which kept doing raw read-modify-write against `trellis_questions` and friends. Because `questionService` had switched to an in-memory mirror hydrated from IndexedDB, **every newly created anchor and cluster was silently dropped**, leaving each classified Q&A with a dangling `parentId`. Fixed 2026-07-08.
+
+### Rules
+
+1. **All question mutations go through `questionService`.** Use `insertNode()` for new anchor/cluster nodes and `replaceAll()` for bulk rebuilds (reorg reconcile / revert) — both write through to IndexedDB. Never write `trellis_questions` directly. `canonical-knowledge.service.ts` must not name that key at all; `tests/services/anchor-persistence.test.mjs` enforces this.
+2. **Generated post bodies are costly assets.** `patchPostEssayInCache` persists via `conceptFeedService.patchPost` + `postHistoryService.patchPost` — both, unconditionally. Post-history is the only durable full-content store, and is what keeps a body openable from `/post-history`, `/saved`, `/liked` after the midnight daily-cache rejection.
+3. **`concept-feed-dedup.ts` keeps zero transitive deps** (so `node --test` can import it without the i18n JSON-import chain). Its post-history backing store is *injected* via `setSeenVideoIdHistorySource` from `concept-feed.service.ts`. Don't import `postHistoryService` there.
+4. **`planner.service.ts` must not reimplement post lookup.** It delegates to `conceptFeedService.findClosestPost` behind a lazy `import()` (concept-feed imports planner, so a static import would cycle).
+5. **`LocalStorageBackend` and `IndexedDBBackend` must implement the same SQL subset.** They are the last-resort fallback and the real backend; a statement one handles and the other silently ignores is a live data bug.
+
+### Testing this area
+
+The Node suite is a **false-green risk here** — much of it reads source text rather than executing writes. In Node there is no `indexedDB`, so `db.service` falls back to `LocalStorageBackend`, a real backend behind the same `dbQuery`/`dbExecute` seam: assert durability *through `dbQuery`*, not through the in-memory mirror. See `tests/services/anchor-persistence.test.mjs`. A source-reading test that asserts a retired key is *present* actively pins the bug in place — three such tests did.
+
+---
+
 ## Concept Feed Generation Pipeline (load-bearing — read before touching `concept-feed.service.ts` or `post-queue.service.ts`)
 
 The home feed is driven by THREE LISTS in a strict pipeline. **Do not invent a fourth, do not collapse two into one, do not bypass any step.** Re-explained 5+ times — must not drift.

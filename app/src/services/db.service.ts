@@ -152,6 +152,16 @@ class LocalStorageBackend implements DBBackend {
       this.persist();
       return;
     }
+
+    // DELETE FROM table  (no WHERE → clear the table). Parity with
+    // IndexedDBBackend, which implements this: without it "Clear All Data"
+    // silently no-ops whenever this backend is active (private mode fallback).
+    const deleteAllMatch = s.match(/^DELETE\s+FROM\s+(\w+)\s*$/i);
+    if (deleteAllMatch) {
+      this.tables[deleteAllMatch[1]] = [];
+      this.persist();
+      return;
+    }
   }
 
   async query<T extends Row>(sql: string, values: (string | number | null)[] = []): Promise<T[]> {

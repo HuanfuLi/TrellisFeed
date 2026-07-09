@@ -677,6 +677,53 @@ export const questionService = {
   },
 
   /**
+   * Replace the entire store, writing through to IndexedDB.
+   *
+   * Used by the mindmap reorganization paths (reorganizeMindmap's post-LLM
+   * reconcile, revertReorganization), which rebuild the whole question set at
+   * once. Rows dropped from the new set are DELETED from IndexedDB — and those
+   * deletes are awaited, for the same reason `delete()` awaits: IndexedDB is
+   * primary, so a fire-and-forget delete could resurrect the row on the next
+   * boot-hydrate if the app is killed mid-write.
+   */
+  async replaceAll(questions: Question[]): Promise<void> {
+    const previous = loadStore({ includeFlagged: true });
+    const nextIds = new Set(questions.map((q) => q.id));
+    saveStore(questions);
+    for (const q of previous) {
+      if (!nextIds.has(q.id)) await deleteFromSQLite(q.id);
+    }
+    for (const q of questions) persistToSQLite(q);
+  },
+
+  /**
+   * Insert a freshly synthesized structural node (anchor / cluster) at the head
+   * of the store, writing through to IndexedDB.
+   *
+   * Exists because `canonical-knowledge.service.ts` used to create anchors and
+   * clusters with a raw `localStorage[trellis_questions]` read-modify-write,
+   * relying on that key backing questionService's reads. Since the IndexedDB
+   * migration it no longer does, and the boot sweep
+   * (`clearLegacyHeavyLocalStorageKeys`) deletes the key outright — so those
+   * nodes were written into a void and every new anchor was silently dropped,
+   * leaving each classified Q&A with a dangling `parentId`.
+   *
+   * All anchor/cluster creation MUST go through here. Never write the store key
+   * directly.
+   */
+  insertNode(question: Question): void {
+    const store = loadStore({ includeFlagged: true });
+    const idx = store.findIndex((q) => q.id === question.id);
+    if (idx === -1) {
+      store.unshift(question);
+    } else {
+      store[idx] = question;
+    }
+    saveStore(store);
+    persistToSQLite(question);
+  },
+
+  /**
    * Used ONLY by graphCommandService.undo() to resurrect a hard-deleted
    * record (from a `delete` or `merge` journal entry's full pre-image).
    * Writes through the standard saveStore cycle (single localStorage path);

@@ -15,7 +15,7 @@ import { sourceDiversityService, extractDomain } from './source-diversity.servic
 import { selectNewsTopSources, mapNewsSourcesToNewsMeta } from './news-source-metadata.ts';
 import { assignStyles, reassignFailures, type ApiAvailability } from './style-assignment.ts';
 import { computeLeafState } from './trellis-state.service.ts';
-import { hasSeenVideoId, addSeenVideoId } from './concept-feed-dedup.ts';
+import { hasSeenVideoId, addSeenVideoId, setSeenVideoIdHistorySource } from './concept-feed-dedup.ts';
 import { STARTER_POST_IDS, filterDecayedStarters } from './starter-posts-decay.ts';
 import {
   markYoutubeQuotaExhausted,
@@ -46,6 +46,18 @@ const DAILY_POSTS_SQLITE_ROW_ID = 'daily_posts_cache';
 let _cache: CachedDailyPosts | null = null;
 const MAX_POSTS = 4;
 const CONTEXT_LIMIT = 10;
+
+// Supply the cross-cycle video dedup helper with its history backing store.
+// concept-feed-dedup.ts keeps zero transitive deps (so node --test can import it
+// without the i18n JSON-import chain), so the dependency is injected here rather
+// than imported there.
+setSeenVideoIdHistorySource((day) =>
+  postHistoryService
+    .getPosts()
+    .filter((p) => p.date === day)
+    .map((p) => p.videoMeta?.videoId)
+    .filter((v): v is string => typeof v === 'string' && v.length > 0),
+);
 
 /**
  * Produce a globally-unique post ID with a semantic prefix.
@@ -1766,24 +1778,12 @@ export const conceptFeedService = {
     // Fall back to sessionStorage-based connection post store
     const connectionPost = getConnectionPostFromStore(id);
     if (connectionPost) return connectionPost;
-    // Check video cache
-    try {
-      const videoRaw = localStorage.getItem('trellis_video_cache');
-      if (videoRaw) {
-        const videoCache = JSON.parse(videoRaw) as { posts?: DailyPost[] };
-        const videoPost = videoCache.posts?.find((p: DailyPost) => p.id === id);
-        if (videoPost) return videoPost;
-      }
-    } catch { /* ignore */ }
-    // Check news cache
-    try {
-      const newsRaw = localStorage.getItem('trellis_news_posts');
-      if (newsRaw) {
-        const newsCache = JSON.parse(newsRaw) as { posts?: DailyPost[] };
-        const newsPost = newsCache.posts?.find((p: DailyPost) => p.id === id);
-        if (newsPost) return newsPost;
-      }
-    } catch { /* ignore */ }
+    // The `trellis_video_cache` / `trellis_news_posts` localStorage fallbacks that
+    // used to sit here were removed with the IndexedDB migration: both keys are
+    // deleted at boot by clearLegacyHeavyLocalStorageKeys, so they only ever
+    // returned null. Video and news posts reach post-history like every other
+    // post, and the fallback below covers them.
+    //
     // 2026-05-12 — final fallback to postHistoryService, the only persistent
     // store of full post content. Without this, the daily-cache stale-rejection
     // at midnight (Phase 36-11) makes EVERY past post unreachable from
@@ -1851,6 +1851,23 @@ export const conceptFeedService = {
     if (fresh.length === 0) return;
     cached.posts.push(...fresh);
     saveCache(cached);
+  },
+
+  /**
+   * Merge a partial patch onto a post in today's cache, writing through to
+   * IndexedDB. Returns true if the post was present and patched.
+   *
+   * The caller owns the merge policy (see post-essay.service.ts's selective
+   * merge); this only persists the result.
+   */
+  patchPost(postId: string, patch: Partial<DailyPost>): boolean {
+    const cached = loadCache();
+    if (!cached) return false;
+    const idx = cached.posts.findIndex((p) => p.id === postId);
+    if (idx === -1) return false;
+    cached.posts[idx] = { ...cached.posts[idx], ...patch };
+    saveCache(cached);
+    return true;
   },
 
   /** Explicitly clear the post cache (e.g. after "Clear All Data"). */

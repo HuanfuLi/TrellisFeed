@@ -55,8 +55,9 @@ export function SettingsDataScreen() {
     // Clear all trellis_ keys from localStorage (except settings)
     const keys = Object.keys(localStorage).filter((k) => k.startsWith('trellis_') && k !== 'trellis_settings');
     for (const k of keys) localStorage.removeItem(k);
-    // Explicitly set an empty array so flashcardService doesn't auto-re-seed on next load
-    localStorage.setItem('trellis_flashcards', '[]');
+    // No `trellis_flashcards = '[]'` re-seed guard here anymore: flashcards live in
+    // IndexedDB and are wiped by clearAllTables() below. Writing the retired
+    // localStorage key back would just leave a stale shadow copy.
     // Clear sessionStorage (connection post cache, etc.)
     const sessionKeys = Object.keys(sessionStorage).filter((k) => k.startsWith('trellis_'));
     for (const k of sessionKeys) sessionStorage.removeItem(k);

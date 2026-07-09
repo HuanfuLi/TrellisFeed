@@ -7,11 +7,12 @@
 //       "Post not found" the day after a post is generated, because Phase
 //       36-11's stale-cache rejection wipes trellis_daily_posts at midnight.
 //
-//   (2) patchPostEssayInCache writes to trellis_post_history too (not just
-//       the daily/video/news caches) AND does NOT return after the first
-//       match — a post can live in BOTH the daily cache and post-history,
-//       and both copies need the streamed body so the post stays openable
-//       across days.
+//   (2) patchPostEssayInCache patches post-history too (not just the daily
+//       cache) AND does not stop after the first match — a post can live in
+//       BOTH, and both copies need the streamed body so the post stays
+//       openable across days. The four localStorage keys this used to write
+//       were retired by the IndexedDB migration; writing them made the
+//       function a no-op, so the assertions now pin the durable routing.
 //
 // Operator framing 2026-05-12: "the generated posts should be persistent;
 // they are ALL valuable ASSETS and they are COSTLY!"
@@ -53,7 +54,7 @@ test('conceptFeedService.getPostById falls back to postHistoryService', () => {
   );
 });
 
-test('patchPostEssayInCache writes trellis_post_history alongside ephemeral caches', () => {
+test('patchPostEssayInCache patches the durable post stores', () => {
   const src = readFileSync(
     path.join(appRoot, 'src/services/post-essay.service.ts'),
     'utf8',
@@ -65,21 +66,31 @@ test('patchPostEssayInCache writes trellis_post_history alongside ephemeral cach
   assert.ok(endIdx > startIdx, 'function body must terminate with `}` on its own line');
   const body = src.slice(startIdx, endIdx);
 
-  // History key must be in the cacheKeys array — without it, streamed bodies
-  // never persist to the only durable post store.
+  // Post history is the only durable full-content store — without it, streamed
+  // bodies never survive the midnight daily-cache rejection.
   assert.match(
     body,
-    /['"]trellis_post_history['"]/,
-    'cacheKeys must include trellis_post_history so the streamed body persists across midnight',
+    /postHistoryService\.patchPost\(/,
+    'must patch post history so the streamed body persists across midnight',
+  );
+  assert.match(
+    body,
+    /conceptFeedService\.patchPost\(/,
+    "must patch today's daily-posts cache so the open post updates in place",
   );
 
-  // Confirm all 4 stores are listed.
+  // The retired keys are deleted at boot by clearLegacyHeavyLocalStorageKeys;
+  // writing them silently drops the body.
   for (const key of ['trellis_daily_posts', 'trellis_video_cache', 'trellis_news_posts', 'trellis_post_history']) {
-    assert.match(body, new RegExp(`['"]${key}['"]`), `cacheKeys must include ${key}`);
+    assert.doesNotMatch(
+      body,
+      new RegExp(`['"]${key}['"]`),
+      `must not write the retired ${key} localStorage key`,
+    );
   }
 });
 
-test('patchPostEssayInCache does NOT early-return on first cache hit', () => {
+test('patchPostEssayInCache patches every store, not just the first hit', () => {
   const src = readFileSync(
     path.join(appRoot, 'src/services/post-essay.service.ts'),
     'utf8',
@@ -89,16 +100,22 @@ test('patchPostEssayInCache does NOT early-return on first cache hit', () => {
   const endIdx = src.indexOf('\n}\n', startIdx);
   const body = src.slice(startIdx, endIdx);
 
-  // The body MUST NOT contain a bare `return;` inside the loop — that was
-  // the bug shape: first cache wins, history never gets patched even if it
-  // is in cacheKeys.
-  //
-  // Tolerated patterns:
-  //   - `return null;` from the closing or unrelated code (none expected here)
-  //   - block-level continue / break (we expect neither, but they're fine)
+  // The bug shape was "first store wins, history never gets patched". Both
+  // patchPost calls must be unconditional siblings — neither guarded by the
+  // other's result, and no early return between them.
+  const feedIdx = body.search(/conceptFeedService\.patchPost\(/);
+  const histIdx = body.search(/postHistoryService\.patchPost\(/);
+  assert.ok(feedIdx > 0 && histIdx > feedIdx, 'both stores must be patched, feed then history');
+
+  const between = body.slice(feedIdx, histIdx);
   assert.doesNotMatch(
-    body,
-    /\n\s*return\s*;\s*$/m,
-    'patchPostEssayInCache must NOT `return;` after the first match — every cache that has the post needs the patch',
+    between,
+    /\breturn\b/,
+    'must not return between the two patches — a post can live in both stores',
+  );
+  assert.doesNotMatch(
+    between,
+    /\bif\s*\(/,
+    'the history patch must not be conditional on the daily-cache patch succeeding',
   );
 });

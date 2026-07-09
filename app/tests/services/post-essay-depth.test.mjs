@@ -88,6 +88,13 @@ test('counterweight: each generator threads options?.signal into chatStream', ()
 // Per RESEARCH Pitfall 9 + D-03: when generator was called with depth: 'deep' it
 // returns bodyMarkdownDeep populated but bodyMarkdown empty; that empty string
 // MUST NOT overwrite the existing standard. Symmetric for the standard path.
+//
+// These used to seed and read back `localStorage[trellis_daily_posts]`. That key
+// was retired by the IndexedDB migration (the boot sweep deletes it), so the
+// tests were round-tripping through a store the app no longer uses while the
+// real function had silently become a no-op. They now exercise postHistoryService
+// — the durable full-content store patchPostEssayInCache actually writes, and the
+// one that keeps a body openable from /post-history, /saved and /liked.
 
 function installLocalStorageShim() {
   const _store = new Map();
@@ -101,36 +108,45 @@ function installLocalStorageShim() {
   return _store;
 }
 
-test('SC-3 merge: patching bodyMarkdownDeep does NOT clobber existing bodyMarkdown', async () => {
-  const store = installLocalStorageShim();
-  store.clear();
-
-  const seed = {
+function seedPost(id, overrides = {}) {
+  return {
+    id,
     date: '2026-05-09',
-    fingerprint: 'test',
-    posts: [{
-      id: 'test-post-1',
-      date: '2026-05-09',
-      title: 't',
-      teaser: { hook: 'h', preview: 'p' },
-      bodyMarkdown: 'STANDARD ESSAY TEXT',
-      whyCare: 'wc',
-      takeaway: 'tk',
-      quickAskPrompts: [],
-      narrativeMode: 'mechanism-breakdown',
-      contextLabel: 'L',
-      sourceType: 'recent',
-      sourceQuestionIds: [],
-      sourceQuestionTitles: [],
-      keywords: [],
-      generatedAt: 0,
-      origin: 'ai',
-    }],
-    connectionCards: [],
+    title: 't',
+    teaser: { hook: 'h', preview: 'p' },
+    bodyMarkdown: '',
+    whyCare: '',
+    takeaway: '',
+    quickAskPrompts: [],
+    narrativeMode: 'mechanism-breakdown',
+    contextLabel: 'L',
+    sourceType: 'recent',
+    sourceQuestionIds: [],
+    sourceQuestionTitles: [],
+    keywords: [],
+    generatedAt: 0,
+    origin: 'ai',
+    ...overrides,
   };
-  globalThis.localStorage.setItem('trellis_daily_posts', JSON.stringify(seed));
+}
 
+/** Seed one post into post history, then hand back a reader for it. */
+async function withSeededPost(post) {
+  installLocalStorageShim().clear();
+  const { postHistoryService } = await import('../../src/services/post-history.service.ts');
   const { patchPostEssayInCache } = await import('../../src/services/post-essay.service.ts');
+  postHistoryService.clear();
+  postHistoryService.addPost(post);
+  return {
+    patchPostEssayInCache,
+    read: () => postHistoryService.getPosts().find((p) => p.id === post.id),
+  };
+}
+
+test('SC-3 merge: patching bodyMarkdownDeep does NOT clobber existing bodyMarkdown', async () => {
+  const { patchPostEssayInCache, read } = await withSeededPost(
+    seedPost('test-post-1', { bodyMarkdown: 'STANDARD ESSAY TEXT', whyCare: 'wc', takeaway: 'tk' }),
+  );
 
   // Patch only the deep field. Empty bodyMarkdown MUST NOT clobber the existing standard.
   patchPostEssayInCache('test-post-1', {
@@ -141,41 +157,15 @@ test('SC-3 merge: patching bodyMarkdownDeep does NOT clobber existing bodyMarkdo
     quickAskPrompts: [],
   });
 
-  const after = JSON.parse(globalThis.localStorage.getItem('trellis_daily_posts'));
-  assert.equal(after.posts[0].bodyMarkdown, 'STANDARD ESSAY TEXT', 'standard bodyMarkdown preserved');
-  assert.equal(after.posts[0].bodyMarkdownDeep, 'DEEP ESSAY TEXT', 'deep bodyMarkdown updated');
+  const after = read();
+  assert.equal(after.bodyMarkdown, 'STANDARD ESSAY TEXT', 'standard bodyMarkdown preserved');
+  assert.equal(after.bodyMarkdownDeep, 'DEEP ESSAY TEXT', 'deep bodyMarkdown updated');
 });
 
 test('SC-3 merge: patching both fields updates both', async () => {
-  const store = installLocalStorageShim();
-  store.clear();
-
-  const seed = {
-    date: '2026-05-09',
-    fingerprint: 'test',
-    posts: [{
-      id: 'test-post-2',
-      date: '2026-05-09',
-      title: 't',
-      teaser: { hook: 'h', preview: 'p' },
-      bodyMarkdown: 'OLD STANDARD',
-      whyCare: 'wc',
-      takeaway: 'tk',
-      quickAskPrompts: [],
-      narrativeMode: 'mechanism-breakdown',
-      contextLabel: 'L',
-      sourceType: 'recent',
-      sourceQuestionIds: [],
-      sourceQuestionTitles: [],
-      keywords: [],
-      generatedAt: 0,
-      origin: 'ai',
-    }],
-    connectionCards: [],
-  };
-  globalThis.localStorage.setItem('trellis_daily_posts', JSON.stringify(seed));
-
-  const { patchPostEssayInCache } = await import('../../src/services/post-essay.service.ts');
+  const { patchPostEssayInCache, read } = await withSeededPost(
+    seedPost('test-post-2', { bodyMarkdown: 'OLD STANDARD', whyCare: 'wc', takeaway: 'tk' }),
+  );
 
   patchPostEssayInCache('test-post-2', {
     bodyMarkdown: 'NEW STANDARD',
@@ -185,44 +175,16 @@ test('SC-3 merge: patching both fields updates both', async () => {
     quickAskPrompts: ['q1', 'q2'],
   });
 
-  const after = JSON.parse(globalThis.localStorage.getItem('trellis_daily_posts'));
-  assert.equal(after.posts[0].bodyMarkdown, 'NEW STANDARD');
-  assert.equal(after.posts[0].bodyMarkdownDeep, 'NEW DEEP');
-  assert.equal(after.posts[0].whyCare, 'NEW WC');
-  assert.equal(after.posts[0].takeaway, 'NEW TK');
-  assert.deepEqual(after.posts[0].quickAskPrompts, ['q1', 'q2']);
+  const after = read();
+  assert.equal(after.bodyMarkdown, 'NEW STANDARD');
+  assert.equal(after.bodyMarkdownDeep, 'NEW DEEP');
+  assert.equal(after.whyCare, 'NEW WC');
+  assert.equal(after.takeaway, 'NEW TK');
+  assert.deepEqual(after.quickAskPrompts, ['q1', 'q2']);
 });
 
 test('SC-3 merge: round-trip — patch standard then patch deep preserves both', async () => {
-  const store = installLocalStorageShim();
-  store.clear();
-
-  const seed = {
-    date: '2026-05-09',
-    fingerprint: 'test',
-    posts: [{
-      id: 'test-post-3',
-      date: '2026-05-09',
-      title: 't',
-      teaser: { hook: 'h', preview: 'p' },
-      bodyMarkdown: '',
-      whyCare: '',
-      takeaway: '',
-      quickAskPrompts: [],
-      narrativeMode: 'mechanism-breakdown',
-      contextLabel: 'L',
-      sourceType: 'recent',
-      sourceQuestionIds: [],
-      sourceQuestionTitles: [],
-      keywords: [],
-      generatedAt: 0,
-      origin: 'ai',
-    }],
-    connectionCards: [],
-  };
-  globalThis.localStorage.setItem('trellis_daily_posts', JSON.stringify(seed));
-
-  const { patchPostEssayInCache } = await import('../../src/services/post-essay.service.ts');
+  const { patchPostEssayInCache, read } = await withSeededPost(seedPost('test-post-3'));
 
   // First: patch standard variant.
   patchPostEssayInCache('test-post-3', {
@@ -241,8 +203,8 @@ test('SC-3 merge: round-trip — patch standard then patch deep preserves both',
     quickAskPrompts: [],
   });
 
-  const after = JSON.parse(globalThis.localStorage.getItem('trellis_daily_posts'));
-  assert.equal(after.posts[0].bodyMarkdown, 'FIRST STANDARD', 'first standard preserved across deep patch');
-  assert.equal(after.posts[0].bodyMarkdownDeep, 'SECOND DEEP', 'deep patched on second call');
-  assert.equal(after.posts[0].whyCare, 'WC1', 'whyCare from first patch preserved');
+  const after = read();
+  assert.equal(after.bodyMarkdown, 'FIRST STANDARD', 'first standard preserved across deep patch');
+  assert.equal(after.bodyMarkdownDeep, 'SECOND DEEP', 'deep patched on second call');
+  assert.equal(after.whyCare, 'WC1', 'whyCare from first patch preserved');
 });
