@@ -175,6 +175,45 @@ The `Header` component (`app/src/components/ui/Header.tsx`) auto-portals based o
 
 ---
 
+## iOS device build, gestures, and app assets (iOS UAT 2026-07-08 — load-bearing)
+
+First iOS device deployment (iPhone XR, iOS 18.7.9). Four things bit, all recorded here so they aren't rediscovered.
+
+### WKWebView cancels a touch sequence if you preventDefault the first touchmove
+
+`HomeScreen.tsx`'s pull-to-load gesture arms on any touch that starts at the bottom of the feed, then must **resolve direction over a `DIRECTION_SLOP` (4px) before claiming the gesture**. Calling `preventDefault()` on the first `touchmove` makes WKWebView opt out of native scrolling for the *entire* touch — so scrolling back up from the bottom is dead until the finger lifts.
+
+- **Never `preventDefault()` a touchmove before you know the gesture is yours.** A pull-up claims it; a scroll-up is handed straight back to the browser.
+- Android WebView tolerated this; iOS does not. A gesture that works on Android is not evidence.
+
+### Back-swipe is commit-on-release, not a drag
+
+`App.tsx`'s sub-screen `Outlet` overlay detects a left-edge touch (`EDGE_SWIPE_ZONE` 28px) travelling `EDGE_SWIPE_COMMIT_PX` (70px) rightward, decisively horizontal, then calls `navigate(-1)`.
+
+- **Don't convert this to a finger-following drag by transforming the overlay.** Sub-screen `Header`s render via `createPortal` to `document.body` (see "Header positioning") and are not DOM descendants of the overlay — the content would slide out from under a header pinned to the viewport. An interactive drag requires moving the header into the overlay, which reintroduces the Android fixed-position flicker that portal split exists to prevent.
+
+### `assets/icon.png` and `assets/icon-foreground.png` MUST differ
+
+| Source | Consumed by | Requirement |
+|---|---|---|
+| `assets/icon.png` | iOS AppIcon, Android legacy `ic_launcher.png` | **full bleed**, RGB (iOS rejects alpha) |
+| `assets/icon-foreground.png` | Android adaptive foreground | **~25% inset** |
+
+Android's adaptive icon renders only the inner 72dp of a 108dp canvas — the launcher zooms ~1.5×. Artwork at 49% of the foreground canvas lands at ~73% of the *visible* icon. iOS applies no zoom. So a single padded source looks **correct on Android and shrunken on iOS**, which is exactly how this shipped for months.
+
+- **Don't "fix" an icon by editing `ios/App/App/Assets.xcassets/` directly** — `npx capacitor-assets generate` reverts it. Fix the source.
+- `assets/splash.png` + `assets/splash-dark.png` must exist. Without them the tool synthesizes a splash and repoints `Splash.imageset/Contents.json` at new filenames, orphaning whatever was tracked. iOS shipped Capacitor's default blue placeholder splash until 2026-07-08 for this reason.
+- The tool also emits a stray top-level `icons/` PWA directory that nothing references. Delete it.
+
+### Signing
+
+`PRODUCT_BUNDLE_IDENTIFIER = com.huanfuli.trellis` (iOS only). The original `com.trellis.app` is registered to a team that can no longer be signed into and is **unrecoverable** — only that team's account holder can release the identifier.
+
+- `DEVELOPMENT_TEAM = ZW465WJST3` is correct. The keychain's lone signing identity reads `SH8YLS6UMQ`, but Xcode has no account for that team; building against it fails with `No Account for Team`. **Don't "fix" the team to match the keychain.**
+- Android's `applicationId` intentionally stays `com.trellis.app`. Renaming it relocates the Java package and orphans the installed app's data container. The bundle id is therefore **asymmetric across platforms by design** — harmless at runtime, since `capacitor.config.ts`'s `appId` is only read at native-project generation time.
+
+---
+
 ## ChatInput flex shrink (Phase 33 UAT-4 — load-bearing)
 
 `app/src/components/ChatInput.tsx`: the `<input type="text">` MUST keep `minWidth: 0` alongside its `flex: 1` inline style. Without it, `flex-basis: auto` refuses to shrink the input below intrinsic content width on Android WebView, and the `flexShrink: 0` Send button overflows off-screen.
