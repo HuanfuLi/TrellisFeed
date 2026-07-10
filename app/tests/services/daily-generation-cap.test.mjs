@@ -8,7 +8,7 @@
  *                   * Math.max(dueConcepts.length, 1);
  *   if (postQueueService.getTotalGenerated() >= maxPosts) return;  // cap hit → skip
  *
- * Since refillQueue() is async and has heavy external deps (LLM, YouTube, Tavily),
+ * Since refillQueue() is async and has heavy external deps (LLM, image generation),
  * we test the observable components of the cap mechanism:
  *   1. FEED_DEFAULTS.dailyGenerationCapMultiplier === 5
  *   2. The cap formula: multiplier × max(dueConcepts, 1)

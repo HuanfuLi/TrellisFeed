@@ -26,11 +26,10 @@
 import type { DailyPost } from '../types/index.ts';
 import { eventBus } from '../lib/event-bus.ts';
 import { postHistoryService } from './post-history.service.ts';
-import { collectionService } from './collection.service.ts';
 import { dbExecute, dbQuery } from './db.service.ts';
 
-// Phase 55-07: engagement state (a single JSON blob of saved/liked/dismissed/
-// savedPodcasts ID arrays) persists to one row in the IndexedDB `engagement`
+// Phase 55-07: engagement state (a single JSON blob of saved/liked/dismissed
+// ID arrays) persists to one row in the IndexedDB `engagement`
 // table. The in-memory mirror is the synchronous read path; the legacy
 // `trellis_engagement_v1` localStorage key is no longer written (cleared on the
 // D-11 cutover sweep in db.service.ts clearAllTables).
@@ -40,11 +39,10 @@ interface EngagementState {
   saved: string[];          // postIds
   liked: string[];          // postIds (recommendation signal — NOT displayed)
   dismissed: string[];      // anchorIds
-  savedPodcasts: string[];  // podcast IDs — surfaced in the Saved tab alongside posts
 }
 
 function freshState(): EngagementState {
-  return { saved: [], liked: [], dismissed: [], savedPodcasts: [] };
+  return { saved: [], liked: [], dismissed: [] };
 }
 
 // Phase 55-07: engagement state persists ONLY to IndexedDB (single-row blob).
@@ -59,7 +57,6 @@ function loadState(): EngagementState {
     saved: [..._state.saved],
     liked: [..._state.liked],
     dismissed: [..._state.dismissed],
-    savedPodcasts: [..._state.savedPodcasts],
   };
 }
 
@@ -68,7 +65,6 @@ function saveState(state: EngagementState): void {
     saved: [...state.saved],
     liked: [...state.liked],
     dismissed: [...state.dismissed],
-    savedPodcasts: [...state.savedPodcasts],
   };
   // IndexedDB write-through (D-09/D-12) — fire-and-forget single-row upsert.
   void dbExecute('INSERT OR REPLACE INTO engagement (id, data) VALUES (?, ?)', [
@@ -91,7 +87,7 @@ export async function hydrateEngagementFromSQLite(): Promise<void> {
   try {
     const cur = loadState();
     const hasData = cur.saved.length > 0 || cur.liked.length > 0
-      || cur.dismissed.length > 0 || cur.savedPodcasts.length > 0;
+      || cur.dismissed.length > 0;
     if (hasData) return; // mirror already has data — trust it
     const rows = await dbQuery<{ id: string; data: string }>(
       'SELECT * FROM engagement WHERE id = ?', [SQLITE_ROW_ID],
@@ -103,9 +99,8 @@ export async function hydrateEngagementFromSQLite(): Promise<void> {
       saved: Array.isArray(parsed?.saved) ? parsed!.saved : [],
       liked: Array.isArray(parsed?.liked) ? parsed!.liked : [],
       dismissed: Array.isArray(parsed?.dismissed) ? parsed!.dismissed : [],
-      savedPodcasts: Array.isArray(parsed?.savedPodcasts) ? parsed!.savedPodcasts : [],
     };
-    const restored = next.saved.length || next.liked.length || next.dismissed.length || next.savedPodcasts.length;
+    const restored = next.saved.length || next.liked.length || next.dismissed.length;
     if (restored) {
       _state = next;
       eventBus.emit({ type: 'ENGAGEMENT_CHANGED', payload: { kind: 'save', id: '*' } });
@@ -142,8 +137,7 @@ export const engagementService = {
    * unopened stub posts (which only exist in the feed queue, not yet in
    * history) still surface on /saved. Without the snapshot, resolvePostsByIds
    * would silently drop the id at SavedScreen render time. Callers that have
-   * the post object (LongPressMenu host, CollectionPickerSheet host) should
-   * pass it; callers that don't are unchanged.
+   * the post object should pass it; callers that don't are unchanged.
    */
   savePost(postId: string, snapshot?: DailyPost): void {
     const state = loadState();
@@ -216,39 +210,6 @@ export const engagementService = {
     return resolvePostsByIds(loadState().liked);
   },
 
-  // ─── Saved podcasts ────────────────────────────────────────────────────────
-  //
-  // Podcasts are saved by ID only (leaf discipline — this module must NOT import
-  // the heavy podcast.service, which would break node --test loadability). The
-  // SavedScreen resolves IDs to DailyPodcast objects via podcastService.getAll()
-  // at read time, mirroring the post-resolution pattern.
-
-  /** Save a podcast (idempotent — no-op + no event if already saved). */
-  savePodcast(podcastId: string): void {
-    const state = loadState();
-    if (state.savedPodcasts.includes(podcastId)) return;
-    state.savedPodcasts.push(podcastId);
-    saveState(state);
-    eventBus.emit({ type: 'ENGAGEMENT_CHANGED', payload: { kind: 'save-podcast', id: podcastId } });
-  },
-
-  /** Remove a saved podcast (idempotent — no-op + no event if not saved). */
-  removeSavedPodcast(podcastId: string): void {
-    const state = loadState();
-    if (!state.savedPodcasts.includes(podcastId)) return;
-    state.savedPodcasts = state.savedPodcasts.filter(id => id !== podcastId);
-    saveState(state);
-    eventBus.emit({ type: 'ENGAGEMENT_CHANGED', payload: { kind: 'unsave-podcast', id: podcastId } });
-  },
-
-  isPodcastSaved(podcastId: string): boolean {
-    return loadState().savedPodcasts.includes(podcastId);
-  },
-
-  getSavedPodcastIds(): string[] {
-    return [...loadState().savedPodcasts];
-  },
-
   // ─── Dismissed anchors ───────────────────────────────────────────────────
 
   /**
@@ -288,26 +249,13 @@ export const engagementService = {
   // ─── Cross-module helper (D-04) ──────────────────────────────────────────
 
   /**
-   * Returns the union of saved ∪ liked ∪ collection-member post IDs (NOT
+   * Returns the union of saved ∪ liked post IDs (NOT
    * dismissed anchor IDs). Consumed by `postHistoryService.purgeExpired()`
-   * to pin engaged posts against the retention purge so a post saved or
-   * collection-anchored >retentionDays ago is not silently dropped from
-   * the snapshot store.
-   *
-   * Phase 50 D-09: collection membership pins a post against the 7-day
-   * rolling history purge. If a user adds a post to "For thesis" but does
-   * NOT save it globally, the post still survives purge ("they kept it for
-   * a reason"). The union is computed lazily here — `purgeExpired()` calls
-   * this method ONCE per invocation, not once per candidate post.
-   *
-   * Import direction is one-way: engagementService → collectionService →
-   * postHistoryService (no circular dep — collectionService MUST NOT
-   * import engagementService; enforced in plan 50-03).
+   * to pin engaged posts against the retention purge.
    */
   getPinnedIds(): Set<string> {
     const s = loadState();
-    const collectionMembers = collectionService.getAllMemberPostIds();
-    return new Set<string>([...s.saved, ...s.liked, ...collectionMembers]);
+    return new Set<string>([...s.saved, ...s.liked]);
   },
 
   // ─── Test/dev affordance (D-08) ──────────────────────────────────────────

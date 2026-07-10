@@ -1,10 +1,16 @@
 # Repository Guidelines
 
+## What this project is
+
+**QuestionTrace** — a mobile research prototype for studying post-centered graph-memory learning feeds. The canonical implementation guide is [`docs/research_system_design.md`](docs/research_system_design.md); scope boundaries are in [`docs/SCOPE.md`](docs/SCOPE.md). This is a research fork of the Trellis product; the product features listed in design doc §15.3 were pruned on 2026-07-09 (see [`docs/prune_report.md`](docs/prune_report.md)) and must not be reintroduced. Load-bearing engineering invariants live in [`CLAUDE.md`](CLAUDE.md) — read its "load-bearing" sections before touching the feed pipeline, data layer, question filter, navigation shell, or headers.
+
 ## Project Structure & Module Organization
-This repo is organized around the app in [`app/`](/Users/Code/EchoLearn/app) and product/spec docs in [`openspec/`](/Users/Code/EchoLearn/openspec). Main frontend code lives in [`app/src/`](/Users/Code/EchoLearn/app/src): `components/` for reusable UI, `screens/` for routed views, `services/` for business logic, `providers/` for AI and media integrations, `state/` for shared hooks/store, and `lib/` for utilities. Tests live in [`app/tests/`](/Users/Code/EchoLearn/app/tests) by area (`components`, `screens`, `services`, `providers`, `hooks`). Native Android output is under [`app/android/`](/Users/Code/EchoLearn/app/android). Use [`Documents/`](/Users/Code/EchoLearn/Documents), [`ROADMAP.md`](/Users/Code/EchoLearn/ROADMAP.md), and [`openspec/changes/`](/Users/Code/EchoLearn/openspec/changes) for planning and change context.
+
+The app lives in `app/`. Main frontend code is in `app/src/`: `components/` for reusable UI, `screens/` for routed views (Home, PostDetail, Saved, Settings, Onboarding), `services/` for business logic, `providers/` for AI integrations, `state/` for shared hooks, and `lib/` for utilities. Tests live in `app/tests/` by area (`components`, `screens`, `services`, `providers`, `hooks`, `locales`, `layout`). Native platform output is under `app/android/` and `app/ios/`. Research docs are in `docs/`; inherited planning history in `Documents/` and `openspec/`. Planned (not yet built): `tools/content_pipeline/` and `data/content_pool_v1/`.
 
 ## Build, Test, and Development Commands
-Run commands from [`app/`](/Users/Code/EchoLearn/app):
+
+Run commands from `app/`:
 
 ```bash
 npm install       # install dependencies
@@ -16,13 +22,17 @@ npx cap sync      # sync the web build into Capacitor platforms
 ```
 
 ## Coding Style & Naming Conventions
-The app uses TypeScript, React 19, Vite, and Tailwind CSS 4. Follow the existing style: functional React components, hooks for shared behavior, and one responsibility per service module. Use `PascalCase` for components/screens (`MoveCard.tsx`), `camelCase` for utilities/hooks/services (`useInfiniteScroll.ts`, `planner.service.ts`), and `kebab-case` for spec change folders. ESLint is configured in [`app/eslint.config.js`](/Users/Code/EchoLearn/app/eslint.config.js); `_`-prefixed unused variables are allowed. Match the surrounding file’s formatting exactly.
+
+TypeScript, React 19, Vite, Tailwind CSS 4 — but most UI uses **inline styles with CSS variables**, not Tailwind classes; match the surrounding file. Functional components, hooks for shared behavior, one responsibility per service module. `PascalCase` for components/screens, `camelCase` for utilities/hooks/services (`post-context-qa.service.ts`), `kebab-case` for spec change folders. ESLint config at `app/eslint.config.js`; `_`-prefixed unused variables are allowed.
 
 ## Testing Guidelines
-Tests use Node’s built-in `node:test` runner with `assert/strict`. Add unit tests beside the relevant area in [`app/tests/`](/Users/Code/EchoLearn/app/tests) and name files `*.test.mjs`. Prefer targeted service/component tests before manual UAT notes. For API/provider behavior, mock network calls instead of hitting live services.
+
+Tests use Node's built-in `node:test` runner with `assert/strict`. Add unit tests beside the relevant area in `app/tests/` and name files `*.test.mjs`. Prefer tests that execute the code path over tests that read source text (source-reading tests can pin bugs in place). For persistence, assert through the `dbQuery` seam, not in-memory mirrors. Mock network calls; never hit live AI services in tests.
 
 ## Commit & Pull Request Guidelines
-Recent history follows Conventional Commit style, often scoped by phase, for example `feat(12-01): wire MoveCard Add button to navigateToMove` and `docs(phase-12): Add Phase 12 planning`. Keep commits focused and descriptive. PRs should include: a short problem/solution summary, linked phase/spec/issue, test evidence (`npm test`, `npm run lint`, build status), and screenshots or recordings for UI changes.
+
+Conventional Commit style, scoped by phase where applicable (e.g. `feat(phase-2): add content pool importer`). Keep commits focused. PRs include: problem/solution summary, linked phase/spec, test evidence (`npm test`, `npm run lint`, build status), and screenshots for UI changes.
 
 ## Specs & Change Management
-When behavior changes, update the relevant OpenSpec artifacts in [`openspec/specs/`](/Users/Code/EchoLearn/openspec/specs) or add a change proposal under [`openspec/changes/`](/Users/Code/EchoLearn/openspec/changes). Keep docs aligned with shipped code.
+
+When behavior changes, keep `docs/` and `ROADMAP.md` aligned with shipped code. OpenSpec artifacts under `openspec/` are inherited history; new research-phase planning follows the design doc's Phase 0–7 roadmap.

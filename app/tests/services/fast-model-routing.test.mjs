@@ -2,7 +2,7 @@
 //
 // The post-body lazy-load made users wait seconds for the main model to THINK before the
 // body streamed into PostDetailScreen. GAP-E adds an optional low-latency generation model:
-// when enabled+configured, the on-open one-shot generators (post body, news essay,
+// when enabled+configured, the on-open one-shot generators (post body and
 // post-context Q&A) stream from it with thinking/reasoning DISABLED; when unset, they fall
 // back to the main `llm` with NO behavior change.
 //
@@ -130,9 +130,7 @@ describe('fastModel type + default + routing wiring (source guards)', () => {
     assert.ok(/resolveGenerationConfig/.test(postQaSource), 'post-context-qa.service.ts must use resolveGenerationConfig');
   });
 
-  it('does NOT modify concept-feed text-art (news bodyMarkdown defer + text-art budget intact)', () => {
-    // Negative guard: this plan must not touch concept-feed's news creation branch.
-    assert.ok(/bodyMarkdown:\s*''/.test(cfsSource), "concept-feed must keep news bodyMarkdown:'' (defer-to-streamer)");
+  it('does NOT route concept-feed generation through resolveGenerationConfig', () => {
     assert.ok(!/resolveGenerationConfig/.test(cfsSource), 'concept-feed.service.ts must NOT be routed through resolveGenerationConfig (separate text-art path)');
   });
 });

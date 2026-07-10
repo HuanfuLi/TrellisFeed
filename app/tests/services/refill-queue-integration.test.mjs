@@ -13,8 +13,8 @@ globalThis.localStorage = {
 // SIMPLIFIED INTEGRATION PATH (Phase 36 — see plan 36-04 for rationale):
 // We test composition of the Phase 36 helpers (appendToDerivedList,
 // walkDerivedList, assignStylesStratified, spreadByConcept, spreadByStyle)
-// directly, without mocking refillQueue's full async chain (LLM/YouTube/
-// Tavily/image-gen). The unit-test coverage in Waves 0-2 already validates
+// directly, without mocking refillQueue's full async chain (LLM/image-gen).
+// The unit-test coverage in Waves 0-2 already validates
 // each helper in isolation; this file validates that they COMPOSE.
 //
 // Note: spread helpers are imported from the leaf module `feed-spread.ts`
@@ -34,7 +34,7 @@ const { postQueueService } = await import('../../src/services/post-queue.service
 const { assignStylesStratified, STYLE_WEIGHTS } = await import('../../src/services/style-assignment.ts');
 const { spreadByConcept, spreadByStyle } = await import('../../src/services/feed-spread.ts');
 
-const allAvailable = { hasYoutubeKey: true, hasTavilyKey: true, hasImageGenKey: true };
+const allAvailable = { hasImageGenKey: true };
 
 function makePost(id, anchorIds, style) {
   return {
@@ -102,8 +102,6 @@ describe('refill-queue integration (Phase 36 GAP-1..4 composition)', () => {
     const counts = {};
     for (const a of assignments) counts[a.style] = (counts[a.style] ?? 0) + 1;
 
-    // STYLE_WEIGHTS sum = 1.00 (Phase 38: 0.10 image + 0.55 text-art + 0.05 suggestion
-    // + 0.10 news + 0.20 video — short style was removed; video absorbed its 0.10).
     // Imported from style-assignment.ts to avoid drift if weights are tuned.
     const sum = Object.values(STYLE_WEIGHTS).reduce((a, b) => a + b, 0);
     for (const [style, weight] of Object.entries(STYLE_WEIGHTS)) {
@@ -117,11 +115,10 @@ describe('refill-queue integration (Phase 36 GAP-1..4 composition)', () => {
   it('GAP-4 — combined concept + style spread: no adjacent shares BOTH', () => {
     // 8-post batch: 4 of A, 4 of B; alternating styles
     const posts = [
-      makePost('a1', ['A'], 'text-art'), makePost('a2', ['A'], 'video'),
+      makePost('a1', ['A'], 'text-art'), makePost('a2', ['A'], 'image'),
       makePost('a3', ['A'], 'text-art'), makePost('a4', ['A'], 'image'),
-      makePost('b1', ['B'], 'text-art'), makePost('b2', ['B'], 'news'),
-      // (Phase 38 / TECHDEBT-06): the legacy short fixture replaced with video — short type is gone.
-      makePost('b3', ['B'], 'text-art'), makePost('b4', ['B'], 'video'),
+      makePost('b1', ['B'], 'text-art'), makePost('b2', ['B'], 'suggestion'),
+      makePost('b3', ['B'], 'text-art'), makePost('b4', ['B'], 'image'),
     ];
     spreadByConcept(posts);
     spreadByStyle(posts);
@@ -159,13 +156,13 @@ describe('refill-queue integration (Phase 36 GAP-1..4 composition)', () => {
     assert.deepEqual(walked, [], 'all-explored produces []');
   });
 
-  // Test 7 — Phase 36 GAP-B regression: text-art ≥ floor(N×0.55) at N=16
+  // Test 7 — Phase 36 GAP-B regression: text-art ≥ floor(N×weight) at N=16
   // The single-anchor case (len=4) was the GAP-B blind spot. Pre-fix: walkDerivedList(16, ...)
   // returned 8 entries due to the maxSteps=len*2 cap, assignStylesStratified pinned text-art
-  // at 4/8 = 50%. Post-fix: walker returns 16, text-art's remainder 0.80 beats minority 0.60,
-  // text-art = 9/16 = 56%, satisfying floor(16 * 0.55) = 8.
+  // at 4/8 = 50%. Post-fix: walker returns 16 and text-art satisfies its
+  // largest-remainder allocation.
   // See .planning/debug/style-mix-imbalance.md for the math walkthrough.
-  it('GAP-B regression — text-art count ≥ floor(N × 0.55) at N=16 with single-anchor derivedList', () => {
+  it('GAP-B regression — text-art count ≥ floor(N × configured weight) at N=16 with single-anchor derivedList', () => {
     postQueueService.appendToDerivedList(['anchor1', 'anchor1', 'anchor1', 'anchor1']);
     const conceptIds = postQueueService.walkDerivedList(16, new Set(), new Set());
     assert.equal(conceptIds.length, 16, 'walker must return 16 entries — pre-fix bug returned 8');
@@ -178,9 +175,9 @@ describe('refill-queue integration (Phase 36 GAP-1..4 composition)', () => {
     const textArtFloor = Math.floor(16 * STYLE_WEIGHTS['text-art']);
     assert.ok(
       (counts['text-art'] ?? 0) >= textArtFloor,
-      `text-art count must be >= floor(16 * 0.55) = ${textArtFloor}; got ${counts['text-art'] ?? 0}. ` +
+      `text-art count must be >= floor(16 * configured weight) = ${textArtFloor}; got ${counts['text-art'] ?? 0}. ` +
       `Pre-Phase-36-07 bug: walker truncated to N=8, text-art floor-pinned at 4/8 = 50%. ` +
-      `Post-fix: text-art should land at 9/16 = 56% (largest-remainder bonus).`,
+      `Post-fix: text-art should follow largest-remainder allocation.`,
     );
   });
 });

@@ -124,8 +124,8 @@ describe('text-art tightener reject-empty/fragment gate (Phase 55.1 BUGFIX-02)',
     const body = nextFn >= 0 ? after.slice(0, nextFn) : after;
     assert.ok(
       !/bodyMarkdown/.test(body),
-      'tightenTextArtContent must never reference bodyMarkdown — the news defer-to-streamer ' +
-      'design (bodyMarkdown: "") is untouched by the text-art reject gate (CLAUDE.md News pipeline).',
+      'tightenTextArtContent must never reference bodyMarkdown — on-enter essay generation ' +
+      'is untouched by the text-art reject gate.',
     );
   });
 });

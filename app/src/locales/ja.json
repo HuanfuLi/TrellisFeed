@@ -371,13 +371,13 @@
     },
     "menu": {
       "aiModels": "AIモデル",
-      "aiModelsDesc": "言語モデル、埋め込み、音声合成",
+      "aiModelsDesc": "言語モデルと埋め込み",
       "contentSources": "コンテンツソース",
-      "contentSourcesDesc": "画像生成、YouTube、ウェブ検索",
+      "contentSourcesDesc": "画像生成",
       "features": "機能",
-      "featuresDesc": "ポッドキャスト、復習、プランナー設定",
+      "featuresDesc": "研究シェルの機能フラグ",
       "dataPrivacy": "データとプライバシー",
-      "dataPrivacyDesc": "プライバシー、開発者ツール、使用統計"
+      "dataPrivacyDesc": "プライバシー、開発者ツール、データ管理"
     },
     "titles": {
       "aiModels": "AIモデル",
@@ -446,7 +446,7 @@
     },
     "descriptions": {
       "fastModelBlurb": "任意。投稿の本文やフォローアップの回答を、推論を無効にした別の低遅延モデルでストリーミングするため、コンテンツが即座に表示されます。オフにするとメインモデルを使用します。",
-      "fastModelEnabled": "投稿本文・ニュース記事・投稿フォローアップをこのモデルで生成する",
+      "fastModelEnabled": "投稿本文と投稿フォローアップをこのモデルで生成する",
       "fastModelHint": "最速のストリーミングには、小型の非推論モデルを選んでください。",
       "embeddingBlurb": "概念間の意味的類似度に使用され、コネクションカードの品質を支えます。LLM とは別 — Anthropic に埋め込みモデルはありません。",
       "lmStudioServer": "LM Studio サーバー URL",
@@ -479,7 +479,7 @@
       "trellisDevModeHint": "ダミーノードで 7 種類の葉の状態（芽、緑、黄、落下中、落葉、花、果実）を表示し、視覚デバッグに使います。",
       "developerBlurb": "開発用のデバッグツール。破壊的操作は元に戻せません。",
       "usageBlurb": "月間の質問上限と LLM API トークン使用状況。",
-      "privacyBlurb": "Trellis はローカル優先です。ノート、フラッシュカード、セッションはこの端末のみに保存されます。Trellis サーバーがデータを受け取ることはありません。",
+      "privacyBlurb": "Trellis はローカル優先です。質問、セッション、保存した投稿、設定はこの端末のみに保存されます。Trellis サーバーがデータを受け取ることはありません。",
       "aiConsentHint": "質問を設定済みの AI プロバイダーへ送信することを許可",
       "generationCap": "コンセプトごとの1日最大生成数",
       "bonusCap": "全コンセプト探索後の追加投稿数",
@@ -609,8 +609,8 @@
       "todayReset": "今日のレビュー/投稿ステータスをリセットしました"
     },
     "confirm": {
-      "deleteApiKeys": "保存済みの API キーをすべて削除しますか？再入力するまで AI と TTS の機能は無効になります。",
-      "clearAllData": "すべてのデータを削除しますか？\n\n質問、フラッシュカード、セッション、プラン、ポッドキャストをすべて削除します。設定は保持されます。\n\nこの操作は元に戻せません。",
+      "deleteApiKeys": "保存済みの API キーをすべて削除しますか？再入力するまで AI 機能は無効になります。",
+      "clearAllData": "すべてのデータを削除しますか？\n\n質問、セッション、保存シグナル、生成済み投稿、キャッシュ画像をすべて削除します。設定は保持されます。\n\nこの操作は元に戻せません。",
       "clearImageCache": "キャッシュされたすべての投稿画像を消去しますか？次回表示時に再生成されます。",
       "reset": "すべての設定を既定値に戻しますか？"
     },
@@ -867,9 +867,9 @@
     },
     "welcome": {
       "title": "Trellis へようこそ",
-      "body": "あなた専用の AI 学習パートナーです。何でも質問し、間隔反復で復習し、毎日の学習ポッドキャストを聴きましょう。",
-      "featureAskTitle": "何でも質問",
-      "featureAskDesc": "構造化された知識として保存される AI 回答",
+      "body": "投稿を読み、文脈に沿ってフォローアップ質問を行い、学習シグナルをローカルに保存するための研究プロトタイプです。",
+      "featureAskTitle": "文脈内で質問",
+      "featureAskDesc": "投稿からフォローアップ質問を行い、その質問トレースをローカルに保持します",
       "featureReviewTitle": "間隔反復",
       "featureReviewDesc": "最適な間隔で復習し記憶を最大化",
       "featurePodcastTitle": "毎日のポッドキャスト",
@@ -883,7 +883,7 @@
     "consent": {
       "title": "データとプライバシー",
       "intro": "Trellis はプライバシー優先のアプリです。あなたのデータの扱いは次のとおりです：",
-      "rowLocal": "ノート、フラッシュカード、プランのデータはすべてこの端末のみに保存されます。",
+      "rowLocal": "質問、セッション、保存した投稿、設定はすべてこの端末のみに保存されます。",
       "rowCloud": "質問すると、あなた自身の API キーを使って、設定した AI プロバイダー（OpenAI、Anthropic など）に直接送信されます。",
       "rowNoServer": "Trellis はあなたのデータを Trellis サーバーに送信することはありません。Trellis にバックエンドはありません。",
       "consent": "私は質問が自分の API キーを使って設定済みの AI プロバイダーへ送信されることを理解し同意します。",

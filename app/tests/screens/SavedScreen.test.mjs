@@ -3,8 +3,7 @@
 // surface. The legacy PostHistoryScreen.tsx + /history route were deleted; their
 // row layout was preserved verbatim in the new History tab.
 // Side feature (2026-05-20): the Liked tab was removed (likes are now a hidden
-// recommendation signal, not a user-facing list). Tabs are now Saved | History |
-// Collections, and the Saved tab also surfaces bookmarked podcasts.
+// recommendation signal, not a user-facing list). Tabs are now Saved | History.
 //
 // Filled in from the Wave-0 scaffold (Plan 43-01) per the established
 // Phase 39/40/41/42/43 anti-wire / structural-invariant test discipline:
@@ -35,19 +34,15 @@ test('SV-01: /saved route registered in App.tsx with PageTransition wrapper', ()
   );
 });
 
-test('SV-03/04: SavedScreen exports default + reads saved posts + saved podcasts from engagementService', () => {
+test('SV-03/04: SavedScreen exports default + reads saved posts from engagementService', () => {
   const src = readSrc('src/screens/SavedScreen.tsx');
-  assert.match(src, /export default function SavedScreen/, 'default export present');
+  assert.match(src, /export default SavedScreen/, 'default export present');
   assert.match(
     src,
     /engagementService\.getSavedPosts\(\)/,
     'Saved tab data source: engagementService.getSavedPosts()',
   );
-  assert.match(
-    src,
-    /engagementService\.getSavedPodcastIds\(\)/,
-    'Saved tab also surfaces saved podcasts via engagementService.getSavedPodcastIds()',
-  );
+  assert.doesNotMatch(src, /getSavedPodcastIds|savePodcast|removeSavedPodcast/, 'Saved podcasts are removed');
 });
 
 test('Side feature: Liked tab removed — likes are now a hidden recommendation signal', () => {
@@ -76,7 +71,7 @@ test('Archive consolidation 2026-05-12: History tab reads postHistoryService.get
   assert.match(
     src,
     /saved\.tabs\.history/,
-    'i18n key saved.tabs.history referenced (new third tab)',
+    'i18n key saved.tabs.history referenced',
   );
 });
 
@@ -90,21 +85,6 @@ test("SV-04: tabs use local useState (not route param) + saved/history empty-sta
   assert.match(src, /saved\.tabs\.saved/, 'i18n key saved.tabs.saved referenced');
   assert.match(src, /saved\.empty\.savedTitle/, 'i18n key saved.empty.savedTitle referenced');
   assert.match(src, /saved\.empty\.savedBody/, 'i18n key saved.empty.savedBody referenced');
-});
-
-test('Side feature: saved podcasts render in the Saved tab (heading + unsave wiring)', () => {
-  const src = readSrc('src/screens/SavedScreen.tsx');
-  assert.match(src, /saved\.podcastsHeading/, 'i18n key saved.podcastsHeading referenced for the podcast section');
-  assert.match(
-    src,
-    /engagementService\.removeSavedPodcast\(/,
-    'podcast row exposes an unsave affordance via removeSavedPodcast()',
-  );
-  assert.match(
-    src,
-    /navigate\(\s*['"`]\/podcast['"`]\s*\)/,
-    'tapping a saved podcast navigates to /podcast',
-  );
 });
 
 test('SV: ENGAGEMENT_CHANGED subscription for in-place re-sync', () => {

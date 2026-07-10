@@ -5,7 +5,6 @@
 //   1. Source-read invariants: the LLM + embedding provider onChange stash the
 //      current key under the old provider and restore the new provider's saved
 //      key AFTER the defaults spread (so defaults[p].apiKey:'' is overridden).
-//      effectiveTtsApiKey must remain present and unchanged.
 //   2. Pure-logic round-trip: replicate the restore math and prove a key
 //      survives switch-away-and-back, independent of React.
 
@@ -57,13 +56,6 @@ describe('SettingsAIScreen provider-key persistence — source invariants (Phase
     );
   });
 
-  it('NEGATIVE: effectiveTtsApiKey is present and unchanged (truth #4)', () => {
-    assert.match(
-      source,
-      /const effectiveTtsApiKey = tts\.apiKey \|\| \(tts\.provider === 'openai'/,
-      'effectiveTtsApiKey fallback must remain intact',
-    );
-  });
 });
 
 // Pure-logic restore math — the actual behavior, independent of React.

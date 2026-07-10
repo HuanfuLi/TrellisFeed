@@ -1,14 +1,12 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { Shield, Trash2, BarChart3, Download, Upload, RotateCcw } from 'lucide-react';
+import { Shield, Trash2, Download, Upload, RotateCcw } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Header } from '../../components/ui/Header';
 import { settingsService, FEED_DEFAULTS } from '../../services/settings.service';
 import { toast } from '../../lib/toast';
-import { tokenUsageReporter, type ServiceAggregate } from '../../services/token-usage.service';
-import { getRateLimitStatus } from '../../services/ask-rate-limiter.service';
 import { imageGenerationService } from '../../services/imageGeneration.service';
 import { conceptFeedService } from '../../services/concept-feed.service';
 import { clearAllTables } from '../../services/db.service';
@@ -24,13 +22,6 @@ export function SettingsDataScreen() {
 
   const [settings, setSettings] = useState(() => settingsService.getSync());
   const [aiConsent, setAiConsent] = useState(() => settingsService.getSync().preferences.aiConsentGiven ?? false);
-  const [tokenUsage, setTokenUsage] = useState<Record<string, ServiceAggregate>>(() => tokenUsageReporter.getByService());
-  const [askMonthlyLimit, setAskMonthlyLimit] = useState<number>(() => settingsService.getSync().preferences.askMonthlyLimit ?? 0);
-  const rateLimitStatus = getRateLimitStatus(askMonthlyLimit);
-
-  // Used as a dummy state to force re-render for trellis dev mode switch
-  const [, setReviewNotif] = useState(() => settingsService.getSync().review.notificationsEnabled);
-
   const [trellisDevMode, setTrellisDevMode] = useState(() => localStorage.getItem('trellis_dev_mode') === 'true');
 
   const handleToggleAiConsent = async () => {
@@ -46,7 +37,6 @@ export function SettingsDataScreen() {
     const s = settingsService.getSync();
     const noKeyRequired = (p: string) => p === 'local' || p === 'lmstudio';
     await settingsService.set('llm', { ...s.llm, apiKey: '', isConfigured: noKeyRequired(s.llm.provider) });
-    await settingsService.set('tts', { ...s.tts, apiKey: '', isConfigured: s.tts.provider === 'gptsovits' ? !!s.tts.baseUrl : false });
     toast(t('settings.toast.apiKeysDeleted'), 'success');
   };
 
@@ -145,21 +135,6 @@ export function SettingsDataScreen() {
     }
   };
 
-  const refreshTokenUsage = () => setTokenUsage(tokenUsageReporter.getByService());
-
-  const handleClearTokenUsage = () => {
-    tokenUsageReporter.clear();
-    setTokenUsage({});
-    toast(t('settings.toast.tokenUsageCleared'), 'success');
-  };
-
-  const handleAskLimitChange = (value: string) => {
-    const num = Math.max(0, parseInt(value, 10) || 0);
-    setAskMonthlyLimit(num);
-    const current = settingsService.getSync();
-    settingsService.set('preferences', { ...current.preferences, askMonthlyLimit: num });
-  };
-
   const handleReset = async () => {
     if (confirm(t('settings.confirm.reset'))) {
       await settingsService.reset();
@@ -211,8 +186,6 @@ export function SettingsDataScreen() {
               localStorage.setItem('trellis_dev_mode', String(next));
               setTrellisDevMode(next);
               toast(next ? t('settings.toast.trellisDevOn') : t('settings.toast.trellisDevOff'));
-              // Force re-render so the switch updates
-              setReviewNotif((v) => { setTimeout(() => setReviewNotif(v), 0); return !v; });
             }}
           />
         </SettingRow>
@@ -313,93 +286,6 @@ export function SettingsDataScreen() {
           >
             <RotateCcw size={16} /> {t('settings.buttons.resetToday')}
           </Button>
-        </div>
-      </Card>
-
-      {/* Usage */}
-      <SectionHeader icon={<BarChart3 size={20} />} title={t('settings.sections.usage')} />
-      <Card style={{ marginBottom: '8px' }}>
-        <p style={{ fontSize: '0.8rem', color: 'var(--muted-foreground)', marginBottom: '12px', lineHeight: 1.5 }}>
-          {t('settings.descriptions.usageBlurb')}
-        </p>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', padding: '12px', background: 'var(--surface-variant)', borderRadius: 'var(--radius-xl)' }}>
-          <div>
-            <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{t('settings.usageTable.monthlyLimit')}</div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', marginTop: '2px' }}>
-              {askMonthlyLimit === 0
-                ? t('settings.usageTable.unlimited')
-                : t('settings.usageTable.usedThisMonth', { count: rateLimitStatus.count, limit: askMonthlyLimit })}
-            </div>
-            {askMonthlyLimit > 0 && (
-              <div style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)', marginTop: '2px' }}>
-                {t('settings.usageTable.resets', { date: rateLimitStatus.resetDate })}
-              </div>
-            )}
-          </div>
-          <input
-            type="number"
-            min="0"
-            value={askMonthlyLimit}
-            onChange={(e) => handleAskLimitChange(e.target.value)}
-            style={{
-              width: '80px', padding: '6px 8px', borderRadius: 'var(--radius-xl)',
-              border: '1px solid var(--border)', background: 'var(--surface)',
-              fontSize: '0.85rem', textAlign: 'center',
-            }}
-            placeholder={t('settings.placeholders.askLimit')}
-          />
-        </div>
-        {Object.keys(tokenUsage).length === 0 ? (
-          <p style={{ fontSize: '0.85rem', color: 'var(--muted-foreground)', fontStyle: 'italic' }}>{t('settings.usageTable.empty')}</p>
-        ) : (
-          <>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', fontSize: '0.8rem', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ borderBottom: '2px solid var(--border)', textAlign: 'left' }}>
-                    <th style={{ padding: '6px 8px' }}>{t('settings.usageTable.service')}</th>
-                    <th style={{ padding: '6px 8px', textAlign: 'right' }}>{t('settings.usageTable.prompt')}</th>
-                    <th style={{ padding: '6px 8px', textAlign: 'right' }}>{t('settings.usageTable.completion')}</th>
-                    <th style={{ padding: '6px 8px', textAlign: 'right' }}>{t('settings.usageTable.total')}</th>
-                    <th style={{ padding: '6px 8px', textAlign: 'right' }}>{t('settings.usageTable.calls')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {Object.entries(tokenUsage)
-                    .sort(([, a], [, b]) => b.totalTokens - a.totalTokens)
-                    .map(([service, agg]) => (
-                      <tr key={service} style={{ borderBottom: '1px solid var(--border)' }}>
-                        <td style={{ padding: '6px 8px', fontWeight: 500, textTransform: 'capitalize' }}>{service}</td>
-                        <td style={{ padding: '6px 8px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{agg.promptTokens.toLocaleString()}</td>
-                        <td style={{ padding: '6px 8px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{agg.completionTokens.toLocaleString()}</td>
-                        <td style={{ padding: '6px 8px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>{agg.totalTokens.toLocaleString()}</td>
-                        <td style={{ padding: '6px 8px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{agg.callCount}</td>
-                      </tr>
-                    ))}
-                  {/* Totals row */}
-                  <tr style={{ borderTop: '2px solid var(--border)', fontWeight: 600 }}>
-                    <td style={{ padding: '6px 8px' }}>{t('settings.usageTable.totalRow')}</td>
-                    <td style={{ padding: '6px 8px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-                      {Object.values(tokenUsage).reduce((s, a) => s + a.promptTokens, 0).toLocaleString()}
-                    </td>
-                    <td style={{ padding: '6px 8px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-                      {Object.values(tokenUsage).reduce((s, a) => s + a.completionTokens, 0).toLocaleString()}
-                    </td>
-                    <td style={{ padding: '6px 8px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-                      {Object.values(tokenUsage).reduce((s, a) => s + a.totalTokens, 0).toLocaleString()}
-                    </td>
-                    <td style={{ padding: '6px 8px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-                      {Object.values(tokenUsage).reduce((s, a) => s + a.callCount, 0)}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </>
-        )}
-        <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-          <Button size="sm" variant="secondary" onClick={refreshTokenUsage}>{t('settings.buttons.refresh')}</Button>
-          <Button size="sm" variant="danger" onClick={handleClearTokenUsage}>{t('settings.buttons.clear')}</Button>
         </div>
       </Card>
 

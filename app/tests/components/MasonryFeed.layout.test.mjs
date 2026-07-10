@@ -9,11 +9,11 @@
 //     is mandatory.
 //   - RESEARCH.md Pitfall 4 — GAP-C single-emit invariant: the canonical
 //     dailyReadService.markExplored + CONCEPT_EXPLORED emit lives in
-//     MemoizedConceptCard's video thumbnail onClick. MasonryFeed.tsx must NOT
+//     MemoizedConceptCard's concept-card onClick. MasonryFeed.tsx must NOT
 //     add a parallel emit at the wrapper level.
 //
 // Pattern A (positive presence + negative grep in same file). Mirrors
-// tests/components/InfoFlow.video-tap-emit.test.mjs.
+// source-reading component tests.
 //
 // All assertions are pure source-read; no DOM render; runs in <1s.
 
@@ -169,7 +169,7 @@ describe('MasonryFeed layout invariants (Phase 42)', () => {
     );
     // Spot-check that the table covers all the major presentation styles
     // touched by the masonry pipeline.
-    for (const key of ['news', 'image', 'video', 'text-art', 'suggestion']) {
+    for (const key of ['image', 'text-art', 'suggestion']) {
       assert.ok(
         new RegExp(`['"]?${key}['"]?\\s*:\\s*\\d`).test(masonrySource),
         `STYLE_HEIGHT_ESTIMATES must include a numeric entry for "${key}".`,
@@ -184,7 +184,7 @@ describe('MasonryFeed layout invariants (Phase 42)', () => {
   // would leave the first paint with empty columns.
   // UAT-5b regression lock — flex columns must shrink below intrinsic content width.
   // Same root cause as CLAUDE.md ChatInput rule: flex children with intrinsic content
-  // (image-bearing cards, news headlines) overflow the parent unless minWidth: 0 is
+  // (image-bearing cards, text-art captions) overflow the parent unless minWidth: 0 is
   // explicit on each column. The fix also pins the outer container to width: '100%'
   // so it fills HomeScreen's maxWidth-capped content area predictably.
   it('column wrappers have minWidth: 0 alongside flex: 1 (UAT-5b regression lock — same as ChatInput rule)', () => {

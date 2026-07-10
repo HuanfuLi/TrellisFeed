@@ -1,9 +1,8 @@
 import { useState, useRef, memo } from 'react';
-import { Pencil, RefreshCw, Trash2, Globe } from 'lucide-react';
+import { Pencil, RefreshCw, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Markdown } from './Markdown';
-import { extractCitations } from '../services/web-search.service';
-import type { SessionMessage, SourceCitation } from '../types';
+import type { SessionMessage } from '../types';
 
 export type MessageType = 'user' | 'ai';
 
@@ -34,73 +33,6 @@ interface ChatMessageProps {
    * unchanged; this is a SEPARATE peer surface.
    */
   kind?: SessionMessage['kind'];
-}
-
-/** Replace inline [N] citation tags with styled superscript spans. */
-function styleCitationTags(body: string, sources: SourceCitation[]): string {
-  if (sources.length === 0) return body;
-  // Build a set of valid indices so we only style real citations
-  const validIndices = new Set(sources.map((s) => s.index));
-  return body.replace(/\[(\d+)\]/g, (match, num) => {
-    const idx = parseInt(num, 10);
-    if (!validIndices.has(idx)) return match;
-    // Use HTML that ReactMarkdown passes through via rehype
-    return `<sup data-cite="${idx}" style="font-size:0.7em;color:var(--muted-foreground);margin:0 1px;cursor:default">[${idx}]</sup>`;
-  });
-}
-
-function SourcesSection({ sources }: { sources: SourceCitation[] }) {
-  const { t } = useTranslation();
-  if (sources.length === 0) return null;
-  return (
-    <div style={{
-      marginTop: '10px',
-      padding: '8px 10px',
-      borderRadius: '8px',
-      backgroundColor: 'var(--surface-variant)',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '4px',
-    }}>
-      <div style={{
-        fontSize: '0.72rem',
-        color: 'var(--muted-foreground)',
-        fontWeight: 500,
-        display: 'flex',
-        alignItems: 'center',
-        gap: '5px',
-        marginBottom: '2px',
-      }}>
-        <Globe size={12} />
-        {t('chatMessage.sources')}
-      </div>
-      {sources.map((s) => {
-        let domain = '';
-        try { domain = new URL(s.url).hostname.replace('www.', ''); } catch { /* ignore */ }
-        return (
-          <a
-            key={s.index}
-            href={s.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              fontSize: '0.78rem',
-              color: 'var(--primary-40)',
-              textDecoration: 'none',
-              lineHeight: 1.4,
-              display: 'flex',
-              alignItems: 'baseline',
-              gap: '4px',
-            }}
-          >
-            <span style={{ color: 'var(--muted-foreground)', fontSize: '0.72rem', flexShrink: 0 }}>[{s.index}]</span>
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.title}</span>
-            {domain && <span style={{ color: 'var(--muted-foreground)', fontSize: '0.68rem', flexShrink: 0 }}>· {domain}</span>}
-          </a>
-        );
-      })}
-    </div>
-  );
 }
 
 export const ChatMessage = memo(function ChatMessage({
@@ -321,16 +253,7 @@ export const ChatMessage = memo(function ChatMessage({
               <span>{t('chatMessage.maliciousBlocked.body')}</span>
             </div>
           ) : (
-            (() => {
-              const { body, sources } = extractCitations(content);
-              const styledBody = styleCitationTags(body, sources);
-              return (
-                <>
-                  <Markdown>{styledBody}</Markdown>
-                  <SourcesSection sources={sources} />
-                </>
-              );
-            })()
+            <Markdown>{content}</Markdown>
           )}
           {type === 'ai' && flagged && (
             <div style={{

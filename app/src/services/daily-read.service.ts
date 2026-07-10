@@ -111,9 +111,8 @@ export function getAnchorIdForPost(
 }
 
 /**
- * Compute today's concept quota from SM-2 due anchor concepts (Phase 31 D-12).
- * The vine shows ALL due concepts — same source as flashcards and podcasts.
- * Not derived from posts; posts are generated to serve this plan.
+ * Compute today's concept quota from all anchor concepts.
+ * The QuestionTrace shell no longer consumes SM-2 due state; all anchors are eligible.
  */
 export function getConceptQuota(
   _posts: Pick<DailyPost, 'sourceQuestionIds' | 'sourceType'>[],

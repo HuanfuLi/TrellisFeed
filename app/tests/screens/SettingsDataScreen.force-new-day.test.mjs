@@ -48,10 +48,10 @@ describe('SettingsDataScreen force-new-day dev affordance (Phase 36 GAP-D Fix B)
 
   it('handler computes yesterday with local calendar semantics, not UTC ISO slicing', () => {
     const start = source.indexOf('const handleForceNewDay');
-    const next = source.indexOf('const refreshTokenUsage');
+    const next = source.indexOf('const handleReset');
     assert.ok(
       start !== -1 && next !== -1 && next > start,
-      'Could not locate handleForceNewDay anchor pair (handleForceNewDay → refreshTokenUsage)',
+      'Could not locate handleForceNewDay anchor pair (handleForceNewDay → handleReset)',
     );
     const handlerBody = source.slice(start, next);
     assert.match(
@@ -109,10 +109,10 @@ describe('SettingsDataScreen force-new-day dev affordance (Phase 36 GAP-D Fix B)
     // because of it. See .planning/debug/feed-not-auto-populating-after-force-
     // new-day.md and 36-15-SUMMARY.md.
     const start = source.indexOf('const handleForceNewDay');
-    const next = source.indexOf('const refreshTokenUsage');
+    const next = source.indexOf('const handleReset');
     assert.ok(
       start !== -1 && next !== -1 && next > start,
-      'Could not locate handleForceNewDay anchor pair (handleForceNewDay → refreshTokenUsage)',
+      'Could not locate handleForceNewDay anchor pair (handleForceNewDay → handleReset)',
     );
     const handlerBody = source.slice(start, next);
     assert.match(

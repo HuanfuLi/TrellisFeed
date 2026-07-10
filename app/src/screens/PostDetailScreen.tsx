@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, ChevronRight, Loader2, MessageSquare, RefreshCw, Sparkles } from 'lucide-react';
+import { ArrowLeft, Loader2, MessageSquare, RefreshCw, Sparkles } from 'lucide-react';
 import i18n from '../locales';
 import { DetailMenu } from '../components/DetailMenu';
 import { Header, HEADER_HEIGHT } from '../components/ui/Header';
@@ -16,15 +16,12 @@ import { questionService } from '../services/question.service';
 import { Markdown } from '../components/Markdown';
 import { ChatMessage } from '../components/ChatMessage';
 import { PostCarousel } from '../components/PostCarousel';
-import { YouTubeEmbed } from '../components/YouTubeEmbed';
 import { toast } from '../lib/toast';
-import { parseMoveNavigationState } from '../lib/moveNavigator';
 import { inferImageStyle, buildImagePrompt } from '../services/postFormatting.service';
 import { normalizePlainText } from '../lib/text-normalization';
 import { generatePostEssay, generateEssayMeta, patchPostEssayInCache, type EssayContent } from '../services/post-essay.service';
 import { eventBus } from '../lib/event-bus';
 import { postHistoryService } from '../services/post-history.service';
-import { resolveAnchorId } from '../lib/anchor-resolution';
 
 interface ConnectionMeta {
   questionA: Question;
@@ -55,15 +52,6 @@ export function PostDetailScreen() {
   const locationState = location.state as { post?: DailyPost; connectionMeta?: ConnectionMeta; discoverMeta?: DiscoverMeta } | null;
   const passedPost = locationState?.post ?? null;
 
-  // Extract move navigation context (when navigated from a suggested move)
-  const moveState = parseMoveNavigationState(location.state);
-  // Verify linkedResource matches URL param for consistency
-  if (moveState?.linkedResource?.type === 'post' && moveState.linkedResource.id !== id) {
-    console.warn(
-      '[PostDetailScreen] Move linkedResource ID does not match URL param:',
-      moveState.linkedResource.id, '!=', id
-    );
-  }
   // connectionMeta and discoverMeta are stable per navigation — read once via ref so the
   // generation effect does not re-fire when the parent re-renders.
   const connectionMetaRef = useRef<ConnectionMeta | null>(locationState?.connectionMeta ?? null);
@@ -108,14 +96,6 @@ export function PostDetailScreen() {
 
   // --- Reading detectors (Phase 30, D-04/D-05/D-06) ---
   const [resolvedAnchorId, setResolvedAnchorId] = useState<string | null>(null);
-  // Chip-only navigation target — STRICTLY validated to be isAnchorNode=true,
-  // unlike resolvedAnchorId which uses getAnchorIdForPost (loose ownership
-  // tracking for daily-read). 2026-05-19: tapping the chip on Android
-  // sometimes landed on /anchor/<qa-leaf-id> via getAnchorIdForPost's
-  // fallback to sourceQuestionIds[0] which AnchorDetailScreen rejects
-  // with "Anchor not found" because the question's isAnchorNode is false.
-  // Same strict pattern InfoFlow's working badge taps use (Test 6 pass).
-  const [chipAnchorId, setChipAnchorId] = useState<string | null>(null);
   const [resolvedAnchorName, setResolvedAnchorName] = useState<string | null>(null);
   const hasEmittedRef = useRef(false);
   const scrollSentinelRef = useRef<HTMLDivElement>(null);
@@ -128,52 +108,21 @@ export function PostDetailScreen() {
   // returned null. useEffect runs after commit and re-runs on post
   // changes — the lookup now sees a populated store.
   //
-  // Two anchor IDs are computed:
-  //   resolvedAnchorId — for emit-explored / daily-read (loose,
-  //     getAnchorIdForPost — accepts sourceQuestionIds[0] fallback)
-  //   chipAnchorId — for chip NAVIGATION (strict, resolveAnchorId +
-  //     title fallback — same pattern as working InfoFlow badge taps).
-  //     Only set when the resolved ID's question has isAnchorNode=true.
-  //
-  // Display name fallback chain (uses chipAnchorId when valid):
-  //   anchor.title → anchor.content slice → post.sourceQuestionTitles[0]
-  //     (always present for video/news posts — concept-feed.service.ts:1153)
+  // resolvedAnchorId remains the daily-read owner. The visible chip is static
+  // because the graph detail route is removed in the QuestionTrace shell.
   useEffect(() => {
     if (!post) {
       setResolvedAnchorId(null);
-      setChipAnchorId(null);
       setResolvedAnchorName(null);
       return;
     }
     const allQ = questionService.getAll({ includeFlagged: true });
     const byId = new Map(allQ.map(q => [q.id, q]));
+    const ownerId = getAnchorIdForPost(post, byId);
+    setResolvedAnchorId(ownerId);
 
-    // Loose: tracks "which concept owns this post" for daily-read
-    setResolvedAnchorId(getAnchorIdForPost(post, byId));
-
-    // Strict: walks sourceQuestionIds through resolveAnchorId (which
-    // returns null unless the result is a verified anchor); falls back
-    // to title-match on the post's sourceQuestionTitles[0] for legacy
-    // posts with empty/unresolvable sourceQuestionIds.
-    let strictId: string | null = null;
-    for (const qId of post.sourceQuestionIds ?? []) {
-      const r = resolveAnchorId(qId);
-      if (r) { strictId = r; break; }
-    }
-    if (!strictId) {
-      const fallbackTitle = post.sourceQuestionTitles?.[0]?.trim().toLowerCase();
-      if (fallbackTitle) {
-        const matched = allQ.find(q =>
-          q.isAnchorNode &&
-          ((q.title ?? '').trim().toLowerCase() === fallbackTitle ||
-            (q.content ?? '').trim().toLowerCase() === fallbackTitle)
-        );
-        strictId = matched?.id ?? null;
-      }
-    }
-    setChipAnchorId(strictId);
-
-    const anchor = strictId ? allQ.find(q => q.id === strictId) : undefined;
+    const owner = ownerId ? byId.get(ownerId) : undefined;
+    const anchor = owner?.isAnchorNode ? owner : undefined;
     const name = anchor?.title?.trim()
       || anchor?.content?.slice(0, 40)?.trim()
       || post.sourceQuestionTitles?.[0]?.trim()
@@ -221,57 +170,6 @@ export function PostDetailScreen() {
       if (dwellTimerRef.current) clearTimeout(dwellTimerRef.current);
     };
   }, [resolvedAnchorId, emitExplored]);
-
-  // Detector D: YouTube IFrame API postMessage listener for video posts (Phase 36 GAP-C).
-  // The iframe in YouTubeEmbed.tsx now includes `enablejsapi=1`, which activates YouTube's
-  // postMessage protocol. We listen for two event shapes:
-  //   - { event: 'onStateChange', info: 0 } — playback ENDED (info=0; -1=UNSTARTED, 0=ENDED, 1=PLAYING, 2=PAUSED, 3=BUFFERING, 5=CUED)
-  //   - { event: 'infoDelivery', info: { currentTime, duration, ... } } — heartbeat (~250ms)
-  // Fire emitExplored on ENDED OR when currentTime/duration ≥ 0.8 (video substantially watched).
-  // Origin is restricted to https://www.youtube.com (and the privacy mirror youtube-nocookie.com)
-  // to prevent untrusted page from spoofing concept-explored signals.
-  // See .planning/debug/video-completion-signal-missing.md for the full diagnosis;
-  // CLAUDE.md "Concept Feed Generation Pipeline" section documents this contract.
-  useEffect(() => {
-    if (!post) return;
-    if (post.sourceType !== 'video') return;
-    if (!resolvedAnchorId) return;
-    if (dailyReadService.isExplored(resolvedAnchorId)) return;
-
-    const handleMessage = (event: MessageEvent) => {
-      // Origin allowlist — only trust messages from YouTube domains.
-      if (event.origin !== 'https://www.youtube.com' && event.origin !== 'https://www.youtube-nocookie.com') {
-        return;
-      }
-      // YouTube IFrame API sends a JSON-encoded string. Parse defensively — some
-      // unrelated postMessage payloads (e.g., from extensions) may arrive as objects.
-      let data: { event?: string; info?: unknown };
-      try {
-        data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-      } catch {
-        return;
-      }
-      if (!data || typeof data !== 'object') return;
-
-      // ENDED state — emit immediately.
-      if (data.event === 'onStateChange' && data.info === 0) {
-        emitExplored(resolvedAnchorId);
-        return;
-      }
-      // Heartbeat — emit when watched ≥ 80% of duration.
-      if (data.event === 'infoDelivery' && data.info && typeof data.info === 'object') {
-        const info = data.info as { currentTime?: number; duration?: number };
-        if (typeof info.currentTime === 'number' && typeof info.duration === 'number' && info.duration > 0) {
-          if (info.currentTime / info.duration >= 0.8) {
-            emitExplored(resolvedAnchorId);
-          }
-        }
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, [post?.id, post?.sourceType, resolvedAnchorId, emitExplored]);
 
   // Record viewed post in history (idempotent — deduplicates by id)
   useEffect(() => {
@@ -359,9 +257,6 @@ export function PostDetailScreen() {
   useEffect(() => {
     if (!post) return;
     // Skip if post already has content (starter posts, cached essays)
-    // (Phase 38 / TECHDEBT-06): the `if (post.sourceType === 'short') return;` guard
-    // was deleted with the short post type. All video posts now flow through this
-    // path; their bodyMarkdown is also '' so on-enter streaming generates the essay.
     if (post.bodyMarkdown && post.bodyMarkdown.trim() !== '') return;
 
     const abortController = new AbortController();
@@ -477,16 +372,9 @@ export function PostDetailScreen() {
 
   // Fetch cached images for the carousel whenever the post changes.
   // If no images are cached (post has none or generation hasn't run), shows essay alone.
-  // Video posts use the YouTube embed instead — skip image fetch entirely.
   useEffect(() => {
     if (!post?.id) {
       setCarouselImages([]);
-      return;
-    }
-
-    if (post.sourceType === 'video') {
-      setCarouselImages([]);
-      setIsLoadingCarousel(false);
       return;
     }
 
@@ -539,40 +427,6 @@ export function PostDetailScreen() {
   }, [post, onEnterMeta]);
   const normalizedContextLabel = post ? normalizePlainText(post.contextLabel) : '';
   const normalizedTitle = post ? normalizePlainText(post.title) : '';
-
-  // Phase 51-01: resolve the post's primary concept anchor + connection
-  // anchors so the contextLabel and connection pills can deep-link to the
-  // concept dashboard when the underlying Q&A → anchor walk succeeds.
-  // Anchor resolution lives in the useEffect above (resolvedAnchorId +
-  // resolvedAnchorName) — it correctly handles the async question-store
-  // load on Capacitor. Connection-pill anchor ids stay sync because
-  // connectionMetaRef is already populated when the post mounts.
-  const connectionMeta = connectionMetaRef.current;
-  const isConnection = post?.sourceType === 'connection';
-  const connectionAnchorIds = useMemo<[string | null, string | null]>(() => {
-    if (!isConnection || !connectionMeta) return [null, null];
-    return [
-      resolveAnchorId(connectionMeta.questionA.id),
-      resolveAnchorId(connectionMeta.questionB.id),
-    ];
-  }, [isConnection, connectionMeta]);
-
-  // Tap handler for the concept-anchor chip. Uses the proven Capacitor-
-  // on-device pattern (Phase 51 Bug 6 follow-ups, VineProgress fireConceptTap):
-  // <div role="button"> + onPointerUp + capture-phase click swallow.
-  // The swallow listener intercepts the browser-synthesized click that
-  // follows pointerup so it does not penetrate to any underlying handler
-  // before navigation commits. { once: true } auto-removes after one fire;
-  // 300ms setTimeout safety net for keyboard activation paths.
-  const fireAnchorChipTap = useCallback((anchorId: string) => {
-    const swallowClick = (ev: Event) => {
-      ev.stopPropagation();
-      ev.preventDefault();
-    };
-    document.addEventListener('click', swallowClick, { capture: true, once: true });
-    setTimeout(() => document.removeEventListener('click', swallowClick, true), 300);
-    navigate(`/anchor/${anchorId}`);
-  }, [navigate]);
 
   const handleAsk = async (content: string) => {
     if (!content.trim() || !post || !session) return;
@@ -835,7 +689,6 @@ export function PostDetailScreen() {
 
   const messages = session?.messages ?? [];
   const isConnectionPost = post.sourceType === 'connection';
-  const isNews = post.sourceType === 'news';
   const meta = connectionMetaRef.current;
 
   return (
@@ -865,38 +718,13 @@ export function PostDetailScreen() {
           50% { opacity: 0.4; }
         }
       `}</style>
-      {/* Move breadcrumb — shown when navigated from a suggested move */}
-      {moveState && (
-        <div style={{
-          fontSize: '0.75rem',
-          color: 'var(--muted-foreground)',
-          marginBottom: '8px',
-          paddingLeft: '4px',
-        }}>
-          {t('posts.detail.moveBreadcrumb', { title: moveState.move.title })}
-        </div>
-      )}
-
-      {/* Concept pills — shown for connection posts.
-          Phase 51-01: each pill is a tappable button when its underlying
-          Q&A resolves to an anchor; static span otherwise. Same color/style
-          as before, just adds optional cursor: pointer + onClick. */}
+      {/* Concept pills — shown for connection posts. */}
       {isConnectionPost && meta && (
         <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
           {[meta.conceptNounA, meta.conceptNounB].map((noun, i) => {
-            const anchorId = connectionAnchorIds[i];
             return (
               <span
                 key={i}
-                role={anchorId ? 'button' : undefined}
-                tabIndex={anchorId ? 0 : undefined}
-                onClick={anchorId ? () => navigate(`/anchor/${anchorId}`) : undefined}
-                onKeyDown={anchorId ? (e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    navigate(`/anchor/${anchorId}`);
-                  }
-                } : undefined}
                 style={{
                   padding: '6px 16px',
                   borderRadius: '100px',
@@ -904,8 +732,6 @@ export function PostDetailScreen() {
                   color: 'var(--foreground)',
                   fontWeight: 700,
                   fontSize: '0.875rem',
-                  cursor: anchorId ? 'pointer' : 'default',
-                  userSelect: anchorId ? 'none' : 'auto',
                 }}
               >
                 {noun}
@@ -915,70 +741,28 @@ export function PostDetailScreen() {
         </div>
       )}
 
-      {/* News source attribution */}
-      {isNews && post.newsMeta?.sources && post.newsMeta.sources.length > 0 && (
-        <div style={{
-          marginBottom: '16px',
-          paddingBottom: '12px',
-          borderBottom: '1px solid var(--border)',
-        }}>
-          <span style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-            {t('posts.detail.sourcesHeading')}
-          </span>
-          <div style={{ marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            {post.newsMeta.sources.map((s) => (
-              <a
-                key={s.index}
-                href={s.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ fontSize: '0.82rem', color: 'var(--primary-40)', textDecoration: 'none' }}
-              >
-                [{s.index}] {s.title}
-              </a>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Video post: show embedded YouTube player instead of image carousel */}
-      {post.sourceType === 'video' && post.videoMeta?.videoId ? (
-        <div style={{ marginBottom: 16 }}>
-          <YouTubeEmbed videoId={post.videoMeta.videoId} />
-          {post.videoMeta.channelTitle && (
-            <p style={{
-              margin: '8px 0 0',
-              fontSize: 13,
-              color: 'var(--muted-foreground)',
-            }}>
-              {post.videoMeta.channelTitle}
-            </p>
-          )}
-        </div>
-      ) : post.sourceType !== 'video' && (
-        <>
-          {/* Text-art header — shows textArtContent in notebook style like card face */}
-          {post.presentationStyle === 'text-art' && post.textArtContent && (() => {
-            const LIGHT = [
-              { bg: '#FFFDE7', dot: '#C5CAE9', text: '#1A1A1A', font: 'Georgia, "Times New Roman", serif' },
-              { bg: '#E8F5E9', dot: '#A5D6A7', text: '#1B5E20', font: '"Courier New", Courier, monospace' },
-              { bg: '#F3E5F5', dot: '#CE93D8', text: '#4A148C', font: 'Palatino, "Palatino Linotype", serif' },
-              { bg: '#E3F2FD', dot: '#90CAF9', text: '#0D47A1', font: 'system-ui, -apple-system, sans-serif' },
-              { bg: '#FFF3E0', dot: '#FFCC80', text: '#BF360C', font: '"Trebuchet MS", "Gill Sans", sans-serif' },
-              { bg: '#FCE4EC', dot: '#F48FB1', text: '#880E4F', font: 'Garamond, "Hoefler Text", serif' },
-              { bg: '#E0F7FA', dot: '#80DEEA', text: '#006064', font: 'Verdana, Geneva, sans-serif' },
-              { bg: '#FFF8E1', dot: '#FFE082', text: '#E65100', font: '"Bookman Old Style", Bookman, serif' },
-            ];
-            const DARK = [
-              { bg: '#1C1A14', dot: '#2A2840', text: '#FFF9C4', font: 'Georgia, "Times New Roman", serif' },
-              { bg: '#1A2E1C', dot: '#2E5A30', text: '#A5D6A7', font: '"Courier New", Courier, monospace' },
-              { bg: '#2A1A30', dot: '#4A2060', text: '#CE93D8', font: 'Palatino, "Palatino Linotype", serif' },
-              { bg: '#1A2030', dot: '#1E3A5A', text: '#90CAF9', font: 'system-ui, -apple-system, sans-serif' },
-              { bg: '#2A1E14', dot: '#4A3018', text: '#FFCC80', font: '"Trebuchet MS", "Gill Sans", sans-serif' },
-              { bg: '#2A1420', dot: '#4A1830', text: '#F48FB1', font: 'Garamond, "Hoefler Text", serif' },
-              { bg: '#142A2C', dot: '#1A3A3E', text: '#80DEEA', font: 'Verdana, Geneva, sans-serif' },
-              { bg: '#2A2414', dot: '#3A3018', text: '#FFE082', font: '"Bookman Old Style", Bookman, serif' },
-            ];
+      {/* Text-art header — shows textArtContent in notebook style like card face */}
+      {post.presentationStyle === 'text-art' && post.textArtContent && (() => {
+        const LIGHT = [
+          { bg: '#FFFDE7', dot: '#C5CAE9', text: '#1A1A1A', font: 'Georgia, "Times New Roman", serif' },
+          { bg: '#E8F5E9', dot: '#A5D6A7', text: '#1B5E20', font: '"Courier New", Courier, monospace' },
+          { bg: '#F3E5F5', dot: '#CE93D8', text: '#4A148C', font: 'Palatino, "Palatino Linotype", serif' },
+          { bg: '#E3F2FD', dot: '#90CAF9', text: '#0D47A1', font: 'system-ui, -apple-system, sans-serif' },
+          { bg: '#FFF3E0', dot: '#FFCC80', text: '#BF360C', font: '"Trebuchet MS", "Gill Sans", sans-serif' },
+          { bg: '#FCE4EC', dot: '#F48FB1', text: '#880E4F', font: 'Garamond, "Hoefler Text", serif' },
+          { bg: '#E0F7FA', dot: '#80DEEA', text: '#006064', font: 'Verdana, Geneva, sans-serif' },
+          { bg: '#FFF8E1', dot: '#FFE082', text: '#E65100', font: '"Bookman Old Style", Bookman, serif' },
+        ];
+        const DARK = [
+          { bg: '#1C1A14', dot: '#2A2840', text: '#FFF9C4', font: 'Georgia, "Times New Roman", serif' },
+          { bg: '#1A2E1C', dot: '#2E5A30', text: '#A5D6A7', font: '"Courier New", Courier, monospace' },
+          { bg: '#2A1A30', dot: '#4A2060', text: '#CE93D8', font: 'Palatino, "Palatino Linotype", serif' },
+          { bg: '#1A2030', dot: '#1E3A5A', text: '#90CAF9', font: 'system-ui, -apple-system, sans-serif' },
+          { bg: '#2A1E14', dot: '#4A3018', text: '#FFCC80', font: '"Trebuchet MS", "Gill Sans", sans-serif' },
+          { bg: '#2A1420', dot: '#4A1830', text: '#F48FB1', font: 'Garamond, "Hoefler Text", serif' },
+          { bg: '#142A2C', dot: '#1A3A3E', text: '#80DEEA', font: 'Verdana, Geneva, sans-serif' },
+          { bg: '#2A2414', dot: '#3A3018', text: '#FFE082', font: '"Bookman Old Style", Bookman, serif' },
+        ];
             const themes = document.documentElement.classList.contains('dark') ? DARK : LIGHT;
             let h = 0;
             for (const ch of post.id) h = ((h << 5) - h + ch.charCodeAt(0)) | 0;
@@ -1016,55 +800,38 @@ export function PostDetailScreen() {
                 }}>{content}</p>
               </div>
             );
-          })()}
-          {/* News source image */}
-          {post.sourceType === 'news' && post.newsMeta?.imageUrl && (
-            <img
-              src={post.newsMeta.imageUrl}
-              alt={post.title}
-              style={{
-                width: '100%',
-                maxHeight: '300px',
-                objectFit: 'cover',
-                borderRadius: '12px',
-                marginBottom: '8px',
-              }}
-              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-            />
-          )}
-          {/* Carousel — reserve 350px while loading to prevent layout shift */}
-          {carouselImages.length > 0 ? (
-            <PostCarousel
-              images={carouselImages}
-              isLoading={isLoadingCarousel}
-              onIndexChange={(index) => { /* Future: analytics or preload */ void index; }}
-            />
-          ) : !isLoadingCarousel && post && (post.presentationStyle === 'image' || post.presentationStyle === 'image-less') && (
-            <button
-              onClick={() => void handleRetryImage()}
-              disabled={isRetryingImage}
-              style={{
-                width: '100%',
-                padding: '14px',
-                marginBottom: '14px',
-                borderRadius: 'var(--radius-xl)',
-                border: '1.5px dashed var(--border)',
-                backgroundColor: 'var(--surface-variant)',
-                color: 'var(--primary-40)',
-                fontSize: '0.875rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-              }}
-            >
-              <RefreshCw size={14} />
-              {t('posts.image.generate')}
-            </button>
-          )}
-        </>
+      })()}
+      {/* Carousel — reserve 350px while loading to prevent layout shift */}
+      {carouselImages.length > 0 ? (
+        <PostCarousel
+          images={carouselImages}
+          isLoading={isLoadingCarousel}
+          onIndexChange={(index) => { /* Future: analytics or preload */ void index; }}
+        />
+      ) : !isLoadingCarousel && post && (post.presentationStyle === 'image' || post.presentationStyle === 'image-less') && (
+        <button
+          onClick={() => void handleRetryImage()}
+          disabled={isRetryingImage}
+          style={{
+            width: '100%',
+            padding: '14px',
+            marginBottom: '14px',
+            borderRadius: 'var(--radius-xl)',
+            border: '1.5px dashed var(--border)',
+            backgroundColor: 'var(--surface-variant)',
+            color: 'var(--primary-40)',
+            fontSize: '0.875rem',
+            fontWeight: 600,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+          }}
+        >
+          <RefreshCw size={14} />
+          {t('posts.image.generate')}
+        </button>
       )}
 
       <article
@@ -1079,86 +846,29 @@ export function PostDetailScreen() {
           WebkitTouchCallout: 'default',
         }}
       >
-        {/* Phase 51-01 (revised 2026-05-19): the deep-link is the concept
-            anchor CHIP — semantically what tapping navigates to. The old
-            design put the deep-link on the content-type label ("VIDEO" /
-            "NEWS" / "Daily post"), which was semantically mismatched
-            (tapping "VIDEO" took you to "Photosynthesis"). Now the chip
-            shows the actual anchor name and the content-type label sits
-            beside it as static metadata.
-            Tap pattern matches VineProgress.fireConceptTap — proven on
-            Android Capacitor WebView (Phase 51 Bug 6 follow-ups). */}
+        {/* Concept metadata. Graph detail navigation is removed in the research shell. */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
           {resolvedAnchorName && (
-            chipAnchorId ? (
-              <div
-                role="button"
-                tabIndex={0}
-                aria-label={`View concept ${resolvedAnchorName}`}
-                data-no-swipe-nav="true"
-                onPointerUp={(e) => {
-                  e.stopPropagation();
-                  fireAnchorChipTap(chipAnchorId);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    fireAnchorChipTap(chipAnchorId);
-                  }
-                }}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  padding: '4px 12px',
-                  borderRadius: '100px',
-                  backgroundColor: 'rgba(67, 160, 71, 0.12)',
-                  color: 'var(--primary-40)',
-                  fontSize: '0.78rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  touchAction: 'manipulation',
-                  WebkitTapHighlightColor: 'transparent',
-                  userSelect: 'none',
-                  WebkitUserSelect: 'none',
-                  border: '1px solid rgba(67, 160, 71, 0.28)',
-                }}
-              >
-                {resolvedAnchorName}
-                <ChevronRight size={12} strokeWidth={2.5} />
-              </div>
-            ) : (
-              <span style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                padding: '4px 12px',
-                borderRadius: '100px',
-                backgroundColor: 'var(--surface-variant)',
-                color: 'var(--muted-foreground)',
-                fontSize: '0.78rem',
-                fontWeight: 600,
-              }}>
-                {resolvedAnchorName}
-              </span>
-            )
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              padding: '4px 12px',
+              borderRadius: '100px',
+              backgroundColor: 'var(--surface-variant)',
+              color: 'var(--muted-foreground)',
+              fontSize: '0.78rem',
+              fontWeight: 600,
+            }}>
+              {resolvedAnchorName}
+            </span>
           )}
           <span style={{ fontSize: '0.68rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--muted-foreground)' }}>
             {normalizedContextLabel}{post.narrativeMode ? ` · ${post.narrativeMode}` : ''}
           </span>
         </div>
         <h1 style={{ fontSize: '1.55rem', lineHeight: 1.12, marginBottom: '12px', textWrap: 'balance' }}>{normalizedTitle}</h1>
-        {post.sourceType !== 'video' && (post.whyCare || onEnterMeta?.whyCare) && (
+        {(post.whyCare || onEnterMeta?.whyCare) && (
           <p style={{ fontSize: '0.98rem', lineHeight: 1.62, color: 'var(--foreground)', marginBottom: '16px' }}>{post.whyCare || onEnterMeta?.whyCare}</p>
-        )}
-        {post.sourceType === 'video' && (
-          <h3 style={{
-            fontSize: 16,
-            fontWeight: 600,
-            color: 'var(--muted-foreground)',
-            margin: '16px 0 8px',
-          }}>
-            {t('posts.detail.videoAiSummary')}
-          </h3>
         )}
         {/* Phase 43 DD-01 (placement updated 2026-05-11 per UAT Test 7 / 43-12):
             deep-dive controls slot positioned ABOVE the essay body so users see
@@ -1187,7 +897,7 @@ export function PostDetailScreen() {
           ) : isStreamingOnEnter ? (
             <>
               {streamingBody ? (
-                <div style={isNews ? { fontFamily: "Georgia, 'Times New Roman', serif" } : undefined}>
+                <div>
                   <Markdown>{streamingBody}</Markdown>
                 </div>
               ) : (
@@ -1201,7 +911,7 @@ export function PostDetailScreen() {
           ) : isStreamingDeep ? (
             // Phase 43 DD-03 — deep stream replaces the body slot in-place.
             // streamingDeep accumulates separately so post.bodyMarkdown stays intact.
-            <div style={isNews ? { fontFamily: "Georgia, 'Times New Roman', serif" } : undefined}>
+            <div>
               {streamingDeep ? <Markdown>{streamingDeep}</Markdown> : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '20px 0' }}>
                   <div style={{ height: '14px', width: '90%', borderRadius: '4px', backgroundColor: 'var(--surface-variant)', animation: 'pulse 1.5s ease-in-out infinite' }} />
@@ -1212,18 +922,18 @@ export function PostDetailScreen() {
             </div>
           ) : activeVariant === 'deep' && post.bodyMarkdownDeep ? (
             // Phase 43 DD-04 — cached-deep render branch (segmented toggle active).
-            <div style={isNews ? { fontFamily: "Georgia, 'Times New Roman', serif" } : undefined}>
+            <div>
               <Markdown>{post.bodyMarkdownDeep}</Markdown>
             </div>
           ) : post.bodyMarkdown ? (
-            <div style={isNews ? { fontFamily: "Georgia, 'Times New Roman', serif" } : undefined}>
+            <div>
               <Markdown>{post.bodyMarkdown}</Markdown>
             </div>
           ) : null}
         </div>
         {/* Scroll 70% sentinel — placed between essay body and takeaway (D-04) */}
         <div ref={scrollSentinelRef} style={{ height: '1px' }} />
-        {post.sourceType !== 'video' && (post.takeaway || onEnterMeta?.takeaway) && (
+        {(post.takeaway || onEnterMeta?.takeaway) && (
           <div
             style={{
               marginTop: '16px',

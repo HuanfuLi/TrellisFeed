@@ -45,12 +45,11 @@ describe('getAnchorIdForPost', () => {
     }
   });
 
-  it('returns anchorId for video, news sourceTypes (unified as concept styles)', () => {
-    // (Phase 38 / TECHDEBT-06): the legacy short sourceType was removed from this iteration — short type is gone.
+  it('returns anchorId for concept-backed sourceTypes', () => {
     const questionsById = new Map([
       ['q1', { id: 'q1', parentId: 'anchor-1' }],
     ]);
-    for (const sourceType of ['video', 'news']) {
+    for (const sourceType of ['recent', 'related', 'resurfaced', 'mixed', 'text-art']) {
       const post = { sourceType, sourceQuestionIds: ['q1'] };
       assert.equal(getAnchorIdForPost(post, questionsById), 'anchor-1', `${sourceType} should resolve to anchor`);
     }
@@ -58,7 +57,7 @@ describe('getAnchorIdForPost', () => {
 });
 
 describe('getConceptQuota', () => {
-  it('returns all anchor nodes from questionsById (D-12: SM-2 driven, same as flashcards/podcasts)', () => {
+  it('returns all anchor nodes from questionsById', () => {
     const questionsById = new Map([
       ['anchor-1', { id: 'anchor-1', parentId: null, isAnchorNode: true }],
       ['anchor-2', { id: 'anchor-2', parentId: null, isAnchorNode: true }],

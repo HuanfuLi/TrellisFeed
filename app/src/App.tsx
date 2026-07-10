@@ -7,36 +7,21 @@ import { BottomNavigation } from './components/BottomNavigation';
 import { ToastContainer } from './components/ui/Toast';
 import { OnboardingScreen } from './screens/OnboardingScreen';
 import { HomeScreen } from './screens/HomeScreen';
-import { AskScreen } from './screens/AskScreen';
-import { QuestionDetailScreen } from './screens/QuestionDetailScreen';
-import { PlannerScreen } from './screens/PlannerScreen';
-import { ReviewScreen } from './screens/ReviewScreen';
-import { PodcastScreen } from './screens/PodcastScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { SettingsAIScreen } from './screens/settings/SettingsAIScreen';
 import { SettingsContentScreen } from './screens/settings/SettingsContentScreen';
 import { SettingsFeaturesScreen } from './screens/settings/SettingsFeaturesScreen';
 import { SettingsDataScreen } from './screens/settings/SettingsDataScreen';
-import { GraphScreen } from './screens/GraphScreen';
 import { SwipeTabContainer } from './components/SwipeTabContainer';
 import { PostDetailScreen } from './screens/PostDetailScreen';
 import SavedScreen from './screens/SavedScreen';
-import { AnchorDetailScreen } from './screens/AnchorDetailScreen';
-import { ClusterDetailScreen } from './screens/ClusterDetailScreen';
-import { CollectionDrillInScreen } from './screens/CollectionDrillInScreen';
 import { settingsService } from './services/settings.service';
 import { hydrateFromSQLite } from './services/question.service';
-import { hydratePlannerFromSQLite } from './services/planner.service';
 // Phase 55 D-12 boot orchestration — every migrated heavy-store service's hydrate.
 import { hydrateDailyPostsFromSQLite } from './services/concept-feed.service';
 import { hydrateQueueFromSQLite } from './services/post-queue.service';
 import { hydratePostHistoryFromSQLite } from './services/post-history.service';
-import { hydrateSessionsFromSQLite } from './services/session.service';
-import { hydrateFlashcardsFromSQLite } from './services/flashcard.service';
-import { hydrateCollectionsFromSQLite } from './services/collection.service';
 import { hydrateEngagementFromSQLite } from './services/engagement.service';
-import { hydratePodcastsFromSQLite } from './services/podcast.service';
-import { hydrateVideoCacheFromSQLite } from './services/youtube.service';
 import { clearLegacyHeavyLocalStorageKeys } from './services/db.service';
 // Phase 55.1-07 GAP-C — boot pre-warm of the filter-corpus embedding cache so the
 // first ask doesn't pay the 124-sequential-embed cold path (measured dominant
@@ -47,14 +32,9 @@ import { bootstrapImageGeneration } from './services/imageGeneration.bootstrap';
 import { applyTheme } from './lib/theme';
 import { PageTransition } from './components/PageTransition';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { startVoiceRecording, stopVoiceRecording, MicPermissionDeniedError } from './lib/voice-recorder';
-import { transcribeAudio } from './providers/stt';
-import { toast } from './lib/toast';
-import { startScheduler, stopScheduler } from './services/scheduler.service';
-import { scheduleNativeNotifications } from './services/scheduler.native';
 import { HeaderScrollContext } from './lib/header-scroll-context';
 
-const SCREEN_ROUTES = ['/home', '/planner', '/ask', '/graph', '/settings'] as const;
+const SCREEN_ROUTES = ['/home', '/settings'] as const;
 
 /** Left-edge band (px) where a back-swipe can begin — matches iOS's own screen-edge gesture. */
 const EDGE_SWIPE_ZONE = 28;
@@ -65,10 +45,7 @@ function RootLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const isTopLevelScreen = SCREEN_ROUTES.some(r => location.pathname === r);
-  const [isRecording, setIsRecording] = useState(false);
-  const [isTranscribing, setIsTranscribing] = useState(false);
   const [headerScrolled, setHeaderScrolled] = useState(false);
-  const recordingActiveRef = useRef(false);
 
   // Sub-screen exit animation: cache outlet content so it stays visible during fade-out.
   // Detection is synchronous (setState-during-render) to avoid a one-frame gap where
@@ -128,53 +105,6 @@ function RootLayout() {
 
   const keyboardOpen = useKeyboard();
 
-  const handleAskLongPress = async () => {
-    if (recordingActiveRef.current) return;
-    try {
-      await startVoiceRecording();
-      recordingActiveRef.current = true;
-      setIsRecording(true);
-    } catch (err) {
-      console.error('[VoiceAsk] start failed:', err);
-      if (err instanceof MicPermissionDeniedError) {
-        toast('Microphone permission denied. Check app settings.', 'error');
-      } else {
-        const code = err instanceof Error ? err.message : String(err);
-        if (code.includes('MICROPHONE_BEING_USED')) {
-          toast('Microphone is in use by another app.', 'error');
-        } else if (code.includes('DEVICE_CANNOT_VOICE_RECORD')) {
-          toast('Recording not supported on this device.', 'error');
-        } else {
-          toast(`Could not start recording: ${code}`, 'error');
-        }
-      }
-    }
-  };
-
-  const handleAskLongPressRelease = async () => {
-    if (!recordingActiveRef.current) return;
-    recordingActiveRef.current = false;
-    setIsRecording(false);
-    setIsTranscribing(true);
-    try {
-      const blob = await stopVoiceRecording();
-      const settings = settingsService.getSync();
-      const text = await transcribeAudio(blob, settings.tts);
-      navigate('/ask', { state: { prompt: text?.trim() || '' } });
-    } catch (err) {
-      console.error('[VoiceAsk] stop/transcribe failed:', err);
-      const msg = err instanceof Error ? err.message : String(err);
-      toast(
-        msg.includes('API key') || msg.includes('No API')
-          ? 'Add your API key in Speech Recognition settings.'
-          : `Transcription failed: ${msg}`,
-        'error',
-      );
-    } finally {
-      setIsTranscribing(false);
-    }
-  };
-
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--surface)', overflowX: 'hidden' }}>
       {/* Fixed shield that covers the status bar area so scrolled content never shows under it */}
@@ -198,36 +128,6 @@ function RootLayout() {
           <div key="home" style={{ paddingTop: 'var(--safe-area-top)' }}>
             <HomeScreen />
           </div>,
-          /* Planner — needs scroll wrapper (no internal scroll container) */
-          <div key="planner" style={{
-            paddingTop: 'var(--safe-area-top)',
-            paddingBottom: 'calc(80px + var(--safe-area-bottom))',
-            height: '100dvh',
-            boxSizing: 'border-box',
-            overflowY: 'auto',
-            WebkitOverflowScrolling: 'touch',
-            overscrollBehavior: 'contain',
-            touchAction: 'pan-y',
-          } as React.CSSProperties}>
-            <PlannerScreen />
-          </div>,
-          /* Ask — manages its own flex layout and scroll */
-          <div key="ask" style={{ paddingTop: 'var(--safe-area-top)' }}>
-            <AskScreen />
-          </div>,
-          /* Graph — needs scroll wrapper */
-          <div key="graph" style={{
-            paddingTop: 'var(--safe-area-top)',
-            paddingBottom: 'calc(80px + var(--safe-area-bottom))',
-            height: '100dvh',
-            boxSizing: 'border-box',
-            overflowY: 'auto',
-            WebkitOverflowScrolling: 'touch',
-            overscrollBehavior: 'contain',
-            touchAction: 'pan-y',
-          } as React.CSSProperties}>
-            <GraphScreen />
-          </div>,
           /* Settings — needs scroll wrapper */
           <div key="settings" style={{
             paddingTop: 'var(--safe-area-top)',
@@ -245,51 +145,9 @@ function RootLayout() {
       >
         {/* Children rendered outside the strip (fixed position elements) */}
         <BottomNavigation
-          onAskLongPress={() => void handleAskLongPress()}
-          onAskLongPressRelease={() => void handleAskLongPressRelease()}
           isTopLevelScreen={isTopLevelScreen}
           keyboardOpen={keyboardOpen}
         />
-        {/* Recording / transcribing indicator for the nav bar long-press flow */}
-        {(isRecording || isTranscribing) && (
-          <div
-            style={{
-              position: 'fixed',
-              bottom: 'calc(88px + var(--safe-area-bottom))',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '8px 18px',
-              backgroundColor: 'var(--surface-variant)',
-              borderRadius: '999px',
-              boxShadow: 'var(--shadow-2)',
-              zIndex: 101,
-              fontSize: '0.82rem',
-              color: 'var(--foreground)',
-              whiteSpace: 'nowrap',
-              animation: 'fade-in 0.15s ease',
-            }}
-          >
-            {isTranscribing ? (
-              <>
-                <Loader2 size={14} style={{ animation: 'spin 1s linear infinite', color: 'var(--primary-40)', flexShrink: 0 }} />
-                Transcribing…
-              </>
-            ) : (
-              <>
-                <span style={{
-                  width: '8px', height: '8px', borderRadius: '50%',
-                  backgroundColor: 'var(--danger)', flexShrink: 0,
-                  animation: 'mic-pulse 1.4s ease-in-out infinite',
-                  display: 'inline-block',
-                }} />
-                Release to send
-              </>
-            )}
-          </div>
-        )}
         <ToastContainer />
       </SwipeTabContainer>
 
@@ -360,16 +218,7 @@ const router = createBrowserRouter([
       { index: true, element: <HomeRedirect /> },
       { path: 'home', element: null },
       { path: 'posts/:id', element: <PageTransition><PostDetailScreen /></PageTransition> },
-      { path: 'ask', element: null },
-      { path: 'ask/:id', element: <PageTransition><QuestionDetailScreen /></PageTransition> },
-      { path: 'anchor/:id', element: <PageTransition><AnchorDetailScreen /></PageTransition> },
-      { path: 'cluster/:id', element: <PageTransition><ClusterDetailScreen /></PageTransition> },
-      { path: 'collections/:id', element: <PageTransition><CollectionDrillInScreen /></PageTransition> },
-      { path: 'graph', element: null },
-      { path: 'planner', element: null },
-      { path: 'review', element: <PageTransition><ReviewScreen /></PageTransition> },
       { path: 'saved', element: <PageTransition><SavedScreen /></PageTransition> },
-      { path: 'podcast', element: <PageTransition><PodcastScreen /></PageTransition> },
       { path: 'settings', element: null },
       { path: 'settings/ai', element: <PageTransition><SettingsAIScreen /></PageTransition> },
       { path: 'settings/content', element: <PageTransition><SettingsContentScreen /></PageTransition> },
@@ -396,16 +245,10 @@ const router = createBrowserRouter([
 async function hydrateAllFromSQLite(): Promise<void> {
   await Promise.all([
     hydrateFromSQLite(),            // questions
-    hydratePlannerFromSQLite(),     // planner chunks/threads/checkins
     hydrateDailyPostsFromSQLite(),  // concept-feed daily-posts cache
     hydrateQueueFromSQLite(),       // post-queue state
     hydratePostHistoryFromSQLite(), // post history
-    hydrateSessionsFromSQLite(),    // chat sessions
-    hydrateFlashcardsFromSQLite(),  // flashcards
-    hydrateCollectionsFromSQLite(), // collections
     hydrateEngagementFromSQLite(),  // saved/liked/dismissed
-    hydratePodcastsFromSQLite(),    // podcast metadata
-    hydrateVideoCacheFromSQLite(),  // youtube video cache
   ]);
   // One-time stale-key sweep (quota reclamation) — safe now that every mirror is
   // populated from the durable IndexedDB store.
@@ -434,11 +277,7 @@ export default function App() {
     // key-absent/offline-safe (no-ops when embedding is unconfigured, swallows
     // embed errors). See scripts/profile-cold-start.mjs for the measurement.
     void prewarmFilterCorpus(settingsService.getSync().embedding);
-    // Start foreground scheduler (60s poll + app resume checks)
-    startScheduler();
-    // Schedule native OS notifications for podcast/review reminders
-    void scheduleNativeNotifications();
-    return () => { cancelled = true; stopScheduler(); };
+    return () => { cancelled = true; };
   }, []);
 
   // Keep theme in sync when the OS switches between light/dark while app is open

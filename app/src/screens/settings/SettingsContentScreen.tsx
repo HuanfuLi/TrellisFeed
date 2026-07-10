@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Image, Youtube, Globe, Loader2, CheckCircle, XCircle } from 'lucide-react';
+import { Image, Loader2, CheckCircle, XCircle } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Header } from '../../components/ui/Header';
@@ -28,12 +28,6 @@ export function SettingsContentScreen() {
   );
   const [cacheStats, setCacheStats] = useState(() => imageGenerationService.getCacheStats());
   const [isClearingCache, setIsClearingCache] = useState(false);
-  const [youtubeApiKey, setYoutubeApiKey] = useState(
-    () => settingsService.getSync().youtube?.apiKey ?? '',
-  );
-  const [tavilyApiKey, setTavilyApiKey] = useState(
-    () => settingsService.getSync().webSearch?.tavilyApiKey ?? '',
-  );
   const [testResult, setTestResult] = useState<Record<string, string | null>>({});
   const [isTesting, setIsTesting] = useState<Record<string, boolean>>({});
 
@@ -292,93 +286,6 @@ export function SettingsContentScreen() {
             <span>{testResult['imageGen']}</span>
           </div>
         )}
-      </Card>
-
-      {/* YouTube Section */}
-      <SectionHeader icon={<Youtube size={20} />} title={t('settings.sections.youtube')} />
-      <Card style={{ marginBottom: '8px' }}>
-        <p
-          style={{
-            fontSize: '0.8rem',
-            color: 'var(--muted-foreground)',
-            marginBottom: '12px',
-            lineHeight: 1.5,
-          }}
-        >
-          {t('settings.descriptions.youtubeBlurb')}
-        </p>
-        <SettingRow
-          label={t('settings.fields.apiKey')}
-          description={t('settings.descriptions.youtubeApiKey')}
-        >
-          <TextInput
-            type="password"
-            value={youtubeApiKey}
-            onChange={(v) => setYoutubeApiKey(v)}
-            onBlur={() => void settingsService.set('youtube', { apiKey: youtubeApiKey })}
-            placeholder={t('settings.descriptions.youtubeApiKey')}
-          />
-        </SettingRow>
-        <div style={{ paddingTop: '12px' }}>
-          <Button
-            size="sm"
-            variant="primary"
-            onClick={async () => {
-              await settingsService.set('youtube', { apiKey: youtubeApiKey });
-              toast(t('settings.toast.youtubeSaved'), 'success');
-            }}
-          >
-            {t('settings.buttons.save')}
-          </Button>
-        </div>
-      </Card>
-
-      {/* Web Search Section */}
-      <SectionHeader icon={<Globe size={20} />} title={t('settings.sections.webSearch')} />
-      <Card style={{ marginBottom: '8px' }}>
-        <p
-          style={{
-            fontSize: '0.8rem',
-            color: 'var(--muted-foreground)',
-            marginBottom: '12px',
-            lineHeight: 1.5,
-          }}
-        >
-          {t('settings.descriptions.webSearchBlurb1')}{' '}
-          <a
-            href="https://tavily.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ color: 'var(--primary-40)' }}
-          >
-            tavily.com
-          </a>{' '}
-          {t('settings.descriptions.webSearchBlurb2')}
-        </p>
-        <SettingRow
-          label={t('settings.fields.apiKey')}
-          description={t('settings.descriptions.tavilyApiKey')}
-        >
-          <TextInput
-            type="password"
-            value={tavilyApiKey}
-            onChange={(v) => setTavilyApiKey(v)}
-            onBlur={() => void settingsService.set('webSearch', { tavilyApiKey })}
-            placeholder="tvly-..."
-          />
-        </SettingRow>
-        <div style={{ paddingTop: '12px' }}>
-          <Button
-            size="sm"
-            variant="primary"
-            onClick={async () => {
-              await settingsService.set('webSearch', { tavilyApiKey });
-              toast(t('settings.toast.webSearchSaved'), 'success');
-            }}
-          >
-            {t('settings.buttons.save')}
-          </Button>
-        </div>
       </Card>
     </div>
   );

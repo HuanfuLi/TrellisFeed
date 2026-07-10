@@ -4,9 +4,8 @@
  * D-43: Replace all 3 existing starter posts with app-tutorial posts that introduce
  * how to use the app.
  *
- * STARTER_POSTS cannot be imported directly because concept-feed.service.ts imports
- * graph.service and planner.service which require the i18n locale JSON bundles
- * (failing with "needs an import attribute of type: json" under plain node --test).
+ * STARTER_POSTS are reproduced inline so this source-independent structural test
+ * can run under plain node --test.
  *
  * Strategy: reproduce the makeStarterPost factory inline (it's a pure function with
  * no external dependencies), then validate the three expected starter posts have
@@ -57,23 +56,23 @@ const STARTER_POSTS = [
     'Welcome to Trellis',
     'Your AI learning companion',
     'Ask any question and watch your knowledge grow. Trellis uses AI to create personalized learning paths.',
-    '# Welcome to Trellis\n\nTrellis is your AI-powered learning companion. Here\'s how to get started:\n\n1. **Ask a question** — Tap the Ask tab and type any question. The AI will answer it and save it to your knowledge graph.\n2. **Review what you learn** — Your answers become flashcards. Review them to build lasting memory.\n3. **Explore your feed** — This feed brings you fresh content based on what you\'re learning.\n\nStart by asking your first question!',
+    '# Welcome to Trellis\n\nTrellis is your AI-powered learning companion. Here\'s how to get started:\n\n1. **Explore your feed** — This feed brings you fresh content based on what you\'re learning.\n2. **Open a post** — Ask follow-up questions in the context of that post.\n3. **Save what matters** — Bookmarks and likes help preserve study-relevant signals.\n\nStart by opening a post that catches your attention.',
     'Getting Started',
   ),
   makeStarterPost(
     'starter-knowledge-growth',
     'How your knowledge grows',
     'From questions to mastery',
-    'Every question you ask becomes part of your knowledge graph. Review flashcards to strengthen your memory.',
-    '# How Your Knowledge Grows\n\nTrellis follows a proven learning loop:\n\n1. **Ask** — Ask questions about anything you\'re curious about.\n2. **Connect** — Your questions are organized into a knowledge graph by topic.\n3. **Review** — Flashcards are generated automatically. Spaced repetition helps you remember.\n4. **Grow** — As you master topics, your trellis tree blooms and bears fruit.\n\nThe more you review, the stronger your knowledge becomes.',
+    'Every post-context question becomes part of your local question trace.',
+    '# How Your Knowledge Grows\n\nTrellis follows a focused research loop:\n\n1. **Read** — Open posts that match your current learning context.\n2. **Ask** — Ask follow-up questions while the post context is fresh.\n3. **Connect** — Your questions are classified into concept anchors.\n4. **Return** — The feed uses those anchors to keep surfacing related material.\n\nThe more you ask from context, the richer your question trace becomes.',
     'How It Works',
   ),
   makeStarterPost(
     'starter-daily-feed',
     'Explore your daily feed',
     'Fresh content, curated for you',
-    'Your feed serves posts about your learning topics — articles, videos, and more. Pull up to load more.',
-    '# Your Daily Feed\n\nThis feed is built around what you\'re learning:\n\n- **Articles** — AI-generated deep dives on your topics.\n- **Videos** — YouTube content matched to your knowledge graph.\n- **News** — Latest developments in your areas of interest.\n- **Suggestions** — Related topics you might want to explore.\n\nPull up at the bottom to load more posts. The vine at the top tracks your daily progress.',
+    'Your feed serves posts about your learning topics. Pull up to load more.',
+    '# Your Daily Feed\n\nThis feed is built around what you\'re learning:\n\n- **Articles** — AI-generated deep dives on your topics.\n- **Visual posts** — image-backed explanations when image generation is configured.\n- **Suggestions** — related topics you might want to explore.\n\nPull up at the bottom to load more posts.',
     'Feed Guide',
   ),
 ];

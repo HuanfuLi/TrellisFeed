@@ -1,8 +1,7 @@
 // Phase 42 plan 42-05 — HomeScreen post-cutover invariants.
 //
 // Locks UI-SPEC invariant #4 (D-11: noMorePosts toast deleted) and the
-// plan 42-02 cutover state (InlineInfoFlow → MasonryFeed at /home;
-// allExplored computed locally per RESEARCH.md Pitfall 2).
+// plan 42-02 cutover state (InlineInfoFlow → MasonryFeed at /home).
 //
 // Pattern A (positive presence + negative grep on a single source file).
 // Mirrors tests/components/InfoFlow.video-tap-emit.test.mjs.
@@ -54,10 +53,4 @@ describe('HomeScreen no-more-posts toast removal (Phase 42 D-11)', () => {
     );
   });
 
-  it('passes allExplored prop to MasonryFeed (RESEARCH.md Pitfall 2 — allExplored is computed locally, NOT a service property)', () => {
-    assert.ok(
-      /allExplored/.test(source),
-      'HomeScreen.tsx must declare/pass allExplored — RESEARCH.md Pitfall 2: infiniteScrollService.allExplored does NOT exist; HomeScreen computes it locally.',
-    );
-  });
 });

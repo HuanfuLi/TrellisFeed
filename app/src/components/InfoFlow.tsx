@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { BlindboxItem, DailyPost, GeneratedImage, Question } from '../types';
 import { FeedPostImage } from './FeedPostImage';
@@ -8,11 +7,6 @@ import { inferImageStyle, buildImagePrompt } from '../services/postFormatting.se
 import { normalizePlainText } from '../lib/text-normalization';
 import { settingsService } from '../services/settings.service';
 import { SuggestionCard } from './SuggestionCard';
-import { resolveAnchorId } from '../lib/anchor-resolution';
-import { computeLeafState } from '../services/trellis-state.service';
-import { questionService } from '../services/question.service';
-import { flashcardService } from '../services/flashcard.service';
-import type { ReviewSchedule } from '../types';
 
 // Defensive chip-title filter (2026-05-12). The concept-tag chip renders
 // post.sourceQuestionTitles[0]; upstream paths in concept-feed.service.ts have
@@ -23,83 +17,6 @@ import type { ReviewSchedule } from '../types';
 function isLikelyInternalId(title: string | undefined): boolean {
   if (!title) return true;
   return /^(anchor|post|concept|question)-/i.test(title.trim());
-}
-
-// Phase 51-01: binary leaf-state signal for feed tile concept badges.
-// Operator-locked (2026-05-19, see CLAUDE.md feed-tile simplicity rule):
-// dying / falling / dead all show the SAME small amber dot. Not three colors.
-// One signal, "needs attention" — richer state visualization lives in the
-// AnchorDetailScreen LeafStateBadge.
-//
-// Runs per-badge per-render. For a 32-tile masonry feed × ≤2 badges each,
-// that's ≤64 localStorage parses → ~2-5ms total on mobile. No memoization
-// added — the cost is well below the 16ms frame budget.
-//
-// UAT (verify-work, 2026-05-19): two device-parity fixes:
-//  (1) Pass fcMap to computeLeafState so the badge dot agrees with the
-//      AnchorDetailScreen LeafStateBadge and PlannerScreen vine. Without
-//      fcMap, resolveReview falls back to Question.reviewSchedule which
-//      is often stale at initial values (trellis-state.service.ts:39-43);
-//      concepts that AnchorDetailScreen showed as "Need review" via
-//      flashcard data appeared green/bud on feed badges.
-//  (2) Accept a conceptTitle fallback so legacy posts whose
-//      sourceQuestionIds was written empty (pre-Phase-41 L1 provenance,
-//      saveDiscoverPost legacy data) can still resolve to an anchor by
-//      matching the badge title against anchor.title / anchor.content.
-//      Without this, badges rendered but were inert AND showed no dot
-//      because qaId was undefined.
-function buildFcMapForBadge(): Map<string, ReviewSchedule> {
-  const map = new Map<string, ReviewSchedule>();
-  try {
-    const cards = flashcardService.getAll();
-    for (const card of cards) {
-      if (!card.nodeId) continue;
-      const existing = map.get(card.nodeId);
-      if (!existing || card.reviewSchedule.reviewCount > existing.reviewCount) {
-        map.set(card.nodeId, card.reviewSchedule);
-      }
-    }
-  } catch {
-    /* flashcard service unavailable — fall back to Question-level data */
-  }
-  return map;
-}
-
-function resolveAnchorForBadge(
-  qaId: string | undefined,
-  conceptTitle: string | undefined,
-): string | null {
-  if (qaId) {
-    const fromId = resolveAnchorId(qaId);
-    if (fromId) return fromId;
-  }
-  if (!conceptTitle || isLikelyInternalId(conceptTitle)) return null;
-  // Title fallback: legacy posts wrote empty sourceQuestionIds but kept
-  // a usable sourceQuestionTitles[0]. Match anchor by title/content.
-  const all = questionService.getAll({ includeFlagged: true });
-  const t = conceptTitle.trim().toLowerCase();
-  const matched = all.find(
-    (q) =>
-      q.isAnchorNode &&
-      ((q.title ?? '').trim().toLowerCase() === t ||
-        (q.content ?? '').trim().toLowerCase() === t),
-  );
-  return matched?.id ?? null;
-}
-
-function getBadgeLeafSignal(
-  qaId: string | undefined,
-  conceptTitle?: string,
-): 'attention' | 'normal' {
-  const anchorId = resolveAnchorForBadge(qaId, conceptTitle);
-  if (!anchorId) return 'normal';
-  const all = questionService.getAll({ includeFlagged: true });
-  const anchor = all.find((q) => q.id === anchorId);
-  if (!anchor) return 'normal';
-  const qaChildren = all.filter((q) => q.parentId === anchorId && !q.isAnchorNode);
-  const fcMap = buildFcMapForBadge();
-  const ls = computeLeafState(anchor, qaChildren, undefined, fcMap);
-  return ls === 'dying' || ls === 'falling' || ls === 'dead' ? 'attention' : 'normal';
 }
 
 // ── Text-art theme pool (random selection per render) ──────────────────────────
@@ -159,28 +76,16 @@ interface ConceptCardProps {
 }
 
 function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive: _isActive, onOpen }: ConceptCardProps) {
-  const { t } = useTranslation();
-  const navigate = useNavigate();
-
   // ── Image generation state ──────────────────────────────────────────────────
-  // Video posts skip AI image generation entirely (D-08: use YouTube thumbnail).
-  // (Phase 38 / TECHDEBT-06): 'short' post type was removed entirely — all YouTube
-  // content is now sourceType: 'video' / presentationStyle: 'video'.
-  // (Phase 42 UAT-7+8): inline-play removed. Video card is navigation-only —
-  // tap → PostDetailScreen which owns the iframe + Detector D engagement signal.
   const isSuggestion = post.sourceType === 'suggestion' && !!post.suggestionMeta?.topics;
-  const isVideoPost = post.sourceType === 'video';
-  const isNewsPost = post.sourceType === 'news';
   const presentationStyle = post.presentationStyle;
 
-  // Non-image presentation styles and video posts skip image generation entirely
+  // Non-image presentation styles skip image generation entirely.
   const [image, setImage] = useState<GeneratedImage | null>(null);
   const [imageResolved, setImageResolved] = useState(
-    () => isSuggestion || isVideoPost || isNewsPost
+    () => isSuggestion
       || presentationStyle === 'text-art'
       || presentationStyle === 'image-less'
-      || presentationStyle === 'video'
-      || presentationStyle === 'news'
       || imageGenerationService.hasCachedImage(post.id, inferImageStyle(post)),
   );
 
@@ -194,7 +99,7 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive: _isActive, onO
 
   useEffect(() => {
     // Skip AI image generation for non-image presentation styles
-    if (isSuggestion || isVideoPost || isNewsPost) return;
+    if (isSuggestion) return;
     if (presentationStyle && presentationStyle !== 'image') {
       setImageResolved(true);
       return;
@@ -222,7 +127,7 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive: _isActive, onO
 
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [post.id, isSuggestion, isVideoPost, isNewsPost, presentationStyle]);
+  }, [post.id, isSuggestion, presentationStyle]);
 
   // Suggestion post — D-23/D-26: only topic buttons are interactive, card tap is no-op
   if (isSuggestion) {
@@ -234,7 +139,6 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive: _isActive, onO
 
   // ── End image state ─────────────────────────────────────────────────────────
 
-  const normalizedTitle = normalizePlainText(post.title);
   const normalizedHook = normalizePlainText(post.teaser.hook);
   const normalizedPreview = normalizePlainText(post.teaser.preview);
 
@@ -242,16 +146,11 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive: _isActive, onO
   // (because metadata is missing, the style is unrecognized, or the image gen failed),
   // fall back to text-art. This catches:
   //   - Failed image gen (no Nano Banana key, network/sandbox failure)             → 'image'
-  //   - Session posts assigned 'video'/'news' with no metadata (Bug B)             → empty card
-  //   - YouTube non-video items propagated as posts with undefined videoId (Bug C) → empty card
   //   - Suggestion posts with no topics (LLM failed + no neighbor anchors)         → empty card
   //   - Legacy 'image-less' or undefined presentationStyle from older caches       → empty card
   // The previous fallback only caught the first case (`presentationStyle === 'image'`),
   // which is why post-32.1 deploys still showed text-only cards on device.
-  // (Phase 38 / TECHDEBT-06): 'short' branch removed — all YouTube content is now 'video'.
   const wouldRenderVisual =
-    (isVideoPost && !!post.videoMeta?.videoId) ||
-    isNewsPost ||
     !!image ||
     presentationStyle === 'text-art';
   const effectivePresentationStyle: typeof presentationStyle = !wouldRenderVisual ? 'text-art' : presentationStyle;
@@ -260,155 +159,15 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive: _isActive, onO
     console.warn('[InfoFlow] Forced text-art fallback for post', post.id, {
       sourceType: post.sourceType,
       presentationStyle,
-      hasVideoMeta: !!post.videoMeta?.videoId,
       hasImage: !!image,
     });
   }
 
-  // News card (D-09) — newspaper style
-  if (isNewsPost) {
-    return (
-      <div
-        onClick={() => onOpen(post.id, post)}
-        style={{
-          height: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          padding: '0 0 12px 0',
-          borderRadius: '8px',
-          backgroundColor: 'var(--news-card-bg)',
-          border: '1px solid var(--news-card-border)',
-          boxShadow: 'var(--shadow-2)',
-          cursor: 'pointer',
-          fontFamily: "Georgia, 'Times New Roman', 'Noto Serif', serif",
-          position: 'relative',
-          overflow: 'hidden',
-        }}
-      >
-        {/* Subtle dot grid background pattern */}
-        <div style={{
-          position: 'absolute',
-          inset: 0,
-          backgroundImage: 'radial-gradient(circle, var(--news-card-dot) 0.5px, transparent 0.5px)',
-          backgroundSize: '20px 20px',
-          opacity: 0.15,
-          pointerEvents: 'none',
-        }} />
-
-        <div style={{ padding: '12px 10px 0', position: 'relative' }}>
-          {/* Source attribution — uppercase, small */}
-          {post.newsMeta?.sources?.[0] && (
-            <span style={{
-              display: 'block',
-              fontSize: '0.6rem',
-              color: 'var(--news-card-source)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.08em',
-              marginBottom: '6px',
-              fontFamily: 'system-ui, -apple-system, sans-serif',
-            }}>
-              {(() => {
-                try { return new URL(post.newsMeta.sources[0].url).hostname.replace('www.', ''); }
-                catch { return 'Web'; }
-              })()}
-            </span>
-          )}
-
-          {/* Headline — sized for half-width masonry column (Phase 42 UAT-6). */}
-          <h3 style={{
-            fontSize: '0.95rem',
-            fontWeight: 700,
-            lineHeight: 1.25,
-            color: 'var(--news-card-headline)',
-            marginBottom: '6px',
-          }}>
-            {normalizedTitle}
-          </h3>
-
-          {/* Preview text */}
-          <p style={{
-            fontSize: '0.78rem',
-            lineHeight: 1.45,
-            color: 'var(--news-card-body)',
-            marginBottom: '10px',
-          }}>
-            {normalizedPreview}
-          </p>
-        </div>
-
-        {/* Bottom rule line — newspaper divider */}
-        <div style={{
-          borderTop: '1px solid var(--news-card-divider)',
-          padding: '10px 10px 0',
-          position: 'relative',
-        }}>
-          {/* Bottom tags */}
-          {/* TS-01 (Phase 43-02): NEWS presentation-style chip removed.
-              Operator-bounded simplification — "tiles already too rich; simplify".
-              See .planning/phases/43-engagement-ui/43-CONTEXT.md §"Tile simplification (TS-*)". */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-            {/* Phase 51-01: concept badges are tappable when the underlying
-                Q&A resolves to an anchor. Tap navigates to /anchor/:id;
-                e.stopPropagation() prevents the tile-level "open post"
-                handler from also firing. Binary amber dot when the
-                concept is dying/falling/dead. */}
-            {post.sourceQuestionTitles?.slice(0, 1).map((title, originalIdx) => ({ title, originalIdx })).filter(({ title }) => !isLikelyInternalId(title)).map(({ title, originalIdx }) => {
-              // CR-02 fix: use originalIdx (pre-filter) to look up
-              // sourceQuestionIds. The titles + ids arrays are PARALLEL by
-              // original index; .filter() re-indexes the array, so a post-filter
-              // idx wouldn't line up with sourceQuestionIds when an internal-ID
-              // entry is dropped from the head (see 51-REVIEW.md CR-02).
-              const qaId = post.sourceQuestionIds?.[originalIdx];
-              // UAT Bug 5: resolveAnchorForBadge accepts a title fallback
-              // when sourceQuestionIds is empty/missing (legacy posts).
-              const anchorId = resolveAnchorForBadge(qaId, title);
-              const leafSignal = getBadgeLeafSignal(qaId, title);
-              return (
-                <button
-                  key={originalIdx}
-                  type="button"
-                  onClick={anchorId ? (e) => { e.stopPropagation(); navigate(`/anchor/${anchorId}`); } : undefined}
-                  disabled={!anchorId}
-                  style={{
-                    fontSize: '0.65rem',
-                    color: 'var(--news-card-muted)',
-                    fontFamily: 'system-ui, -apple-system, sans-serif',
-                    padding: '6px 10px',
-                    borderRadius: '100px',
-                    border: '1px solid var(--news-card-tag-border)',
-                    background: 'transparent',
-                    cursor: anchorId ? 'pointer' : 'default',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    // UAT (device fix): bypass the 300ms tap delay on
-                    // Android WebView and suppress the default tap
-                    // highlight so the badge behaves like a native button.
-                    touchAction: 'manipulation',
-                    WebkitTapHighlightColor: 'transparent',
-                  }}
-                >
-                  {leafSignal === 'attention' && (
-                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#f59e0b', display: 'inline-block' }} />
-                  )}
-                  {title}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   // Regular concept posts
   // Rendered as <div role="button"> rather than <button> so inner interactive
-  // elements (video stop button, etc.) can safely be actual <button>s without
-  // tripping the "<button> cannot be a descendant of <button>" DOM-nesting
-  // invariant. Preserves click + keyboard (Enter/Space) affordances.
-  // (Phase 38 / TECHDEBT-06): 'short' card branch removed — all video posts are
-  // interactive (D-02b hybrid: thumbnail tap = inline play + emit, card-level
-  // tap = handleActivate → navigate to PostDetailScreen).
+  // elements can safely be actual <button>s without tripping the
+  // "<button> cannot be a descendant of <button>" DOM-nesting invariant.
+  // Preserves click + keyboard (Enter/Space) affordances.
   const interactive = !isSuggestion;
   const handleActivate = () => { if (interactive) onOpen(post.id, post); };
   return (
@@ -427,9 +186,9 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive: _isActive, onO
         width: '100%',
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: (image || isVideoPost || effectivePresentationStyle === 'text-art') ? 'space-between' : 'flex-start',
+        justifyContent: (image || effectivePresentationStyle === 'text-art') ? 'space-between' : 'flex-start',
         gap: '12px',
-        padding: (image || isVideoPost || effectivePresentationStyle === 'text-art') ? '0 0 12px' : '12px 0',
+        padding: (image || effectivePresentationStyle === 'text-art') ? '0 0 12px' : '12px 0',
         borderRadius: '8px',
         background: 'linear-gradient(180deg, color-mix(in srgb, var(--primary-80) 20%, var(--surface-container-high)), var(--surface-container-high))',
         border: '1.5px solid color-mix(in srgb, var(--primary-40) 22%, var(--border))',
@@ -440,41 +199,6 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive: _isActive, onO
         overflow: 'hidden',
       }}
     >
-
-        {/* Video card thumbnail — Phase 42 UAT-7+8: inline-play removed. Card-level
-            tap (parent <div> at line 303) navigates to PostDetailScreen, which owns
-            the iframe AND Detector D (postMessage CONCEPT_EXPLORED on play ≥ 80%).
-
-            UAT-8 round 4 (2026-05-10): the BLACK BARS the operator kept seeing are
-            BAKED INTO YouTube's `hqdefault.jpg` thumbnail itself — YouTube wraps
-            16:9 video into a 4:3 (480×360) image with ~12.5% black bars top + bottom.
-            CSS object-fit: cover doesn't help: a 4:3 source in a 5:4 container
-            (1.333 vs 1.25) only crops ~3% L+R because cover needs to fill height.
-            The bars sit IN that visible vertical space.
-
-            Operator instruction: "you should CROP the thumbnail, not using different
-            thumbnail from youtube." So instead of swapping to mqdefault.jpg (16:9),
-            we zoom INTO the existing thumbnail with transform: scale(1.34). 1.34x
-            crops 16.7% off each top/bottom edge — comfortably past the 12.5% bars
-            with a small safety margin. transformOrigin defaults to center so the
-            crop is symmetric. Outer container's overflow: hidden clips the overscan. */}
-        {isVideoPost && post.videoMeta?.videoId && post.videoMeta.thumbnailUrl && (
-          <div style={{ position: 'relative', width: '100%', paddingTop: '80%', overflow: 'hidden' }}>
-            <img
-              src={post.videoMeta.thumbnailUrl}
-              alt={normalizedTitle}
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-                transform: 'scale(1.34)',
-              }}
-            />
-          </div>
-        )}
 
         {/* Text-art notebook card (D-12, D-13, D-14) — square area like image posts */}
         {effectivePresentationStyle === 'text-art' && (() => {
@@ -521,17 +245,15 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive: _isActive, onO
           );
         })()}
 
-        {/* AI-generated image header — only rendered for image presentation style.
-            (Phase 38 / TECHDEBT-06): the legacy short-post guard was removed — short type no longer exists. */}
-        {!isVideoPost && image && effectivePresentationStyle !== 'text-art' && (
+        {/* AI-generated image header — only rendered for image presentation style. */}
+        {image && effectivePresentationStyle !== 'text-art' && (
           <FeedPostImage
             imageData={image}
             aspectPadding="100%"
           />
         )}
 
-        {/* Hook, channel attribution, preview, and tags — rendered for all non-suggestion posts.
-            (Phase 38 / TECHDEBT-06): the legacy short-post wrapper was removed — short type is gone. */}
+        {/* Hook, preview, and tags — rendered for all non-suggestion posts. */}
         <div style={{ padding: '0 10px' }}>
           <p
             style={{
@@ -544,48 +266,18 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive: _isActive, onO
           >
             {normalizedHook}
           </p>
-          {isVideoPost && post.videoMeta?.channelTitle && (
-            <p style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)', marginBottom: '6px' }}>
-              {t('infoFlow.byChannel', { channel: post.videoMeta.channelTitle })}
-            </p>
-          )}
           {/* Preview: show when no image is present */}
-          {!image && !isVideoPost && effectivePresentationStyle !== 'text-art' && (
+          {!image && effectivePresentationStyle !== 'text-art' && (
             <p style={{ fontSize: '0.8rem', color: 'var(--foreground)', lineHeight: 1.5, opacity: 0.88 }}>
               {normalizedPreview}
             </p>
           )}
-          {/* Bottom tags: source concepts + narrative mode.
-              Phase 51-01: tappable concept badges with binary amber dot
-              for dying/falling/dead. Tap navigates to /anchor/:id and
-              stopPropagation()s so the tile-level handleActivate does NOT
-              also fire. Disabled state when no anchor resolves keeps the
-              visual but suppresses the click. */}
+          {/* Bottom tags: source concepts. */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '12px' }}>
             {post.sourceQuestionTitles?.slice(0, 2).map((title, originalIdx) => ({ title, originalIdx })).filter(({ title }) => !isLikelyInternalId(title)).map(({ title, originalIdx }) => {
-              // CR-02 fix: use originalIdx (pre-filter) to look up
-              // sourceQuestionIds. The titles + ids arrays are PARALLEL by
-              // original index; .filter() re-indexes the array, so a post-filter
-              // idx wouldn't line up with sourceQuestionIds when an internal-ID
-              // entry is dropped from the head (see 51-REVIEW.md CR-02).
-              const qaId = post.sourceQuestionIds?.[originalIdx];
-              // UAT Bug 5: title fallback for legacy posts with empty
-              // sourceQuestionIds — see resolveAnchorForBadge doc-block.
-              const anchorId = resolveAnchorForBadge(qaId, title);
-              const leafSignal = getBadgeLeafSignal(qaId, title);
               return (
-                <button
+                <span
                   key={originalIdx}
-                  type="button"
-                  onClick={anchorId ? (e) => { e.stopPropagation(); navigate(`/anchor/${anchorId}`); } : undefined}
-                  onKeyDown={anchorId ? (e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.stopPropagation();
-                      e.preventDefault();
-                      navigate(`/anchor/${anchorId}`);
-                    }
-                  } : undefined}
-                  disabled={!anchorId}
                   style={{
                     fontSize: '0.7rem',
                     color: 'var(--muted-foreground)',
@@ -593,22 +285,13 @@ function ConceptCard({ post, feedIndex: _feedIndex = 0, isActive: _isActive, onO
                     border: '1px solid var(--border)',
                     padding: '6px 10px',
                     borderRadius: '100px',
-                    cursor: anchorId ? 'pointer' : 'default',
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '6px',
                     fontFamily: 'inherit',
-                    // UAT (device fix): bypass 300ms tap delay + suppress
-                    // default tap highlight on Android WebView.
-                    touchAction: 'manipulation',
-                    WebkitTapHighlightColor: 'transparent',
                   }}
                 >
-                  {leafSignal === 'attention' && (
-                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#f59e0b', display: 'inline-block' }} />
-                  )}
                   {title}
-                </button>
+                </span>
               );
             })}
           </div>

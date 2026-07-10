@@ -371,13 +371,13 @@
     },
     "menu": {
       "aiModels": "Modelos de IA",
-      "aiModelsDesc": "Modelo de lenguaje, embeddings, texto a voz",
+      "aiModelsDesc": "Modelo de lenguaje y embeddings",
       "contentSources": "Fuentes de contenido",
-      "contentSourcesDesc": "Generación de imágenes, YouTube, búsqueda web",
+      "contentSourcesDesc": "Generación de imágenes",
       "features": "Funciones",
-      "featuresDesc": "Pódcast, repaso, planificación",
+      "featuresDesc": "Flags del prototipo de investigación",
       "dataPrivacy": "Datos y privacidad",
-      "dataPrivacyDesc": "Privacidad, herramientas de desarrollo, estadísticas"
+      "dataPrivacyDesc": "Privacidad, herramientas de desarrollo, gestión de datos"
     },
     "titles": {
       "aiModels": "Modelos de IA",
@@ -446,7 +446,7 @@
     },
     "descriptions": {
       "fastModelBlurb": "Opcional. Genera los cuerpos de las publicaciones y las respuestas de seguimiento con un modelo de baja latencia independiente y con el razonamiento desactivado, para que el contenido aparezca al instante. Déjalo desactivado para usar tu modelo principal.",
-      "fastModelEnabled": "Generar los cuerpos de las publicaciones, los resúmenes de noticias y los seguimientos con este modelo",
+      "fastModelEnabled": "Generar cuerpos de publicaciones y seguimientos con este modelo",
       "fastModelHint": "Elige un modelo pequeño y sin razonamiento para la transmisión más rápida.",
       "embeddingBlurb": "Usado para la similitud semántica entre conceptos. Impulsa la calidad de las tarjetas de conexión. Independiente del LLM — Anthropic no tiene modelo de embeddings.",
       "lmStudioServer": "URL del servidor LM Studio",
@@ -479,7 +479,7 @@
       "trellisDevModeHint": "Muestra los 7 estados de hojas (brote, verde, amarilla, cayendo, caída, flor, fruto) en nodos de prueba.",
       "developerBlurb": "Herramientas de depuración. Las acciones destructivas no se pueden deshacer.",
       "usageBlurb": "Límite mensual de preguntas y uso de tokens de la API del LLM.",
-      "privacyBlurb": "Trellis es local-first. Todas las notas, fichas y sesiones se guardan solo en este dispositivo. Ningún servidor de Trellis recibe tus datos.",
+      "privacyBlurb": "Trellis es local-first. Las preguntas, sesiones, publicaciones guardadas y ajustes se guardan solo en este dispositivo. Ningún servidor de Trellis recibe tus datos.",
       "aiConsentHint": "Permitir que las preguntas se envíen a tu proveedor de IA",
       "generationCap": "Publicaciones max por concepto al dia",
       "bonusCap": "Publicaciones extra tras explorar todos los conceptos",
@@ -609,8 +609,8 @@
       "todayReset": "Estado de revisión/publicaciones de hoy restablecido"
     },
     "confirm": {
-      "deleteApiKeys": "¿Eliminar todas las claves API guardadas? Esto deshabilitará IA y TTS hasta que las vuelvas a introducir.",
-      "clearAllData": "¿Borrar TODOS los datos?\n\nEsto elimina cada pregunta, ficha, sesión, entrada del plan y podcast. Los ajustes se conservan.\n\nEsto no se puede deshacer.",
+      "deleteApiKeys": "¿Eliminar todas las claves API guardadas? Esto deshabilitará las funciones de IA hasta que las vuelvas a introducir.",
+      "clearAllData": "¿Borrar TODOS los datos?\n\nEsto elimina cada pregunta, sesión, señal guardada, publicación generada e imagen en caché. Los ajustes se conservan.\n\nEsto no se puede deshacer.",
       "clearImageCache": "¿Borrar todas las imágenes en caché? Se regenerarán al volver a verlas.",
       "reset": "¿Restaurar todos los ajustes a sus valores por defecto?"
     },
@@ -867,9 +867,9 @@
     },
     "welcome": {
       "title": "Bienvenido a Trellis",
-      "body": "Tu compañero de aprendizaje personal con IA. Pregunta lo que sea, repasa con repetición espaciada y escucha tus podcasts diarios de conocimiento.",
-      "featureAskTitle": "Pregunta lo que sea",
-      "featureAskDesc": "Respuestas con IA guardadas como conocimiento estructurado",
+      "body": "Un prototipo de investigación centrado en leer publicaciones, hacer seguimientos contextuales y guardar señales de estudio localmente.",
+      "featureAskTitle": "Pregunta en contexto",
+      "featureAskDesc": "Haz preguntas de seguimiento desde una publicación y conserva la traza localmente",
       "featureReviewTitle": "Repetición espaciada",
       "featureReviewDesc": "Repasa las fichas en el intervalo óptimo para maximizar la retención",
       "featurePodcastTitle": "Podcasts diarios",
@@ -883,7 +883,7 @@
     "consent": {
       "title": "Datos y privacidad",
       "intro": "Trellis es una app con privacidad primero. Esto es exactamente lo que ocurre con tus datos:",
-      "rowLocal": "Todas las notas, fichas y datos del plan se guardan solo en tu dispositivo.",
+      "rowLocal": "Las preguntas, sesiones, publicaciones guardadas y ajustes se guardan solo en tu dispositivo.",
       "rowCloud": "Cuando haces una pregunta, se envía directamente a tu proveedor de IA configurado (p. ej., OpenAI, Anthropic) usando solo tu propia clave API.",
       "rowNoServer": "Trellis nunca transmite tus datos a ningún servidor de Trellis. No hay backend de Trellis.",
       "consent": "Entiendo y acepto que mis preguntas se enviarán a mi proveedor de IA configurado usando mi propia clave API.",

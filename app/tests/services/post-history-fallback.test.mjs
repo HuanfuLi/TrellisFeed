@@ -2,7 +2,7 @@
 // rollover. Two source-reading invariants:
 //
 //   (1) conceptFeedService.getPostById falls back to postHistoryService when
-//       the ephemeral daily/video/news caches don't have the post. Without
+//       the ephemeral daily cache doesn't have the post. Without
 //       this, /post-history and /saved + /liked click-throughs render
 //       "Post not found" the day after a post is generated, because Phase
 //       36-11's stale-cache rejection wipes trellis_daily_posts at midnight.
@@ -81,7 +81,7 @@ test('patchPostEssayInCache patches the durable post stores', () => {
 
   // The retired keys are deleted at boot by clearLegacyHeavyLocalStorageKeys;
   // writing them silently drops the body.
-  for (const key of ['trellis_daily_posts', 'trellis_video_cache', 'trellis_news_posts', 'trellis_post_history']) {
+  for (const key of ['trellis_daily_posts', 'trellis_post_history']) {
     assert.doesNotMatch(
       body,
       new RegExp(`['"]${key}['"]`),

@@ -5,8 +5,7 @@
  * used identically in the browser AND inside the iOS/Android Capacitor WebView.
  * IndexedDB quota is disk-based (hundreds of MB+), escaping the ~5MB localStorage
  * cap that motivated the migration, and — unlike main-thread WASM SQLite — needs
- * no Web Worker or COOP/COEP cross-origin isolation (which would have broken the
- * app's YouTube iframe embeds + cross-origin API calls). A single backend across
+ * no Web Worker or COOP/COEP cross-origin isolation. A single backend across
  * web and device keeps behaviour identical and debuggable from the browser console.
  *
  * LocalStorageBackend remains ONLY for environments without IndexedDB (the Node
@@ -51,29 +50,12 @@ const SHARED_DDL: string[] = [
     edge_key TEXT PRIMARY KEY,
     weight INTEGER NOT NULL DEFAULT 0
   )`,
-  `CREATE TABLE IF NOT EXISTS planner_chunks (
-    id TEXT PRIMARY KEY,
-    data TEXT NOT NULL
-  )`,
-  `CREATE TABLE IF NOT EXISTS planner_threads (
-    id TEXT PRIMARY KEY,
-    data TEXT NOT NULL
-  )`,
-  `CREATE TABLE IF NOT EXISTS planner_checkins (
-    id TEXT PRIMARY KEY,
-    data TEXT NOT NULL
-  )`,
   // ── Phase 55 heavy-store tables (D-09) ──────────────────────────────────────
   `CREATE TABLE IF NOT EXISTS sessions (id TEXT PRIMARY KEY, data TEXT NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS posts (id TEXT PRIMARY KEY, data TEXT NOT NULL, served_at INTEGER)`,
   `CREATE TABLE IF NOT EXISTS post_queue (id TEXT PRIMARY KEY, data TEXT NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS post_history (id TEXT PRIMARY KEY, data TEXT NOT NULL)`,
-  `CREATE TABLE IF NOT EXISTS flashcards (id TEXT PRIMARY KEY, data TEXT NOT NULL)`,
-  `CREATE TABLE IF NOT EXISTS collections (id TEXT PRIMARY KEY, data TEXT NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS engagement (id TEXT PRIMARY KEY, data TEXT NOT NULL)`,
-  `CREATE TABLE IF NOT EXISTS podcasts (id TEXT PRIMARY KEY, data TEXT NOT NULL)`,
-  `CREATE TABLE IF NOT EXISTS news_posts (id TEXT PRIMARY KEY, data TEXT NOT NULL)`,
-  `CREATE TABLE IF NOT EXISTS video_cache (id TEXT PRIMARY KEY, data TEXT NOT NULL)`,
 ];
 
 // Object-store names for the IndexedDB backend, derived from SHARED_DDL so the
@@ -349,10 +331,8 @@ export async function dbQuery<T extends Row>(sql: string, values?: (string | num
 }
 
 // The 13 legacy heavy-store localStorage keys retired by the Phase 55 migration.
-// Tiny boot-critical prefs (trellis_settings, trellis_fruit_credits,
-// trellis_dev_mode, trellis_ask_rate_limit, trellis_blossom_dates,
-// trellis_token_usage, trellis_daily_read, trellis_trajectory_signals,
-// trellis_active_session) are intentionally NOT listed — they stay in localStorage.
+// Tiny boot-critical prefs (trellis_settings, trellis_dev_mode,
+// trellis_daily_read, trellis_active_session) are intentionally NOT listed.
 const LEGACY_HEAVY_KEYS = [
   'trellis_questions',
   'trellis_daily_posts',
@@ -360,13 +340,8 @@ const LEGACY_HEAVY_KEYS = [
   'trellis_post_queue',
   'trellis_post_queue_yesterday',
   'trellis_sessions',
-  'trellis_flashcards',
   'trellis_db_tables',
-  'trellis_collections_v1',
   'trellis_engagement_v1',
-  'trellis_podcasts',
-  'trellis_news_posts',
-  'trellis_video_cache',
 ];
 
 /**
@@ -397,20 +372,12 @@ export async function clearAllTables(): Promise<void> {
   try {
     await dbExecute('DELETE FROM questions');
     await dbExecute('DELETE FROM edge_weights');
-    await dbExecute('DELETE FROM planner_chunks');
-    await dbExecute('DELETE FROM planner_threads');
-    await dbExecute('DELETE FROM planner_checkins');
     // ── Phase 55 heavy-store tables (D-09) ──────────────────────────────────
     await dbExecute('DELETE FROM sessions');
     await dbExecute('DELETE FROM posts');
     await dbExecute('DELETE FROM post_queue');
     await dbExecute('DELETE FROM post_history');
-    await dbExecute('DELETE FROM flashcards');
-    await dbExecute('DELETE FROM collections');
     await dbExecute('DELETE FROM engagement');
-    await dbExecute('DELETE FROM podcasts');
-    await dbExecute('DELETE FROM news_posts');
-    await dbExecute('DELETE FROM video_cache');
   } catch {
     // DB may not be available (e.g. tables not yet created) — silently ignore
   }

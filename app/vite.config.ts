@@ -14,7 +14,6 @@ export default defineConfig({
           'vendor-ui': ['lucide-react'],
           'vendor-motion': ['framer-motion'],
           'vendor-markdown': ['react-markdown', 'remark-gfm'],
-          'vendor-mindmap': ['mind-elixir'],
         },
       },
     },

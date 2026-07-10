@@ -6,8 +6,8 @@
 //         date-mismatch load — no manual swipe needed, no LLM-pipeline wait.
 //   (c)   The rehydrated cold-start window is style-balanced (yesterday's
 //         leftover skews toward minority styles since text-art is plurality
-//         and gets popped first; without re-interleave the cold-start would
-//         render as video → news → video → news).
+//         and gets popped first; without re-interleave the cold-start could
+//         render as image → suggestion → image → suggestion).
 //
 // Plan 36-09's STORAGE_KEY_YESTERDAY snapshot contract is preserved
 // (verified by Test 3): the snapshot is still written BEFORE rehydration so
@@ -142,19 +142,19 @@ describe('postQueueService — Phase 36-11 rehydration on date mismatch', () => 
 
   // Test 5 — re-interleave applied: rehydrated posts are style-mixed
   it('rehydrated posts have spreadByStyle ordering — no adjacent same-style for balanced histograms', () => {
-    // Input has runs of same style: [video×4, news×4]. With spreadByStyle the
-    // histogram is preserved (4 video + 4 news) and the contract's
+    // Input has runs of same style: [image×4, suggestion×4]. With spreadByStyle the
+    // histogram is preserved (4 image + 4 suggestion) and the contract's
     // "no adjacent same style when each count ≤ N/2" property holds.
     const yesterday = dateOffset(-1);
     const posts = [
-      makePost('v1', { style: 'video', concept: 'anchor-a' }),
-      makePost('v2', { style: 'video', concept: 'anchor-b' }),
-      makePost('v3', { style: 'video', concept: 'anchor-c' }),
-      makePost('v4', { style: 'video', concept: 'anchor-d' }),
-      makePost('n1', { style: 'news', concept: 'anchor-e' }),
-      makePost('n2', { style: 'news', concept: 'anchor-f' }),
-      makePost('n3', { style: 'news', concept: 'anchor-g' }),
-      makePost('n4', { style: 'news', concept: 'anchor-h' }),
+      makePost('i1', { style: 'image', concept: 'anchor-a' }),
+      makePost('i2', { style: 'image', concept: 'anchor-b' }),
+      makePost('i3', { style: 'image', concept: 'anchor-c' }),
+      makePost('i4', { style: 'image', concept: 'anchor-d' }),
+      makePost('s1', { style: 'suggestion', concept: 'anchor-e' }),
+      makePost('s2', { style: 'suggestion', concept: 'anchor-f' }),
+      makePost('s3', { style: 'suggestion', concept: 'anchor-g' }),
+      makePost('s4', { style: 'suggestion', concept: 'anchor-h' }),
     ];
     seedAndRollover(posts, yesterday);
 
@@ -162,10 +162,10 @@ describe('postQueueService — Phase 36-11 rehydration on date mismatch', () => 
     // (a) all 8 posts rehydrate (no drops from the spread mixers)
     assert.equal(queue.length, 8, 'all 8 posts rehydrate (no mixer drops)');
     // (b) histogram preserved
-    const videoCount = queue.filter((p) => p.presentationStyle === 'video').length;
-    const newsCount = queue.filter((p) => p.presentationStyle === 'news').length;
-    assert.equal(videoCount, 4, 'video count preserved');
-    assert.equal(newsCount, 4, 'news count preserved');
+    const imageCount = queue.filter((p) => p.presentationStyle === 'image').length;
+    const suggestionCount = queue.filter((p) => p.presentationStyle === 'suggestion').length;
+    assert.equal(imageCount, 4, 'image count preserved');
+    assert.equal(suggestionCount, 4, 'suggestion count preserved');
     // (c) no two adjacent posts share the same style — spreadByStyle's
     // contract for N posts where each style count ≤ N/2.
     for (let i = 1; i < queue.length; i++) {

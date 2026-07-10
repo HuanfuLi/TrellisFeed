@@ -110,7 +110,7 @@ describe('spread-by-concept (GAP-4)', () => {
     const posts = [
       makePost('a1', ['A'], 'text-art'), makePost('a2', ['A'], 'image'),
       makePost('a3', ['A'], 'text-art'),
-      makePost('b1', ['B'], 'text-art'), makePost('b2', ['B'], 'video'),
+      makePost('b1', ['B'], 'text-art'), makePost('b2', ['B'], 'suggestion'),
       makePost('b3', ['B'], 'text-art'),
     ];
     spreadByConcept(posts);

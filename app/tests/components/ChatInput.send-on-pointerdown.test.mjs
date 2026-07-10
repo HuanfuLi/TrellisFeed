@@ -48,7 +48,9 @@ describe('ChatInput send-on-pointerdown guard (BUGFIX-04)', () => {
 
     // (1b) and it must preventDefault to preserve focus (keyboard stays open).
     assert.ok(
-      /preventDefault\s*\(\s*\)/.test(sendButtonBlock),
+      /preventDefault\s*\(\s*\)/.test(sendButtonBlock) ||
+        /onPointerDown=\{handleSendPointerDown\}/.test(sendButtonBlock) &&
+          /const\s+handleSendPointerDown[\s\S]{0,180}preventDefault\s*\(\s*\)/.test(source),
       'Send button onPointerDown must call e.preventDefault() so focus is preserved on the first tap',
     );
   });

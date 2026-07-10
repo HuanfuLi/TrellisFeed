@@ -1,15 +1,14 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Brain, Volume2, Network, Sparkles, Zap } from 'lucide-react';
+import { Brain, Network, Sparkles, Zap } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Header } from '../../components/ui/Header';
 import { settingsService } from '../../services/settings.service';
 import { testLLMConnection } from '../../providers/llm';
-import { testTTSConnection } from '../../providers/tts';
 import { embedText, clearEmbedCache } from '../../providers/embedding';
 import { toast } from '../../lib/toast';
-import type { LLMConfig, TTSConfig, EmbeddingConfig, EmbeddingDebugConfig, FastModelConfig } from '../../types';
+import type { LLMConfig, EmbeddingConfig, EmbeddingDebugConfig, FastModelConfig } from '../../types';
 import {
   SectionHeader,
   SettingRow,
@@ -35,7 +34,6 @@ export function SettingsAIScreen() {
       enabled: false, provider: 'openai', apiKey: '', baseUrl: '', model: 'gpt-4o-mini', isConfigured: false,
     },
   );
-  const [tts, setTts] = useState<TTSConfig>(() => settingsService.getSync().tts);
   const [embedding, setEmbedding] = useState<EmbeddingConfig>(() => settingsService.getSync().embedding);
   const [embeddingDebug, setEmbeddingDebug] = useState<EmbeddingDebugConfig>(() => settingsService.getSync().embeddingDebug);
   const [ztNetworkId, setZtNetworkId] = useState(() => settingsService.getSync().zerotier.networkId ?? '');
@@ -44,21 +42,12 @@ export function SettingsAIScreen() {
 
   const saveLlm = (current: LLMConfig = llm) => {
     settingsService.set('llm', { ...current, isConfigured: !!current.apiKey || noKeyRequired(current.provider) });
-    // Keep TTS isConfigured in sync: OpenAI TTS reuses the LLM key as a fallback
-    if (tts.provider === 'openai') {
-      const effectiveKey = tts.apiKey || (current.apiKey ?? '');
-      settingsService.set('tts', { ...tts, isConfigured: !!effectiveKey });
-    }
   };
 
   const saveFastModel = (current: FastModelConfig = fastModel) => {
     const isConfigured = noKeyRequired(current.provider) ? !!current.baseUrl : !!current.apiKey;
     settingsService.set('fastModel', { ...current, isConfigured });
   };
-
-  // The effective TTS API key: use the dedicated TTS key if set, otherwise fall back
-  // to the LLM key when both provider is OpenAI (they share the same credentials).
-  const effectiveTtsApiKey = tts.apiKey || (tts.provider === 'openai' ? (llm.apiKey ?? '') : '');
 
   const saveEmbedding = (current: EmbeddingConfig = embedding) => {
     const isConfigured =
@@ -76,16 +65,6 @@ export function SettingsAIScreen() {
 
   const saveEmbeddingDebug = (current: EmbeddingDebugConfig = embeddingDebug) => {
     settingsService.set('embeddingDebug', current);
-  };
-
-  const saveTts = (current: TTSConfig = tts) => {
-    const fallbackKey = current.provider === 'openai' ? (llm.apiKey ?? '') : '';
-    const effectiveKey = current.apiKey || fallbackKey;
-    const isConfigured =
-      current.provider === 'openai' ? !!effectiveKey :
-        current.provider === 'gptsovits' ? !!current.baseUrl :
-          false;
-    settingsService.set('tts', { ...current, isConfigured });
   };
 
   const handleTestLLM = async () => {
@@ -125,24 +104,6 @@ export function SettingsAIScreen() {
       setIsTesting((prev) => ({ ...prev, embedding: false }));
       setTimeout(() => setTestResult((prev) => ({ ...prev, embedding: null })), 5000);
     }
-  };
-
-  const handleTestTTS = async () => {
-    setIsTesting((prev) => ({ ...prev, tts: true }));
-    setTestResult((prev) => ({ ...prev, tts: null }));
-    // Use fallback key so the test works even when TTS key field is empty
-    const config = {
-      ...tts,
-      apiKey: effectiveTtsApiKey,
-      isConfigured: tts.provider === 'openai' ? !!effectiveTtsApiKey : !!tts.baseUrl,
-    };
-    const result = await testTTSConnection(config);
-    setIsTesting((prev) => ({ ...prev, tts: false }));
-    setTestResult((prev) => ({
-      ...prev,
-      tts: result.ok ? `✓ ${result.latencyMs}ms` : `✗ ${result.error ?? t('settings.test.defaultFailed')}`,
-    }));
-    setTimeout(() => setTestResult((prev) => ({ ...prev, tts: null })), 5000);
   };
 
   return (
@@ -239,7 +200,7 @@ export function SettingsAIScreen() {
       </Card>
 
       {/* Fast Generation Model Section (Phase 55.1 GAP-E) — optional low-latency model for
-          on-open post-body / news-essay / post-context-Q&A streaming, thinking disabled. */}
+          on-open post-body / post-context-Q&A streaming, thinking disabled. */}
       <SectionHeader icon={<Zap size={20} />} title={t('settings.sections.fastModel')} />
       <Card style={{ marginBottom: '8px' }}>
         <p style={{ fontSize: '0.8rem', color: 'var(--muted-foreground)', marginBottom: '12px', lineHeight: 1.5 }}>
@@ -510,106 +471,6 @@ export function SettingsAIScreen() {
               }}
             />
           </SettingRow>
-        </div>
-      </Card>
-
-      {/* TTS Section */}
-      <SectionHeader icon={<Volume2 size={20} />} title={t('settings.sections.tts')} />
-      <Card style={{ marginBottom: '8px' }}>
-        <SettingRow label={t('settings.fields.provider')}>
-          <SelectInput
-            value={tts.provider}
-            onChange={(v) => {
-              const p = v as TTSConfig['provider'];
-              // Phase 52 GAP-5: intentionally NO apiKeys map on TTSConfig. TTS has
-              // no multi-provider key-loss problem worth the complexity — OpenAI TTS
-              // falls back to the LLM key via effectiveTtsApiKey, and gptsovits uses
-              // baseUrl, not apiKey. Do NOT "consistency-fix" this to add apiKeys.
-              const next: TTSConfig = {
-                ...tts,
-                provider: p,
-                apiKey: '',
-                baseUrl: p === 'gptsovits' ? 'http://localhost:9880' : '',
-              };
-              setTts(next);
-              saveTts(next);
-            }}
-            options={[
-              { value: 'openai', label: t('settings.providerLabels.openaiTts') },
-              { value: 'gptsovits', label: t('settings.providerLabels.gptsovits') },
-            ]}
-          />
-        </SettingRow>
-        {tts.provider === 'openai' && (
-          <SettingRow
-            label={t('settings.fields.apiKey')}
-            description={!tts.apiKey && llm.apiKey ? t('settings.descriptions.ttsUsingLlmKey') : undefined}
-          >
-            <TextInput
-              type="password"
-              value={tts.apiKey ?? ''}
-              onChange={(v) => setTts((prev) => ({ ...prev, apiKey: v }))}
-              onBlur={() => saveTts()}
-              placeholder={llm.apiKey ? t('settings.placeholders.openaiTtsFallback') : t('settings.placeholders.apiKey')}
-            />
-          </SettingRow>
-        )}
-        {tts.provider === 'gptsovits' && (
-          <SettingRow label={t('settings.fields.serverUrl')} description={t('settings.descriptions.ttsServer')}>
-            <TextInput
-              value={tts.baseUrl ?? ''}
-              onChange={(v) => setTts((prev) => ({ ...prev, baseUrl: v }))}
-              onBlur={() => saveTts()}
-              placeholder={t('settings.placeholders.gptsovitsUrl')}
-            />
-          </SettingRow>
-        )}
-        <SettingRow label={t('settings.fields.voice')}>
-          <SelectInput
-            value={tts.voice}
-            onChange={(v) => {
-              const next = { ...tts, voice: v };
-              setTts(next);
-              saveTts(next);
-            }}
-            options={[
-              { value: 'alloy', label: t('settings.voices.alloy') },
-              { value: 'nova', label: t('settings.voices.nova') },
-              { value: 'shimmer', label: t('settings.voices.shimmer') },
-              { value: 'echo', label: t('settings.voices.echo') },
-            ]}
-          />
-        </SettingRow>
-        {/* Phase 52 PODCAST-05 + D-07: TTS model picker, OpenAI-only.
-            Default stays 'tts-1' (D-10 — defaults unchanged until device
-            UAT). gptsovits has no equivalent so the row is provider-gated. */}
-        {tts.provider === 'openai' && (
-          <SettingRow label={t('settings.fields.ttsModel')} description={t('settings.descriptions.ttsModel')}>
-            <SelectInput
-              value={tts.model ?? 'tts-1'}
-              onChange={(v) => {
-                const next = { ...tts, model: v };
-                setTts(next);
-                saveTts(next);
-              }}
-              options={[
-                { value: 'tts-1', label: t('settings.fields.ttsModelStandard') },
-                { value: 'tts-1-hd', label: t('settings.fields.ttsModelHd') },
-              ]}
-            />
-          </SettingRow>
-        )}
-        <div style={{ display: 'flex', gap: '8px', paddingTop: '12px', alignItems: 'center' }}>
-          <Button size="sm" onClick={() => { saveTts(); toast(t('settings.toast.ttsSaved'), 'success'); }} variant="primary">{t('settings.buttons.save')}</Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={handleTestTTS}
-            loading={isTesting['tts']}
-          >
-            {t('settings.buttons.test')}
-          </Button>
-          <TestResult result={testResult['tts'] ?? null} />
         </div>
       </Card>
 

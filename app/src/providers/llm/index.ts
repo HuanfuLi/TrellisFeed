@@ -1,6 +1,5 @@
 import { Capacitor, CapacitorHttp } from '@capacitor/core';
 import type { LLMConfig } from '../../types';
-import { tokenUsageReporter, type UsageMetadata } from '../../services/token-usage.service.ts';
 import { applyLocaleDirective } from './locale-directive.ts';
 import { applyUserContentBracketing } from './user-content-bracketing.ts';
 
@@ -90,38 +89,6 @@ export async function* chatStream(messages: ChatMessage[], config: LLMConfig, op
   }
 }
 
-// ─── Usage normalizers ────────────────────────────────────────────────────────
-
-function normalizeOpenAIUsage(data: Record<string, unknown>): UsageMetadata | undefined {
-  const usage = data.usage as { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } | undefined;
-  if (!usage?.prompt_tokens) return undefined;
-  return {
-    promptTokens: usage.prompt_tokens,
-    completionTokens: usage.completion_tokens ?? 0,
-    totalTokens: usage.total_tokens ?? 0,
-  };
-}
-
-function normalizeClaudeUsage(data: Record<string, unknown>): UsageMetadata | undefined {
-  const usage = data.usage as { input_tokens?: number; output_tokens?: number } | undefined;
-  if (!usage?.input_tokens) return undefined;
-  return {
-    promptTokens: usage.input_tokens,
-    completionTokens: usage.output_tokens ?? 0,
-    totalTokens: usage.input_tokens + (usage.output_tokens ?? 0),
-  };
-}
-
-function normalizeGeminiUsage(data: Record<string, unknown>): UsageMetadata | undefined {
-  const meta = data.usageMetadata as { promptTokenCount?: number; candidatesTokenCount?: number; totalTokenCount?: number } | undefined;
-  if (!meta?.promptTokenCount) return undefined;
-  return {
-    promptTokens: meta.promptTokenCount,
-    completionTokens: meta.candidatesTokenCount ?? 0,
-    totalTokens: meta.totalTokenCount ?? 0,
-  };
-}
-
 // ─── OpenAI / Local / LM Studio (OpenAI-compatible) ─────────────────────────
 
 function openAIBaseUrl(config: LLMConfig): string {
@@ -176,11 +143,7 @@ async function openAICompletion(messages: ChatMessage[], config: LLMConfig, maxT
     const err = await response.text();
     throw new Error(`${config.provider} API error ${response.status}: ${err}`);
   }
-  const data = await response.json() as { choices: { message: { content: string } }[]; usage?: Record<string, number> };
-  const usage = normalizeOpenAIUsage(data as Record<string, unknown>);
-  if (usage && options?.serviceName) {
-    tokenUsageReporter.record({ serviceName: options.serviceName, ...usage, provider: config.provider });
-  }
+  const data = await response.json() as { choices: { message: { content: string } }[] };
   return data.choices[0].message.content;
 }
 
@@ -250,10 +213,6 @@ async function claudeCompletion(messages: ChatMessage[], config: LLMConfig, maxT
     throw new Error(`Claude API error ${response.status}: ${err}`);
   }
   const data = await response.json() as Record<string, unknown>;
-  const usage = normalizeClaudeUsage(data);
-  if (usage && options?.serviceName) {
-    tokenUsageReporter.record({ serviceName: options.serviceName, ...usage, provider: config.provider });
-  }
   const text = (data.content as Array<{ text: string }>)[0].text;
   return options?.jsonMode ? '{' + text : text;
 }
@@ -332,10 +291,6 @@ async function geminiCompletion(messages: ChatMessage[], config: LLMConfig, maxT
     throw new Error(`Gemini API error ${response.status}: ${err}`);
   }
   const data = await response.json() as Record<string, unknown>;
-  const usage = normalizeGeminiUsage(data);
-  if (usage && options?.serviceName) {
-    tokenUsageReporter.record({ serviceName: options.serviceName, ...usage, provider: config.provider });
-  }
   const candidates = data.candidates as Array<{ content: { parts: Array<{ text: string }> } }> | undefined;
   return candidates?.[0]?.content?.parts?.[0]?.text ?? '';
 }

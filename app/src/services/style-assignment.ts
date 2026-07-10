@@ -6,26 +6,10 @@
 
 import type { PresentationStyle } from '../types';
 
-// 2026-04-21 re-balance (second pass): cut news 20% → 10% per operator
-// request ("news posts are way too much") and push the redistributed share
-// into text-art (now 55%). YouTube share kept at 25% total. Image still
-// held at 10% because image generation is expensive on both providers.
-//
-// Phase 38 (TECHDEBT-06, 2026-05-09): short post type removed entirely.
-// `video` absorbed short's 0.10 weight (now video: 0.20). YouTube share
-// still totals 20% but rendered exclusively as a single landscape video
-// card (D-02 — no portrait/landscape classifier). Sum stays at 1.0.
-//
-// Effective distribution when YouTube is unavailable (drained quota):
-//   video redistributed to text-art (+20%) → text-art = 75%, news = 10%,
-//   image = 10%, suggestion = 5% — prevents the "news flood" seen when YouTube
-//   was off.
 export const STYLE_WEIGHTS: Record<string, number> = {
-  image: 0.10,
-  'text-art': 0.55,
-  suggestion: 0.05,
-  news: 0.10,
-  video: 0.20,  // Phase 38: absorbed short's 0.10 (short type removed)
+  image: 0.15,
+  'text-art': 0.75,
+  suggestion: 0.10,
 };
 
 export interface StyleAssignment {
@@ -34,14 +18,12 @@ export interface StyleAssignment {
 }
 
 export interface ApiAvailability {
-  hasYoutubeKey: boolean;
-  hasTavilyKey: boolean;
   hasImageGenKey: boolean;
 }
 
 /**
  * Assigns styles to a list of concept IDs using weighted random selection.
- * Unavailable API styles are redistributed to text-art.
+ * Unavailable image style weight is redistributed to text-art.
  * Per D-18: styles are decided BEFORE generation.
  */
 export function assignStyles(
@@ -51,14 +33,6 @@ export function assignStyles(
   // Build effective weights: zero out unavailable styles, redistribute to text-art
   const weights = { ...STYLE_WEIGHTS };
 
-  if (!availability.hasYoutubeKey) {
-    weights['text-art'] += weights.video;
-    weights.video = 0;
-  }
-  if (!availability.hasTavilyKey) {
-    weights['text-art'] += weights.news;
-    weights.news = 0;
-  }
   if (!availability.hasImageGenKey) {
     weights['text-art'] += weights.image;
     weights.image = 0;
@@ -113,7 +87,7 @@ export function assignStyles(
   if (typeof import.meta !== 'undefined' && import.meta.env?.DEV) {
     const counts: Record<string, number> = {};
     for (const a of result) counts[a.style] = (counts[a.style] ?? 0) + 1;
-    const availStr = `yt=${availability.hasYoutubeKey ? 1 : 0} tv=${availability.hasTavilyKey ? 1 : 0} img=${availability.hasImageGenKey ? 1 : 0}`;
+    const availStr = `img=${availability.hasImageGenKey ? 1 : 0}`;
     console.info(`[assignStyles] n=${conceptIds.length} avail{${availStr}} →`, counts);
   }
 
@@ -121,7 +95,7 @@ export function assignStyles(
 }
 
 /**
- * Reassign failed fetches (video/news that returned no results) to text-art.
+ * Reassign failed style attempts to text-art.
  * Per D-20.
  */
 export function reassignFailures(
@@ -129,8 +103,7 @@ export function reassignFailures(
   failedConceptIds: Set<string>,
 ): StyleAssignment[] {
   return assignments.map((a) =>
-    failedConceptIds.has(a.conceptId) &&
-    (a.style === 'video' || a.style === 'news')
+    failedConceptIds.has(a.conceptId)
       ? { ...a, style: 'text-art' as PresentationStyle }
       : a,
   );

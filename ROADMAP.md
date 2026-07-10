@@ -1,40 +1,36 @@
-# Trellis Roadmap (v2.0 Path)
+# QuestionTrace Research Roadmap
 
-- [x] [Milestone 1.0: Learning Loop Foundation](.planning/milestones/v1.0-ROADMAP.md) - Shipped 2026-03-25.
-- [x] [Milestone 1.1: Engagement & Discovery Iteration](.planning/ROADMAP.md) - Shipped 2026-04-02. Phases 7–16: image-forward feeds, intelligent planner auto-suggestions, cluster-aware anchor graphs, portal navigation, and LLM token pipeline optimizations.
-- [x] [Milestone 1.3: Trellis Visuals & i18n](Documents/CHANGELOG_4_16.md) - Shipped 2026-04-16. Phases 17–26: YouTube integration, weighted feed styles, web search with citations, and the SVG-based "Trellis" knowledge tree.
+Follows [`docs/research_system_design.md`](docs/research_system_design.md) §16, consolidated into coarse phases (one GSD phase each — the workflow overhead is per-phase, so phases are deliberately big). The product-era Trellis roadmap no longer governs this fork.
 
-## Milestone 1.1+ (Continued Iteration)
+- [x] **Phase 0: Rename, scope, and prune** — done 2026-07-09.
+  - Adopted QuestionTrace; renamed repo directory to `QuestionTrace_Research`.
+  - Research README, `docs/research_system_design.md`, `docs/SCOPE.md`, rewritten `CLAUDE.md`/`AGENTS.md`.
+  - Pruned product features per design doc §15.3 (podcast, flashcards/SRS, mindmap/graph UI, planner/trellis gamification, global chat, collections, token analytics, live news/YouTube/web search). All gates green + browser smoke test. See `docs/prune_report.md`.
 
-*Phase numbering continues from Milestone 1.1's conclusion at Phase 16.*
+- [ ] **Phase 1: Rebrand + research shell hardening**
+  - In-app rebrand Trellis → QuestionTrace: display name, `index.html` title, `capacitor.config.ts` appName, iOS/Android display names, Settings/About, onboarding + starter-post copy, all 4 locale bundles. Keep native bundle identifiers unchanged (signing/data constraints — see CLAUDE.md).
+  - Storage rename: `IDB_NAME 'trellis'` → `'questiontrace'`, live `trellis_*` localStorage keys → `questiontrace_*`. **No migration** — nothing in storage worth preserving; old keys are simply orphaned. Update tests that reference old names.
+  - Condition config scaffolding (`control` / `experimental`) + interaction logging infrastructure (`UserInteractionEvent`, design doc §9.8, §14).
+  - Remaining dead-code sweep.
+  - Deliverable: stable, branded research app shell with logging and condition assignment plumbing.
 
-- [x] **Phase 17: Auto-Fetch Online Videos for Posts** — Shipped 2026-04-02.
-  - YouTube Data API v3 integration with `youtube.service.ts` for video search, caching, and background generation.
-  - Video cards interleaved into the concept feed with thumbnail overlays and channel metadata.
-  - `YouTubeEmbed` component for responsive 16:9 playback in PostDetailScreen.
-  - YouTube API key configurable in Settings.
+- [ ] **Phase 2: Content pool + feed/post UI on frozen data**
+  - Schemas: Topic, Post, Concept, Claim, SuggestedQuestion (§9).
+  - `tools/content_pipeline/`: collectors, AI preprocessing (§17.1), dedupe, quality scoring, human review workflow, exporters; frozen pool export to `data/content_pool_v1/` (§8) — one pilot topic, ~50 approved posts before scaling to 200–400.
+  - App import of the frozen pool; feed card (§7.2), post detail (§7.3) with original source embed/link, suggested questions (§7.5), post-scoped Ask (§7.6) — replacing the temporary AI-generated feed shell entirely.
+  - Deliverable: participants can browse real curated content and ask questions against it.
 
-- [x] **Phase 18: Feed Redesign, Short Videos & Text-Art Posts** — Shipped 2026-04-04.
-  - Weighted presentation mix algorithm assigning visual styles (`image`, `text-art`, `video`, `short`, `news`) to posts.
-  - Text-art cards with large creative typography, deterministic color themes, and emoji placement.
-  - YouTube Shorts integration with portrait-format cards, full-bleed thumbnails, and inline playback.
-  - Presentation style persistence in cache to prevent feed reshuffling.
+- [ ] **Phase 3: Graph-memory + recommendation engine**
+  - Global content-graph import; personal user graph-memory; question → concept/claim extraction (§17.2); `UserConceptState` updates (§10).
+  - Control ranker (§11.7) and experimental ranker (§11.3–11.4); strategies Continue / Deepen / Contrast / Bridge / Echo (§11.5); diversity reranking (§11.6); recommendation reasons (§17.4).
+  - Algorithm verification unit tests (§12.3) — incl. "control never consumes question history".
+  - Deliverable: two conditions produce different but comparable feeds, with interpretable reasons.
 
-- [x] **Phase 19: Web Search Integration for Ask and Feed** — Shipped 2026-04-05.
-  - LLM tool-use pattern: `web_search` tool in system prompt, LLM autonomously decides when to search.
-  - Globe toggle for manual web search override in Ask screen.
-  - Two-pass streaming with inline "Searching the web..." indicator and citation-augmented responses.
-  - Inline `[N]` citation tags as muted superscript with always-visible sources section.
-  - News service with daily Tavily-powered background fetch, LLM summarization, and newspaper-style feed cards.
-  - Persistent AskScreen (always mounted) preserving session state across navigation.
-  - Markdown sanitization with `rehype-sanitize` for defense-in-depth.
+- [ ] **Phase 4: Study infrastructure + pilot**
+  - Study onboarding, topic selection, condition assignment, logging export, researcher data dump, pre/post oral-test support (§13).
+  - Internal pilot (3–5 users): validate content quality, logs, recommendation reasons, oral assessment flow; fix issues.
+  - Deliverable: ready for IRB / formal study.
 
-## Milestone 2: Dynamic Learning Orchestration & Diagnostic Dialogue
+## Open questions (design doc §20)
 
-- [ ] **Phase 20: Orchestration Strategy & Diagnostic Dialogue**
-  - Define `OrchestrationStrategy` and `LearningOrchestrator` interfaces.
-  - Implement `TrajectoryObserver` aggregating data from Review, Question, and Feed services.
-  - Replace static Check-In with broader Socratic conversational UI.
-  - Refactor Planner to serve rich "Portals" as unified subject gateways.
-
-See `.planning/ROADMAP.md` for granular phase tracking and plan-level progress.
+Final study topics (pick 3), participant language/country, embed vs click-out for sources, notification cadence, whether the experimental condition personalizes suggested questions, exploration-path UI, review staffing, IRB requirements.

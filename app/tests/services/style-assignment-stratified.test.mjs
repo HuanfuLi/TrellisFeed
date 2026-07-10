@@ -5,11 +5,10 @@ import { describe, it } from 'node:test';
 const styleMod = await import('../../src/services/style-assignment.ts');
 const { assignStylesStratified, STYLE_WEIGHTS } = styleMod;
 
-const allAvailable = { hasYoutubeKey: true, hasTavilyKey: true, hasImageGenKey: true };
+const allAvailable = { hasImageGenKey: true };
 
 function counts(result) {
-  // (Phase 38 / TECHDEBT-06): the legacy short counter slot was removed — short type is gone.
-  const c = { image: 0, 'text-art': 0, suggestion: 0, news: 0, video: 0 };
+  const c = { image: 0, 'text-art': 0, suggestion: 0 };
   for (const r of result) c[r.style] = (c[r.style] ?? 0) + 1;
   return c;
 }
@@ -21,10 +20,10 @@ describe('style-assignment-stratified (GAP-3)', () => {
     assert.ok(c.image >= 0 && c.image <= 2, `image=${c.image} out of {0,1,2}`);
   });
 
-  it('N=8 text-art count is in {3, 4, 5} (round(0.55 x 8)=4 plus or minus 1)', () => {
+  it('N=8 text-art count is in {5, 6, 7} (round(0.75 x 8)=6 plus or minus 1)', () => {
     const ids = Array.from({ length: 8 }, (_, i) => `c${i}`);
     const c = counts(assignStylesStratified(ids, allAvailable));
-    assert.ok(c['text-art'] >= 3 && c['text-art'] <= 5, `text-art=${c['text-art']} out of {3,4,5}`);
+    assert.ok(c['text-art'] >= 5 && c['text-art'] <= 7, `text-art=${c['text-art']} out of {5,6,7}`);
   });
 
   it('N=8 total assignments equal N', () => {
@@ -44,40 +43,32 @@ describe('style-assignment-stratified (GAP-3)', () => {
     }
   });
 
-  it('over 50 runs of N=8, EVERY run has image in {0,1,2}, text-art in {3,4,5}', () => {
+  it('over 50 runs of N=8, EVERY run has image in {0,1,2}, text-art in {5,6,7}', () => {
     for (let run = 0; run < 50; run++) {
       const ids = Array.from({ length: 8 }, (_, i) => `c${i}`);
       const c = counts(assignStylesStratified(ids, allAvailable));
       assert.ok(c.image >= 0 && c.image <= 2, `run ${run}: image=${c.image}`);
-      assert.ok(c['text-art'] >= 3 && c['text-art'] <= 5, `run ${run}: text-art=${c['text-art']}`);
+      assert.ok(c['text-art'] >= 5 && c['text-art'] <= 7, `run ${run}: text-art=${c['text-art']}`);
     }
   });
 
   it('N=2 small-N edge: returns 2 valid assignments, no crash', () => {
     const result = assignStylesStratified(['c1', 'c2'], allAvailable);
     assert.equal(result.length, 2);
-    // (Phase 38 / TECHDEBT-06): the legacy short style was removed from this set — short type is gone.
-    const valid = new Set(['image', 'text-art', 'suggestion', 'news', 'video']);
+    const valid = new Set(['image', 'text-art', 'suggestion']);
     for (const r of result) assert.ok(valid.has(r.style));
   });
 
-  it('N=3: text-art appears at least once (floor(3 x 0.55/sum)=1)', () => {
+  it('N=3: text-art appears at least twice (floor(3 x 0.75/sum)=2)', () => {
     const ids = ['c1', 'c2', 'c3'];
     const c = counts(assignStylesStratified(ids, allAvailable));
-    assert.ok(c['text-art'] >= 1, `N=3 text-art=${c['text-art']} should be at least 1`);
+    assert.ok(c['text-art'] >= 2, `N=3 text-art=${c['text-art']} should be at least 2`);
   });
 
   it('hasImageGenKey=false: image count is 0 regardless of N', () => {
     const ids = Array.from({ length: 20 }, (_, i) => `c${i}`);
     const c = counts(assignStylesStratified(ids, { ...allAvailable, hasImageGenKey: false }));
     assert.equal(c.image, 0);
-  });
-
-  it('hasYoutubeKey=false: video count is 0', () => {
-    // (Phase 38 / TECHDEBT-06): the legacy video+short check collapsed to video-only — short type is gone.
-    const ids = Array.from({ length: 20 }, (_, i) => `c${i}`);
-    const c = counts(assignStylesStratified(ids, { ...allAvailable, hasYoutubeKey: false }));
-    assert.equal(c.video, 0);
   });
 
   it('Fisher-Yates produces different orders across runs', () => {

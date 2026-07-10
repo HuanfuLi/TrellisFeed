@@ -43,13 +43,13 @@ test('TD-02 plumbing: post-essay.service.ts generateEssayMeta accepts options.si
   assert.match(src, /generateEssayMeta\([^)]*options\??\s*:/s);
 });
 
-test('TD-02 plumbing: all 4 dispatch generators pass signal to chatStream', () => {
+test('TD-02 plumbing: surviving dispatch generators pass signal to chatStream', () => {
   const src = readFileSync(postEssayPath, 'utf8');
-  // generateStandardEssay, generateVideoEssay, generateNewsEssay, generateTextArtEssay
-  // All four should include `signal` in their chatStream options object.
+  // generateStandardEssay and generateTextArtEssay should include `signal` in
+  // their chatStream options object.
   // chatStream calls are multiline so use [\s\S] to span lines.
   const chatStreamWithSignalCount = (src.match(/chatStream\([\s\S]*?signal[\s\S]*?\);/g) || []).length;
-  assert.ok(chatStreamWithSignalCount >= 4, `expected >= 4 chatStream calls with signal, got ${chatStreamWithSignalCount}`);
+  assert.ok(chatStreamWithSignalCount >= 2, `expected >= 2 chatStream calls with signal, got ${chatStreamWithSignalCount}`);
 });
 
 test('TD-02 plumbing: generateEssayMeta passes signal to chatCompletion', () => {

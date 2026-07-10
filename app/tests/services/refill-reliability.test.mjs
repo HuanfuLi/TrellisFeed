@@ -14,7 +14,7 @@ globalThis.localStorage = {
 // TUNE-03 root-cause reproduction (Phase 55-06).
 //
 // We exercise the QUEUE PRIMITIVES directly (post-queue.service.ts) rather than
-// refillQueue's async LLM/YouTube/Tavily chain — importing concept-feed.service.ts
+// refillQueue's async LLM/image-gen chain — importing concept-feed.service.ts
 // under `node --test` crashes via the i18n import-attribute chain. The under-refill
 // bug lives in the size-check + dequeue + enqueue-cap + walker interaction, all of
 // which are pure post-queue primitives the integration test already imports cleanly.

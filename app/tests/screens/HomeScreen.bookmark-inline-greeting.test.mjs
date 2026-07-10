@@ -85,13 +85,3 @@ test('43-11: inline Bookmark button uses marginRight: "-8px" optical alignment',
     'inline Bookmark button must use marginRight: -8px so its glyph optically aligns with the 16px container padding-right',
   );
 });
-
-test('43-11: compact VineProgress bar at zIndex 190 is preserved (not accidentally deleted)', () => {
-  // The compact bar was a sibling of the deleted Bookmark; ensure the
-  // deletion did NOT take the compact bar with it.
-  assert.match(
-    src,
-    /zIndex:\s*190/,
-    'compact VineProgress bar (zIndex 190) must be preserved — only the Bookmark fixed-position block was deleted',
-  );
-});

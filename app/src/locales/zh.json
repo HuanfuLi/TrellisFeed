@@ -371,13 +371,13 @@
     },
     "menu": {
       "aiModels": "AI 模型",
-      "aiModelsDesc": "语言模型、嵌入模型、语音合成",
+      "aiModelsDesc": "语言模型和嵌入模型",
       "contentSources": "内容来源",
-      "contentSourcesDesc": "图片生成、YouTube、网页搜索",
+      "contentSourcesDesc": "图片生成",
       "features": "功能",
-      "featuresDesc": "播客、复习、规划调度",
+      "featuresDesc": "研究壳功能开关",
       "dataPrivacy": "数据与隐私",
-      "dataPrivacyDesc": "隐私设置、开发者工具、使用统计"
+      "dataPrivacyDesc": "隐私设置、开发者工具、数据管理"
     },
     "titles": {
       "aiModels": "AI 模型",
@@ -446,7 +446,7 @@
     },
     "descriptions": {
       "fastModelBlurb": "可选。使用一个单独的低延迟模型来生成帖子正文和追问回答，并关闭推理，使内容即时显示。关闭后则使用主模型。",
-      "fastModelEnabled": "让帖子正文、新闻短文和帖子追问通过该模型生成",
+      "fastModelEnabled": "让帖子正文和帖子追问通过该模型生成",
       "fastModelHint": "选择一个小型的非推理模型以获得最快的流式输出。",
       "embeddingBlurb": "用于概念之间的语义相似度计算，为连接卡片质量提供支持。与 LLM 分开 — Anthropic 没有嵌入模型。",
       "lmStudioServer": "LM Studio 服务器 URL",
@@ -479,7 +479,7 @@
       "trellisDevModeHint": "在虚拟节点上显示全部 7 种叶子状态（新芽、绿叶、黄叶、落叶中、已落、花开、结果），便于视觉调试。",
       "developerBlurb": "开发用的调试工具。破坏性操作无法撤销。",
       "usageBlurb": "每月提问限额和 LLM API Token 使用情况。",
-      "privacyBlurb": "Trellis 采用本地优先策略。所有笔记、闪卡和会话都仅存储在本设备上。任何 Trellis 服务器都不会收到你的数据。",
+      "privacyBlurb": "Trellis 采用本地优先策略。问题、会话、保存的帖子和设置都仅存储在本设备上。任何 Trellis 服务器都不会收到你的数据。",
       "aiConsentHint": "允许将问题发送到你配置的 AI 提供商",
       "generationCap": "每个概念每天最多生成数",
       "bonusCap": "所有概念探索完后的额外内容数",
@@ -609,8 +609,8 @@
       "todayReset": "今日复习/帖子状态已重置"
     },
     "confirm": {
-      "deleteApiKeys": "删除所有已存储的 API 密钥？这将禁用 AI 和 TTS 功能，直到你重新输入密钥。",
-      "clearAllData": "删除所有数据？\n\n这将移除所有问题、闪卡、会话、计划条目和播客。设置会保留。\n\n此操作无法撤销。",
+      "deleteApiKeys": "删除所有已存储的 API 密钥？这将禁用 AI 功能，直到你重新输入密钥。",
+      "clearAllData": "删除所有数据？\n\n这将移除所有问题、会话、保存信号、生成的帖子和缓存图像。设置会保留。\n\n此操作无法撤销。",
       "clearImageCache": "清除所有已缓存的帖子图像？下次查看时会重新生成。",
       "reset": "将所有设置恢复为默认值？"
     },
@@ -867,9 +867,9 @@
     },
     "welcome": {
       "title": "欢迎使用 Trellis",
-      "body": "你的个人 AI 学习伙伴。随时提问，通过间隔重复复习，并聆听每日知识播客。",
-      "featureAskTitle": "随问随答",
-      "featureAskDesc": "获得结构化知识的 AI 答案",
+      "body": "一个专注的研究原型，用于阅读帖子、围绕上下文追问，并在本地保存学习信号。",
+      "featureAskTitle": "基于上下文提问",
+      "featureAskDesc": "从帖子中提出追问，并在本地保留问题轨迹",
       "featureReviewTitle": "间隔重复",
       "featureReviewDesc": "在最佳间隔复习卡片，最大化记忆效果",
       "featurePodcastTitle": "每日播客",
@@ -883,7 +883,7 @@
     "consent": {
       "title": "数据与隐私",
       "intro": "Trellis 是一款隐私优先的应用。以下是你的数据的具体流向：",
-      "rowLocal": "所有笔记、闪卡和计划数据仅存储在你的设备上。",
+      "rowLocal": "问题、会话、保存的帖子和设置仅存储在你的设备上。",
       "rowCloud": "当你提问时，只会使用你自己的 API 密钥直接发送到你配置的 AI 提供商（例如 OpenAI、Anthropic）。",
       "rowNoServer": "Trellis 从不将你的数据传送到任何 Trellis 服务器。Trellis 没有后端。",
       "consent": "我理解并同意，我的问题将使用我自己的 API 密钥发送到我配置的 AI 提供商。",

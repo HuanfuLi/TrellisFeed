@@ -2,8 +2,6 @@ import type {
   AppEvent,
   CandidateContextPack,
   ClassificationResult,
-  DailyReviewMap,
-  FlashCard,
   HierarchySummary,
   IngestionDecision,
   KnowledgeNode,
@@ -15,15 +13,6 @@ import type {
 } from '../types/index.ts';
 import { cosine, embedText } from '../providers/embedding/index.ts';
 import { chatCompletion } from '../providers/llm/index.ts';
-// Phase 48-01 D-01/D-20 — stale-write protection via reorg-prompt
-// constraint injection. The journal records manual graph corrections
-// (rename/move/merge/detach/prune/delete); _doReorganize projects them
-// into the LLM system prompt so a full-tree LLM redo cannot silently
-// undo learner edits. See CLAUDE.md §"Event bus — unified GRAPH_UPDATED"
-// for the rule that journal entries surface via the existing event
-// type, not a new one.
-import { graphEditJournal } from './graph-edit-journal.service.ts';
-import { phraseJournalEntry } from './graph-edit-journal-phrasing.ts';
 
 const ROOT_FALLBACK = 'Knowledge';
 const BRANCH_FALLBACK = 'General concepts';
@@ -346,84 +335,6 @@ export function buildCanonicalQuestionPatch(
     sourcePrompts,
     sourceQuestionIds,
     nodeSummary: question.nodeSummary || question.summary,
-  };
-}
-
-export function buildProjectedFlashcard(node: KnowledgeNode): FlashCard {
-  return {
-    id: `node-${node.id}`,
-    sessionId: `node:${node.id}`,
-    front: node.title || node.content,
-    back: (node.nodeSummary || node.answer || node.summary).slice(0, 240),
-    createdAt: node.createdAt,
-    pinned: node.pinned,
-    reviewSchedule: node.reviewSchedule,
-    nodeId: node.id,
-    nodeTitle: node.title,
-    rootLabel: node.rootLabel,
-    branchLabel: node.branchLabel,
-    clusterLabel: node.clusterLabel,
-    placementReason: node.placementReason,
-    sourceType: 'canonical',
-  };
-}
-
-export function getProjectedFlashcards(questions: Question[]): FlashCard[] {
-  return projectQuestionsToKnowledgeNodes(questions)
-    .map(buildProjectedFlashcard)
-    .sort((a, b) => b.createdAt - a.createdAt);
-}
-
-export function getDueProjectedFlashcards(questions: Question[]): FlashCard[] {
-  return getProjectedFlashcards(questions).filter((card) => card.pinned || card.reviewSchedule.nextReviewDate <= new Date().toISOString().slice(0, 10));
-}
-
-export function buildDailyReviewMap(
-  cards: FlashCard[],
-  questions: Question[],
-  revealedNodeIds: string[],
-  activeNodeId?: string,
-): DailyReviewMap {
-  const revealed = new Set(revealedNodeIds);
-  const byId = new Map(projectQuestionsToKnowledgeNodes(questions).map((node) => [node.id, node]));
-  const roots = new Map<string, Map<string, Map<string, Array<{ nodeId: string; label: string; state: 'hidden' | 'revealed' | 'active' }>>>>();
-  const seenNodeIds = new Set<string>();
-
-  for (const card of cards) {
-    const nodeId = card.nodeId;
-    if (!nodeId) continue;
-    if (seenNodeIds.has(nodeId)) continue;
-    seenNodeIds.add(nodeId);
-    const node = byId.get(nodeId);
-    if (!node) continue;
-    const state = activeNodeId === nodeId ? 'active' : revealed.has(nodeId) ? 'revealed' : 'hidden';
-    const rootMap = roots.get(node.rootLabel) ?? new Map();
-    roots.set(node.rootLabel, rootMap);
-    const branchMap = rootMap.get(node.branchLabel) ?? new Map();
-    rootMap.set(node.branchLabel, branchMap);
-    const clusterLeaves = branchMap.get(node.clusterLabel) ?? [];
-    branchMap.set(node.clusterLabel, clusterLeaves);
-    clusterLeaves.push({ nodeId, label: node.title, state });
-  }
-
-  const uniqueNodeCount = seenNodeIds.size;
-
-  return {
-    roots: Array.from(roots.entries()).map(([rootLabel, branches]) => ({
-      id: normalizeText(rootLabel),
-      label: rootLabel,
-      branches: Array.from(branches.entries()).map(([branchLabel, clusters]) => ({
-        id: normalizeText(`${rootLabel}-${branchLabel}`),
-        label: branchLabel,
-        clusters: Array.from(clusters.entries()).map(([clusterLabel, leaves]) => ({
-          id: normalizeText(`${rootLabel}-${branchLabel}-${clusterLabel}`),
-          label: clusterLabel,
-          leaves,
-        })),
-      })),
-    })),
-    totalDue: uniqueNodeCount,
-    revealedCount: revealed.size,
   };
 }
 
@@ -1651,20 +1562,7 @@ async function _doReorganize(
     k: q.keywords.slice(0, 3),
   }));
 
-  // Phase 48-01 D-01/D-20 — stale-write protection. Read the journal of
-  // manual graph corrections and project each entry through the canonical
-  // phrasing helper. The constraints block sits AFTER the existing
-  // structure rules section and BEFORE the closing JSON-schema directive
-  // (R4 line 430 injection position) so the prefix up through the rules
-  // stays byte-stable across consecutive reorgs — preserving provider
-  // KV-cache reuse (Phase 35 byte-stability discipline applied to this
-  // surface). Empty journal still emits the literal header + a "(none)"
-  // line so the prompt shape is byte-identical empty→empty.
-  const journalEntries = graphEditJournal.list();
-  const constraintsBlock = journalEntries.length === 0
-    ? 'Manual corrections to preserve:\n(none)'
-    : 'Manual corrections to preserve (most recent learner edits — do not undo these in your reorganization):\n'
-      + journalEntries.map((entry, i) => `${i + 1}. ${phraseJournalEntry(entry)}`).join('\n');
+  const constraintsBlock = 'Manual corrections to preserve:\n(none)';
 
   const systemPrompt = [
     'You are a knowledge organization assistant. Given a list of Q&A items, organize them into a coherent academic knowledge hierarchy.',

@@ -111,7 +111,7 @@ describe('storage-migration (Phase 55 D-11/D-12/D-13)', () => {
   it('heavy-store services do NOT write their heavy store to localStorage (no dual-write)', () => {
     const heavyServices = [
       'question', 'post-queue', 'post-history', 'session',
-      'flashcard', 'concept-feed', 'collection', 'engagement', 'podcast',
+      'concept-feed', 'engagement',
     ];
     // Allowlisted small-pref localStorage writes that are intentionally retained.
     const ALLOWED = /localStorage\.setItem\(\s*ACTIVE_ID_KEY/;

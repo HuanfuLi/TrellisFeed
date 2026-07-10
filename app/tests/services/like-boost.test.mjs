@@ -1,7 +1,7 @@
 // Wave 0 scaffold (55-01); turned green by 55-04.
 //
 // like-boost (Phase 55 D-14) — a liked concept gets 4->8 derived-list multiplicity
-// using the SAME BASE_ENTRIES_PER_CONCEPT * 2 lever as importance, without inventing
+// using BASE_ENTRIES_PER_CONCEPT * 2, without inventing
 // a new list or touching the append-only derived list inside buildConceptBatch
 // (CLAUDE.md 3-list pipeline invariant). Source-reading asserts; RED until 55-04.
 
@@ -24,16 +24,15 @@ const batchEnd = batchIdx === -1 ? -1 : feedSource.indexOf('\n}', batchIdx);
 const batchBlock = batchIdx === -1 ? '' : feedSource.slice(batchIdx, batchEnd === -1 ? batchIdx + 1200 : batchEnd + 2);
 
 describe('like-boost (Phase 55 D-14)', () => {
-  // Source-reading: like-boost reuses the isImportant||isLiked boost flag.
-  it('buildConceptBatch uses isBoosted = isImportant || isLiked, not a new list', () => {
+  it('buildConceptBatch uses isLiked, not a new list', () => {
     assert.match(
       feedSource,
-      /isBoosted\s*=\s*isImportant\s*\|\|\s*isLiked/,
-      'like-boost must reuse the isImportant||isLiked pattern (D-14 no-new-list invariant)',
+      /const\s+isLiked\s*=\s*likedConceptIds\.has\(anchor\.id\)/,
+      'like-boost must derive a local isLiked flag from likedConceptIds',
     );
   });
 
-  it('buildConceptBatch uses BASE_ENTRIES_PER_CONCEPT * 2 for boosted (like or important)', () => {
+  it('buildConceptBatch uses BASE_ENTRIES_PER_CONCEPT * 2 for liked anchors', () => {
     assert.ok(batchIdx !== -1, 'buildConceptBatch must exist in concept-feed.service.ts');
     assert.match(
       batchBlock,
@@ -66,10 +65,7 @@ describe('like-boost (Phase 55 D-14)', () => {
     );
   });
 
-  // Starvation invariant (T-55-04a): boost is OR not additive — worst-case multiplicity
-  // stays BASE*2, identical to the pre-existing all-important case, so due-for-review
-  // concepts are never starved by liked concepts.
-  it('like-boost is OR (isImportant || isLiked), not additive — no new starvation vector', () => {
+  it('like-boost is not additive — no new starvation vector', () => {
     assert.doesNotMatch(
       batchBlock,
       /BASE_ENTRIES_PER_CONCEPT\s*\*\s*[34]/,
@@ -78,16 +74,12 @@ describe('like-boost (Phase 55 D-14)', () => {
   });
 });
 
-// ── Phase 55 D-15: STYLE_WEIGHTS + trajectoryAnalyzer verify-and-keep ──────────
+// ── STYLE_WEIGHTS verify-and-keep ───────────────────────────────────────────
 // These are lightweight verify-and-keep checks. The exhaustive STYLE_WEIGHTS sum
 // and stratified-allocation behavior live in style-assignment.test.mjs +
 // style-assignment-stratified.test.mjs (referenced, NOT duplicated here).
 const styleSource = fs.readFileSync(
   new URL('../../src/services/style-assignment.ts', import.meta.url),
-  'utf-8',
-);
-const trajectorySource = fs.readFileSync(
-  new URL('../../src/services/trajectoryAnalyzer.service.ts', import.meta.url),
   'utf-8',
 );
 
@@ -99,7 +91,7 @@ describe('weights verify-and-keep (Phase 55 D-15)', () => {
       styleSource.indexOf('};', styleSource.indexOf('export const STYLE_WEIGHTS')),
     );
     const nums = [...block.matchAll(/:\s*(0?\.\d+)/g)].map((m) => parseFloat(m[1]));
-    assert.ok(nums.length >= 4, 'STYLE_WEIGHTS must declare its style weights');
+    assert.ok(nums.length >= 3, 'STYLE_WEIGHTS must declare its style weights');
     const sum = nums.reduce((a, b) => a + b, 0);
     assert.ok(Math.abs(sum - 1.0) < 0.001, `STYLE_WEIGHTS sum to ${sum}, expected 1.0`);
   });
@@ -107,7 +99,7 @@ describe('weights verify-and-keep (Phase 55 D-15)', () => {
   it('STYLE_WEIGHTS carries a rationale comment (verify-and-keep)', () => {
     const idx = styleSource.indexOf('export const STYLE_WEIGHTS');
     const preamble = styleSource.slice(Math.max(0, idx - 900), idx);
-    assert.match(preamble, /re-balance|operator|Phase 38|rationale|distribution/i,
+    assert.match(preamble, /Weighted random style assignment|distribution|styles are decided/i,
       'STYLE_WEIGHTS must keep its rationale comment per D-15');
   });
 
@@ -118,13 +110,4 @@ describe('weights verify-and-keep (Phase 55 D-15)', () => {
       'assignStyles must log the realized counts for drift detection');
   });
 
-  it('trajectoryAnalyzer magic constants carry rationale comments (verify-and-keep)', () => {
-    assert.match(trajectorySource, /Rationale \(Phase 55 D-15 verify-and-keep\)/,
-      'trajectoryAnalyzer weights/windows must keep a rationale comment per D-15');
-    // 7-day window + weak-area ease band are the tunable constants — both kept.
-    assert.match(trajectorySource, /7 \* 24 \* 60 \* 60 \* 1000/,
-      '7-day signal window kept (no drift)');
-    assert.match(trajectorySource, /easeFactor < 2\.0/,
-      'weak-area ease threshold kept (no drift)');
-  });
 });

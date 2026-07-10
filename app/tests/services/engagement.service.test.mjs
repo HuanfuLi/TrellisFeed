@@ -156,41 +156,9 @@ describe('engagementService — Phase 39', () => {
     assert.deepEqual(engagementService.getSavedPostIds(), ['p1']);
     assert.deepEqual(engagementService.getLikedPostIds(), ['p2']);
     assert.deepEqual(engagementService.getDismissedAnchorIds(), ['a1']);
-    assert.deepEqual(engagementService.getSavedPodcastIds(), []);
   });
 
-  it("savePodcast / removeSavedPodcast / isPodcastSaved round-trip with kind 'save-podcast'/'unsave-podcast'", () => {
-    engagementService.savePodcast('pod1');
-    assert.equal(engagementService.isPodcastSaved('pod1'), true);
-    assert.deepEqual(engagementService.getSavedPodcastIds(), ['pod1']);
-    assert.equal(engagementEvents.at(-1)?.payload.kind, 'save-podcast');
-    assert.equal(engagementEvents.at(-1)?.payload.id, 'pod1');
-
-    // Idempotent — re-saving does not re-emit.
-    const beforeLen = engagementEvents.length;
-    engagementService.savePodcast('pod1');
-    assert.equal(engagementEvents.length, beforeLen, 're-save must not re-emit');
-
-    engagementService.removeSavedPodcast('pod1');
-    assert.equal(engagementService.isPodcastSaved('pod1'), false);
-    assert.deepEqual(engagementService.getSavedPodcastIds(), []);
-    assert.equal(engagementEvents.at(-1)?.payload.kind, 'unsave-podcast');
-  });
-
-  it('removeSavedPodcast on never-saved podcast is a no-op (no event emitted)', () => {
-    const beforeLen = engagementEvents.length;
-    engagementService.removeSavedPodcast('pod-nope');
-    assert.equal(engagementEvents.length, beforeLen);
-  });
-
-  it('savedPodcasts is independent of saved posts (separate arrays)', () => {
-    engagementService.savePost('p1');
-    engagementService.savePodcast('pod1');
-    assert.deepEqual(engagementService.getSavedPostIds(), ['p1']);
-    assert.deepEqual(engagementService.getSavedPodcastIds(), ['pod1']);
-  });
-
-  it('reset() clears all three collections AND emits NOTHING (D-08)', () => {
+  it('reset() clears saved, liked, and dismissed state AND emits NOTHING (D-08)', () => {
     engagementService.savePost('p1');
     engagementService.likePost('p2');
     engagementService.dismissAnchor('a1');

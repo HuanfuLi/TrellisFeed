@@ -371,13 +371,13 @@
     },
     "menu": {
       "aiModels": "AI Models",
-      "aiModelsDesc": "Language model, embedding, text-to-speech",
+      "aiModelsDesc": "Language model and embeddings",
       "contentSources": "Content Sources",
-      "contentSourcesDesc": "Image generation, YouTube, web search",
+      "contentSourcesDesc": "Image generation",
       "features": "Features",
-      "featuresDesc": "Podcast, review, planner scheduling",
+      "featuresDesc": "Research shell feature flags",
       "dataPrivacy": "Data & Privacy",
-      "dataPrivacyDesc": "Privacy, developer tools, usage analytics"
+      "dataPrivacyDesc": "Privacy, developer tools, data management"
     },
     "titles": {
       "aiModels": "AI Models",
@@ -446,7 +446,7 @@
     },
     "descriptions": {
       "fastModelBlurb": "Optional. Streams post bodies and follow-up answers from a separate low-latency model with reasoning turned off, so content appears instantly. Leave off to use your main model.",
-      "fastModelEnabled": "Route post bodies, news essays, and post follow-ups through this model",
+      "fastModelEnabled": "Route post bodies and post follow-ups through this model",
       "fastModelHint": "Pick a small, non-reasoning model for the fastest streaming.",
       "embeddingBlurb": "Used for semantic similarity between concepts. Powers connection card quality. Separate from the LLM — Anthropic has no embedding model.",
       "lmStudioServer": "LM Studio server URL",
@@ -479,7 +479,7 @@
       "trellisDevModeHint": "Shows all 7 leaf states (bud, green, yellow, falling, fallen, blossom, fruit) on dummy nodes for visual debugging.",
       "developerBlurb": "Debug tools for development. Destructive actions cannot be undone.",
       "usageBlurb": "Monthly question limit and LLM API token usage.",
-      "privacyBlurb": "Trellis is local-first. All notes, flashcards, and sessions are stored only on this device. No Trellis server ever receives your data.",
+      "privacyBlurb": "Trellis is local-first. Questions, sessions, saved posts, and settings are stored only on this device. No Trellis server ever receives your data.",
       "aiConsentHint": "Allow questions to be sent to your configured AI provider",
       "generationCap": "Max posts per concept per day",
       "bonusCap": "Extra posts after all concepts explored",
@@ -609,8 +609,8 @@
       "todayReset": "Today's review/post status reset"
     },
     "confirm": {
-      "deleteApiKeys": "Delete all stored API keys? This will disable AI and TTS features until you re-enter your keys.",
-      "clearAllData": "Delete ALL data?\n\nThis removes every question, flashcard, session, planner entry, and podcast. Settings are kept.\n\nThis cannot be undone.",
+      "deleteApiKeys": "Delete all stored API keys? This will disable AI features until you re-enter your keys.",
+      "clearAllData": "Delete ALL data?\n\nThis removes every question, session, saved signal, generated post, and cached image. Settings are kept.\n\nThis cannot be undone.",
       "clearImageCache": "Clear all cached post images? They will be regenerated on next view.",
       "reset": "Reset all settings to defaults?"
     },
@@ -867,9 +867,9 @@
     },
     "welcome": {
       "title": "Welcome to Trellis",
-      "body": "Your personal AI-powered learning companion. Ask anything, review with spaced repetition, and listen to daily podcasts of your knowledge.",
-      "featureAskTitle": "Ask Anything",
-      "featureAskDesc": "Get AI-powered answers stored as structured knowledge",
+      "body": "A focused research prototype for reading posts, asking contextual follow-ups, and saving study signals locally.",
+      "featureAskTitle": "Ask In Context",
+      "featureAskDesc": "Ask follow-up questions from a post and keep the resulting trace local",
       "featureReviewTitle": "Spaced Repetition",
       "featureReviewDesc": "Review cards at optimal intervals to maximize retention",
       "featurePodcastTitle": "Daily Podcasts",
@@ -883,7 +883,7 @@
     "consent": {
       "title": "Data & Privacy",
       "intro": "Trellis is a privacy-first app. Here's exactly what happens with your data:",
-      "rowLocal": "All notes, flashcards, and planner data are stored locally on your device only.",
+      "rowLocal": "Questions, sessions, saved posts, and settings are stored locally on your device only.",
       "rowCloud": "When you ask a question, it is sent directly to your configured AI provider (e.g., OpenAI, Anthropic) using only your own API key.",
       "rowNoServer": "Trellis never transmits your data to any Trellis server. There is no Trellis backend.",
       "consent": "I understand and agree that my questions will be sent to my configured AI provider using my own API key.",

@@ -1,15 +1,10 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Bookmark, BookOpen, CheckSquare, Headphones, Sparkles, AlertCircle } from 'lucide-react';
-import { Card } from '../components/ui/Card';
-import { Badge } from '../components/ui/Badge';
+import { Bookmark, Sparkles, AlertCircle } from 'lucide-react';
 import { type InfoFlowItem } from '../components/InfoFlow';
 import { MasonryFeed } from '../components/MasonryFeed';
 import { LongPressMenu } from '../components/LongPressMenu';
-import { CollectionPickerSheet } from '../components/CollectionPickerSheet';
-import { VineProgress } from '../components/VineProgress';
-import { Confetti } from '../components/Confetti';
 import { ScrollToTopFAB } from '../components/ScrollToTopFAB';
 import { PullUpHint, PULL_THRESHOLD } from '../components/PullUpHint';
 import { infiniteScrollService } from '../services/infiniteScroll.service';
@@ -17,19 +12,11 @@ import { postQueueService } from '../services/post-queue.service';
 import { postHistoryService } from '../services/post-history.service';
 import type { DailyPost, Question } from '../types';
 import { useQuestions } from '../state/useQuestions';
-import { useReview } from '../state/useReview';
-import { usePodcast } from '../state/usePodcast';
-import { plannerService } from '../services/planner.service';
-import { plannerAutoGenService } from '../services/plannerAutoGen.service';
 import { settingsService } from '../services/settings.service';
 import { conceptFeedService } from '../services/concept-feed.service';
-import { dailyReadService, getConceptQuota } from '../services/daily-read.service';
 import { engagementService } from '../services/engagement.service';
-import { trellisCreditsService } from '../services/trellis-credits.service';
 import { eventBus } from '../lib/event-bus';
-import { today, getGreeting } from '../lib/date';
-import { toast } from '../lib/toast';
-import { findPostForConcept } from '../lib/concept-target';
+import { getGreeting } from '../lib/date';
 
 /** Vertical travel (px) that resolves a bottom-edge touch into a pull-up vs. a scroll-back-up. */
 const DIRECTION_SLOP = 4;
@@ -41,8 +28,6 @@ export function HomeScreen() {
   const location = useLocation();
   const { t } = useTranslation();
   const { questions, isLoading: questionsLoading } = useQuestions();
-  const { reviewCount } = useReview();
-  const { getPodcastForDate } = usePodcast();
   // Phase 43 gap-closure 43-15 — warm-start tier metadata captured at
   // useState construction time. Read by the mount-once useEffect below to
   // (a) splice the seeded ids out of postQueueService._state.posts so
@@ -110,17 +95,6 @@ export function HomeScreen() {
   const [menuAnchorId, setMenuAnchorId] = useState<string | null>(null);
   const [engagementVersion, setEngagementVersion] = useState(0);
 
-  // Phase 50 D-04 / 50-09 — CollectionPickerSheet host state. The Save row in
-  // LongPressMenu now opens the picker (via onOpenCollectionPicker) instead
-  // of toggling engagement directly. Single-tap-save is preserved because the
-  // picker pre-checks the implicit Saved row and tapping Done commits it.
-  // Order matters per RESEARCH §Pitfall 4 — onOpenCollectionPicker(postId)
-  // MUST fire BEFORE onClose() so React 19 batches both state updates in one
-  // render cycle and the picker sheet mounts as the LongPressMenu unmounts
-  // (no blank frame between the two sheets).
-  const [pickerOpen, setPickerOpen] = useState(false);
-  const [pickerPostId, setPickerPostId] = useState<string | null>(null);
-
   const handleLongPress = useCallback((postId: string, anchorId: string) => {
     setMenuPostId(postId);
     setMenuAnchorId(anchorId);
@@ -185,17 +159,10 @@ export function HomeScreen() {
   const questionsRef = useRef<Question[]>(questions);
   questionsRef.current = questions;
 
-  const todayDate = today();
-  const todayPodcast = getPodcastForDate(todayDate);
-
   useEffect(() => {
     // Don't fetch posts until questions have finished loading — running with
     // an empty-but-loading questions array would wipe the cache and flash the feed.
     if (questionsLoading) return;
-
-    const refreshPlannerSummary = () => {
-      setSuggestedMoveCount(plannerAutoGenService.getMoves().length + plannerService.getSuggestedChunks().length);
-    };
 
     const refreshFeed = () => {
       let cancelled = false;
@@ -239,16 +206,6 @@ export function HomeScreen() {
         setGenerationError(true);
       }
     });
-    refreshPlannerSummary();
-
-    const unsubPlanner = eventBus.subscribe('PLANNER_UPDATED', (event) => {
-      refreshPlannerSummary();
-      if (event.payload.reason !== 'chunk') {
-        conceptFeedService.clearCache();
-        refreshFeed();
-      }
-    });
-
     const unsubPostDeleted = eventBus.subscribe('POST_DELETED', (event) => {
       setDailyPosts((prev) => prev.filter((p) => p.id !== event.payload.id));
     });
@@ -282,7 +239,6 @@ export function HomeScreen() {
 
     return () => {
       cancelled = true;
-      unsubPlanner();
       unsubPostDeleted();
       unsubRefill();
     };
@@ -394,8 +350,7 @@ export function HomeScreen() {
           return [...prev, ...fresh];
         });
       } else {
-        // Phase 42 D-11: Toast removed; vine-bloom celebration card (plan 42-04) handles the
-        // "no more posts" state via allExplored prop passed to MasonryFeed.
+        // No more queued posts. The empty/loading states above will handle the UI.
       }
     } finally {
       isLoadingMoreRef.current = false;
@@ -632,101 +587,6 @@ export function HomeScreen() {
     });
   };
 
-  const [suggestedMoveCount, setSuggestedMoveCount] = useState(0);
-
-  // --- Concept exploration progress (Phase 31, D-12: SM-2 due concepts) ---
-  const questionsById = useMemo(() => new Map(questions.map(q => [q.id, q])), [questions]);
-  const quotaAnchorIds = useMemo(() => getConceptQuota([], questionsById), [questions, questionsById]);
-  const conceptQuota = quotaAnchorIds.size;
-
-  const [exploredAnchors, setExploredAnchors] = useState<string[]>(() => dailyReadService.getExploredAnchors());
-  const exploredCount = useMemo(() => exploredAnchors.filter(id => quotaAnchorIds.has(id)).length, [exploredAnchors, quotaAnchorIds]);
-  const isComplete = conceptQuota > 0 && exploredCount >= conceptQuota;
-
-  // Phase 42 MASONRY-02: Compute allExplored locally (RESEARCH.md Pitfall 2 — NOT a service property).
-  // VineBloomCard renders only when allExplored && layout.nodes.length > 0; the layout.nodes>0 gate
-  // lives inside VineBloomCard via useTrellisData (per plan 42-04 design).
-  const allExplored = useMemo(() => {
-    const anchors = questions.filter((q) => q.isAnchorNode);
-    return anchors.length > 0 && anchors.every((a) => exploredAnchors.includes(a.id));
-  }, [questions, exploredAnchors]);
-
-  // Build concepts list for VineProgress checklist
-  const conceptList = useMemo(() => {
-    const exploredSet = new Set(exploredAnchors);
-    const seen = new Set<string>();
-    return Array.from(quotaAnchorIds)
-      .map(anchorId => {
-        const q = questionsById.get(anchorId);
-        let name = q?.title?.trim() || q?.content?.slice(0, 50)?.trim() || '';
-        if (!name) {
-          const child = questions.find(cq => cq.parentId === anchorId);
-          name = child?.title?.trim() || child?.content?.slice(0, 50)?.trim() || '';
-        }
-        if (!name) name = anchorId.replace(/^anchor-/, '').slice(0, 20);
-        if (seen.has(name)) return null;
-        seen.add(name);
-        return { id: anchorId, name, explored: exploredSet.has(anchorId) };
-      })
-      .filter((c): c is NonNullable<typeof c> => c !== null);
-  }, [quotaAnchorIds, exploredAnchors, questionsById, questions]);
-
-  // Scroll to the first rendered post for a concept (D-04). VineProgress emits
-  // anchor IDs, but older cached posts can carry Q&A child IDs or only a source
-  // title, so resolve through the post model before looking up the DOM tile.
-  const handleConceptTap = useCallback((conceptId: string) => {
-    const scrollContainer = containerRef.current;
-    if (!scrollContainer) return;
-
-    requestAnimationFrame(() => {
-      const targetPost = findPostForConcept(dailyPosts, conceptId, questionsById);
-      const postElement = targetPost
-        ? Array.from(scrollContainer.querySelectorAll<HTMLElement>('[data-feed-id]'))
-            .find((el) => el.dataset.feedId === targetPost.id) ?? null
-        : Array.from(scrollContainer.querySelectorAll<HTMLElement>('[data-concept-id]'))
-            .find((el) => el.dataset.conceptId === conceptId) ?? null;
-      if (!postElement) return;
-
-      const containerRect = scrollContainer.getBoundingClientRect();
-      const tileRect = postElement.getBoundingClientRect();
-      const offsetFromContainerTop = tileRect.top - containerRect.top + scrollContainer.scrollTop;
-      const targetScrollTop = Math.max(
-        0,
-        offsetFromContainerTop - containerRect.height / 2 + tileRect.height / 2,
-      );
-
-      scrollContainer.scrollTo({ top: targetScrollTop, behavior: 'smooth' });
-    });
-  }, [dailyPosts, questionsById]);
-
-  const [showConfetti, setShowConfetti] = useState(false);
-  const creditAwardedRef = useRef(dailyReadService.isCreditAwarded());
-
-  // Re-sync daily-read state from service when navigating back to /home.
-  // HomeScreen is always-mounted in SwipeTabContainer (see CLAUDE.md
-  // "Header positioning"), so navigate('/home') does NOT remount this
-  // component — useState/useRef initializers run once on app boot and never
-  // again. Without this resync, dailyReadService.reset() (called from
-  // SettingsDataScreen's Force-New-Day handler) clears persistence but the
-  // React state retains yesterday's exploredAnchors and creditAwardedRef
-  // keeps yesterday's "true". Result: vine chip on /home still shows
-  // yesterday's count, celebration gate at line ~516 is permanently closed.
-  // Phase 36-14 — closes round-4 sub-issue (a).
-  useEffect(() => {
-    if (location.pathname === '/home') {
-      setExploredAnchors(dailyReadService.getExploredAnchors());
-      creditAwardedRef.current = dailyReadService.isCreditAwarded();
-    }
-  }, [location.pathname]);
-
-  // Subscribe to CONCEPT_EXPLORED events from PostDetailScreen
-  useEffect(() => {
-    const unsub = eventBus.subscribe('CONCEPT_EXPLORED', () => {
-      setExploredAnchors(dailyReadService.getExploredAnchors());
-    });
-    return unsub;
-  }, []);
-
   // Phase 43-06 Effect A — LP-05 fast path: when engagementService.dismissAnchor
   // fires from ANYWHERE (LongPressMenu on /home, future surfaces), remove ALL
   // same-anchor tiles from dailyPosts immediately so the user sees the
@@ -770,79 +630,8 @@ export function HomeScreen() {
     return unsub;
   }, []);
 
-  // Track when the inline card scrolls behind the Header
-  const [cardHidden, setCardHidden] = useState(false);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container || conceptQuota === 0) return;
-
-    let ticking = false;
-    const onScroll = () => {
-      if (ticking) return;
-      ticking = true;
-      requestAnimationFrame(() => {
-        if (container.scrollTop === 0) {
-          setCardHidden(false);
-        } else {
-          const card = container.querySelector('[data-concept-progress-card]');
-          if (card) {
-            const rect = card.getBoundingClientRect();
-            setCardHidden(rect.bottom <= 0);
-          }
-        }
-        ticking = false;
-      });
-    };
-
-    container.addEventListener('scroll', onScroll, { passive: true });
-    return () => container.removeEventListener('scroll', onScroll);
-  }, [conceptQuota]);
-
-  // Celebration: gold bar + confetti + toast + credit on completion
-  useEffect(() => {
-    if (isComplete && conceptQuota > 0 && !creditAwardedRef.current) {
-      creditAwardedRef.current = true;
-      dailyReadService.markCreditAwarded();
-      trellisCreditsService.add(1);
-      setShowConfetti(true);
-      const timer = setTimeout(() => setShowConfetti(false), 3500);
-      toast(t('home.feed.creditToast'), 'success');
-      return () => clearTimeout(timer);
-    }
-  }, [isComplete, conceptQuota, t]);
-
-  const showCompactBar = cardHidden && conceptQuota > 0;
-
   return (
     <>
-      <Confetti active={showConfetti} />
-      {/* Compact progress bar — slides in as header when inline card scrolls away */}
-      <div
-        aria-hidden={!showCompactBar}
-        style={{
-          position: 'fixed',
-          top: 'var(--safe-area-top)',
-          left: 0,
-          right: 0,
-          zIndex: 190,
-          backgroundColor: isComplete ? 'color-mix(in srgb, #E8A838 8%, var(--surface))' : 'var(--surface)',
-          boxShadow: showCompactBar ? 'var(--shadow-1)' : 'none',
-          opacity: showCompactBar ? 1 : 0,
-          transform: showCompactBar ? 'translateY(0)' : 'translateY(-100%)',
-          transition: 'opacity 300ms ease, transform 300ms ease, box-shadow 300ms ease',
-          pointerEvents: showCompactBar ? 'auto' : 'none',
-          visibility: showCompactBar ? 'visible' : 'hidden',
-          transitionProperty: 'opacity, transform, box-shadow, visibility',
-          transitionDelay: showCompactBar ? '0ms' : '0ms, 0ms, 0ms, 300ms',
-        }}
-      >
-        <VineProgress
-          mode="compact"
-          concepts={conceptList}
-          onConceptTap={handleConceptTap}
-        />
-      </div>
       <div
         ref={containerRef}
         data-home-scroll
@@ -863,11 +652,7 @@ export function HomeScreen() {
         transition: pullDistance === 0 ? 'transform 0.3s ease' : 'none',
       }}>
 
-        {/* Inline greeting row — scrolls away naturally. Bookmark
-            relocated here from a fixed-position viewport-anchored button
-            per 43-11 gap closure (UAT Test 5). The icon now participates
-            in normal scroll flow and disappears when scrolled past, so it
-            no longer overlaps the compact VineProgress bar slide-in. */}
+        {/* Inline greeting row — scrolls away naturally. */}
         <div
           style={{
             display: 'flex',
@@ -901,110 +686,8 @@ export function HomeScreen() {
           </button>
         </div>
 
-        {/* Bento Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-
-            {/* Flashcard Card */}
-          <button
-            onClick={() => navigate('/review')}
-            className="active-squish"
-            style={{ textAlign: 'left', background: 'none', padding: 0 }}
-          >
-            <Card
-              style={{
-                backgroundColor: 'var(--bento-review-bg)',
-                cursor: 'pointer',
-                transition: 'transform 0.2s',
-                height: '100%',
-              }}
-              onPointerEnter={(e) => (e.currentTarget.style.transform = 'scale(1.02)')}
-              onPointerLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-            >
-              <BookOpen size={28} color="var(--bento-card-text)" style={{ marginBottom: '12px' }} />
-              <h4 style={{ marginBottom: '8px', color: 'var(--bento-card-text)' }}>{t('home.bento.flashcardTitle')}</h4>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                <p style={{ fontSize: '1.875rem', fontWeight: 600, color: 'var(--bento-card-text)' }}>{reviewCount}</p>
-                <p style={{ fontSize: '0.875rem', color: 'var(--bento-card-text-muted)' }}>{t('home.bento.flashcardDue')}</p>
-              </div>
-            </Card>
-          </button>
-
-          {/* Planner Card */}
-          <button
-            onClick={() => navigate('/planner')}
-            className="active-squish"
-            style={{ textAlign: 'left', background: 'none', padding: 0 }}
-          >
-            <Card
-              style={{
-                backgroundColor: 'var(--bento-tasks-bg)',
-                cursor: 'pointer',
-                transition: 'transform 0.2s',
-                height: '100%',
-              }}
-              onPointerEnter={(e) => (e.currentTarget.style.transform = 'scale(1.02)')}
-              onPointerLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-            >
-              <CheckSquare size={28} color="var(--bento-card-text)" style={{ marginBottom: '12px' }} />
-              <h4 style={{ marginBottom: '8px', color: 'var(--bento-card-text)' }}>{t('home.bento.plannerTitle')}</h4>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                <p style={{ fontSize: '1.875rem', fontWeight: 600, color: 'var(--bento-card-text)' }}>{suggestedMoveCount}</p>
-                <p style={{ fontSize: '0.875rem', color: 'var(--bento-card-text-muted)' }}>{suggestedMoveCount === 1 ? t('home.bento.suggestionCountOne') : t('home.bento.suggestionCountOther')}</p>
-              </div>
-            </Card>
-          </button>
-
-          {/* Podcast Card — full width */}
-          <button
-            onClick={() => navigate('/podcast')}
-            className="active-squish"
-            style={{ gridColumn: '1 / -1', textAlign: 'left', background: 'none', padding: 0 }}
-          >
-            <Card
-              style={{
-                backgroundColor: 'var(--bento-podcast-bg)',
-                cursor: 'pointer',
-                transition: 'transform 0.2s',
-              }}
-              onPointerEnter={(e) => (e.currentTarget.style.transform = 'scale(1.01)')}
-              onPointerLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div>
-                  <Headphones size={28} color="var(--bento-card-text)" style={{ marginBottom: '8px' }} />
-                  <h4 style={{ color: 'var(--bento-card-text)', marginBottom: '4px' }}>{t('home.bento.podcastTitle')}</h4>
-                  <p style={{ fontSize: '0.875rem', color: 'var(--bento-card-text-muted)' }}>
-                    {todayPodcast
-                      ? todayPodcast.status === 'ready'
-                        ? t('home.bento.podcastReady', { minutes: Math.round((todayPodcast.duration ?? 0) / 60) })
-                        : todayPodcast.status === 'generating'
-                          ? t('home.bento.podcastGenerating', { progress: todayPodcast.progress ?? 0 })
-                          : t('home.bento.podcastFailed')
-                      : t('home.bento.podcastNotGenerated')}
-                  </p>
-                </div>
-                <Badge color={todayPodcast?.status === 'ready' ? 'green' : 'gray'}>
-                  {todayPodcast?.status ?? t('home.bento.podcastStatusPending')}
-                </Badge>
-              </div>
-            </Card>
-          </button>
-
-        </div>
-
-        {/* Concept Progress Card — OUTSIDE grid so position:sticky works */}
-        {conceptQuota > 0 && (
-          <div data-concept-progress-card>
-            <VineProgress
-              mode="inline"
-              concepts={conceptList}
-              onConceptTap={handleConceptTap}
-            />
-          </div>
-        )}
-
         {/* Empty state — only on a genuinely empty feed (D-17; GAP-D HIDE: do not render above a populated feed) */}
-        {conceptQuota === 0 && dailyPosts.length === 0 && questions.length > 0 && (
+        {dailyPosts.length === 0 && questions.length > 0 && !isGenerating && !generationError && (
           <div style={{
             display: 'flex',
             flexDirection: 'column',
@@ -1107,7 +790,6 @@ export function HomeScreen() {
           onOpenPost={(postId, post) => {
             navigate(`/posts/${postId}`, { state: { post } });
           }}
-          allExplored={allExplored}
           onLongPress={handleLongPress}
           engagementVersion={engagementVersion}
         />
@@ -1136,23 +818,6 @@ export function HomeScreen() {
         onClose={closeMenu}
         postId={menuPostId}
         anchorId={menuAnchorId}
-        onOpenCollectionPicker={(pid) => {
-          setPickerPostId(pid);
-          setPickerOpen(true);
-        }}
-      />
-
-      {/* Phase 50 D-04 — CollectionPickerSheet hosted on HomeScreen so the
-          LongPressMenu Save row opens it. Picker is the YouTube-faithful
-          save sheet: implicit Saved row pre-checked + 0-N custom collections
-          + + New collection inline create + Done button. */}
-      <CollectionPickerSheet
-        open={pickerOpen}
-        onClose={() => {
-          setPickerOpen(false);
-          setPickerPostId(null);
-        }}
-        postId={pickerPostId}
       />
 
       {/* Botanical loading pulse animation */}

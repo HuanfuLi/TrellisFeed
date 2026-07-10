@@ -124,8 +124,6 @@ export function OnboardingScreen() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '32px', textAlign: 'left' }}>
               {[
                 { icon: <MessageBubble />, title: t('onboarding.welcome.featureAskTitle'), desc: t('onboarding.welcome.featureAskDesc') },
-                { icon: <RepeatIcon />, title: t('onboarding.welcome.featureReviewTitle'), desc: t('onboarding.welcome.featureReviewDesc') },
-                { icon: <HeadphonesIcon />, title: t('onboarding.welcome.featurePodcastTitle'), desc: t('onboarding.welcome.featurePodcastDesc') },
               ].map(({ icon, title, desc }) => (
                 <div key={title} style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
                   <div style={{
@@ -362,22 +360,6 @@ function MessageBubble() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-    </svg>
-  );
-}
-function RepeatIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 0 1 4-4h14" />
-      <polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 0 1-4 4H3" />
-    </svg>
-  );
-}
-function HeadphonesIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
-      <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
     </svg>
   );
 }

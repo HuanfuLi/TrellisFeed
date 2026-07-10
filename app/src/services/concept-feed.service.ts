@@ -1,28 +1,15 @@
 import { chatCompletion, chatStream } from '../providers/llm/index.ts';
-import type { ChatSession, DailyPost, PostNarrativeMode, PostOriginContext, PostSnapshot, PresentationStyle, Question, WebSearchResult } from '../types';
+import type { ChatSession, DailyPost, PostNarrativeMode, PostOriginContext, PostSnapshot, PresentationStyle, Question } from '../types';
 import { today } from '../lib/date.ts';
 import { eventBus } from '../lib/event-bus.ts';
 import { settingsService, FEED_DEFAULTS } from './settings.service.ts';
-import { plannerService } from './planner.service.ts';
-import { youtubeService, type YouTubeSearchResult } from './youtube.service.ts';
-import { webSearch } from './web-search.service.ts';
 import { questionService } from './question.service.ts';
 import { postQueueService } from './post-queue.service.ts';
 import { postHistoryService } from './post-history.service.ts';
 import { dailyReadService } from './daily-read.service.ts';
 import { engagementService } from './engagement.service.ts';
-import { sourceDiversityService, extractDomain } from './source-diversity.service.ts';
-import { selectNewsTopSources, mapNewsSourcesToNewsMeta } from './news-source-metadata.ts';
-import { assignStyles, reassignFailures, type ApiAvailability } from './style-assignment.ts';
-import { computeLeafState } from './trellis-state.service.ts';
-import { hasSeenVideoId, addSeenVideoId, setSeenVideoIdHistorySource } from './concept-feed-dedup.ts';
+import { assignStyles, type ApiAvailability, type StyleAssignment } from './style-assignment.ts';
 import { STARTER_POST_IDS, filterDecayedStarters } from './starter-posts-decay.ts';
-import {
-  markYoutubeQuotaExhausted,
-  markTavilyQuotaExhausted,
-  isYoutubeRuntimeAvailable,
-  isTavilyRuntimeAvailable,
-} from './api-availability.ts';
 // Phase 36 GAP-4 — spread helpers extracted to a leaf module so node --test can
 // import them without hitting the i18n JSON-import-attribute chain. Both functions
 // mutate `posts` in place; this module re-exports them too so existing callers
@@ -47,48 +34,27 @@ let _cache: CachedDailyPosts | null = null;
 const MAX_POSTS = 4;
 const CONTEXT_LIMIT = 10;
 
-// Supply the cross-cycle video dedup helper with its history backing store.
-// concept-feed-dedup.ts keeps zero transitive deps (so node --test can import it
-// without the i18n JSON-import chain), so the dependency is injected here rather
-// than imported there.
-setSeenVideoIdHistorySource((day) =>
-  postHistoryService
-    .getPosts()
-    .filter((p) => p.date === day)
-    .map((p) => p.videoMeta?.videoId)
-    .filter((v): v is string => typeof v === 'string' && v.length > 0),
-);
-
 /**
  * Produce a globally-unique post ID with a semantic prefix.
  *
  * Phase 33 gap fix (2026-04-20): replaces the prior deterministic ID scheme
  * `post-${date}-${type}-${conceptId}-${cycleStamp}` which had two failure modes:
- *   1. Intra-cycle collision when one concept got multiple video/short/news
- *      assignments in the same refill (two posts share same id, two React cards
- *      bound to same state → clicking one starts both iframes).
+ *   1. Intra-cycle collision when one concept got multiple assignments in the
+ *      same refill.
  *   2. Cross-batch collision via state drift (localStorage clear, cache trim,
  *      forgotten incrementCycle) — cycleStamp is only as monotonic as queue state.
  *
- * The semantic prefix (date, kind, conceptId) is preserved for debuggability
- * (`grep post-2026-04-20-video-concept123` still finds that concept's videos).
+ * The semantic prefix (date, kind, conceptId) is preserved for debuggability.
  * The UUID suffix guarantees uniqueness regardless of any application state.
  */
 function makePostId(date: string, kind: string, conceptId: string): string {
   return `post-${date}-${kind}-${conceptId}-${crypto.randomUUID()}`;
 }
 
-interface PlannerSignals {
-  activeThreads: string[];
-  confusionAreas: string[];
-  curiosityTopics: string[];
-}
-
 interface DailyKnowledgeContext {
   recent: Question[];
   resurfaced: Question[];
   related: Array<{ source: Question; target: Question }>;
-  plannerSignals: PlannerSignals;
 }
 
 export interface ConnectionCardData {
@@ -108,7 +74,7 @@ interface CachedDailyPosts {
   connectionCards?: ConnectionCardData[];
 }
 
-const VALID_SOURCE_TYPES = new Set<DailyPost['sourceType']>(['recent', 'related', 'resurfaced', 'starter', 'mixed', 'connection', 'video', 'text-art', 'news', 'suggestion']);
+const VALID_SOURCE_TYPES = new Set<DailyPost['sourceType']>(['recent', 'related', 'resurfaced', 'starter', 'mixed', 'connection', 'text-art', 'suggestion']);
 
 export const STARTER_POSTS: DailyPost[] = [
   makeStarterPost(
@@ -116,23 +82,23 @@ export const STARTER_POSTS: DailyPost[] = [
     'Welcome to Trellis',
     'Your AI learning companion',
     'Ask any question and watch your knowledge grow. Trellis uses AI to create personalized learning paths.',
-    '# Welcome to Trellis\n\nTrellis is your AI-powered learning companion. Here\'s how to get started:\n\n1. **Ask a question** — Tap the Ask tab and type any question. The AI will answer it and save it to your knowledge graph.\n2. **Review what you learn** — Your answers become flashcards. Review them to build lasting memory.\n3. **Explore your feed** — This feed brings you fresh content based on what you\'re learning.\n\nStart by asking your first question!',
+    '# Welcome to Trellis\n\nTrellis is your AI-powered learning companion. Here\'s how to get started:\n\n1. **Explore your feed** — This feed brings you fresh content based on what you\'re learning.\n2. **Open a post** — Ask follow-up questions in the context of that post.\n3. **Save what matters** — Bookmarks and likes help preserve study-relevant signals.\n\nStart by opening a post that catches your attention.',
     'Getting Started',
   ),
   makeStarterPost(
     'starter-knowledge-growth',
     'How your knowledge grows',
     'From questions to mastery',
-    'Every question you ask becomes part of your knowledge graph. Review flashcards to strengthen your memory.',
-    '# How Your Knowledge Grows\n\nTrellis follows a proven learning loop:\n\n1. **Ask** — Ask questions about anything you\'re curious about.\n2. **Connect** — Your questions are organized into a knowledge graph by topic.\n3. **Review** — Flashcards are generated automatically. Spaced repetition helps you remember.\n4. **Grow** — As you master topics, your trellis tree blooms and bears fruit.\n\nThe more you review, the stronger your knowledge becomes.',
+    'Every post-context question becomes part of your local question trace.',
+    '# How Your Knowledge Grows\n\nTrellis follows a focused research loop:\n\n1. **Read** — Open posts that match your current learning context.\n2. **Ask** — Ask follow-up questions while the post context is fresh.\n3. **Connect** — Your questions are classified into concept anchors.\n4. **Return** — The feed uses those anchors to keep surfacing related material.\n\nThe more you ask from context, the richer your question trace becomes.',
     'How It Works',
   ),
   makeStarterPost(
     'starter-daily-feed',
     'Explore your daily feed',
     'Fresh content, curated for you',
-    'Your feed serves posts about your learning topics — articles, videos, and more. Pull up to load more.',
-    '# Your Daily Feed\n\nThis feed is built around what you\'re learning:\n\n- **Articles** — AI-generated deep dives on your topics.\n- **Videos** — YouTube content matched to your knowledge graph.\n- **News** — Latest developments in your areas of interest.\n- **Suggestions** — Related topics you might want to explore.\n\nPull up at the bottom to load more posts. The vine at the top tracks your daily progress.',
+    'Your feed serves posts about your learning topics. Pull up to load more.',
+    '# Your Daily Feed\n\nThis feed is built around what you\'re learning:\n\n- **Articles** — AI-generated deep dives on your topics.\n- **Visual posts** — image-backed explanations when image generation is configured.\n- **Suggestions** — related topics you might want to explore.\n\nPull up at the bottom to load more posts.',
     'Feed Guide',
   ),
 ];
@@ -208,11 +174,6 @@ function loadCache(): CachedDailyPosts | null {
     // and (d) — second Force-New-Day was rendering the previous-state served
     // posts because of this missing date check.
     if (parsed.date !== today()) {
-      // Phase 41 D-02 — wholesale wipe of per-anchor usedByAnchor Map at day boundary.
-      // sourceDiversityService.reset() is idempotent (Map.clear()); calling on already-empty
-      // Map is a no-op. Fires once per loadCache() invocation across stale-cache scenarios
-      // until a fresh saveCache(today) writes a new entry — harmless per Pitfall 8.
-      sourceDiversityService.reset();
       return null;
     }
 
@@ -291,8 +252,8 @@ export async function hydrateDailyPostsFromSQLite(): Promise<void> {
 // fast path); Effect B at HomeScreen.tsx:584-591 is now strictly
 // redundant but kept as defense-in-depth.
 //
-// Filter shape: post.sourceQuestionIds[0] is the anchor.id (text/image/news/
-// video paths all assign sourceQuestionIds = [a.conceptId] per the pipeline;
+// Filter shape: post.sourceQuestionIds[0] is the anchor.id (text/image paths
+// assign sourceQuestionIds = [a.conceptId] per the pipeline;
 // see concept-feed.service.ts construction sites). A post with no
 // sourceQuestionIds (e.g., legacy starter posts) passes the filter
 // (cannot be matched against a dismissed-anchor id).
@@ -385,15 +346,7 @@ export function buildDailyKnowledgeContext(questions: Question[]): DailyKnowledg
     if (related.length >= 4) break;
   }
 
-  // Gather planner signals for feed ranking
-  const recentSignals = plannerService.getRecentSignals();
-  const plannerSignals: PlannerSignals = {
-    activeThreads: recentSignals.curiosity.slice(0, 6),
-    confusionAreas: recentSignals.confusion.slice(0, 4),
-    curiosityTopics: recentSignals.curiosity.slice(0, 4),
-  };
-
-  return { recent, resurfaced, related, plannerSignals };
+  return { recent, resurfaced, related };
 }
 
 
@@ -461,14 +414,6 @@ function buildGenerationPrompt(
     'Related bridges:',
     ...relatedLines,
     '',
-    ...(context.plannerSignals.activeThreads.length > 0 || context.plannerSignals.confusionAreas.length > 0 || context.plannerSignals.curiosityTopics.length > 0
-      ? [
-          'Active learning signals (boost relevance for these topics):',
-          ...(context.plannerSignals.activeThreads.length > 0 ? [`Active threads: ${context.plannerSignals.activeThreads.join(', ')}`] : []),
-          ...(context.plannerSignals.confusionAreas.length > 0 ? [`Unresolved areas: ${context.plannerSignals.confusionAreas.join(', ')}`] : []),
-          ...(context.plannerSignals.curiosityTopics.length > 0 ? [`Curiosity topics: ${context.plannerSignals.curiosityTopics.join(', ')}`] : []),
-        ]
-      : []),
     ...(hasConnectionCandidates
       ? [
           '',
@@ -536,8 +481,7 @@ interface ParsedGeneration {
  * parseGeneratedPosts ran `JSON.parse(arrMatch[0])` on the whole truncated
  * array — which threw — then the catch silently returned `{posts: []}`.
  * Result: every text-style post (including all 'image' and 'suggestion'
- * assignments) was dropped, while video/short/news (generated out-of-band)
- * survived. Explains the "zero image posts over 50+" symptom exactly.
+ * assignments) was dropped. Explains the "zero image posts over 50+" symptom exactly.
  */
 function extractPartialJsonArrayObjects(raw: string): Array<Record<string, unknown>> {
   let s = raw.trim()
@@ -703,7 +647,7 @@ function _backgroundGenerateTextArt(posts: DailyPost[]): void {
  *   - existing empty                   → take valid incoming
  *   - incoming strictly shorter        → keep existing (don't trade down)
  *   - else                             → take incoming
- * Scoped to textArtContent ONLY — news bodyMarkdown defer-to-streamer is untouched.
+ * Scoped to textArtContent ONLY.
  */
 function mergeTextArtContent(existing: string | undefined, incoming: string | undefined): string | undefined {
   const inc = (incoming ?? '').trim();
@@ -798,8 +742,7 @@ function tightenTextArtContent(raw: string): string | null {
   // zh/ja headlines (no inter-word spaces) are NOT discarded after a LOCALE_CHANGED, and
   // it catches dangling multi-word Latin fragments the old `!/\s/` gate missed. Returning
   // null makes the call site fall back to `teaser.hook || title` instead of persisting
-  // garbage. Applies to textArtContent ONLY; news essay content (defer-to-streamer,
-  // empty-string shell) is never routed here. See `text-art-fragment.ts` for the rules.
+  // garbage. Applies to textArtContent ONLY. See `text-art-fragment.ts` for the rules.
   if (isUnusableTextArtFragment(s)) return null;
   return s || null;
 }
@@ -826,7 +769,7 @@ async function generateTextArtContent(posts: DailyPost[]): Promise<DailyPost[]> 
       const prompt = `Write ONE concise headline about: "${post.title}"
 
 Pick one style:
-- Breaking news: "Gemma 4 released — will it beat QWEN 3.5? 🔥"
+- Breaking research: "Gemma 4 released — what changed?"
 - Interview hook: "Interviewer: How much VRAM to train a 7B model?"
 - Hot take: "Why I'm not bullish on World Models"
 - Provocative question: "What if transformers are already obsolete? 🤔"
@@ -882,7 +825,7 @@ Return ONLY the single sentence, nothing else.`;
 }
 
 
-// ─── News post helpers ──────────────────────────────────────────────────────
+// ─── Post context helpers ───────────────────────────────────────────────────
 
 function toPostSnapshot(post: DailyPost): PostSnapshot {
   const { generatedAt, origin, ...snapshot } = post;
@@ -919,8 +862,8 @@ export function buildPostOriginContext(post: DailyPost, questions: Question[]): 
  *     loop doesn't re-suggest the same concept the user already explored.
  *
  * Output: weighted multi-entry list of conceptIds. Each anchor appears
- * BASE_ENTRIES_PER_CONCEPT times by default (and 2× that if "important" — overdue
- * or low-ease per SM-2). assignStyles will then sample STYLE_WEIGHTS to assign a
+ * BASE_ENTRIES_PER_CONCEPT times by default (and 2× that for liked concepts).
+ * assignStyles will then sample STYLE_WEIGHTS to assign a
  * varied style to each entry, giving the user multiple post angles per concept.
  *
  * What changed (vs prior single-entry-per-concept implementation):
@@ -938,9 +881,8 @@ export function buildPostOriginContext(post: DailyPost, questions: Question[]): 
 const BASE_ENTRIES_PER_CONCEPT = 4;
 
 // Phase 55 D-14 like-boost rationale (kept above the function — load-bearing):
-// A like reuses the EXISTING 4→8 multiplicity lever, the SAME mechanism the 3-list
-// pipeline already uses for importance/overdue (CLAUDE.md §"Concept Feed Generation
-// Pipeline"). The like signal must NOT invent a fourth list, must NOT add a pipeline
+// A like reuses the existing 4→8 multiplicity lever without adding a fourth list
+// or mutating schedule state. The like signal must NOT invent a pipeline
 // stage, and must NOT mutate the derived list inside this function — buildConceptBatch
 // only returns conceptIds for the caller to append to the append-only derived list.
 //
@@ -951,10 +893,8 @@ const BASE_ENTRIES_PER_CONCEPT = 4;
 // field). Both reads are synchronous. Liked posts pin against postHistory purge via
 // engagementService.getPinnedIds() (Pitfall 6 already handled), so getPosts() returns them.
 //
-// Boost is OR (isImportant || isLiked), NOT additive: worst-case multiplicity stays
-// BASE*2 — identical to the pre-existing all-important case — so the like-boost adds
-// no new starvation vector (T-55-04a / A4). Due-for-review (overdue/important) concepts
-// still receive BASE*2 entries and remain present regardless of what else is liked.
+// The SRS/review dependency was removed for QuestionTrace Phase 0/1. All unexplored
+// anchors are eligible; liked concepts get the only remaining boost.
 function buildConceptBatch(questions: Question[]): string[] {
   const exploredIds = new Set(dailyReadService.getExploredAnchors());
 
@@ -971,23 +911,12 @@ function buildConceptBatch(questions: Question[]): string[] {
 
   const conceptIds: string[] = [];
   for (const anchor of dueAnchors) {
-    const children = questions.filter(q => q.parentId === anchor.id);
-    let isImportant = anchor.reviewSchedule?.easeFactor != null && anchor.reviewSchedule.easeFactor < 1.5;
-    if (!isImportant) {
-      try {
-        const leaf = computeLeafState(anchor, children);
-        isImportant = leaf === 'dying' || leaf === 'falling' || leaf === 'dead';
-      } catch { /* non-critical — default to not important */ }
-    }
-
-    // Phase 55 D-14: like counts as a boost equal to importance (see rationale above).
     const isLiked = likedConceptIds.has(anchor.id);
-    const isBoosted = isImportant || isLiked;
-    const count = isBoosted ? BASE_ENTRIES_PER_CONCEPT * 2 : BASE_ENTRIES_PER_CONCEPT;
+    const count = isLiked ? BASE_ENTRIES_PER_CONCEPT * 2 : BASE_ENTRIES_PER_CONCEPT;
 
     // ── Phase 55 D-02 instrumentation (dev-gated, stripped in production) ──────
     if (typeof import.meta !== 'undefined' && import.meta.env?.DEV) {
-      console.info(`[buildConceptBatch] anchor=${anchor.id} isImportant=${isImportant} isLiked=${isLiked} count=${count}`);
+      console.info(`[buildConceptBatch] anchor=${anchor.id} isLiked=${isLiked} count=${count}`);
     }
 
     for (let i = 0; i < count; i++) conceptIds.push(anchor.id);
@@ -999,55 +928,14 @@ function buildConceptBatch(questions: Question[]): string[] {
   return conceptIds;
 }
 
-// YouTube query rotation (Bug 6, 2026-04-19). The original implementation called
-// `searchVideos(conceptName, 3)` every refill cycle for the same anchor — YouTube's
-// relevance ranking is deterministic per query, so cycles 1+ kept getting the same top
-// 3 videos. Combined with a maxResults of 3, fresh-anchor users hit the dedup wall
-// after 3 cycles. Rotating the query modifier reshuffles the result set; widening
-// `maxResults` to 15 gives more headroom even within a single modifier window.
-const VIDEO_QUERY_MODIFIERS = [
-  '',                       // bare concept
-  ' explained',
-  ' tutorial',
-  ' how it works',
-  ' deep dive',
-];
-const YOUTUBE_FETCH_POOL_SIZE = 15;
-
-function buildYoutubeQuery(conceptName: string, cycleNumber: number): string {
-  const modifier = VIDEO_QUERY_MODIFIERS[Math.abs(cycleNumber) % VIDEO_QUERY_MODIFIERS.length];
-  return `${conceptName}${modifier}`.trim();
-}
-
-/**
- * Per-refill cache of external API results. Populated by the pre-validation pass
- * in refillQueue and consumed by generatePostBatch's video/short/news loops so
- * each YouTube/Tavily query is executed at most ONCE per refill cycle instead of
- * twice (pre-validation + actual fetch). Cuts YouTube quota burn ~50%.
- *
- * Cache key for YouTube: `${conceptId}:${style}` where style is 'video'
- * (Phase 38 / TECHDEBT-06: 'short' style was removed; only 'video' remains).
- * Cache key for Tavily: `conceptId` (news is a single style per concept).
- */
-interface PreFetchCache {
-  youtube: Map<string, YouTubeSearchResult[]>;  // key: `${conceptId}:${style}`
-  news: Map<string, WebSearchResult[]>;         // key: conceptId
-}
-
 /**
  * Generate a batch of posts from pre-assigned style assignments.
- * Reuses the existing LLM generation prompt for text-style posts,
- * fetches from YouTube/Tavily for video/news, and generates text-art content.
- *
- * If `preFetched` is provided, the video/news loops consume cached
- * API results instead of issuing fresh calls (Phase 33 quota-burn fix
- * 2026-04-20). When absent (legacy callers / session-post path), loops
- * fall back to calling the APIs directly.
+ * Reuses the existing LLM generation prompt for text-style posts and generates
+ * text-art content.
  */
 async function generatePostBatch(
   questions: Question[],
-  assignments: import('./style-assignment').StyleAssignment[],
-  preFetched?: PreFetchCache,
+  assignments: StyleAssignment[],
 ): Promise<DailyPost[]> {
   const date = today();
   const byId = new Map(questions.map(q => [q.id, q]));
@@ -1057,14 +945,6 @@ async function generatePostBatch(
   const textStyleAssignments = assignments.filter(a =>
     a.style === 'text-art' || a.style === 'image' || a.style === 'suggestion',
   );
-  const videoAssignments = assignments.filter(a => a.style === 'video');
-  const newsAssignments = assignments.filter(a => a.style === 'news');
-
-  // Cross-cycle YouTube videoId dedup is now handled by the module-scope helper
-  // in concept-feed-dedup.ts (Phase 32.1-02 / UAT-31-2 fix). Phase 31-08's local
-  // Set lived only for one generatePostBatch call, so duplicates leaked across
-  // refillQueue cycles. The module-scope helpers persist for the session and
-  // auto-clear on day boundary.
 
   const posts: DailyPost[] = [];
 
@@ -1156,9 +1036,9 @@ async function generatePostBatch(
             const assignment = textBatch[i];
             parsed.posts[i].presentationStyle = assignment.style;
 
-            // L1 — Provenance from assignment, not LLM. Mirrors the video/short/news pattern
-            // (lines 807, 843, 876) where sourceQuestionIds/Titles/keywords are derived from
-            // the style assignment's conceptId. Fixes Bug 3: AI text posts had empty badges
+            // L1 — Provenance from assignment, not LLM. sourceQuestionIds/Titles/keywords
+            // are derived from the style assignment's conceptId. Fixes Bug 3:
+            // AI text posts had empty badges
             // when the LLM omitted or mangled sourceQuestionIds (frequent when context was
             // thin or the model — e.g. OpenAI on a fresh-install device — interpreted the
             // 'use only IDs from the context' clause conservatively). With this, badges are
@@ -1169,9 +1049,9 @@ async function generatePostBatch(
               const anchorTitle = anchor?.isAnchorNode ? anchor.title?.trim() : undefined;
               parsed.posts[i].sourceQuestionIds = [assignment.conceptId];
               parsed.posts[i].sourceQuestionTitles = [anchorTitle || titleFor(concept)];
-              // keywords only matters for image-style posts (image prompt) and news posts
-              // (news essay context); for other styles it's dead cargo, but keep concept's
-              // keywords when the concept has any so the image path still works.
+              // keywords only matters for image-style posts (image prompt); for
+              // other styles it's dead cargo, but keep concept's keywords when
+              // the concept has any so the image path still works.
               if (concept.keywords?.length) {
                 parsed.posts[i].keywords = concept.keywords.slice(0, 4);
               }
@@ -1246,140 +1126,6 @@ Return ONLY a JSON array of 4 strings, nothing else. Example: ["What is X?", "Ho
     } else if (import.meta.env?.DEV) {
       console.warn('[generatePostBatch] text branch skipped: 0 textQuestions after byId lookup');
     }
-  }
-
-  // Post IDs are produced by `makePostId` (UUID-suffixed) — see helper definition.
-  // Bug A's cycleStamp is obsolete under the new scheme; kept `cycleNumber` below
-  // because the YouTube query modifier rotation (Bug 6) still uses it.
-
-  // Generate video posts from YouTube (with cross-cycle dedup via concept-feed-dedup helper).
-  // Query modifier rotates per cycleNumber and pool widened to YOUTUBE_FETCH_POOL_SIZE so
-  // repeated cycles for the same anchor produce fresh result sets (Bug 6, 2026-04-19).
-  const cycleNumber = postQueueService.getCycleNumber();
-  for (const a of videoAssignments) {
-    try {
-      const concept = byId.get(a.conceptId);
-      // 2026-05-12 — skip when the anchor is unresolvable. Previously fell back
-      // to a.conceptId, which leaked internal IDs like
-      // `anchor-1776786217111-4-v9ty0` into the YouTube search query AND the
-      // user-visible sourceQuestionTitles chip. Anchors can vanish from byId
-      // when pre-fetched assignments outlive a prune/delete.
-      if (!concept) continue;
-      const conceptName = concept.title ?? concept.content?.slice(0, 50);
-      if (!conceptName) continue;
-      // Phase 33 quota-burn fix (2026-04-20): prefer cached pre-fetch result so
-      // the same YouTube search isn't issued twice per cycle (pre-validation + here).
-      const cacheKey = `${a.conceptId}:video`;
-      const cached = preFetched?.youtube.get(cacheKey);
-      let data: YouTubeSearchResult[] | undefined;
-      if (cached) {
-        data = cached;
-      } else {
-        const query = buildYoutubeQuery(conceptName, cycleNumber);
-        const searchResult = await youtubeService.searchVideos(query, YOUTUBE_FETCH_POOL_SIZE);
-        data = searchResult.success ? searchResult.data : undefined;
-      }
-      if (data && data.length > 0) {
-        const freshVideo = data.find(v => !hasSeenVideoId(v.videoId));
-        if (freshVideo) {
-          addSeenVideoId(freshVideo.videoId);
-          posts.push({
-            id: makePostId(date, 'video', a.conceptId),
-            date,
-            title: freshVideo.title || conceptName,
-            teaser: { hook: freshVideo.title || conceptName, preview: freshVideo.description?.slice(0, 170) || '' },
-            bodyMarkdown: '',
-            whyCare: '',
-            takeaway: '',
-            quickAskPrompts: [],
-            narrativeMode: 'mechanism-breakdown' as PostNarrativeMode,
-            contextLabel: 'Video',
-            sourceType: 'video',
-            sourceQuestionIds: [a.conceptId],
-            sourceQuestionTitles: [conceptName],
-            keywords: concept?.keywords?.slice(0, 4) ?? [],
-            generatedAt: Date.now(),
-            origin: 'ai',
-            presentationStyle: 'video',
-            videoMeta: { videoId: freshVideo.videoId, channelTitle: freshVideo.channelTitle, thumbnailUrl: freshVideo.thumbnailUrl },
-          });
-        }
-      }
-    } catch { /* video fetch failed — already reassigned in pre-validation */ }
-  }
-
-  // (Phase 38 / TECHDEBT-06) — short posts loop deleted. The short post type was
-  // removed entirely; all YouTube content is constructed by the video loop above.
-
-  // Generate news posts from Tavily
-  for (const a of newsAssignments) {
-    try {
-      const concept = byId.get(a.conceptId);
-      // 2026-05-12 — symmetric with the video loop above: skip on unresolvable
-      // concept rather than fall back to a.conceptId. The bare-ID fallback
-      // shipped a "NIH-Funded ANCHOR Study" news tile chipped with the literal
-      // anchor ID — Tavily soft-matched on the "anchor-" prefix, and the chip
-      // rendered the raw ID verbatim.
-      if (!concept) continue;
-      const conceptName = concept.title ?? concept.content?.slice(0, 50);
-      if (!conceptName) continue;
-      // Phase 33 quota-burn fix (2026-04-20): prefer cached pre-fetch result.
-      const cached = preFetched?.news.get(a.conceptId);
-      let result: WebSearchResult | undefined;
-      let topSources: WebSearchResult[] = [];  // Phase 41 SC-4 — stored on newsMeta.sources for multi-snippet grounding
-      if (cached?.length) {
-        result = cached[0];
-        topSources = cached.slice(0, 3);  // pre-fetch loop stores the filtered top 2-3 results
-      } else {
-        // Phase 41 D-02 + Pattern 2 — getUsedDomains → exclude → filterForDiversity → recordServedDomain
-        const usedDomains = sourceDiversityService.getUsedDomains(a.conceptId);
-        const searchResult = await webSearch(
-          conceptName + ' latest research findings',
-          { maxResults: 3, excludeDomains: [...usedDomains] },
-        );
-        if (searchResult.success && searchResult.data?.results.length) {
-          topSources = selectNewsTopSources(searchResult.data.results, usedDomains);
-          result = topSources[0];
-        }
-      }
-      if (result) {
-        posts.push({
-          id: makePostId(date, 'news', a.conceptId),
-          date,
-          title: result.title || conceptName,
-          teaser: { hook: result.title || conceptName, preview: result.content?.slice(0, 170) || '' },
-          // bodyMarkdown deferred to on-enter streaming via generateNewsEssay (POST-06).
-          // Previously this was set to result.content (the raw Tavily snippet, ~200 chars
-          // truncated mid-sentence) which made PostDetailScreen skip the LLM stream entirely
-          // and render the snippet as the essay body. Operator caught this regression on
-          // 2026-04-19 — bodyMarkdown MUST stay empty so the on-enter streamer takes over.
-          bodyMarkdown: '',
-          whyCare: '',
-          takeaway: '',
-          quickAskPrompts: [],
-          narrativeMode: 'mechanism-breakdown' as PostNarrativeMode,
-          contextLabel: 'News',
-          sourceType: 'news',
-          sourceQuestionIds: [a.conceptId],
-          sourceQuestionTitles: [conceptName],
-          keywords: concept?.keywords?.slice(0, 4) ?? [],
-          generatedAt: Date.now(),
-          origin: 'ai',
-          presentationStyle: 'news',
-          newsMeta: {
-            // Phase 46 CONTENT-03 — cached and direct news paths both map up
-            // to three selected Tavily entries into stable indexed sources.
-            sources: mapNewsSourcesToNewsMeta(topSources),
-            fetchedAt: Date.now(),
-          },
-        });
-        // Phase 41 D-02 — record AFTER commit so the per-anchor used set reflects what
-        // we actually shipped to the user. extractDomain returns undefined for malformed URLs;
-        // short-circuit guard avoids polluting the used set with 'undefined'.
-        const domain = extractDomain(result.url);
-        if (domain) sourceDiversityService.recordServedDomain(a.conceptId, domain);
-      }
-    } catch { /* news fetch failed */ }
   }
 
   // Generate text-art content for text-art styled posts
@@ -1491,10 +1237,9 @@ async function runRefillCycle(questions: Question[]): Promise<RefillOutcome> {
   // the bonus-post regime takes over (see `allExplored` gate in generateMorePosts
   // below) and the cap becomes a meaningful safety rail again.
   //
-  // Trellis is local-first OSS where users provide their own LLM/YouTube/Tavily
-  // keys, so unbounded generation during the pre-finished window is NOT a cost
-  // concern for the project. If a commercial / key-brokered mode ships later,
-  // revisit this gate and reintroduce a pre-finished cap (e.g., scale with
+  // QuestionTrace keeps this temporary feed local-first with user-provided LLM
+  // and image-generation keys. If a brokered-key mode ships later, revisit this
+  // gate and reintroduce a pre-finished cap (e.g., scale with
   // `unexploredAnchors.length` so the cap shrinks as the user reads).
   //
   // Previous context: D-38 + G1 / UAT-31-13 (Phase 32.1-02) added the `max(N, 3)`
@@ -1539,13 +1284,7 @@ async function runRefillCycle(questions: Question[]): Promise<RefillOutcome> {
   }
   if (conceptIds.length === 0) return { attempted: 0, generated: 0 };
 
-  // Step 2: Pre-check API keys — validate non-empty strings (D-20, D-21 step 1).
-  // Phase 33 quota-burn fix (2026-04-20): also honor the runtime availability
-  // circuit breaker. If a 403/quotaExceeded response flipped the flag earlier
-  // today, keep that key "unavailable" for the rest of the day so assignStyles
-  // redirects weight to text-art instead of burning more calls on a dead quota.
-  const youtubeKeyPresent = typeof settings.youtube?.apiKey === 'string' && settings.youtube.apiKey.trim().length > 0;
-  const tavilyKeyPresent = typeof settings.webSearch?.tavilyApiKey === 'string' && settings.webSearch.tavilyApiKey.trim().length > 0;
+  // Step 2: Pre-check image-generation key availability.
   // Phase 33 UAT-4 fix (2026-04-20): honor EITHER image-gen key. imageGeneration.bootstrap.ts
   // registers the Gemini provider when only geminiApiKey is set (no nanoBanana key), so
   // image generation IS possible — but assignStyles would skip the 'image' style weight
@@ -1560,107 +1299,14 @@ async function runRefillCycle(questions: Question[]): Promise<RefillOutcome> {
   // zero observable "I assigned image but nothing rendered" signal.
   const imageGenEnabled = settings.imageGeneration?.enabled !== false;
   const availability: ApiAvailability = {
-    hasYoutubeKey: youtubeKeyPresent && isYoutubeRuntimeAvailable(),
-    hasTavilyKey: tavilyKeyPresent && isTavilyRuntimeAvailable(),
     hasImageGenKey: imageGenEnabled && (nanoBananaKeyPresent || geminiImageKeyPresent),
   };
 
   // Step 3: Assign styles before generation (D-18)
-  let assignments = assignStyles(conceptIds, availability);
+  const assignments = assignStyles(conceptIds, availability);
 
-  // Step 4: Pre-validate YouTube/Tavily in parallel AND cache results for reuse
-  // by the generation loops (D-21 step 2, D-20 fallback + Phase 33 quota-burn fix 2026-04-20).
-  //
-  // Before: pre-validation called searchVideos/webSearch with maxResults=1; the
-  // generation loops RE-called the same query with maxResults=15 — 2× the YouTube
-  // quota burn per assignment (200 units each at 100 units/search). After my
-  // cap-bypass fix (003b8e32) removed the implicit ~2-cycle cap, this doubled
-  // burn exhausted the user's 10,000-unit/day YouTube quota in ~10 cycles.
-  //
-  // Now: pre-validation fetches at full pool size (YOUTUBE_FETCH_POOL_SIZE for
-  // YouTube, maxResults:3 for Tavily so the news loop can map the filtered
-  // top 2-3 results into newsMeta.sources) and stores the result in preFetched.
-  // Generation loops read from the cache.
-  // Halves YouTube calls per cycle; also halves Tavily calls.
-  const videoAssigns = assignments.filter(a => a.style === 'video');
-  const newsAssigns = assignments.filter(a => a.style === 'news');
-  const failedIds = new Set<string>();
-  const preFetched: PreFetchCache = {
-    youtube: new Map<string, YouTubeSearchResult[]>(),
-    news: new Map<string, WebSearchResult[]>(),
-  };
-
-  const getConceptName = (id: string) => {
-    const q = questions.find(q => q.id === id);
-    return q?.title ?? q?.content?.slice(0, 50) ?? id;
-  };
-
-  // Pre-validation must use the SAME modifier as the actual fetch so a passing
-  // pre-check doesn't get falsified by the fetch's varied query.
-  const validationCycle = postQueueService.getCycleNumber();
-  await Promise.all([
-    ...videoAssigns.map(async (a) => {
-      try {
-        const conceptName = getConceptName(a.conceptId);
-        const query = buildYoutubeQuery(conceptName, validationCycle);
-        const searchResult = await youtubeService.searchVideos(query, YOUTUBE_FETCH_POOL_SIZE);
-        if (!searchResult.success || !searchResult.data?.length) {
-          // Phase 33 quota-burn fix (2026-04-20): on quota-exhausted, flip the
-          // circuit breaker so subsequent cycles skip YouTube entirely.
-          if (searchResult.error?.code === 'API_QUOTA_EXCEEDED') {
-            markYoutubeQuotaExhausted();
-          }
-          failedIds.add(a.conceptId);
-        } else {
-          preFetched.youtube.set(`${a.conceptId}:${a.style}`, searchResult.data);
-        }
-      } catch {
-        failedIds.add(a.conceptId);
-      }
-    }),
-    ...newsAssigns.map(async (a) => {
-      try {
-        const conceptName = getConceptName(a.conceptId);
-        // Phase 41 D-02 + Pattern 2 — getUsedDomains → exclude → filterForDiversity → recordServedDomain
-        const usedDomains = sourceDiversityService.getUsedDomains(a.conceptId);
-        const results = await webSearch(
-          conceptName + ' latest research findings',
-          { maxResults: 3, excludeDomains: [...usedDomains] },
-        );
-        if (!results.success || !results.data?.results.length) {
-          // Tavily doesn't distinguish a dedicated quota code today, but if the
-          // error message indicates 403/auth failure, treat as quota-exhausted
-          // for the rest of the day to stop burning calls on a dead key.
-          const msg = results.error?.message?.toLowerCase() ?? '';
-          if (msg.includes('403') || msg.includes('quota') || msg.includes('unauthorized')) {
-            markTavilyQuotaExhausted();
-          }
-          failedIds.add(a.conceptId);
-        } else {
-          const topSources = selectNewsTopSources(results.data.results, usedDomains);
-          const chosen = topSources[0];
-          if (!chosen) {
-            failedIds.add(a.conceptId);
-            return;
-          }
-          preFetched.news.set(a.conceptId, topSources);
-          // Phase 41 D-02 — record AFTER commit. extractDomain undefined-guard.
-          const domain = extractDomain(chosen.url);
-          if (domain) sourceDiversityService.recordServedDomain(a.conceptId, domain);
-        }
-      } catch {
-        failedIds.add(a.conceptId);
-      }
-    }),
-  ]);
-
-  // Step 5: Reassign failures to text-art (D-20, D-21 step 3)
-  assignments = reassignFailures(assignments, failedIds);
-
-  // Step 6: Generate posts with pre-assigned styles (D-21 step 4).
-  // Pass the pre-fetched cache so YouTube/Tavily loops reuse validated results
-  // instead of issuing a second call per assignment.
-  const posts = await generatePostBatch(questions, assignments, preFetched);
+  // Step 4: Generate posts with pre-assigned styles (D-21 step 4).
+  const posts = await generatePostBatch(questions, assignments);
 
   // Step 6b: Pre-generate images for image-styled posts so the queue buffer
   // is ACTUALLY pre-warmed (2026-04-21 architectural fix). Any post whose
@@ -1829,18 +1475,11 @@ export const conceptFeedService = {
     // Fall back to sessionStorage-based connection post store
     const connectionPost = getConnectionPostFromStore(id);
     if (connectionPost) return connectionPost;
-    // The `trellis_video_cache` / `trellis_news_posts` localStorage fallbacks that
-    // used to sit here were removed with the IndexedDB migration: both keys are
-    // deleted at boot by clearLegacyHeavyLocalStorageKeys, so they only ever
-    // returned null. Video and news posts reach post-history like every other
-    // post, and the fallback below covers them.
-    //
     // 2026-05-12 — final fallback to postHistoryService, the only persistent
     // store of full post content. Without this, the daily-cache stale-rejection
     // at midnight (Phase 36-11) makes EVERY past post unreachable from
     // PostHistory + /saved + /liked click-throughs, even though their bodies
-    // are still in trellis_post_history. Generated posts are costly assets
-    // (LLM tokens, image gen, Tavily, YouTube quota) — they must stay openable.
+    // are still in trellis_post_history.
     try {
       const fromHistory = postHistoryService.getPosts().find((p) => p.id === id);
       if (fromHistory) return fromHistory;
@@ -2172,8 +1811,6 @@ export const conceptFeedService = {
       // Assign presentation styles via pre-style assignment and generate text-art
       const settings2 = settingsService.getSync();
       const availability: ApiAvailability = {
-        hasYoutubeKey: !!(settings2.youtube?.apiKey),
-        hasTavilyKey: !!(settings2.webSearch?.tavilyApiKey),
         // Phase 33 UAT-4 fix: either image-gen key counts (nanoBanana OR gemini).
         hasImageGenKey: settings2.imageGeneration?.enabled !== false
           && (!!(settings2.imageGeneration?.nanoBananaApiKey) || !!(settings2.imageGeneration?.geminiApiKey)),
@@ -2182,12 +1819,8 @@ export const conceptFeedService = {
         newPosts.map(p => p.sourceQuestionIds[0] ?? p.id),
         availability,
       );
-      // Bug B (2026-04-19): assignStyles can return any of image|text-art|suggestion|news|video,
-      // but generateSessionPosts only emits LLM TEXT content — there's no YouTube/Tavily fetch here,
-      // so a 'video'/'news' assignment leaves the post with no videoMeta/newsMeta and the
-      // render layer can't draw anything. Restrict to text-style only; daily refillQueue handles
-      // video/news for the same anchor on its next cycle.
-      // (Phase 38 / TECHDEBT-06): 'short' was removed from the style union — no longer in this list.
+      // generateSessionPosts only emits LLM text content, so restrict to the
+      // presentation styles the research feed still renders.
       const TEXT_ONLY_STYLES = new Set<PresentationStyle>(['text-art', 'image', 'suggestion']);
       const styled = newPosts.map((post, i) => {
         const candidate = sessionAssignments[i]?.style;

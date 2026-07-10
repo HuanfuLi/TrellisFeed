@@ -1,19 +1,17 @@
 // Phase 53-02 PRIVACY-01 — LLM outbound payload privacy golden (3 cloud providers).
 //
-// Success Criterion 1 (53-VALIDATION.md): "Provider-bound LLM and TTS payload
-// tests confirm tags, saved/liked/history, and graph correction logs are
-// excluded from outbound provider requests by default." This is the LLM half
+// Provider-bound LLM payload tests confirm saved/liked engagement data is
+// excluded from outbound provider requests by default. This is the LLM half
 // of the D-03 tests-and-structural-assertion enforcement — there is NO runtime
 // scrubber; the contract is "private data is never interpolated into a provider
 // request body in the first place," proven by seeding sentinels into all three
 // private localStorage keys and asserting the captured outbound body excludes
 // them, across openAI / claude / gemini cloud paths.
 //
-// Strategy (53-RESEARCH.md "Exact outbound payload shapes"): install the Plan
-// 53-01 in-memory localStorage shim + a fetch capture shim, seed the three
-// private services' keys with unique sentinel strings shaped like real data,
-// drive the leaf LLM chokepoint `chatCompletion` (non-stream, so the request
-// body is the unit under test), and assert the JSON-stringified captured
+// Strategy: install an in-memory localStorage shim + a fetch capture shim, seed
+// the private engagement key with a unique sentinel string shaped like real
+// data, drive the leaf LLM chokepoint `chatCompletion` (non-stream, so the
+// request body is the unit under test), and assert the JSON-stringified captured
 // request body contains none of the sentinels. A positive capture assertion
 // (the benign user content appears in the body) ensures the negative
 // assertions cannot pass vacuously.
@@ -30,53 +28,20 @@ import { describe, test } from 'node:test';
 import { makeMemoryLocalStorage } from '../helpers/memory-localstorage.mjs';
 
 // ─── Sentinels (D-04 full field inventory) ──────────────────────────────────
-const TAG_SENTINEL = 'SECRET-TAG-SENTINEL';               // trellis_collections_v1
 const ENGAGEMENT_SENTINEL = 'SECRET-ENGAGEMENT-SENTINEL'; // trellis_engagement_v1
-const JOURNAL_SENTINEL = 'SECRET-JOURNAL-SENTINEL';       // trellis_graph_edit_log
 
 // ─── localStorage shim + seeded sentinels ───────────────────────────────────
 // Install BEFORE the dynamic import of chatCompletion (Plan 53-01 ordering rule).
 globalThis.localStorage = makeMemoryLocalStorage();
 
-// trellis_collections_v1 — { collections: [{ id, name, postIds, ... }] }.
-globalThis.localStorage.setItem(
-  'trellis_collections_v1',
-  JSON.stringify({
-    collections: [
-      {
-        id: 'col-1',
-        name: TAG_SENTINEL,
-        postIds: ['post-1'],
-        createdAt: 1,
-        updatedAt: 1,
-      },
-    ],
-  }),
-);
-
-// trellis_engagement_v1 — { saved, liked, dismissed, savedPodcasts }.
+// trellis_engagement_v1 — { saved, liked, dismissed }.
 globalThis.localStorage.setItem(
   'trellis_engagement_v1',
   JSON.stringify({
     saved: [ENGAGEMENT_SENTINEL],
     liked: [ENGAGEMENT_SENTINEL],
     dismissed: [],
-    savedPodcasts: [],
   }),
-);
-
-// trellis_graph_edit_log — GraphEditLogEntry[] (rename before/after snapshots).
-globalThis.localStorage.setItem(
-  'trellis_graph_edit_log',
-  JSON.stringify([
-    {
-      id: 'log-1',
-      ts: 1,
-      cmd: 'rename',
-      before: { title: JOURNAL_SENTINEL },
-      after: { title: JOURNAL_SENTINEL + '-renamed' },
-    },
-  ]),
 );
 
 // ─── fetch capture shim (multi-shape union response) ─────────────────────────
@@ -153,19 +118,9 @@ function assertNoLeak(providerName) {
   );
 
   assert.ok(
-    !body.includes(TAG_SENTINEL),
-    `PRIVACY-01 [${providerName}]: outbound LLM body leaked the ` +
-      `collections/tags sentinel. Body=${body}`,
-  );
-  assert.ok(
     !body.includes(ENGAGEMENT_SENTINEL),
     `PRIVACY-01 [${providerName}]: outbound LLM body leaked the ` +
       `engagement (saved/liked) sentinel. Body=${body}`,
-  );
-  assert.ok(
-    !body.includes(JOURNAL_SENTINEL),
-    `PRIVACY-01 [${providerName}]: outbound LLM body leaked the ` +
-      `graph-edit-log sentinel. Body=${body}`,
   );
 }
 

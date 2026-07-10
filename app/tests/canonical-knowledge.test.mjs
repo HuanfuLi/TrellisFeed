@@ -2,11 +2,9 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   buildCandidateContextPack,
-  buildDailyReviewMap,
   decideIngestionOutcome,
   extractClustersUnderBranch,
   extractUniqueBranches,
-  getDueProjectedFlashcards,
   projectQuestionToKnowledgeNode,
 } from '../src/services/canonical-knowledge.service.ts';
 
@@ -69,39 +67,6 @@ test('decideIngestionOutcome merges strong duplicates and refines near matches',
   const refinement = decideIngestionOutcome('Why does the forgetting curve matter after first exposure?', questions);
   assert.equal(refinement.outcome, 'refine');
   assert.equal(refinement.targetNodeId, 'q-1');
-});
-
-test('getDueProjectedFlashcards and buildDailyReviewMap stay synchronized on node ids', () => {
-  const questions = [
-    makeQuestion({
-      id: 'q-1',
-      title: 'Forgetting curve',
-      content: 'What is the forgetting curve?',
-      rootLabel: 'Memory',
-      branchLabel: 'Forgetting',
-      clusterLabel: 'Forgetting curve',
-      reviewSchedule: { nextReviewDate: '2020-01-01', reviewCount: 0, easeFactor: 2.5 },
-    }),
-    makeQuestion({
-      id: 'q-2',
-      title: 'Testing effect',
-      content: 'Why does retrieval practice work?',
-      rootLabel: 'Memory',
-      branchLabel: 'Retrieval',
-      clusterLabel: 'Testing effect',
-      reviewSchedule: { nextReviewDate: '2099-12-31', reviewCount: 1, easeFactor: 2.5 },
-    }),
-  ];
-
-  const dueCards = getDueProjectedFlashcards(questions);
-  assert.equal(dueCards.length, 1);
-  assert.equal(dueCards[0].nodeId, 'q-1');
-
-  const map = buildDailyReviewMap(dueCards, questions, ['q-1'], 'q-1');
-  assert.equal(map.totalDue, 1);
-  assert.equal(map.revealedCount, 1);
-  assert.equal(map.roots[0].branches[0].clusters[0].leaves[0].nodeId, 'q-1');
-  assert.equal(map.roots[0].branches[0].clusters[0].leaves[0].state, 'active');
 });
 
 // ════════════════════════════════════════════════════════════════════════

@@ -7,10 +7,6 @@
 //   • leaves history role:'user' messages byte-stable (Phase 35)
 //   • idempotent across repeated invocations
 //   • escapes adversarial closing tags via U+200D (zero-width joiner)
-//   • allowlist exclusions for the Phase 35 USER_ACK_BEFORE_GRAPH_CONTEXT
-//     constant AND web-search Pass-2 results-injection messages
-//   • module-level constant `USER_ACK_BEFORE_GRAPH_CONTEXT_LITERAL` stays
-//     byte-equal to the canonical string in app/src/state/useQuestions.ts
 //   • composition order in providers/llm/index.ts: applyLocaleDirective FIRST,
 //     applyUserContentBracketing SECOND, in BOTH chatCompletion + chatStream
 //
@@ -29,10 +25,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const HELPER_PATH = resolve(here, '../../src/providers/llm/user-content-bracketing.ts');
 const LLM_INDEX_PATH = resolve(here, '../../src/providers/llm/index.ts');
-const USEQ_PATH = resolve(here, '../../src/state/useQuestions.ts');
-
 const { applyUserContentBracketing, USER_CONTENT_OPEN_TAG, USER_CONTENT_CLOSE_TAG } =
   await import('../../src/providers/llm/user-content-bracketing.ts');
 
@@ -143,56 +136,6 @@ describe('applyUserContentBracketing — adversarial-tag escape (Pitfall 5)', ()
     assert.ok(
       inner.includes(`<user${ZWJ}_content>`),
       `inner content must contain the ZWJ-split open-tag escape; inner=${JSON.stringify(inner)}`,
-    );
-  });
-});
-
-describe('applyUserContentBracketing — allowlist exclusions (Pitfall 8)', () => {
-  test('8. Phase 35 USER_ACK_BEFORE_GRAPH_CONTEXT message passes through unwrapped', () => {
-    const ACK = 'Here is the knowledge graph context for this turn:';
-    const input = [
-      { role: 'system', content: 'sys' },
-      { role: 'user', content: ACK },
-    ];
-    const out = applyUserContentBracketing(input);
-    assert.equal(
-      out[1].content,
-      ACK,
-      'Phase 35 user-ack message is internal alternation glue, not user content; must NOT be wrapped',
-    );
-  });
-
-  test('9. Web-search Pass-2 results-injection passes through unwrapped', () => {
-    const input = [
-      { role: 'user', content: 'Web search results for "x":\n[1] T\nC\n' },
-    ];
-    const out = applyUserContentBracketing(input);
-    assert.equal(
-      out[0].content,
-      'Web search results for "x":\n[1] T\nC\n',
-      'Pass-2 results-injection is synthetic search context, not user content; must NOT be wrapped',
-    );
-  });
-});
-
-describe('applyUserContentBracketing — constant-sync invariant', () => {
-  test('10. USER_ACK_BEFORE_GRAPH_CONTEXT literal is byte-equal in user-content-bracketing.ts AND useQuestions.ts', () => {
-    const helperSrc = fs.readFileSync(HELPER_PATH, 'utf-8');
-    const useqSrc = fs.readFileSync(USEQ_PATH, 'utf-8');
-
-    const expected = 'Here is the knowledge graph context for this turn:';
-
-    assert.ok(
-      helperSrc.includes(`'${expected}'`) || helperSrc.includes(`"${expected}"`),
-      `app/src/providers/llm/user-content-bracketing.ts must contain the literal '${expected}'. ` +
-      'If you renamed the constant in useQuestions.ts, update the duplicated literal in ' +
-      'user-content-bracketing.ts; the two MUST stay byte-equal or the bracketing allowlist breaks Phase 35 cache.',
-    );
-    assert.ok(
-      useqSrc.includes(`'${expected}'`) || useqSrc.includes(`"${expected}"`),
-      `app/src/state/useQuestions.ts must contain the literal '${expected}'. ` +
-      'If you renamed the constant in useQuestions.ts, update the duplicated literal in ' +
-      'user-content-bracketing.ts; the two MUST stay byte-equal or the bracketing allowlist breaks Phase 35 cache.',
     );
   });
 });

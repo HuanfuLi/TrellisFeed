@@ -2,7 +2,7 @@ import type { AppSettings, LLMConfig } from '../types';
 
 /**
  * Phase 55.1 GAP-E (BUGFIX-08) — resolve which LLM config the on-open one-shot generators
- * (post body, news essay, post-context Q&A) should stream from, and whether to disable the
+ * (post body, post-context Q&A) should stream from, and whether to disable the
  * model's thinking/reasoning for low streaming latency.
  *
  * - When the optional `fastModel` is enabled AND configured → return the fast config with

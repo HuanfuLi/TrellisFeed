@@ -2,8 +2,7 @@
  * Tests for post-queue.service enqueue dedup invariant.
  *
  * Phase 33 gap fix (2026-04-20): guards against post ID collisions producing
- * two React cards bound to the same videoPlaying state (both iframes play
- * when one is clicked). The enqueue contract: queue must never contain
+ * two React cards bound to the same post id. The enqueue contract: queue must never contain
  * duplicate post.id entries, and incoming batch dups must also be rejected.
  *
  * Paired with the UUID-based makePostId (concept-feed.service.ts) — both
@@ -37,13 +36,13 @@ function makePost(id) {
     quickAskPrompts: [],
     narrativeMode: 'mechanism-breakdown',
     contextLabel: 'Test',
-    sourceType: 'video',
+    sourceType: 'recent',
     sourceQuestionIds: ['q1'],
     sourceQuestionTitles: ['Q1'],
     keywords: [],
     generatedAt: Date.now(),
     origin: 'ai',
-    presentationStyle: 'video',
+    presentationStyle: 'image',
   };
 }
 

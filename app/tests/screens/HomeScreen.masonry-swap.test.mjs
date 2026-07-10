@@ -1,7 +1,6 @@
 // Phase 42 MASONRY-01 + MASONRY-02 (Plan 42-02) source-reading guard:
 // asserts that HomeScreen.tsx wires <MasonryFeed> instead of <InlineInfoFlow>
-// at the feed slot, deletes the noMorePosts toast (D-11), and computes
-// `allExplored` locally for the celebration card (RESEARCH.md Pitfall 2).
+// at the feed slot and deletes the noMorePosts toast (D-11).
 //
 // Source-reading test (no React render harness needed) — same pattern as
 // app/tests/screens/HomeScreen.warm-start-guard.test.mjs.
@@ -55,49 +54,6 @@ describe('HomeScreen MasonryFeed swap (Phase 42 Plan 42-02)', () => {
     );
   });
 
-  it('passes allExplored prop to <MasonryFeed>', () => {
-    // The MasonryFeed JSX block must include `allExplored={allExplored}` (or any
-    // expression form referencing the variable). We assert at minimum the literal
-    // `allExplored=` appears within ~600 chars after the opening MasonryFeed tag.
-    const idx = source.indexOf('<MasonryFeed');
-    assert.ok(idx >= 0, 'MasonryFeed JSX must exist (precondition for prop check).');
-    const window = source.slice(idx, idx + 600);
-    assert.ok(
-      /allExplored\s*=/.test(window),
-      'HomeScreen.tsx must pass `allExplored={...}` to <MasonryFeed> so the placeholder VineBloomCard (plan 42-04) can gate its render on the locally-computed flag.',
-    );
-  });
-
-  it('declares an `allExplored` binding (computed locally per RESEARCH.md Pitfall 2)', () => {
-    // Either `const allExplored = ...` or `const allExplored = useMemo(...)` form.
-    assert.ok(
-      /\bconst\s+allExplored\b/.test(source),
-      'HomeScreen.tsx must declare a local `const allExplored` binding (RESEARCH.md Pitfall 2 — service does NOT expose allExplored; HomeScreen must compute it from `dailyReadService.getExploredAnchors()` + `questions.filter(q => q.isAnchorNode)`).',
-    );
-  });
-
-  it('computes allExplored from anchors + exploredAnchors (RESEARCH.md Pitfall 2 verbatim shape)', () => {
-    // Acceptable shapes: anchors.every(a => exploredAnchors.includes(a.id))
-    // OR an inline filter on q.isAnchorNode + .every / .includes pattern.
-    // Loosen: assert both `isAnchorNode` and `.every(` appear within 400 chars
-    // of the allExplored declaration.
-    const idx = source.indexOf('const allExplored');
-    assert.ok(idx >= 0, 'allExplored binding must exist (precondition).');
-    const window = source.slice(idx, idx + 400);
-    assert.ok(
-      window.includes('isAnchorNode'),
-      'allExplored computation must reference `q.isAnchorNode` (RESEARCH.md Pitfall 2 verbatim — anchors = questions.filter(q => q.isAnchorNode)).',
-    );
-    assert.ok(
-      window.includes('.every('),
-      'allExplored computation must use `.every(` over the anchors array (RESEARCH.md Pitfall 2 verbatim — anchors.length > 0 && anchors.every(a => exploredAnchors.includes(a.id))).',
-    );
-    assert.ok(
-      window.includes('exploredAnchors'),
-      'allExplored computation must read from the existing `exploredAnchors` state (no duplicate state introduced — reuses lines 467 + 514 pattern).',
-    );
-  });
-
   it('deletes the noMorePosts toast call (D-11)', () => {
     // The literal `home.toast.noMorePosts` translation key must NOT appear.
     assert.ok(
@@ -110,12 +66,4 @@ describe('HomeScreen MasonryFeed swap (Phase 42 Plan 42-02)', () => {
     );
   });
 
-  it('preserves the other toast calls in HomeScreen (only noMorePosts was deleted)', () => {
-    // toast(t('home.feed.creditToast'), 'success') in the celebration useEffect
-    // must still exist — sanity check that we didn't accidentally delete every toast.
-    assert.ok(
-      source.includes("toast(t('home.feed.creditToast')"),
-      'HomeScreen.tsx must still contain the celebration `toast(t(\'home.feed.creditToast\'), \'success\')` — only `home.toast.noMorePosts` was scoped for deletion.',
-    );
-  });
 });

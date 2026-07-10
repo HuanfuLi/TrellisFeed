@@ -50,28 +50,10 @@ const defaultSettings: AppSettings = {
     maliciousThreshold: 0.82,
     anchorDedupThreshold: 0.82,
   },
-  tts: {
-    provider: 'openai',
-    apiKey: '',
-    baseUrl: '',
-    voice: 'alloy',
-    speed: 1.0,
-    isConfigured: false,
-  },
   zerotier: {
     networkId: '',
     isConnected: false,
     virtualIp: undefined,
-  },
-  podcast: {
-    sleepTime: '22:00',
-    advanceMinutes: 60,
-    autoGenerate: true,
-  },
-  review: {
-    dailyLimit: 50,
-    notificationsEnabled: false,
-    reminderTime: '09:00',
   },
   preferences: {
     theme: 'system',
@@ -79,7 +61,6 @@ const defaultSettings: AppSettings = {
     language: 'en',
     onboardingCompleted: false,
     aiConsentGiven: false,
-    askMonthlyLimit: 0,
   },
   imageGeneration: {
     nanoBananaApiKey: '',
@@ -89,12 +70,6 @@ const defaultSettings: AppSettings = {
     cacheTtlDays: 30,
     primaryProvider: 'auto' as const,
     enabled: true,
-  },
-  youtube: {
-    apiKey: '',
-  },
-  webSearch: {
-    tavilyApiKey: '',
   },
   feed: {
     postRetentionDays: FEED_DEFAULTS.postRetentionDays,
