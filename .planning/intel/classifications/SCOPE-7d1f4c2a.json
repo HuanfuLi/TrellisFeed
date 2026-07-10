@@ -1,0 +1,26 @@
+{
+  "source_path": "/Users/Code/QuestionTrace_Research/docs/SCOPE.md",
+  "type": "ADR",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "QuestionTrace — Project Scope",
+  "summary": "Locked in-scope/out-of-scope contract for the QuestionTrace research app, with framing rules and research-instrument success criteria deferring to research_system_design.md as authority.",
+  "scope": [
+    "curated real-content feed (frozen content pool)",
+    "post detail AI wrapper (hook, summary, concept tags, suggested questions)",
+    "post-scoped contextual AI Q&A",
+    "question traces",
+    "graph-memory learner model (experimental condition)",
+    "feed orchestration strategies (Continue, Deepen, Contrast, Bridge, Echo)",
+    "control ranker",
+    "study infrastructure (onboarding, condition assignment, logging, export, oral-test support)",
+    "content curation pipeline (tools/content_pipeline/, data/content_pool_v1/)",
+    "out-of-scope exclusions (chat, flashcards, graph UI, gamification, podcast, social, live search, analytics dashboards)"
+  ],
+  "cross_refs": [
+    "research_system_design.md"
+  ],
+  "locked": true,
+  "precedence": 1,
+  "notes": "No ADR frontmatter/status in file; type ADR and locked status come from the authoritative manifest declaration and orchestrator directive that scope boundaries are locked decisions. Content is a scope contract (in/out lists, framing rules, success criteria) rather than a single Context/Decision/Consequences record."
+}

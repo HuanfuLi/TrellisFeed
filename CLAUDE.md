@@ -11,7 +11,7 @@ Project root instructions for Claude Code agents working on this repository.
 1. **`docs/research_system_design.md`** — THE implementation guide (v2.0). Feature questions, schemas, algorithms, study design all resolve here.
 2. **`docs/SCOPE.md`** — quick in/out-of-scope contract, including framing language rules.
 3. **`docs/prune_report.md`** — what was removed from the product prototype on 2026-07-09 and why.
-4. **`ROADMAP.md`** — research Phases 0–7. Currently: Phase 0–1 (rename/scope/prune) done; next is Phase 2 (content pool pipeline).
+4. **`.planning/ROADMAP.md`** — the live GSD roadmap: 5 coarse phases (0–4), locked, no finer splits. Phase 0 (rename/scope/prune) done 2026-07-09; next is Phase 1 (rebrand + research shell hardening). Root `ROADMAP.md` is only a human-readable summary. The product-era Trellis planning history is archived at `docs/planning_history/trellis/` — historical reference only, never live state.
 
 ## Project Overview
 

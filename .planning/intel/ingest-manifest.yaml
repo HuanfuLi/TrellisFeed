@@ -1,0 +1,15 @@
+# Manifest for /gsd-ingest-docs — QuestionTrace bootstrap (2026-07-09)
+# Precedence: lower = higher authority.
+docs:
+  - path: docs/research_system_design.md
+    type: SPEC
+    precedence: 0   # canonical design doc (v2.0) — governs all scope/architecture
+  - path: docs/SCOPE.md
+    type: ADR
+    precedence: 1   # locked in-scope / out-of-scope contract + framing rules
+  - path: ROADMAP.md
+    type: PRD
+    precedence: 2   # 5 coarse phases — adopt verbatim; Phase 0 already complete
+  - path: docs/prune_report.md
+    type: DOC
+    precedence: 3   # inventory of what was removed/kept in Phase 0

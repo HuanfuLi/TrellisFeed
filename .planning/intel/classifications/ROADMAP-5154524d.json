@@ -1,0 +1,31 @@
+{
+  "source_path": "/Users/Code/QuestionTrace_Research/ROADMAP.md",
+  "type": "PRD",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "QuestionTrace Research Roadmap",
+  "summary": "Operator-approved five-phase implementation roadmap for the QuestionTrace research fork; Phase 0 complete 2026-07-09; the coarse phase breakdown is to be adopted verbatim, not refined.",
+  "scope": [
+    "QuestionTrace research app shell",
+    "in-app rebrand Trellis to QuestionTrace",
+    "storage rename (IDB and localStorage keys, no migration)",
+    "condition config (control/experimental) and interaction logging",
+    "content pool pipeline and frozen pool export (data/content_pool_v1)",
+    "feed card, post detail, suggested questions, post-scoped Ask",
+    "global content graph and personal graph-memory",
+    "control and experimental recommendation rankers with strategies and diversity reranking",
+    "algorithm verification unit tests",
+    "study onboarding, condition assignment, logging export, oral-test support",
+    "internal pilot and IRB readiness"
+  ],
+  "cross_refs": [
+    "docs/research_system_design.md",
+    "docs/SCOPE.md",
+    "docs/prune_report.md",
+    "CLAUDE.md",
+    "AGENTS.md"
+  ],
+  "locked": false,
+  "precedence": 2,
+  "notes": ""
+}

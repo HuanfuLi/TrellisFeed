@@ -1,0 +1,35 @@
+{
+  "source_path": "/Users/Code/QuestionTrace_Research/docs/prune_report.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "QuestionTrace Phase 0/1 Prune Report",
+  "summary": "Inventory report of the Phase 0/1 feature prune converting the Trellis fork into the QuestionTrace research shell, listing removed vs kept routes, services, tests, and judgment calls.",
+  "scope": [
+    "QuestionTrace research shell",
+    "route removals (/ask, /graph, /planner, /review, /podcast, /anchor, /cluster, /collections)",
+    "podcast feature removal",
+    "flashcards / SRS review removal",
+    "graph / mindmap UI removal",
+    "planner / trellis gamification removal",
+    "global free-form chat removal",
+    "live web / news / YouTube removal",
+    "collections removal",
+    "token analytics removal",
+    "scheduler removal",
+    "surviving data services (db, question, canonical-knowledge, engagement, session, daily-read, post-queue)",
+    "concept feed style weights (image, text-art, suggestion)",
+    "settings / onboarding / locale cleanup",
+    "test suite changes"
+  ],
+  "cross_refs": [
+    "README.md",
+    "ROADMAP.md",
+    "CLAUDE.md",
+    "PROJECT_DESCRIPTION.md",
+    "Documents/"
+  ],
+  "locked": false,
+  "precedence": 3,
+  "notes": ""
+}

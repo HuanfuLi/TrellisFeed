@@ -35,4 +35,4 @@ Conventional Commit style, scoped by phase where applicable (e.g. `feat(phase-2)
 
 ## Specs & Change Management
 
-When behavior changes, keep `docs/` and `ROADMAP.md` aligned with shipped code. OpenSpec artifacts under `openspec/` are inherited history; new research-phase planning follows the design doc's Phase 0–7 roadmap.
+When behavior changes, keep `docs/` and the roadmaps aligned with shipped code. The live roadmap is `.planning/ROADMAP.md` (GSD-managed, 5 locked coarse phases); root `ROADMAP.md` is a summary pointer. OpenSpec artifacts under `openspec/` and `docs/planning_history/trellis/` are inherited history, never live state.

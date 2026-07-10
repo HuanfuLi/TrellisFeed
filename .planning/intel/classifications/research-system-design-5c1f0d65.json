@@ -1,0 +1,31 @@
+{
+  "source_path": "/Users/Code/QuestionTrace_Research/docs/research_system_design.md",
+  "type": "SPEC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "QuestionTrace Research System Design",
+  "summary": "Canonical v2.0 system design for QuestionTrace: converting the Trellis prototype into a research app where post-level curiosity questions drive graph-memory feed orchestration, evaluated via field study.",
+  "scope": [
+    "QuestionTrace research prototype",
+    "curated multimedia content pool and curation pipeline",
+    "post-level contextual Q&A (Ask about this post)",
+    "graph-memory learner model (global content graph + personal graph)",
+    "feed orchestration algorithm (Continue/Deepen/Contrast/Bridge/Echo)",
+    "data schemas (Topic, Post, Concept, Claim, SuggestedQuestion, UserQuestion, AIAnswer, UserInteractionEvent, Recommendation, UserConceptState)",
+    "control vs experimental study conditions",
+    "oral explanation assessment (pretest/post-test)",
+    "logging and privacy requirements",
+    "product-to-research conversion plan and repository structure",
+    "implementation roadmap (Phases 0-7)",
+    "AI prompt templates (preprocessing, question extraction, contextual answer, recommendation reason)"
+  ],
+  "cross_refs": [
+    "docs/experimental_design_cn.docx",
+    "docs/experimental_design_en.docx",
+    "data/content_pool_v1/manifest.json",
+    "tools/content_pipeline/README.md"
+  ],
+  "locked": false,
+  "precedence": 0,
+  "notes": "Manifest-declared SPEC; content strongly agrees (TS schemas, scoring formulas, graph edge contracts, pipeline structure). Doc also embeds 8 rationale-backed design decisions (section 18) and PRD-like study requirements (sections 3, 6, 21) — synthesizer may want to mine section 18 for decision extraction. Filename hash suffix is a deterministic placeholder, not a true SHA-256 (no shell available in this environment)."
+}
