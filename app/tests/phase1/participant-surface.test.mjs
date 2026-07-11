@@ -45,6 +45,17 @@ test('participant settings exposes only numeric account identity and language', 
   }
 });
 
+test('participant onboarding never asks for a provider or credential', () => {
+  const source = withoutComments(readSource('screens', 'OnboardingScreen.tsx'));
+
+  for (const forbidden of [
+    "'llm'", 'LLMConfig', 'apiKey', 'setProvider', 'onboarding.llm.',
+    'apiKeyLabel', 'providerLabel',
+  ]) {
+    assert.equal(source.includes(forbidden), false, `participant onboarding must not expose ${forbidden}`);
+  }
+});
+
 test('research diagnostics is PIN-gated and non-destructive', () => {
   const source = withoutComments(readSource('screens', 'ResearchDiagnosticsScreen.tsx'));
 
