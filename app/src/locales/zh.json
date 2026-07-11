@@ -33,7 +33,7 @@
       "micInUse": "麦克风正被其他应用使用。",
       "micUnsupported": "此设备不支持录音。",
       "micGenericError": "无法访问麦克风。请重试。",
-      "restoredToTrellis": "已恢复到棚架",
+      "restoredToTrellis": "已恢复到 QuestionTrace",
       "permanentlyDeleted": "已永久删除",
       "transcriptionMissingKey": "请在「语音合成与识别」设置中添加 API 密钥。",
       "transcriptionFailed": "转录失败：{{message}}",
@@ -136,7 +136,7 @@
       "dead": "枯萎",
       "harvestAria": "收获 {{count}} 个果实",
       "pruned": "已修剪（{{count}}）",
-      "restoreTitle": "恢复到棚架",
+      "restoreTitle": "恢复到 QuestionTrace",
       "deleteForeverTitle": "永久删除"
     }
   },
@@ -423,7 +423,7 @@
       "reminderTime": "提醒时间",
       "dailyAutoRefresh": "每日自动刷新",
       "preferredRefreshTime": "偏好刷新时间",
-      "trellisDevMode": "棚架开发模式",
+      "trellisDevMode": "QuestionTrace 开发模式",
       "aiDataTransmission": "AI 数据传输",
       "similarityThreshold": "相似度阈值",
       "showSimilarityScores": "显示相似度分数",
@@ -479,7 +479,7 @@
       "trellisDevModeHint": "在虚拟节点上显示全部 7 种叶子状态（新芽、绿叶、黄叶、落叶中、已落、花开、结果），便于视觉调试。",
       "developerBlurb": "开发用的调试工具。破坏性操作无法撤销。",
       "usageBlurb": "每月提问限额和 LLM API Token 使用情况。",
-      "privacyBlurb": "Trellis 采用本地优先策略。问题、会话、保存的帖子和设置都仅存储在本设备上。任何 Trellis 服务器都不会收到你的数据。",
+      "privacyBlurb": "研究交互和问答记录会先存储在此设备上，再上传到研究数据收集端。应用可离线使用，并会在网络恢复后重试上传。",
       "aiConsentHint": "允许将问题发送到你配置的 AI 提供商",
       "generationCap": "每个概念每天最多生成数",
       "bonusCap": "所有概念探索完后的额外内容数",
@@ -575,7 +575,7 @@
       "resets": "将于 {{date}} 重置"
     },
     "about": {
-      "version": "Trellis v1.0.0",
+      "version": "QuestionTrace v1.0.0",
       "licenseSoon": "许可证弹窗即将推出"
     },
     "toast": {
@@ -603,8 +603,8 @@
       "noPostQueueRollback": "没有可回滚的帖子队列。请先生成一些帖子。",
       "forceNewDayRollbackSuccess": "队列和每日帖子缓存已回滚；藤蔓进度已重置。正在前往 /home。",
       "forceNewDayFailed": "强制新一天失败。请检查控制台。",
-      "trellisDevOn": "棚架开发模式已开启 — 显示所有叶子状态",
-      "trellisDevOff": "棚架开发模式已关闭",
+      "trellisDevOn": "QuestionTrace 开发模式已开启 — 显示所有叶子状态",
+      "trellisDevOff": "QuestionTrace 开发模式已关闭",
       "settingsReset": "设置已重置，正在重新加载…",
       "todayReset": "今日复习/帖子状态已重置"
     },
@@ -866,10 +866,10 @@
       "continue": "继续"
     },
     "welcome": {
-      "title": "欢迎使用 Trellis",
-      "body": "一个专注的研究原型，用于阅读帖子、围绕上下文追问，并在本地保存学习信号。",
+      "title": "欢迎使用 QuestionTrace",
+      "body": "一款研究应用，用于阅读帖子、在帖子下进行追问，并为研究提供交互记录。",
       "featureAskTitle": "基于上下文提问",
-      "featureAskDesc": "从帖子中提出追问，并在本地保留问题轨迹",
+      "featureAskDesc": "在帖子下提出追问。问答记录会先存储在设备上，再为研究上传。",
       "featureReviewTitle": "间隔重复",
       "featureReviewDesc": "在最佳间隔复习卡片，最大化记忆效果",
       "featurePodcastTitle": "每日播客",
@@ -881,14 +881,14 @@
       "choose": "Choose your language · 选择语言 · Elige tu idioma · 言語を選択"
     },
     "consent": {
-      "title": "数据与隐私",
-      "intro": "Trellis 是一款隐私优先的应用。以下是你的数据的具体流向：",
-      "rowLocal": "问题、会话、保存的帖子和设置仅存储在你的设备上。",
-      "rowCloud": "当你提问时，只会使用你自己的 API 密钥直接发送到你配置的 AI 提供商（例如 OpenAI、Anthropic）。",
-      "rowNoServer": "Trellis 从不将你的数据传送到任何 Trellis 服务器。Trellis 没有后端。",
-      "consent": "我理解并同意，我的问题将使用我自己的 API 密钥发送到我配置的 AI 提供商。",
+      "title": "研究数据与隐私",
+      "intro": "QuestionTrace 是一款研究应用。以下是交互和问答记录的处理方式：",
+      "rowLocal": "交互和问答记录会先存储在你的设备上。",
+      "rowCloud": "这些记录会安全上传到研究的数据收集端。应用可离线使用，并会在网络恢复后重试上传。",
+      "rowNoServer": "研究数据收集端只接收本研究需要的记录；不会收集设备元数据或你在 QuestionTrace 之外的活动。",
+      "consent": "我理解并同意，为本研究收集我的交互和问答记录。",
       "continue": "继续",
-      "skip": "跳过 — 不使用 AI 功能"
+      "skip": "暂时跳过"
     },
     "llm": {
       "title": "配置 LLM",

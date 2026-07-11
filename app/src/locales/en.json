@@ -33,7 +33,7 @@
       "micInUse": "Microphone is in use by another app.",
       "micUnsupported": "Recording not supported on this device.",
       "micGenericError": "Could not access microphone. Try again.",
-      "restoredToTrellis": "Restored to trellis",
+      "restoredToTrellis": "Restored to QuestionTrace",
       "permanentlyDeleted": "Permanently deleted",
       "transcriptionMissingKey": "Add your API key in Text-to-Speech & Speech Recognition settings.",
       "transcriptionFailed": "Transcription failed: {{message}}",
@@ -136,7 +136,7 @@
       "dead": "Dead",
       "harvestAria": "Harvest {{count}} fruit",
       "pruned": "Pruned ({{count}})",
-      "restoreTitle": "Restore to trellis",
+      "restoreTitle": "Restore to QuestionTrace",
       "deleteForeverTitle": "Delete forever"
     }
   },
@@ -423,7 +423,7 @@
       "reminderTime": "Reminder Time",
       "dailyAutoRefresh": "Daily Auto-Refresh",
       "preferredRefreshTime": "Preferred Refresh Time",
-      "trellisDevMode": "Trellis Dev Mode",
+      "trellisDevMode": "QuestionTrace Dev Mode",
       "aiDataTransmission": "AI Data Transmission",
       "similarityThreshold": "Similarity Threshold",
       "showSimilarityScores": "Show Similarity Scores",
@@ -479,7 +479,7 @@
       "trellisDevModeHint": "Shows all 7 leaf states (bud, green, yellow, falling, fallen, blossom, fruit) on dummy nodes for visual debugging.",
       "developerBlurb": "Debug tools for development. Destructive actions cannot be undone.",
       "usageBlurb": "Monthly question limit and LLM API token usage.",
-      "privacyBlurb": "Trellis is local-first. Questions, sessions, saved posts, and settings are stored only on this device. No Trellis server ever receives your data.",
+      "privacyBlurb": "Study interaction and question/answer records are stored on this device first and uploaded to the research data collector. The app works offline and retries uploads when a connection returns.",
       "aiConsentHint": "Allow questions to be sent to your configured AI provider",
       "generationCap": "Max posts per concept per day",
       "bonusCap": "Extra posts after all concepts explored",
@@ -575,7 +575,7 @@
       "resets": "Resets {{date}}"
     },
     "about": {
-      "version": "Trellis v1.0.0",
+      "version": "QuestionTrace v1.0.0",
       "licenseSoon": "Licenses modal coming soon"
     },
     "toast": {
@@ -603,8 +603,8 @@
       "noPostQueueRollback": "No post queue to roll back. Generate some posts first.",
       "forceNewDayRollbackSuccess": "Queue + daily-posts cache rolled back; vine progress reset. Navigating to /home.",
       "forceNewDayFailed": "Force new day failed. Check console.",
-      "trellisDevOn": "Trellis dev mode on — showing all leaf states",
-      "trellisDevOff": "Trellis dev mode off",
+      "trellisDevOn": "QuestionTrace dev mode on — showing all leaf states",
+      "trellisDevOff": "QuestionTrace dev mode off",
       "settingsReset": "Settings reset — reloading…",
       "todayReset": "Today's review/post status reset"
     },
@@ -866,10 +866,10 @@
       "continue": "Continue"
     },
     "welcome": {
-      "title": "Welcome to Trellis",
-      "body": "A focused research prototype for reading posts, asking contextual follow-ups, and saving study signals locally.",
+      "title": "Welcome to QuestionTrace",
+      "body": "A research app for reading posts, asking post-scoped follow-up questions, and contributing interaction records to a study.",
       "featureAskTitle": "Ask In Context",
-      "featureAskDesc": "Ask follow-up questions from a post and keep the resulting trace local",
+      "featureAskDesc": "Ask follow-up questions under a post. Question and answer records are stored on-device first and uploaded for the study.",
       "featureReviewTitle": "Spaced Repetition",
       "featureReviewDesc": "Review cards at optimal intervals to maximize retention",
       "featurePodcastTitle": "Daily Podcasts",
@@ -881,14 +881,14 @@
       "choose": "Choose your language · 选择语言 · Elige tu idioma · 言語を選択"
     },
     "consent": {
-      "title": "Data & Privacy",
-      "intro": "Trellis is a privacy-first app. Here's exactly what happens with your data:",
-      "rowLocal": "Questions, sessions, saved posts, and settings are stored locally on your device only.",
-      "rowCloud": "When you ask a question, it is sent directly to your configured AI provider (e.g., OpenAI, Anthropic) using only your own API key.",
-      "rowNoServer": "Trellis never transmits your data to any Trellis server. There is no Trellis backend.",
-      "consent": "I understand and agree that my questions will be sent to my configured AI provider using my own API key.",
+      "title": "Study Data & Privacy",
+      "intro": "QuestionTrace is a research study app. Here is how interaction and question/answer records are handled:",
+      "rowLocal": "Interaction and question/answer records are stored on your device first.",
+      "rowCloud": "These records are securely uploaded to the study's research data collector. The app works offline and retries uploads when a connection returns.",
+      "rowNoServer": "The research collector receives only the records needed for this study; it does not collect device metadata or activity outside QuestionTrace.",
+      "consent": "I understand and agree that my interaction and question/answer records will be collected for this study.",
       "continue": "Continue",
-      "skip": "Skip — I'll use Trellis without AI features"
+      "skip": "Skip for now"
     },
     "llm": {
       "title": "Configure LLM",

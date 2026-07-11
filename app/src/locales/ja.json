@@ -33,7 +33,7 @@
       "micInUse": "マイクは他のアプリで使用中です。",
       "micUnsupported": "このデバイスでは録音に対応していません。",
       "micGenericError": "マイクにアクセスできませんでした。もう一度お試しください。",
-      "restoredToTrellis": "トレリスに復元しました",
+      "restoredToTrellis": "QuestionTrace に復元しました",
       "permanentlyDeleted": "完全に削除しました",
       "transcriptionMissingKey": "「音声合成・認識」設定で API キーを追加してください。",
       "transcriptionFailed": "文字起こしに失敗：{{message}}",
@@ -136,7 +136,7 @@
       "dead": "枯死",
       "harvestAria": "{{count}} 個の果実を収穫",
       "pruned": "剪定済み（{{count}}）",
-      "restoreTitle": "トレリスに復元",
+      "restoreTitle": "QuestionTrace に復元",
       "deleteForeverTitle": "完全に削除"
     }
   },
@@ -423,7 +423,7 @@
       "reminderTime": "リマインダー時刻",
       "dailyAutoRefresh": "毎日自動更新",
       "preferredRefreshTime": "希望更新時刻",
-      "trellisDevMode": "トレリス開発モード",
+      "trellisDevMode": "QuestionTrace 開発モード",
       "aiDataTransmission": "AI データ送信",
       "similarityThreshold": "類似度しきい値",
       "showSimilarityScores": "スコアを表示",
@@ -479,7 +479,7 @@
       "trellisDevModeHint": "ダミーノードで 7 種類の葉の状態（芽、緑、黄、落下中、落葉、花、果実）を表示し、視覚デバッグに使います。",
       "developerBlurb": "開発用のデバッグツール。破壊的操作は元に戻せません。",
       "usageBlurb": "月間の質問上限と LLM API トークン使用状況。",
-      "privacyBlurb": "Trellis はローカル優先です。質問、セッション、保存した投稿、設定はこの端末のみに保存されます。Trellis サーバーがデータを受け取ることはありません。",
+      "privacyBlurb": "研究用の操作記録と質問・回答記録は、まずこの端末に保存され、その後研究データ収集先へアップロードされます。アプリはオフラインでも利用でき、接続が戻るとアップロードを再試行します。",
       "aiConsentHint": "質問を設定済みの AI プロバイダーへ送信することを許可",
       "generationCap": "コンセプトごとの1日最大生成数",
       "bonusCap": "全コンセプト探索後の追加投稿数",
@@ -575,7 +575,7 @@
       "resets": "{{date}} にリセット"
     },
     "about": {
-      "version": "Trellis v1.0.0",
+      "version": "QuestionTrace v1.0.0",
       "licenseSoon": "ライセンス表示は近日対応"
     },
     "toast": {
@@ -603,8 +603,8 @@
       "noPostQueueRollback": "ロールバックできる投稿キューがありません。先に投稿を生成してください。",
       "forceNewDayRollbackSuccess": "キューと日次投稿キャッシュをロールバックし、つるの進捗をリセットしました。/home に移動します。",
       "forceNewDayFailed": "強制的な新しい日の処理に失敗しました。コンソールを確認してください。",
-      "trellisDevOn": "トレリス開発モードを ON — すべての葉の状態を表示",
-      "trellisDevOff": "トレリス開発モードを OFF",
+      "trellisDevOn": "QuestionTrace 開発モードを ON — すべての葉の状態を表示",
+      "trellisDevOff": "QuestionTrace 開発モードを OFF",
       "settingsReset": "設定をリセットしました — 再読み込み中…",
       "todayReset": "今日のレビュー/投稿ステータスをリセットしました"
     },
@@ -866,10 +866,10 @@
       "continue": "続ける"
     },
     "welcome": {
-      "title": "Trellis へようこそ",
-      "body": "投稿を読み、文脈に沿ってフォローアップ質問を行い、学習シグナルをローカルに保存するための研究プロトタイプです。",
+      "title": "QuestionTrace へようこそ",
+      "body": "投稿を読み、投稿内でフォローアップ質問を行い、研究のための操作記録を提供する研究アプリです。",
       "featureAskTitle": "文脈内で質問",
-      "featureAskDesc": "投稿からフォローアップ質問を行い、その質問トレースをローカルに保持します",
+      "featureAskDesc": "投稿内でフォローアップ質問をします。質問と回答の記録はまず端末に保存され、その後研究用にアップロードされます。",
       "featureReviewTitle": "間隔反復",
       "featureReviewDesc": "最適な間隔で復習し記憶を最大化",
       "featurePodcastTitle": "毎日のポッドキャスト",
@@ -881,14 +881,14 @@
       "choose": "Choose your language · 选择语言 · Elige tu idioma · 言語を選択"
     },
     "consent": {
-      "title": "データとプライバシー",
-      "intro": "Trellis はプライバシー優先のアプリです。あなたのデータの扱いは次のとおりです：",
-      "rowLocal": "質問、セッション、保存した投稿、設定はすべてこの端末のみに保存されます。",
-      "rowCloud": "質問すると、あなた自身の API キーを使って、設定した AI プロバイダー（OpenAI、Anthropic など）に直接送信されます。",
-      "rowNoServer": "Trellis はあなたのデータを Trellis サーバーに送信することはありません。Trellis にバックエンドはありません。",
-      "consent": "私は質問が自分の API キーを使って設定済みの AI プロバイダーへ送信されることを理解し同意します。",
+      "title": "研究データとプライバシー",
+      "intro": "QuestionTrace は研究調査用のアプリです。操作記録と質問・回答記録は次のように取り扱われます：",
+      "rowLocal": "操作記録と質問・回答記録は、まずこの端末に保存されます。",
+      "rowCloud": "これらの記録は研究データ収集先へ安全にアップロードされます。アプリはオフラインでも利用でき、接続が戻るとアップロードを再試行します。",
+      "rowNoServer": "研究データ収集先が受け取るのはこの研究に必要な記録だけで、デバイスのメタデータや QuestionTrace 外での活動は収集しません。",
+      "consent": "この研究のために自分の操作記録と質問・回答記録が収集されることを理解し、同意します。",
       "continue": "続ける",
-      "skip": "スキップ — AI 機能を使わずに利用"
+      "skip": "今はスキップ"
     },
     "llm": {
       "title": "LLM を設定",

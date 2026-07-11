@@ -33,7 +33,7 @@
       "micInUse": "El micrófono está siendo usado por otra app.",
       "micUnsupported": "La grabación no es compatible con este dispositivo.",
       "micGenericError": "No se pudo acceder al micrófono. Inténtalo de nuevo.",
-      "restoredToTrellis": "Restaurado al enrejado",
+      "restoredToTrellis": "Restaurado en QuestionTrace",
       "permanentlyDeleted": "Eliminado permanentemente",
       "transcriptionMissingKey": "Agrega tu clave de API en los ajustes de Voz y Reconocimiento.",
       "transcriptionFailed": "Falló la transcripción: {{message}}",
@@ -136,7 +136,7 @@
       "dead": "Muertos",
       "harvestAria": "Cosechar {{count}} fruto",
       "pruned": "Podados ({{count}})",
-      "restoreTitle": "Restaurar al enrejado",
+      "restoreTitle": "Restaurar en QuestionTrace",
       "deleteForeverTitle": "Eliminar para siempre"
     }
   },
@@ -423,7 +423,7 @@
       "reminderTime": "Hora del recordatorio",
       "dailyAutoRefresh": "Actualización diaria",
       "preferredRefreshTime": "Hora de actualización preferida",
-      "trellisDevMode": "Modo dev enrejado",
+      "trellisDevMode": "Modo de desarrollo de QuestionTrace",
       "aiDataTransmission": "Transmisión de datos a IA",
       "similarityThreshold": "Umbral de similitud",
       "showSimilarityScores": "Mostrar puntuaciones",
@@ -479,7 +479,7 @@
       "trellisDevModeHint": "Muestra los 7 estados de hojas (brote, verde, amarilla, cayendo, caída, flor, fruto) en nodos de prueba.",
       "developerBlurb": "Herramientas de depuración. Las acciones destructivas no se pueden deshacer.",
       "usageBlurb": "Límite mensual de preguntas y uso de tokens de la API del LLM.",
-      "privacyBlurb": "Trellis es local-first. Las preguntas, sesiones, publicaciones guardadas y ajustes se guardan solo en este dispositivo. Ningún servidor de Trellis recibe tus datos.",
+      "privacyBlurb": "Los registros de interacción y de preguntas/respuestas del estudio se almacenan primero en este dispositivo y se cargan al recolector de datos de investigación. La app funciona sin conexión y reintenta las cargas al recuperar la conexión.",
       "aiConsentHint": "Permitir que las preguntas se envíen a tu proveedor de IA",
       "generationCap": "Publicaciones max por concepto al dia",
       "bonusCap": "Publicaciones extra tras explorar todos los conceptos",
@@ -575,7 +575,7 @@
       "resets": "Se reinicia el {{date}}"
     },
     "about": {
-      "version": "Trellis v1.0.0",
+      "version": "QuestionTrace v1.0.0",
       "licenseSoon": "Modal de licencias próximamente"
     },
     "toast": {
@@ -603,8 +603,8 @@
       "noPostQueueRollback": "No hay cola de publicaciones para revertir. Genera algunas publicaciones primero.",
       "forceNewDayRollbackSuccess": "Cola y caché de publicaciones diarias revertidas; progreso de la vid restablecido. Navegando a /home.",
       "forceNewDayFailed": "Falló forzar un nuevo día. Revisa la consola.",
-      "trellisDevOn": "Modo dev enrejado activado — mostrando todos los estados",
-      "trellisDevOff": "Modo dev enrejado desactivado",
+      "trellisDevOn": "Modo de desarrollo de QuestionTrace activado — mostrando todos los estados",
+      "trellisDevOff": "Modo de desarrollo de QuestionTrace desactivado",
       "settingsReset": "Ajustes restablecidos — recargando…",
       "todayReset": "Estado de revisión/publicaciones de hoy restablecido"
     },
@@ -866,10 +866,10 @@
       "continue": "Continuar"
     },
     "welcome": {
-      "title": "Bienvenido a Trellis",
-      "body": "Un prototipo de investigación centrado en leer publicaciones, hacer seguimientos contextuales y guardar señales de estudio localmente.",
+      "title": "Bienvenido a QuestionTrace",
+      "body": "Una aplicación de investigación para leer publicaciones, hacer preguntas de seguimiento dentro de cada publicación y aportar registros de interacción al estudio.",
       "featureAskTitle": "Pregunta en contexto",
-      "featureAskDesc": "Haz preguntas de seguimiento desde una publicación y conserva la traza localmente",
+      "featureAskDesc": "Haz preguntas de seguimiento dentro de una publicación. Los registros de preguntas y respuestas se almacenan primero en el dispositivo y se cargan para el estudio.",
       "featureReviewTitle": "Repetición espaciada",
       "featureReviewDesc": "Repasa las fichas en el intervalo óptimo para maximizar la retención",
       "featurePodcastTitle": "Podcasts diarios",
@@ -881,14 +881,14 @@
       "choose": "Choose your language · 选择语言 · Elige tu idioma · 言語を選択"
     },
     "consent": {
-      "title": "Datos y privacidad",
-      "intro": "Trellis es una app con privacidad primero. Esto es exactamente lo que ocurre con tus datos:",
-      "rowLocal": "Las preguntas, sesiones, publicaciones guardadas y ajustes se guardan solo en tu dispositivo.",
-      "rowCloud": "Cuando haces una pregunta, se envía directamente a tu proveedor de IA configurado (p. ej., OpenAI, Anthropic) usando solo tu propia clave API.",
-      "rowNoServer": "Trellis nunca transmite tus datos a ningún servidor de Trellis. No hay backend de Trellis.",
-      "consent": "Entiendo y acepto que mis preguntas se enviarán a mi proveedor de IA configurado usando mi propia clave API.",
+      "title": "Datos y privacidad del estudio",
+      "intro": "QuestionTrace es una aplicación para un estudio de investigación. Así se gestionan los registros de interacción y de preguntas/respuestas:",
+      "rowLocal": "Los registros de interacción y de preguntas/respuestas se almacenan primero en tu dispositivo.",
+      "rowCloud": "Estos registros se cargan de forma segura al recolector de datos de investigación. La app funciona sin conexión y reintenta las cargas al recuperar la conexión.",
+      "rowNoServer": "El recolector de investigación recibe solo los registros necesarios para este estudio; no recopila metadatos del dispositivo ni actividad fuera de QuestionTrace.",
+      "consent": "Entiendo y acepto que se recopilen mis registros de interacción y de preguntas/respuestas para este estudio.",
       "continue": "Continuar",
-      "skip": "Omitir — usaré Trellis sin IA"
+      "skip": "Omitir por ahora"
     },
     "llm": {
       "title": "Configurar LLM",
