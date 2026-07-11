@@ -22,6 +22,7 @@ import { normalizePlainText } from '../lib/text-normalization';
 import { generatePostEssay, generateEssayMeta, patchPostEssayInCache, type EssayContent } from '../services/post-essay.service';
 import { eventBus } from '../lib/event-bus';
 import { postHistoryService } from '../services/post-history.service';
+import { interactionLog } from '../services/interaction-log.service';
 
 interface ConnectionMeta {
   questionA: Question;
@@ -173,9 +174,17 @@ export function PostDetailScreen() {
 
   // Record viewed post in history (idempotent — deduplicates by id)
   useEffect(() => {
-    if (post) {
-      try { postHistoryService.addPost(post); } catch { /* non-critical */ }
-    }
+    if (!post) return;
+    try { postHistoryService.addPost(post); } catch { /* non-critical */ }
+    const openedAt = Date.now();
+    void interactionLog.record('post_open', { postId: post.id })
+      .catch(() => { /* observer only */ });
+    return () => {
+      void interactionLog.record('post_close', {
+        postId: post.id,
+        durationMs: Math.max(0, Date.now() - openedAt),
+      }).catch(() => { /* observer only */ });
+    };
   }, [post?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -428,7 +437,7 @@ export function PostDetailScreen() {
   const normalizedContextLabel = post ? normalizePlainText(post.contextLabel) : '';
   const normalizedTitle = post ? normalizePlainText(post.title) : '';
 
-  const handleAsk = async (content: string) => {
+  const handleAsk = async (content: string, questionSource: 'typed' | 'suggested_question') => {
     if (!content.trim() || !post || !session) return;
 
     // Detector C: Follow-up question marks concept as explored (D-06)
@@ -441,6 +450,15 @@ export function PostDetailScreen() {
     sessionService.setActiveId(nextSession.id);
     setInput('');
     setQaStreaming('');
+
+    const questionLogPromise = interactionLog.recordQuestionSubmit({
+        postId: post.id,
+        questionId: userMsg.id,
+        questionText: userMsg.content,
+        questionSource,
+      }).catch(() => {
+      // Logging is an observer. A local logging failure must not suppress post Q&A.
+      });
 
     try {
       let accumulated = '';
@@ -458,6 +476,15 @@ export function PostDetailScreen() {
       setSession(updated);
       sessionService.save(updated);
       setQaStreaming('');
+      try {
+        await questionLogPromise;
+        await interactionLog.recordAnswerViewed({
+          questionId: userMsg.id,
+          answerText: aiMsg.content,
+        });
+      } catch {
+        // The participant still receives the completed answer if logging fails.
+      }
     } catch (error) {
       setQaStreaming('');
       toast(error instanceof Error ? error.message : t('posts.qa.askFailed'), 'error');
@@ -969,7 +996,7 @@ export function PostDetailScreen() {
             {quickAskPrompts.map((prompt) => (
               <button
                 key={prompt}
-                onClick={() => void handleAsk(prompt)}
+                onClick={() => void handleAsk(prompt, 'suggested_question')}
                 disabled={Boolean(qaStreaming)}
                 style={{
                   padding: '7px 11px',
@@ -1024,7 +1051,7 @@ export function PostDetailScreen() {
           <form
             onSubmit={(event) => {
               event.preventDefault();
-              void handleAsk(input);
+              void handleAsk(input, 'typed');
             }}
             style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}
           >
