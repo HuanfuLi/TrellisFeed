@@ -9,6 +9,7 @@ import { createOpenAiProvider } from './ai/openai.ts';
 import type { StructuredProvider } from './ai/provider.ts';
 import type { NormalizedCandidate } from './normalize/candidate.ts';
 import { runStructuredPreprocess } from './preprocess/run.ts';
+import { runCodexGate } from './codex-gate/run.ts';
 
 const PILOT_TOPIC = 'ai-agents-future-work';
 
@@ -199,15 +200,46 @@ async function preprocessRunDirectory(options: PreprocessOptions): Promise<unkno
   return { processed: results.filter((result) => result.status === 'preprocessed').length, failed: results.filter((result) => result.status === 'failed').length };
 }
 
+function parseCodexReviewArgs(argv: string[]): CodexReviewCliOptions {
+  const { values } = parseValues(argv, []);
+  const allowed = new Set(['--run-dir', '--codex-command', '--timeout-ms']);
+  for (const key of values.keys()) if (!allowed.has(key)) throw new Error(`unsupported codex-review option ${key}`);
+  const runDir = values.get('--run-dir');
+  if (!runDir) throw new Error('codex-review requires --run-dir');
+  const timeoutMs = Number(values.get('--timeout-ms') ?? '120000');
+  if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 1) throw new Error('--timeout-ms must be a positive integer');
+  return { command: 'codex-review', runDir, codexCommand: values.get('--codex-command') ?? 'codex', timeoutMs };
+}
+
+async function codexReviewRunDirectory(options: CodexReviewCliOptions): Promise<unknown> {
+  const normalizedDir = resolveOutputPath(options.runDir, 'normalized');
+  const normalizedFiles = (await readdir(normalizedDir)).filter((name) => name.endsWith('.json')).sort();
+  const normalized = new Map<string, NormalizedCandidate>();
+  for (const filename of normalizedFiles) {
+    const value: NormalizedCandidate = JSON.parse(await readFile(resolveOutputPath(options.runDir, `normalized/${filename}`), 'utf8'));
+    normalized.set(value.id, value);
+  }
+  const preprocessedDir = resolveOutputPath(options.runDir, 'preprocessed');
+  const filenames = (await readdir(preprocessedDir)).filter((name) => name.endsWith('.json')).sort();
+  const reviewDir = resolveOutputPath(options.runDir, 'codex-review');
+  await mkdir(reviewDir, { recursive: true });
+  let advanced = 0;
+  let blocked = 0;
+  for (const filename of filenames) {
+    const candidate = JSON.parse(await readFile(resolveOutputPath(options.runDir, `preprocessed/${filename}`), 'utf8'));
+    const source = normalized.get(candidate.candidateId);
+    const result = source ? await runCodexGate({ candidate, sourceText: source.fullText, codexCommand: options.codexCommand, timeoutMs: options.timeoutMs, maxOutputBytes: 64 * 1024, cwd: resolve(options.runDir) }) : { status: 'blocked', reasonCode: 'missing_source', canAdvanceToHuman: false, requiresHumanApproval: true };
+    await writeFile(resolveOutputPath(options.runDir, `codex-review/${candidate.cacheKey}.json`), `${JSON.stringify(result, null, 2)}\n`);
+    if (result.canAdvanceToHuman) advanced += 1; else blocked += 1;
+  }
+  return { reviewed: filenames.length, advancedToHumanReview: advanced, blocked, operatorApprovalRequired: true };
+}
+
 export async function dispatchCli(argv: string[], handlers: CliHandlers = {}): Promise<unknown> {
   if (argv[0] === 'collect') return (handlers.collect ?? ((options) => collectSeeds(options)))(parseCollectArgs(argv));
   if (argv[0] === 'preprocess') return (handlers.preprocess ?? preprocessRunDirectory)(parsePreprocessArgs(argv));
   if (argv[0] === 'codex-review') {
-    if (!handlers.codexReview) throw new Error('codex-review runner is not registered');
-    const { values } = parseValues(argv, []);
-    const runDir = values.get('--run-dir');
-    if (!runDir) throw new Error('codex-review requires --run-dir');
-    return handlers.codexReview({ command: 'codex-review', runDir, codexCommand: values.get('--codex-command') ?? 'codex', timeoutMs: Number(values.get('--timeout-ms') ?? '120000') });
+    return (handlers.codexReview ?? codexReviewRunDirectory)(parseCodexReviewArgs(argv));
   }
   throw new Error(`unsupported command ${argv[0] ?? ''}`);
 }

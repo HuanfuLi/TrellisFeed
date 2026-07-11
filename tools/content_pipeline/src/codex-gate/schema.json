@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "questiontrace-codex-gate-verdict-v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "verdict",
+    "reasonCodes",
+    "fidelityNotes",
+    "reliabilityNotes",
+    "candidateContentHash",
+    "preprocessingVersion"
+  ],
+  "properties": {
+    "verdict": {
+      "enum": ["advance_to_human", "needs_edit", "reject"]
+    },
+    "reasonCodes": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 20,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "faithful",
+          "attribution_concern",
+          "certainty_drift",
+          "unsupported_claim",
+          "reliability_concern",
+          "leading_question",
+          "provenance_gap",
+          "injection_detected",
+          "other"
+        ]
+      }
+    },
+    "fidelityNotes": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000
+    },
+    "reliabilityNotes": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000
+    },
+    "candidateContentHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "preprocessingVersion": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500
+    }
+  }
+}
