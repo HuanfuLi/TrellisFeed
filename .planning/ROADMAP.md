@@ -86,7 +86,18 @@ QuestionTrace goes from a pruned research shell (Phase 0, done) to a study-ready
   3. Feed home + post detail render the frozen pool with AI wrapper (hook, summary, concept tags) and original source embed/link — with no live fetch in the participant app.
   4. Pre-generated suggested questions appear on post detail, and post-scoped Ask works identically for both conditions with UserQuestion + AIAnswer persisted.
 
-**Plans**: TBD
+**Plans**: 1/9 plans executed
+
+- [x] 02-01-PLAN.md
+- [ ] 02-02-PLAN.md
+- [ ] 02-03-PLAN.md
+- [ ] 02-04-PLAN.md
+- [ ] 02-05-PLAN.md
+- [ ] 02-06-PLAN.md
+- [ ] 02-07-PLAN.md
+- [ ] 02-08-PLAN.md
+- [ ] 02-09-PLAN.md
+
 **UI hint**: yes
 
 ### Phase 3: Graph-memory + recommendation engine
@@ -128,6 +139,6 @@ Phases execute in numeric order: 0 → 1 → 2 → 3 → 4
 |-------|----------------|--------|-----------|
 | 0. Rename, scope, and prune | - | Complete | 2026-07-09 |
 | 1. Rebrand + research shell hardening | 0/10 | Planned | - |
-| 2. Content pool + feed/post UI on frozen data | 0/TBD | Not started | - |
+| 2. Content pool + feed/post UI on frozen data | 1/9 | In Progress|  |
 | 3. Graph-memory + recommendation engine | 0/TBD | Not started | - |
 | 4. Study infrastructure + pilot | 0/TBD | Not started | - |

@@ -17,7 +17,7 @@
 
 ### Content & Feed (Phase 2)
 
-- [ ] **CONT-01**: Domain schemas — Topic, Post, Concept, Claim, SuggestedQuestion (+ UserQuestion, AIAnswer, Recommendation, UserConceptState) match RSD §9 field-for-field.
+- [x] **CONT-01**: Domain schemas — Topic, Post, Concept, Claim, SuggestedQuestion (+ UserQuestion, AIAnswer, Recommendation, UserConceptState) match RSD §9 field-for-field.
 - [ ] **CONT-02**: Content curation pipeline in `tools/content_pipeline/` — collectors, AI preprocessing (summary, concept tags, claims, stance, difficulty, suggested questions), dedupe, quality scoring, human-review gate, exporters. Ingests 400–800 raw candidates per topic → human-approved posts (RSD §8, §17.1).
 - [ ] **CONT-03**: Frozen pool export to `data/content_pool_v1/` — one pilot topic (~50 approved posts) before scaling to 200–400; versioned (`contentPoolVersion`) and immutable once frozen (RSD §8.8).
 - [ ] **FEED-01**: Feed card + post detail rendering the frozen pool, replacing the temporary AI-generated feed shell entirely — feed card (§7.2), post detail with AI wrapper (hook, summary, concept tags) + original source embed/link (§7.3, §7.4). No live fetch in the participant app.
@@ -75,7 +75,7 @@ Explicitly excluded (design doc §15.3 / SCOPE.md). Documented to prevent scope 
 | SHELL-04 | Phase 1 | Pending |
 | LOG-01 | Phase 1 | Pending |
 | RQ-01 | Phase 1 | Pending |
-| CONT-01 | Phase 2 | Pending |
+| CONT-01 | Phase 2 | Complete |
 | CONT-02 | Phase 2 | Pending |
 | CONT-03 | Phase 2 | Pending |
 | FEED-01 | Phase 2 | Pending |
@@ -99,6 +99,7 @@ Explicitly excluded (design doc §15.3 / SCOPE.md). Documented to prevent scope 
 | STUDY-05 | Phase 4 | Pending |
 
 **Coverage:**
+
 - v1 requirements: 28 total
 - Mapped to phases: 28
 - Unmapped: 0 ✓

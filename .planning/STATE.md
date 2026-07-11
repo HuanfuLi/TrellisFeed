@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 1
-current_phase_name: Phase 0 complete; Rebrand + research shell hardening
-status: planning
-stopped_at: Phase 1 context gathered
-last_updated: "2026-07-10T13:12:04.753Z"
-last_activity: 2026-07-10
-last_activity_desc: Bootstrapped .planning/ from ingest (PROJECT, REQUIREMENTS, ROADMAP, STATE). Phase 0 already complete.
+current_phase: 02
+current_phase_name: content-pool-feed-post-ui-on-frozen-data
+status: executing
+stopped_at: Completed 02-01-PLAN.md
+last_updated: "2026-07-11T20:21:31.091Z"
+last_activity: 2026-07-11
+last_activity_desc: Phase 02 execution started
 progress:
   total_phases: 5
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 22
+  completed_plans: 11
   percent: 0
 ---
 
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-10)
 
 **Core value:** Two study conditions produce different-but-comparable feeds with interpretable recommendation reasons on a frozen content pool, with complete interaction logging.
-**Current focus:** Phase 1 — Rebrand + research shell hardening
+**Current focus:** Phase 02 — content-pool-feed-post-ui-on-frozen-data
 
 ## Current Position
 
-Phase: 1 of 4 open phases (Phase 0 complete; Rebrand + research shell hardening)
-Plan: 0 of TBD in current phase
-Status: Ready to discuss/plan Phase 1
-Last activity: 2026-07-10 — Bootstrapped .planning/ from ingest (PROJECT, REQUIREMENTS, ROADMAP, STATE). Phase 0 already complete.
+Phase: 02 (content-pool-feed-post-ui-on-frozen-data) — EXECUTING
+Plan: 2 of 9
+Status: Ready to execute
+Last activity: 2026-07-11 — Phase 02 execution started
 
 Progress: [██░░░░░░░░] 20% (1 of 5 phases; Phase 0 done)
 
@@ -55,6 +55,7 @@ Progress: [██░░░░░░░░] 20% (1 of 5 phases; Phase 0 done)
 - Trend: —
 
 *Updated after each plan completion*
+| Phase 02 P01 | 9m | 3 tasks | 39 files |
 
 ## Accumulated Context
 
@@ -66,6 +67,8 @@ Decisions are logged in PROJECT.md Key Decisions table. Six LOCKED decisions con
 - DEC-both-conditions-ask: Post-scoped Ask in BOTH conditions; the ONLY isolated variable is graph-memory orchestration.
 - DEC-control-no-question-history: Control ranker never consumes question history (enforced by an algorithm-verification test).
 - DEC-pruned-features-frozen: §15.3 features never resurrected; DEC-framing-rules: constrained user-facing vocabulary; DEC-scope-boundary: SCOPE.md is the fixed build surface.
+- [Phase 02]: Canonical RSD records keep source assets and manifest metadata at the transport boundary. — Prevents pipeline convenience fields from drifting into participant domain records.
+- [Phase 02]: Frozen artifacts use fixed filenames and exactly one owned source asset and feed-order entry per post. — Closes path injection and incomplete-bundle boundaries before import.
 
 ### Pending Todos
 
@@ -86,6 +89,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-10T13:12:04.744Z
-Stopped at: Phase 1 context gathered
-Resume file: .planning/phases/01-rebrand-research-shell-hardening/01-CONTEXT.md
+Last session: 2026-07-11T20:21:31.069Z
+Stopped at: Completed 02-01-PLAN.md
+Resume file: None
