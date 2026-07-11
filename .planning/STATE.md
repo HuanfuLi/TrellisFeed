@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 02
 current_phase_name: content-pool-feed-post-ui-on-frozen-data
 status: executing
-stopped_at: Completed 02-02-PLAN.md
-last_updated: "2026-07-11T20:42:20.863Z"
+stopped_at: Completed 02-05-PLAN.md
+last_updated: "2026-07-11T21:00:21.060Z"
 last_activity: 2026-07-11
 last_activity_desc: Phase 02 execution started
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 22
-  completed_plans: 12
+  completed_plans: 13
   percent: 0
 ---
 
@@ -57,6 +57,7 @@ Progress: [██░░░░░░░░] 20% (1 of 5 phases; Phase 0 done)
 *Updated after each plan completion*
 | Phase 02 P01 | 9m | 3 tasks | 39 files |
 | Phase 02 P02 | 10min | 3 tasks | 16 files |
+| Phase 02 P05 | 14min | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -73,6 +74,7 @@ Decisions are logged in PROJECT.md Key Decisions table. Six LOCKED decisions con
 - [Phase 02]: Collection is operator-authored URL-list only with public destination revalidation at every redirect. — Prevents search/discovery scope creep and closes the SSRF boundary.
 - [Phase 02]: Extraction emits full normalized inert text through configured article/transcript adapters. — Preserves later provenance and grounding while excluding active markup and implicit subprocess acquisition.
 - [Phase 02]: Dedupe and mechanical quality gates preserve evidence and never approve content. — Final acceptance remains an explicit human-review decision.
+- [Phase 02]: Frozen-pool runtime exposure requires fixed packaged filenames, version-qualified staged rows, and a final ready marker; production packaging remains unbound until Plan 09. — This prevents remote acquisition, partial cross-store visibility, ready-version mutation, and accidental coupling to the not-yet-frozen artifact.
 
 ### Pending Todos
 
@@ -93,6 +95,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-11T20:42:20.850Z
-Stopped at: Completed 02-02-PLAN.md
+Last session: 2026-07-11T21:00:00.446Z
+Stopped at: Completed 02-05-PLAN.md
 Resume file: None
