@@ -1,10 +1,10 @@
 // Spy-able corpus-aware deterministic embedding mock for Phase 47 Plan 02
 // filter tests (cache + classifier-unit + eval-set runner).
 //
-// ─── Why this isn't the plain FNV-1a projection from _actions-mock-embedding ──
+// ─── Why this isn't a plain FNV-1a projection ────────────────────────────────
 //
-// _actions-mock-embedding.mjs projects each input string to a 64-dim
-// L2-normalized vector via a uniform FNV-1a hash. That's deterministic but
+// A plain projection maps each input string to a 64-dim L2-normalized vector
+// via a uniform FNV-1a hash. That's deterministic but
 // gives every random pair of inputs a baseline cosine in the 0.4-0.9 band
 // (variance from 64-dim random unit-sphere geometry). For trellis-actions
 // tests that only check `embedText(x) === embedText(x)`, the noise is fine.
