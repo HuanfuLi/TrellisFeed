@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 02
 current_phase_name: content-pool-feed-post-ui-on-frozen-data
 status: executing
-stopped_at: Completed 02-05-PLAN.md
-last_updated: "2026-07-11T21:00:21.060Z"
+stopped_at: Completed 02-03-PLAN.md
+last_updated: "2026-07-11T23:10:38.939Z"
 last_activity: 2026-07-11
 last_activity_desc: Phase 02 execution started
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 22
-  completed_plans: 13
+  completed_plans: 14
   percent: 0
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-10)
 ## Current Position
 
 Phase: 02 (content-pool-feed-post-ui-on-frozen-data) — EXECUTING
-Plan: 3 of 9
+Plan: 4 of 9
 Status: Ready to execute
 Last activity: 2026-07-11 — Phase 02 execution started
 
@@ -58,6 +58,7 @@ Progress: [██░░░░░░░░] 20% (1 of 5 phases; Phase 0 done)
 | Phase 02 P01 | 9m | 3 tasks | 39 files |
 | Phase 02 P02 | 10min | 3 tasks | 16 files |
 | Phase 02 P05 | 14min | 3 tasks | 5 files |
+| Phase 02 P03 | 2h 2m | 3 tasks | 22 files |
 
 ## Accumulated Context
 
@@ -75,6 +76,9 @@ Decisions are logged in PROJECT.md Key Decisions table. Six LOCKED decisions con
 - [Phase 02]: Extraction emits full normalized inert text through configured article/transcript adapters. — Preserves later provenance and grounding while excluding active markup and implicit subprocess acquisition.
 - [Phase 02]: Dedupe and mechanical quality gates preserve evidence and never approve content. — Final acceptance remains an explicit human-review decision.
 - [Phase 02]: Frozen-pool runtime exposure requires fixed packaged filenames, version-qualified staged rows, and a final ready marker; production packaging remains unbound until Plan 09. — This prevents remote acquisition, partial cross-store visibility, ready-version mutation, and accidental coupling to the not-yet-frozen artifact.
+- [Phase 02]: Permanent wrapper preprocessing retains strict local schema authority across provider projections. — Provider-native structured formats cannot weaken validation of frozen content.
+- [Phase 02]: Codex review remains content-hash-bound and advisory-only. — Only the later operator gate can approve content for freeze.
+- [Phase 02]: AI evaluation is fixture-only; tracing is opt-in, loopback-only, exporter-free, and metadata-allowlisted. — Prevents live-provider use and participant-data egress during CI or local observation.
 
 ### Pending Todos
 
@@ -95,6 +99,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-11T21:00:00.446Z
-Stopped at: Completed 02-05-PLAN.md
+Last session: 2026-07-11T23:10:00.629Z
+Stopped at: Completed 02-03-PLAN.md
 Resume file: None
