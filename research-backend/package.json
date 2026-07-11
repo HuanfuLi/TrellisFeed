@@ -1,0 +1,11 @@
+{
+  "name": "questiontrace-research-backend",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "4.110.0"
+  }
+}
