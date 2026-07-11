@@ -7,6 +7,9 @@ import test from 'node:test';
 import { collectSeeds, parseCollectArgs, resolveOutputPath } from '../src/cli.ts';
 import { fetchCandidate } from '../src/collect/fetch-candidate.ts';
 import { assertPublicHttpUrl } from '../src/collect/url-policy.ts';
+import { extractArticle } from '../src/extract/article.ts';
+import { extractYouTubeTranscript, parseYouTubeVideoId } from '../src/extract/youtube.ts';
+import { normalizeCandidate } from '../src/normalize/candidate.ts';
 
 const publicDns = async () => ['93.184.216.34'];
 const privateDns = async () => ['10.0.0.9'];
@@ -108,4 +111,62 @@ test('resume writes safe failure artifacts without response bodies or URL secret
   const artifact = await readFile(join(runDir, 'raw', '0000.json'), 'utf8');
   assert.equal(artifact.includes('hidden'), false);
   assert.equal(artifact.includes('rawBody'), false);
+});
+
+test('extract dependencies are exact, importable, and have no lifecycle install scripts', async () => {
+  const pkg = JSON.parse(await readFile(new URL('../package.json', import.meta.url)));
+  const lock = JSON.parse(await readFile(new URL('../package-lock.json', import.meta.url)));
+  assert.equal(pkg.dependencies['@mozilla/readability'], '0.6.0');
+  assert.equal(pkg.dependencies.jsdom, '29.1.1');
+  assert.equal(lock.packages['node_modules/@mozilla/readability'].version, '0.6.0');
+  assert.equal(lock.packages['node_modules/jsdom'].version, '29.1.1');
+  assert.equal(Object.values(lock.packages).some((entry) => entry?.hasInstallScript === true), false);
+  assert.equal(typeof (await import('@mozilla/readability')).Readability, 'function');
+  assert.equal(typeof (await import('jsdom')).JSDOM, 'function');
+});
+
+test('article extraction makes hostile XSS HTML inert and produces stable normalized blocks', async () => {
+  globalThis.__questionTraceXss = 0;
+  const html = await readFile(new URL('./fixtures/hostile-page.html', import.meta.url), 'utf8');
+  const extracted = extractArticle(html, 'https://example.com/articles/agents');
+  const normalized = normalizeCandidate({
+    id: 'candidate-a', kind: 'article', sourceUrl: 'https://example.com/articles/agents#tracking',
+    sourceName: 'Example Research', collectedAt: '2026-07-11T00:00:00Z', collectorVersion: '0.1.0',
+    ...extracted,
+  });
+  assert.equal(globalThis.__questionTraceXss, 0);
+  assert.equal(normalized.title, 'AI Agents and Work');
+  assert.equal(normalized.author, 'Ada Researcher');
+  assert.equal(normalized.publicationDate, '2026-02-03');
+  assert.ok(normalized.fullText.includes('Agents can reshape tasks'));
+  assert.equal(/[<>]|javascript:|onclick|iframe|script/i.test(JSON.stringify(normalized.blocks)), false);
+  assert.deepEqual(normalized.blocks.map((block) => block.id), normalizeCandidate({
+    id: 'candidate-a', kind: 'article', sourceUrl: 'https://example.com/articles/agents', sourceName: 'Example Research',
+    collectedAt: '2026-07-11T00:00:00Z', collectorVersion: '0.1.0', ...extracted,
+  }).blocks.map((block) => block.id));
+  assert.match(normalized.contentHash, /^[a-f0-9]{64}$/);
+});
+
+test('YouTube extraction accepts canonical IDs and only invokes an injected transcript adapter', async () => {
+  assert.equal(parseYouTubeVideoId('https://www.youtube.com/watch?v=dQw4w9WgXcQ'), 'dQw4w9WgXcQ');
+  assert.equal(parseYouTubeVideoId('https://youtu.be/dQw4w9WgXcQ'), 'dQw4w9WgXcQ');
+  assert.throws(() => parseYouTubeVideoId('https://example.com/watch?v=dQw4w9WgXcQ'), /canonical YouTube/);
+  assert.throws(() => parseYouTubeVideoId('https://youtube.com/shorts/dQw4w9WgXcQ'), /canonical YouTube/);
+  const calls = [];
+  const extracted = await extractYouTubeTranscript('https://www.youtube.com/watch?v=dQw4w9WgXcQ', {
+    adapter: async (videoId) => { calls.push(videoId); return { transcript: 'First line.\n\nSecond line.', title: 'Video title', channel: 'Research Lab', language: 'EN', durationSeconds: 125.4 }; },
+  });
+  assert.deepEqual(calls, ['dQw4w9WgXcQ']);
+  const normalized = normalizeCandidate({ id: 'video-a', kind: 'video', sourceUrl: 'https://youtu.be/dQw4w9WgXcQ', collectedAt: '2026-07-11T00:00:00Z', collectorVersion: '0.1.0', ...extracted });
+  assert.equal(normalized.language, 'en');
+  assert.equal(normalized.durationSeconds, 125);
+  assert.equal(normalized.sourceName, 'Research Lab');
+  assert.equal(normalized.blocks.length, 2);
+});
+
+test('YouTube transcript failure is explicit/resumable and operator transcript text works without a subprocess', async () => {
+  await assert.rejects(() => extractYouTubeTranscript('https://youtu.be/dQw4w9WgXcQ'), /transcript adapter or operator transcript file/);
+  const extracted = await extractYouTubeTranscript('https://youtu.be/dQw4w9WgXcQ', { transcriptText: 'Operator supplied transcript.' });
+  assert.equal(extracted.fullText, 'Operator supplied transcript.');
+  assert.equal(extracted.extractionMethod, 'operator-transcript-file');
 });
