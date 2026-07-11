@@ -27,6 +27,7 @@ import type { DailyPost } from '../types/index.ts';
 import { eventBus } from '../lib/event-bus.ts';
 import { postHistoryService } from './post-history.service.ts';
 import { dbExecute, dbQuery } from './db.service.ts';
+import { interactionLog } from './interaction-log.service.ts';
 
 // Phase 55-07: engagement state (a single JSON blob of saved/liked/dismissed
 // ID arrays) persists to one row in the IndexedDB `engagement`
@@ -146,6 +147,8 @@ export const engagementService = {
     saveState(state);
     if (snapshot) postHistoryService.addPost(snapshot);
     eventBus.emit({ type: 'ENGAGEMENT_CHANGED', payload: { kind: 'save', id: postId } });
+    void interactionLog.record('save_post', { postId })
+      .catch(() => { /* research logging observes but never blocks engagement */ });
   },
 
   /** Remove a saved post (idempotent — no-op + no event if not saved). */

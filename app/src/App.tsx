@@ -32,6 +32,8 @@ import { applyTheme } from './lib/theme';
 import { PageTransition } from './components/PageTransition';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { HeaderScrollContext } from './lib/header-scroll-context';
+import { interactionLog } from './services/interaction-log.service';
+import { eventBus } from './lib/event-bus';
 
 const SCREEN_ROUTES = ['/home', '/settings'] as const;
 
@@ -274,12 +276,31 @@ export default function App() {
   // Gate first render on hydration so post-boot synchronous mirror reads have
   // data (no empty-feed flash, no premature refill against an empty queue).
   const [hydrated, setHydrated] = useState(false);
+  const sessionStartedAtRef = useRef<number | null>(null);
+
+  const startResearchSession = () => {
+    if (!studyContextService.isBound() || sessionStartedAtRef.current !== null) return;
+    sessionStartedAtRef.current = Date.now();
+    void interactionLog.record('app_open').catch(() => { /* observer only */ });
+  };
+
+  const endResearchSession = () => {
+    const startedAt = sessionStartedAtRef.current;
+    if (startedAt === null) return;
+    sessionStartedAtRef.current = null;
+    void interactionLog.record('session_end', {
+      durationMs: Math.max(0, Date.now() - startedAt),
+    }).catch(() => { /* observer only */ });
+  };
 
   // Hydrate data from IndexedDB on app start, THEN reveal the app.
   useEffect(() => {
     let cancelled = false;
     void hydrateAllFromSQLite().finally(() => {
-      if (!cancelled) setHydrated(true);
+      if (!cancelled) {
+        setHydrated(true);
+        startResearchSession();
+      }
     });
     // Bootstrap image generation providers with keys from user settings.
     bootstrapImageGeneration();
@@ -292,7 +313,13 @@ export default function App() {
     // key-absent/offline-safe (no-ops when embedding is unconfigured, swallows
     // embed errors). See scripts/profile-cold-start.mjs for the measurement.
     void prewarmFilterCorpus(settingsService.getSync().embedding);
-    return () => { cancelled = true; };
+    const unsubscribeIdentity = eventBus.subscribe('RESEARCH_IDENTITY_BOUND', () => {
+      startResearchSession();
+    });
+    return () => {
+      cancelled = true;
+      unsubscribeIdentity();
+    };
   }, []);
 
   // Keep theme in sync when the OS switches between light/dark while app is open
@@ -308,15 +335,27 @@ export default function App() {
 
   // On Capacitor, matchMedia doesn't fire after resume — re-apply theme when app returns to foreground
   useEffect(() => {
-    if (!Capacitor.isNativePlatform()) return;
     let listenerHandle: Awaited<ReturnType<typeof CapApp.addListener>> | null = null;
-    void CapApp.addListener('appStateChange', ({ isActive }) => {
-      if (isActive) {
-        const { theme } = settingsService.getSync().preferences;
-        applyTheme(theme);
-      }
-    }).then((handle) => { listenerHandle = handle; });
-    return () => { void listenerHandle?.remove(); };
+    const handlePageHide = () => endResearchSession();
+    const handlePageShow = () => startResearchSession();
+    window.addEventListener('pagehide', handlePageHide);
+    window.addEventListener('pageshow', handlePageShow);
+    if (Capacitor.isNativePlatform()) {
+      void CapApp.addListener('appStateChange', ({ isActive }) => {
+        if (isActive) {
+          startResearchSession();
+          const { theme } = settingsService.getSync().preferences;
+          applyTheme(theme);
+        } else {
+          endResearchSession();
+        }
+      }).then((handle) => { listenerHandle = handle; });
+    }
+    return () => {
+      window.removeEventListener('pagehide', handlePageHide);
+      window.removeEventListener('pageshow', handlePageShow);
+      void listenerHandle?.remove();
+    };
   }, []);
 
   // Android hardware back button — navigate back in history, or exit app at root

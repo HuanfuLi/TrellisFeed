@@ -17,6 +17,7 @@ import { conceptFeedService } from '../services/concept-feed.service';
 import { engagementService } from '../services/engagement.service';
 import { eventBus } from '../lib/event-bus';
 import { getGreeting } from '../lib/date';
+import { interactionLog } from '../services/interaction-log.service';
 
 /** Vertical travel (px) that resolves a bottom-edge touch into a pull-up vs. a scroll-back-up. */
 const DIRECTION_SLOP = 4;
@@ -77,6 +78,19 @@ export function HomeScreen() {
   // (react-hooks/refs).
   const dailyPostsRef = useRef(dailyPosts);
   useEffect(() => { dailyPostsRef.current = dailyPosts; }, [dailyPosts]);
+  const visibleBatchRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (location.pathname !== '/home') {
+      visibleBatchRef.current = null;
+      return;
+    }
+    if (dailyPosts.length === 0) return;
+    const batchId = dailyPosts.map(post => post.id).join('\u001f');
+    if (visibleBatchRef.current === batchId) return;
+    visibleBatchRef.current = batchId;
+    void interactionLog.record('feed_impression').catch(() => { /* observer only */ });
+  }, [dailyPosts, location.pathname]);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationError, setGenerationError] = useState(false);
@@ -596,6 +610,13 @@ export function HomeScreen() {
   useEffect(() => {
     const unsub = eventBus.subscribe('ANCHOR_DISMISSED', (event) => {
       const { anchorId } = event.payload;
+      const dismissedPost = dailyPostsRef.current.find(
+        post => post.sourceQuestionIds?.[0] === anchorId,
+      );
+      if (dismissedPost) {
+        void interactionLog.record('not_interested', { postId: dismissedPost.id })
+          .catch(() => { /* observer only */ });
+      }
       setDailyPosts(prev => prev.filter(p => p.sourceQuestionIds?.[0] !== anchorId));
       setEngagementVersion(v => v + 1);
     });
