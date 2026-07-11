@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.trellis.app',
-  appName: 'Trellis',
+  appName: 'QuestionTrace',
   webDir: 'dist'
 };
 

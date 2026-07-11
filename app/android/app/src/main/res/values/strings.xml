@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Trellis</string>
-    <string name="title_activity_main">Trellis</string>
+    <string name="app_name">QuestionTrace</string>
+    <string name="title_activity_main">QuestionTrace</string>
     <string name="package_name">com.trellis.app</string>
     <string name="custom_url_scheme">com.trellis.app</string>
 </resources>
