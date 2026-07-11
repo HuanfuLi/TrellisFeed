@@ -37,6 +37,11 @@ import { interactionLog } from './services/interaction-log.service';
 import { eventBus } from './lib/event-bus';
 import { hasAffirmativeResearchConsent, resolveParticipantRoute } from './services/research-consent.service';
 import { contentPoolRepository, type ContentPoolRepositorySnapshot } from './services/content-pool.repository';
+import {
+  flushPendingUploads,
+  reconcileResearchOutbox,
+  registerRetryTriggers,
+} from './services/upload-queue.service';
 
 const SCREEN_ROUTES = ['/home', '/settings'] as const;
 
@@ -313,9 +318,18 @@ export default function App() {
   // Hydrate data from IndexedDB on app start, THEN reveal the app.
   useEffect(() => {
     let cancelled = false;
+    let disposeRetryTriggers: (() => void) | null = null;
     setPoolError(null);
-    void hydrateAllFromSQLite().then((contentPool) => {
+    void hydrateAllFromSQLite().then(async (contentPool) => {
       if (cancelled) return;
+      if (studyContextService.isBound()) {
+        disposeRetryTriggers = registerRetryTriggers();
+        if (hasAffirmativeResearchConsent()) {
+          await reconcileResearchOutbox();
+          if (cancelled) return;
+          void flushPendingUploads();
+        }
+      }
       if (contentPool.status === 'ready') {
         setHydrated(true);
         startResearchSession();
@@ -341,6 +355,7 @@ export default function App() {
     });
     return () => {
       cancelled = true;
+      disposeRetryTriggers?.();
       unsubscribeIdentity();
     };
   }, [hydrationAttempt]);

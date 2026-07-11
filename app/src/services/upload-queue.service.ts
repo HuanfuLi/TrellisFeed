@@ -34,6 +34,7 @@ interface QueueRow extends Record<string, string | number | null> {
 interface FlushOptions {
   apiBaseUrl?: string;
   fetch?: typeof globalThis.fetch;
+  persistence?: FlushPersistence;
 }
 
 interface EnqueueOptions extends FlushOptions {
@@ -60,6 +61,23 @@ interface RetryTriggerOptions {
 interface PreparedEnvelope {
   envelope: QueueEnvelope;
   wireRecord: ResearchWireRecord;
+}
+
+interface DeliveryReceipt {
+  revision: number;
+  deliveredAt: string;
+}
+
+interface FlushPersistence {
+  writeDeliveryReceipt?: (envelope: QueueEnvelope) => Promise<void>;
+  deleteQueueEnvelope?: (id: string) => Promise<void>;
+}
+
+interface ResearchRecordRow extends Record<string, string | number | null> {
+  id: string;
+  kind: string;
+  revision: number;
+  data: string;
 }
 
 type SendResult = 'progress' | 'stop';
@@ -152,6 +170,39 @@ async function resolveApiBaseUrl(explicit?: string): Promise<string> {
   return researchConfig.apiBaseUrl;
 }
 
+function recordRevision(record: UploadRecord): number {
+  return 'revision' in record ? record.revision : 1;
+}
+
+function parseDeliveryReceipt(raw: string): DeliveryReceipt | null {
+  try {
+    const value = JSON.parse(raw) as Partial<DeliveryReceipt>;
+    if (!Number.isSafeInteger(value.revision) || (value.revision ?? 0) < 1 ||
+        typeof value.deliveredAt !== 'string' || Number.isNaN(Date.parse(value.deliveredAt))) {
+      return null;
+    }
+    return value as DeliveryReceipt;
+  } catch {
+    return null;
+  }
+}
+
+async function writeDeliveryReceipt(envelope: QueueEnvelope): Promise<void> {
+  const id = `delivery:${envelope.id}`;
+  const revision = recordRevision(envelope.record);
+  const rows = await dbQuery<{ id: string; data: string }>(
+    'SELECT * FROM research_metadata WHERE id = ?',
+    [id],
+  );
+  const current = rows[0] ? parseDeliveryReceipt(rows[0].data) : null;
+  if (current && current.revision >= revision) return;
+  const receipt: DeliveryReceipt = { revision, deliveredAt: new Date().toISOString() };
+  await dbExecute(
+    'INSERT OR REPLACE INTO research_metadata (id, data) VALUES (?, ?)',
+    [id, JSON.stringify(receipt)],
+  );
+}
+
 /** Persist a record before scheduling any best-effort network work. */
 export async function enqueue(record: UploadRecord, options: EnqueueOptions = {}): Promise<void> {
   const envelope: QueueEnvelope = {
@@ -173,17 +224,25 @@ export async function enqueue(record: UploadRecord, options: EnqueueOptions = {}
   }
 }
 
-async function deleteAcknowledged(sent: PreparedEnvelope[], acknowledgedIds: Set<string>): Promise<number> {
+async function deleteAcknowledged(
+  sent: PreparedEnvelope[],
+  acknowledgedIds: Set<string>,
+  persistence: FlushPersistence,
+): Promise<number> {
   let deleted = 0;
   for (const id of acknowledgedIds) {
     const sentEnvelope = sent.find((item) => item.envelope.id === id)?.envelope;
+    if (!sentEnvelope) continue;
+    // A trustworthy ACK becomes durable before any destructive queue change.
+    await (persistence.writeDeliveryReceipt ?? writeDeliveryReceipt)(sentEnvelope);
     const currentRows = await dbQuery<QueueRow>(
       'SELECT * FROM research_upload_queue WHERE id = ?',
       [id],
     );
     const current = currentRows[0] ? parseEnvelope(currentRows[0]) : null;
     if (sentEnvelope && current && JSON.stringify(current) === JSON.stringify(sentEnvelope)) {
-      await dbExecute('DELETE FROM research_upload_queue WHERE id = ?', [id]);
+      await (persistence.deleteQueueEnvelope ?? ((queueId: string) =>
+        dbExecute('DELETE FROM research_upload_queue WHERE id = ?', [queueId])))(id);
       deleted += 1;
     }
   }
@@ -195,6 +254,7 @@ async function sendBatch(
   apiBaseUrl: string,
   fetchImpl: typeof globalThis.fetch,
   installToken: string,
+  persistence: FlushPersistence,
 ): Promise<SendResult> {
   const response = await fetchImpl(`${apiBaseUrl}${RESEARCH_INGEST_ROUTE}`, {
     method: 'POST',
@@ -214,9 +274,9 @@ async function sendBatch(
       return 'progress';
     }
     const midpoint = Math.floor(batch.length / 2);
-    const left = await sendBatch(batch.slice(0, midpoint), apiBaseUrl, fetchImpl, installToken);
+    const left = await sendBatch(batch.slice(0, midpoint), apiBaseUrl, fetchImpl, installToken, persistence);
     if (left === 'stop') return 'stop';
-    return sendBatch(batch.slice(midpoint), apiBaseUrl, fetchImpl, installToken);
+    return sendBatch(batch.slice(midpoint), apiBaseUrl, fetchImpl, installToken, persistence);
   }
 
   let payload: { acknowledgedIds?: unknown };
@@ -233,7 +293,7 @@ async function sendBatch(
     ),
   );
   if (acknowledgedIds.size === 0) return 'stop';
-  const deleted = await deleteAcknowledged(batch, acknowledgedIds);
+  const deleted = await deleteAcknowledged(batch, acknowledgedIds, persistence);
   await updatePendingStatus();
   await setLastSuccessfulUploadAt(new Date().toISOString(), getMetadataPendingCount());
   // A newer revision may have replaced this exact queue key while the request
@@ -257,7 +317,13 @@ async function runFlush(options: FlushOptions): Promise<void> {
         if (generationAtRead !== workGeneration) continue;
         return;
       }
-      const result = await sendBatch(batch, apiBaseUrl, fetchImpl, installToken);
+      const result = await sendBatch(
+        batch,
+        apiBaseUrl,
+        fetchImpl,
+        installToken,
+        options.persistence ?? {},
+      );
       if (result === 'stop') return;
       await new Promise<void>((resolve) => setTimeout(resolve, 0));
     }
@@ -284,11 +350,83 @@ export function getQuarantineCount(): number {
   return quarantineCount;
 }
 
+function parseResearchRecord(row: ResearchRecordRow): UploadRecord | null {
+  try {
+    const record = JSON.parse(row.data) as Partial<UploadRecord>;
+    if (record.id !== row.id || row.revision !== recordRevision(record as UploadRecord)) return null;
+    return record as UploadRecord;
+  } catch {
+    return null;
+  }
+}
+
+function quarantineRevision(row: QueueRow | undefined): number | null {
+  if (!row) return null;
+  try {
+    const value = JSON.parse(row.data) as { envelope?: { record?: UploadRecord } };
+    return value.envelope?.record ? recordRevision(value.envelope.record) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Heal every cross-store crash window using durable records as source of truth.
+ * Equal delivered/quarantined revisions stay terminal; newer durable revisions
+ * replace stale queue/quarantine state and remain eligible for upload.
+ */
+export async function reconcileResearchOutbox(): Promise<void> {
+  const [recordRows, queueRows, quarantineRows, metadataRows] = await Promise.all([
+    dbQuery<ResearchRecordRow>('SELECT * FROM research_records'),
+    readQueueRows(),
+    dbQuery<QueueRow>('SELECT * FROM research_upload_quarantine'),
+    dbQuery<{ id: string; data: string }>('SELECT * FROM research_metadata'),
+  ]);
+  const activeById = new Map(queueRows.map((row) => [row.id, parseEnvelope(row)]));
+  const quarantineById = new Map(quarantineRows.map((row) => [row.id, row]));
+  const receipts = new Map<string, DeliveryReceipt>();
+  for (const row of metadataRows) {
+    if (!row.id.startsWith('delivery:')) continue;
+    const receipt = parseDeliveryReceipt(row.data);
+    if (receipt) receipts.set(row.id.slice('delivery:'.length), receipt);
+  }
+
+  for (const row of recordRows) {
+    const record = parseResearchRecord(row);
+    if (!record) continue;
+    const revision = recordRevision(record);
+    const receipt = receipts.get(row.id);
+    const active = activeById.get(row.id);
+    const activeRevision = active ? recordRevision(active.record) : null;
+    const quarantinedRevision = quarantineRevision(quarantineById.get(row.id));
+
+    if (receipt && receipt.revision >= revision) {
+      if (activeRevision !== null && activeRevision <= receipt.revision) {
+        await dbExecute('DELETE FROM research_upload_queue WHERE id = ?', [row.id]);
+      }
+      continue;
+    }
+    if (quarantinedRevision !== null && quarantinedRevision >= revision) continue;
+    if (activeRevision !== null && activeRevision >= revision) continue;
+    if (quarantinedRevision !== null && quarantinedRevision < revision) {
+      await dbExecute('DELETE FROM research_upload_quarantine WHERE id = ?', [row.id]);
+    }
+    await enqueue(record, { triggerFlush: false });
+  }
+  await updatePendingStatus();
+}
+
 /** Register connectivity and native-resume retry signals. Returns an idempotent cleanup. */
 export function registerRetryTriggers(options: RetryTriggerOptions = {}): () => void {
   const target = options.windowTarget ?? (typeof window !== 'undefined' ? window : undefined);
   const retry = () => {
-    void (options.flush ?? flushPendingUploads)();
+    if (options.flush) {
+      void options.flush();
+      return;
+    }
+    void reconcileResearchOutbox()
+      .then(() => flushPendingUploads())
+      .catch(() => { /* durable rows remain recoverable for the next trigger */ });
   };
   target?.addEventListener('online', retry);
 
