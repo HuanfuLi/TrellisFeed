@@ -487,14 +487,12 @@ export function PostDetailScreen() {
       setQaStreaming('');
       try {
         await interactionLog.recordQuestionSubmit({
-          postId: post.id,
-          questionId: userMsg.id,
-          questionText: userMsg.content,
-          questionSource,
+          question: result.data.question,
+          answer: result.data.answer,
         });
         await interactionLog.recordAnswerViewed({
+          postId: post.id,
           questionId: userMsg.id,
-          answerText: aiMsg.content,
         });
       } catch {
         // The participant still receives the completed answer if logging fails.

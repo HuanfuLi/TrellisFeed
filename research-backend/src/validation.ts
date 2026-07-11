@@ -37,17 +37,19 @@ const QUESTION_ANSWER_FIELDS = new Set([
   'revision',
   'postId',
   'questionId',
+  'answerId',
   'questionText',
   'questionSource',
-  'submittedAt',
+  'suggestedQuestionId',
+  'questionCreatedAt',
   'answerText',
-  'answerViewedAt',
+  'answerCreatedAt',
+  'modelName',
+  'citedPostIds',
+  'citedSourceUrls',
+  'conceptIds',
+  'claimIds',
 ]);
-
-const OPTIONAL_QUESTION_ANSWER_STRING_FIELDS = [
-  'answerText',
-  'answerViewedAt',
-];
 
 export class ValidationError extends Error {
   status;
@@ -101,6 +103,14 @@ function assertTimestamp(record, field, recordType, { optional = false } = {}) {
   }
 }
 
+function assertStringArray(record, field, recordType, { optional = false } = {}) {
+  const value = record[field];
+  if (optional && value === undefined) return;
+  if (!Array.isArray(value) || value.length > 256 || value.some((item) => typeof item !== 'string' || item.length === 0 || item.length > contract.limits.text)) {
+    throw new ValidationError(`${recordType}.${field} must be a bounded string array.`);
+  }
+}
+
 function parseEvent(record) {
   const recordType = 'Event record';
   assertAllowedFields(record, EVENT_FIELDS, recordType);
@@ -129,8 +139,17 @@ function parseQuestionAnswer(record) {
   assertString(record, 'id', recordType, { maxLength: contract.limits.id });
   assertString(record, 'postId', recordType, { maxLength: contract.limits.postId });
   assertString(record, 'questionId', recordType, { maxLength: contract.limits.questionId });
+  assertString(record, 'answerId', recordType, { maxLength: contract.limits.id });
   assertString(record, 'questionText', recordType, { maxLength: contract.limits.text });
-  assertTimestamp(record, 'submittedAt', recordType);
+  assertString(record, 'answerText', recordType, { maxLength: contract.limits.text });
+  assertString(record, 'modelName', recordType, { maxLength: contract.limits.id });
+  assertString(record, 'suggestedQuestionId', recordType, { optional: true, maxLength: contract.limits.questionId });
+  assertTimestamp(record, 'questionCreatedAt', recordType);
+  assertTimestamp(record, 'answerCreatedAt', recordType);
+  assertStringArray(record, 'citedPostIds', recordType);
+  assertStringArray(record, 'citedSourceUrls', recordType, { optional: true });
+  assertStringArray(record, 'conceptIds', recordType);
+  assertStringArray(record, 'claimIds', recordType, { optional: true });
 
   if (!Number.isSafeInteger(record.revision) || record.revision < 1) {
     throw new ValidationError('Question/answer record.revision must be a positive safe integer.');
@@ -138,14 +157,6 @@ function parseQuestionAnswer(record) {
 
   if (record.questionSource !== 'typed' && record.questionSource !== 'suggested_question') {
     throw new ValidationError('Question/answer record.questionSource is not allowed.');
-  }
-
-  for (const field of OPTIONAL_QUESTION_ANSWER_STRING_FIELDS) {
-    if (field === 'answerViewedAt') {
-      assertTimestamp(record, field, recordType, { optional: true });
-    } else {
-      assertString(record, field, recordType, { optional: true, maxLength: contract.limits.text });
-    }
   }
 
   return { ...record, kind: 'question_answer' };

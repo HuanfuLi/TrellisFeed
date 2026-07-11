@@ -166,8 +166,10 @@ function bindQuestionAnswerUpsert(db, record, account, receivedAt) {
   return db.prepare(
     `INSERT INTO question_answer_records
       (id, revision, user_id, condition, topic_id, post_id, question_id, question_text,
-       question_source, submitted_at, answer_text, answer_viewed_at, received_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       question_source, submitted_at, answer_text, answer_viewed_at, received_at,
+       answer_id, suggested_question_id, question_created_at, answer_created_at, model_name,
+       cited_post_ids, cited_source_urls, concept_ids, claim_ids)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(id) DO UPDATE SET
        revision = excluded.revision,
        user_id = excluded.user_id,
@@ -180,6 +182,15 @@ function bindQuestionAnswerUpsert(db, record, account, receivedAt) {
        submitted_at = excluded.submitted_at,
        answer_text = excluded.answer_text,
        answer_viewed_at = excluded.answer_viewed_at,
+       answer_id = excluded.answer_id,
+       suggested_question_id = excluded.suggested_question_id,
+       question_created_at = excluded.question_created_at,
+       answer_created_at = excluded.answer_created_at,
+       model_name = excluded.model_name,
+       cited_post_ids = excluded.cited_post_ids,
+       cited_source_urls = excluded.cited_source_urls,
+       concept_ids = excluded.concept_ids,
+       claim_ids = excluded.claim_ids,
        received_at = excluded.received_at
      WHERE excluded.revision > question_answer_records.revision`,
   ).bind(
@@ -192,10 +203,19 @@ function bindQuestionAnswerUpsert(db, record, account, receivedAt) {
     record.questionId,
     record.questionText,
     record.questionSource,
-    record.submittedAt,
-    record.answerText ?? null,
-    record.answerViewedAt ?? null,
+    record.questionCreatedAt,
+    record.answerText,
+    record.answerCreatedAt,
     receivedAt,
+    record.answerId,
+    record.suggestedQuestionId ?? null,
+    record.questionCreatedAt,
+    record.answerCreatedAt,
+    record.modelName,
+    JSON.stringify(record.citedPostIds),
+    JSON.stringify(record.citedSourceUrls ?? []),
+    JSON.stringify(record.conceptIds),
+    JSON.stringify(record.claimIds ?? []),
   );
 }
 
@@ -313,7 +333,9 @@ async function handleAdminExport(env) {
     selectAdminRows(
       env.DB,
       `SELECT id, revision, user_id, condition, topic_id, post_id, question_id, question_text,
-        question_source, submitted_at, answer_text, answer_viewed_at, received_at
+        answer_id, question_source, suggested_question_id, question_created_at, answer_text,
+        answer_created_at, model_name, cited_post_ids, cited_source_urls, concept_ids, claim_ids,
+        received_at
        FROM question_answer_records
        ORDER BY received_at ASC, id ASC`,
     ),

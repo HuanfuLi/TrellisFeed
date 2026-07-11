@@ -169,8 +169,9 @@ test('an ACK for an older revision cannot delete rev 2 and the shared drain uplo
   await resetQueue();
   const original = {
     id: 'qa-race', revision: 1, userId: '1001', condition: 'control', topicId: 'topic-1',
-    postId: 'post-1', questionId: 'question-1', questionText: 'Why?',
-    questionSource: 'typed', submittedAt: '2026-07-11T12:00:00.000Z',
+    postId: 'post-1', questionId: 'question-1', answerId: 'answer-1', questionText: 'Why?',
+    questionSource: 'typed', questionCreatedAt: '2026-07-11T12:00:00.000Z', answerText: 'Because.',
+    answerCreatedAt: '2026-07-11T12:00:01.000Z', modelName: 'fake-main', citedPostIds: ['post-1'], conceptIds: [],
   };
   await enqueue(original, { triggerFlush: false });
 
@@ -250,8 +251,9 @@ test('question/answer upload keeps local condition but follows the server-owned 
   await resetQueue();
   const record = {
     id: 'qa-wire', revision: 1, userId: '1001', condition: 'experimental', topicId: 'topic-1',
-    postId: 'post-1', questionId: 'question-1', questionText: 'Why?',
-    questionSource: 'typed', submittedAt: '2026-07-11T12:00:00.000Z',
+    postId: 'post-1', questionId: 'question-1', answerId: 'answer-1', questionText: 'Why?',
+    questionSource: 'typed', questionCreatedAt: '2026-07-11T12:00:00.000Z', answerText: 'Because.',
+    answerCreatedAt: '2026-07-11T12:00:01.000Z', modelName: 'fake-main', citedPostIds: ['post-1'], conceptIds: [],
   };
   await enqueue(record, { triggerFlush: false });
   assert.equal(JSON.parse((await queueRows())[0].data).record.condition, 'experimental');
@@ -444,9 +446,9 @@ test('a rev 1 receipt never suppresses a durable Q/A rev 2 during reconciliation
   await dbExecute('DELETE FROM research_records');
   const revision2 = {
     id: 'qa-ledger', revision: 2, userId: '1001', condition: 'control', topicId: 'topic-1',
-    postId: 'post-1', questionId: 'question-ledger', questionText: 'Why?',
-    questionSource: 'typed', submittedAt: '2026-07-11T12:00:00.000Z', answerText: 'Because.',
-    answerViewedAt: '2026-07-11T12:01:00.000Z',
+    postId: 'post-1', questionId: 'question-ledger', answerId: 'answer-ledger', questionText: 'Why?',
+    questionSource: 'typed', questionCreatedAt: '2026-07-11T12:00:00.000Z', answerText: 'Because.',
+    answerCreatedAt: '2026-07-11T12:01:00.000Z', modelName: 'fake-main', citedPostIds: ['post-1'], conceptIds: [],
   };
   await dbExecute(
     'INSERT OR REPLACE INTO research_records (id, kind, revision, data) VALUES (?, ?, ?, ?)',

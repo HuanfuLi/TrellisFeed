@@ -6,19 +6,14 @@ import type {
   QuestionAnswerRecord,
   UserInteractionEvent,
 } from '../types/index.ts';
+import type { AIAnswer, UserQuestion } from '../domain/content.types.ts';
 import { hasAffirmativeResearchConsent } from './research-consent.service.ts';
 
 type EventField = 'postId' | 'questionId' | 'recommendationId' | 'durationMs';
 type InteractionEventFields = Partial<Pick<UserInteractionEvent, EventField>>;
 
-type QuestionSubmitInput = Pick<
-  QuestionAnswerRecord,
-  'postId' | 'questionId' | 'questionText' | 'questionSource'
->;
-
-type AnswerViewedInput = Pick<QuestionAnswerRecord, 'questionId' | 'answerText'> & {
-  answerText: string;
-};
+interface CanonicalProjectionInput { question: UserQuestion; answer: AIAnswer }
+interface AnswerViewedInput { postId: string; questionId: string }
 
 interface ResearchRecordRow extends Record<string, string | number | null> {
   id: string;
@@ -52,13 +47,8 @@ const EVENT_FIELDS: Record<InteractionEventType, readonly EventField[]> = {
   session_end: ['durationMs'],
 };
 
-const QUESTION_SUBMIT_FIELDS = new Set([
-  'postId',
-  'questionId',
-  'questionText',
-  'questionSource',
-]);
-const ANSWER_VIEWED_FIELDS = new Set(['questionId', 'answerText']);
+const QUESTION_SUBMIT_FIELDS = new Set(['question', 'answer']);
+const ANSWER_VIEWED_FIELDS = new Set(['postId', 'questionId']);
 
 function assertObject(value: unknown, label: string): asserts value is Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -162,70 +152,84 @@ export function createInteractionLog(dependencies: InteractionLogDependencies) {
     return event;
   }
 
-  async function recordQuestionSubmit(input: QuestionSubmitInput): Promise<QuestionAnswerRecord> {
+  async function recordOnce(
+    id: string,
+    eventType: 'question_submit' | 'ai_answer_view',
+    fields: Pick<UserInteractionEvent, 'postId' | 'questionId'>,
+  ): Promise<UserInteractionEvent> {
+    const existing = await dbQuery<ResearchRecordRow>('SELECT * FROM research_records WHERE id = ?', [id]);
+    if (existing[0]?.kind === 'event') return JSON.parse(existing[0].data) as UserInteractionEvent;
+    const identity = studyContextService.getRequired();
+    const event: UserInteractionEvent = {
+      id, userId: identity.userId, condition: identity.condition, topicId: identity.topicId,
+      timestamp: dependencies.now(), eventType, ...fields,
+    };
+    assertTimestamp(event.timestamp);
+    await storeAndEnqueue(event, 'event');
+    return event;
+  }
+
+  async function recordQuestionSubmit(input: CanonicalProjectionInput): Promise<QuestionAnswerRecord> {
     assertObject(input, 'Question submit');
     assertAllowedKeys(input, QUESTION_SUBMIT_FIELDS, 'Question submit');
-    assertNonEmptyString(input.postId, 'postId');
-    assertNonEmptyString(input.questionId, 'questionId');
-    assertNonEmptyString(input.questionText, 'questionText');
-    if (input.questionSource !== 'typed' && input.questionSource !== 'suggested_question') {
-      throw new Error('questionSource is not allowed');
-    }
-    if (await findQuestionAnswer(input.questionId)) {
-      throw new Error('A submitted question record already exists for questionId');
-    }
-
+    assertObject(input.question, 'Canonical question');
+    assertObject(input.answer, 'Canonical answer');
+    const { question, answer } = input;
     const identity = studyContextService.getRequired();
-    const submittedAt = dependencies.now();
-    assertTimestamp(submittedAt);
-    const questionAnswer: QuestionAnswerRecord = {
-      id: dependencies.createId(),
-      revision: 1,
+    if (question.userId !== identity.userId || question.condition !== identity.condition || question.topicId !== identity.topicId) {
+      throw new Error('Canonical question identity does not match the bound study context');
+    }
+    if (question.aiAnswerId !== answer.id || answer.userQuestionId !== question.id || answer.postId !== question.postId) {
+      throw new Error('Canonical question/answer linkage is invalid');
+    }
+    const [questionRows, answerRows] = await Promise.all([
+      dbQuery('SELECT * FROM user_questions WHERE id = ?', [question.id]),
+      dbQuery('SELECT * FROM ai_answers WHERE id = ?', [answer.id]),
+    ]);
+    if (questionRows.length !== 1 || answerRows.length !== 1) {
+      throw new Error('Canonical question and answer must be persisted before projection');
+    }
+    const current = await findQuestionAnswer(question.id);
+    const projected: QuestionAnswerRecord = {
+      id: `qa:${question.id}`,
+      revision: current ? current.revision + 1 : 1,
       userId: identity.userId,
       condition: identity.condition,
       topicId: identity.topicId,
-      postId: input.postId,
-      questionId: input.questionId,
-      questionText: input.questionText,
-      questionSource: input.questionSource,
-      submittedAt,
+      postId: question.postId,
+      questionId: question.id,
+      answerId: answer.id,
+      questionText: question.text,
+      questionSource: question.source,
+      ...(question.suggestedQuestionId ? { suggestedQuestionId: question.suggestedQuestionId } : {}),
+      questionCreatedAt: question.createdAt,
+      answerText: answer.answerText,
+      answerCreatedAt: answer.createdAt,
+      modelName: answer.modelName,
+      citedPostIds: [...answer.citedPostIds],
+      ...(answer.citedSourceUrls ? { citedSourceUrls: [...answer.citedSourceUrls] } : {}),
+      conceptIds: [...answer.conceptIds],
+      ...(answer.claimIds ? { claimIds: [...answer.claimIds] } : {}),
     };
-    await storeAndEnqueue(questionAnswer, 'qa');
-    await record(
-      input.questionSource === 'typed' ? 'question_submit' : 'question_suggestion_click',
-      { postId: input.postId, questionId: input.questionId },
-    );
-    return questionAnswer;
+    if (current) {
+      const { revision: _currentRevision, ...currentValue } = current;
+      const { revision: _nextRevision, ...nextValue } = projected;
+      if (JSON.stringify(currentValue) === JSON.stringify(nextValue)) {
+        await recordOnce(`event:question_submit:${question.id}`, 'question_submit', { postId: question.postId, questionId: question.id });
+        return current;
+      }
+    }
+    await storeAndEnqueue(projected, 'qa');
+    await recordOnce(`event:question_submit:${question.id}`, 'question_submit', { postId: question.postId, questionId: question.id });
+    return projected;
   }
 
-  async function recordAnswerViewed(input: AnswerViewedInput): Promise<QuestionAnswerRecord> {
+  async function recordAnswerViewed(input: AnswerViewedInput): Promise<UserInteractionEvent> {
     assertObject(input, 'Answer viewed');
     assertAllowedKeys(input, ANSWER_VIEWED_FIELDS, 'Answer viewed');
+    assertNonEmptyString(input.postId, 'postId');
     assertNonEmptyString(input.questionId, 'questionId');
-    assertNonEmptyString(input.answerText, 'answerText');
-
-    const submitted = await findQuestionAnswer(input.questionId);
-    if (!submitted) throw new Error('Submitted question record was not found');
-    const identity = studyContextService.getRequired();
-    if (submitted.userId !== identity.userId || submitted.condition !== identity.condition ||
-        submitted.topicId !== identity.topicId) {
-      throw new Error('Submitted question identity does not match the bound study context');
-    }
-
-    const answerViewedAt = dependencies.now();
-    assertTimestamp(answerViewedAt);
-    const answered: QuestionAnswerRecord = {
-      ...submitted,
-      revision: 2,
-      answerText: input.answerText,
-      answerViewedAt,
-    };
-    await storeAndEnqueue(answered, 'qa');
-    await record('ai_answer_view', {
-      postId: submitted.postId,
-      questionId: submitted.questionId,
-    });
-    return answered;
+    return recordOnce(`event:ai_answer_view:${input.questionId}`, 'ai_answer_view', input);
   }
 
   return { record, recordQuestionSubmit, recordAnswerViewed };

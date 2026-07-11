@@ -38,8 +38,9 @@ const EVENT_FIELDS = new Set([
   'id', 'timestamp', 'eventType', 'postId', 'questionId', 'recommendationId', 'durationMs',
 ]);
 const QA_FIELDS = new Set([
-  'id', 'revision', 'postId', 'questionId', 'questionText', 'questionSource',
-  'submittedAt', 'answerText', 'answerViewedAt',
+  'id', 'revision', 'postId', 'questionId', 'answerId', 'questionText', 'questionSource',
+  'suggestedQuestionId', 'questionCreatedAt', 'answerText', 'answerCreatedAt', 'modelName',
+  'citedPostIds', 'citedSourceUrls', 'conceptIds', 'claimIds',
 ]);
 
 export class ResearchWireValidationError extends Error {
@@ -70,6 +71,13 @@ function assertString(
 function assertTimestamp(value: unknown, optional = false): void {
   assertString(value, RESEARCH_WIRE_LIMITS.timestamp, optional);
   if (value !== undefined && Number.isNaN(Date.parse(value))) {
+    throw new ResearchWireValidationError('invalid_record');
+  }
+}
+
+function assertStringArray(value: unknown, optional = false): void {
+  if (optional && value === undefined) return;
+  if (!Array.isArray(value) || value.length > 256 || value.some((item) => typeof item !== 'string' || item.length === 0 || item.length > RESEARCH_WIRE_LIMITS.text)) {
     throw new ResearchWireValidationError('invalid_record');
   }
 }
@@ -106,10 +114,17 @@ export function toResearchWireRecord(record: LocalRecord): ResearchWireRecord {
     }
     assertString(candidate.postId, RESEARCH_WIRE_LIMITS.postId);
     assertString(candidate.questionId, RESEARCH_WIRE_LIMITS.questionId);
+    assertString(candidate.answerId, RESEARCH_WIRE_LIMITS.id);
     assertString(candidate.questionText, RESEARCH_WIRE_LIMITS.text);
-    assertString(candidate.answerText, RESEARCH_WIRE_LIMITS.text, true);
-    assertTimestamp(candidate.submittedAt);
-    assertTimestamp(candidate.answerViewedAt, true);
+    assertString(candidate.answerText, RESEARCH_WIRE_LIMITS.text);
+    assertString(candidate.modelName, RESEARCH_WIRE_LIMITS.id);
+    assertString(candidate.suggestedQuestionId, RESEARCH_WIRE_LIMITS.questionId, true);
+    assertTimestamp(candidate.questionCreatedAt);
+    assertTimestamp(candidate.answerCreatedAt);
+    assertStringArray(candidate.citedPostIds);
+    assertStringArray(candidate.citedSourceUrls, true);
+    assertStringArray(candidate.conceptIds);
+    assertStringArray(candidate.claimIds, true);
     if (candidate.questionSource !== 'typed' && candidate.questionSource !== 'suggested_question') {
       throw new ResearchWireValidationError('invalid_record');
     }
@@ -121,4 +136,3 @@ export function toResearchWireRecord(record: LocalRecord): ResearchWireRecord {
   }
   return wire as ResearchWireRecord;
 }
-

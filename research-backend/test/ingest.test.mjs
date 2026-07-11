@@ -37,9 +37,9 @@ async function fakeD1(bindings) {
         return { success: true };
       }
       if (sql.includes('INSERT INTO question_answer_records')) {
-        const [id, revision, userId, condition, topicId, postId, questionId, questionText, questionSource, submittedAt, answerText, answerViewedAt, receivedAt] = values;
+        const [id, revision, userId, condition, topicId, postId, questionId, questionText, questionSource, submittedAt, answerText, answerViewedAt, receivedAt, answerId, suggestedQuestionId, questionCreatedAt, answerCreatedAt, modelName, citedPostIds, citedSourceUrls, conceptIds, claimIds] = values;
         const existing = questionAnswers.get(id);
-        if (!existing || revision > existing.revision) questionAnswers.set(id, { id, revision, userId, condition, topicId, postId, questionId, questionText, questionSource, submittedAt, answerText, answerViewedAt, receivedAt });
+        if (!existing || revision > existing.revision) questionAnswers.set(id, { id, revision, userId, condition, topicId, postId, questionId, questionText, questionSource, submittedAt, answerText, answerViewedAt, receivedAt, answerId, suggestedQuestionId, questionCreatedAt, answerCreatedAt, modelName, citedPostIds, citedSourceUrls, conceptIds, claimIds });
         return { success: true };
       }
       throw new Error(`Unexpected write: ${sql}`);

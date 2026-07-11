@@ -60,9 +60,16 @@ export interface QuestionAnswerRecord {
   topicId: string;
   postId: string;
   questionId: string;
+  answerId: string;
   questionText: string;
   questionSource: 'typed' | 'suggested_question';
-  submittedAt: string;
-  answerText?: string;
-  answerViewedAt?: string;
+  suggestedQuestionId?: string;
+  questionCreatedAt: string;
+  answerText: string;
+  answerCreatedAt: string;
+  modelName: string;
+  citedPostIds: string[];
+  citedSourceUrls?: string[];
+  conceptIds: string[];
+  claimIds?: string[];
 }
