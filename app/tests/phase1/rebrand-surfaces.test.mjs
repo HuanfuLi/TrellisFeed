@@ -27,6 +27,8 @@ function collectLegacyBrandPaths(value, path = '', matches = []) {
   return matches;
 }
 
+const localeFiles = ['en.json', 'zh.json', 'es.json', 'ja.json'];
+
 test('native and web display surfaces use QuestionTrace while bundle identifiers stay stable', () => {
   const indexHtml = read(appRoot, 'index.html');
   const capacitorConfig = read(appRoot, 'capacitor.config.ts');
@@ -46,7 +48,21 @@ test('native and web display surfaces use QuestionTrace while bundle identifiers
   assert.match(xcodeProject, new RegExp(`PRODUCT_BUNDLE_IDENTIFIER = ${iosBundleId};`));
 });
 
-test('English user-facing locale strings no longer name the legacy brand', () => {
-  const en = JSON.parse(read(appRoot, 'src/locales/en.json'));
-  assert.deepEqual(collectLegacyBrandPaths(en), []);
+test('all user-facing locale strings no longer name the legacy brand', () => {
+  for (const file of localeFiles) {
+    const locale = JSON.parse(read(appRoot, 'src/locales', file));
+    assert.deepEqual(collectLegacyBrandPaths(locale), [], file);
+  }
+});
+
+test('active participant surfaces contain no legacy feedback action or starter copy', () => {
+  const home = read(appRoot, 'src/screens/HomeScreen.tsx');
+  const conceptFeed = read(appRoot, 'src/services/concept-feed.service.ts');
+  const starterSection = conceptFeed.slice(
+    conceptFeed.indexOf('export const STARTER_POSTS'),
+    conceptFeed.indexOf('function makeStarterPost'),
+  );
+
+  assert.doesNotMatch(home, /mailto:|Trellis%20Feedback/i);
+  assert.doesNotMatch(starterSection, /\bTrellis\b/i);
 });

@@ -16,7 +16,6 @@ globalThis.localStorage = {
 
 const { dbExecute, dbQuery } = await import('../../src/services/db.service.ts');
 const { FILTER_CORPUS_CACHE_KEY } = await import('../../src/services/filter-corpus.service.ts');
-const { COLD_START_PROFILE_KEY } = await import('../../src/lib/cold-start-profiler.ts');
 
 const activeStorageOwners = [
   ['db.service.ts', [
@@ -33,12 +32,10 @@ const activeStorageOwners = [
     "const CACHE_META_KEY = 'questiontrace_img_cache_meta'",
     "const IDB_NAME = 'questiontrace_images'",
   ]],
-  ['cold-start-profiler.ts', ["COLD_START_PROFILE_KEY = 'questiontrace_cold_start_profile'"]],
 ];
 
 function sourceFor(relativePath) {
-  const base = relativePath === 'cold-start-profiler.ts' ? '../../src/lib/' : '../../src/services/';
-  return fs.readFileSync(new URL(`${base}${relativePath}`, import.meta.url), 'utf-8');
+  return fs.readFileSync(new URL(`../../src/services/${relativePath}`, import.meta.url), 'utf-8');
 }
 
 test('research persistence stores round-trip through the dbQuery seam', async () => {
@@ -82,7 +79,6 @@ test('research persistence stores round-trip through the dbQuery seam', async ()
 
 test('active persistence owners remain in the questiontrace namespace', () => {
   assert.match(FILTER_CORPUS_CACHE_KEY, /^questiontrace_/);
-  assert.match(COLD_START_PROFILE_KEY, /^questiontrace_/);
 
   for (const [file, expectedDefinitions] of activeStorageOwners) {
     const source = sourceFor(file);

@@ -68,6 +68,7 @@ test('load-bearing graph, question input, and exploration infrastructure survive
 
 test('stale profiler and unreferenced mock-loader family stay deleted', () => {
   const deletedPaths = [
+    'src/lib/cold-start-profiler.ts',
     'scripts/profile-trellis.mjs',
     'tests/reorg-json-parser.test.mjs',
     'tests/services/_actions-mock-db.mjs',
@@ -91,4 +92,17 @@ test('stale profiler and unreferenced mock-loader family stay deleted', () => {
 
   const liveFilterMock = readFileSync(resolve(appRoot, 'tests/services/_filter-mock-embedding.mjs'), 'utf8');
   assert.doesNotMatch(liveFilterMock, /_actions-mock-embedding/);
+});
+
+test('retired participant settings and feedback locale families stay deleted', () => {
+  for (const locale of ['en', 'zh', 'es', 'ja']) {
+    const bundle = JSON.parse(readFileSync(resolve(srcRoot, `locales/${locale}.json`), 'utf8'));
+    assert.deepEqual(
+      Object.keys(bundle.settings).sort(),
+      ['fields', 'title'],
+      `${locale} settings locale must expose only the retained participant account/language surface`,
+    );
+    assert.deepEqual(Object.keys(bundle.settings.fields).sort(), ['accountId', 'language']);
+    assert.equal(bundle.home.feed.feedbackPrompt, undefined);
+  }
 });
