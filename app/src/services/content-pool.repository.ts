@@ -106,6 +106,7 @@ export class ContentPoolRepository {
   private readonly database: RepositoryDatabase;
   private snapshot: ContentPoolRepositorySnapshot = { status: 'empty', version: null };
   private hydration: Promise<ContentPoolRepositorySnapshot> | null = null;
+  private readyManifest: FrozenPoolManifest | null = null;
   private topics = new Map<string, Topic>();
   private posts = new Map<string, Post>();
   private concepts = new Map<string, Concept>();
@@ -235,6 +236,7 @@ export class ContentPoolRepository {
   }
 
   private installMirror(bundle: FrozenPoolBundle): void {
+    this.readyManifest = structuredClone(bundle.manifest);
     this.topics = new Map(bundle.topics.map((record) => [record.id, record]));
     this.posts = new Map(bundle.posts.map((record) => [record.id, record]));
     this.concepts = new Map(bundle.concepts.map((record) => [record.id, record]));
@@ -244,6 +246,7 @@ export class ContentPoolRepository {
   }
 
   private clearMirror(): void {
+    this.readyManifest = null;
     this.topics.clear();
     this.posts.clear();
     this.concepts.clear();
@@ -260,6 +263,11 @@ export class ContentPoolRepository {
 
   getSnapshot(): ContentPoolRepositorySnapshot { return { ...this.snapshot }; }
   getReadyVersion(): string | null { return this.snapshot.status === 'ready' ? this.snapshot.version : null; }
+  getManifest(): FrozenPoolManifest | null {
+    if (this.snapshot.status !== 'ready') return null;
+    // Expose a detached value so facade consumers cannot mutate repository state.
+    return this.readyManifest ? structuredClone(this.readyManifest) : null;
+  }
   getPost(id: string): Post | null { return this.snapshot.status === 'ready' ? this.posts.get(id) ?? null : null; }
   getTopic(id: string): Topic | null { return this.snapshot.status === 'ready' ? this.topics.get(id) ?? null : null; }
 
