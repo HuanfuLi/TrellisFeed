@@ -6,10 +6,18 @@ import worker, { resolveAccount } from '../src/worker.ts';
 
 const validEvent = () => ({
   id: 'event-1',
-  userId: '1001',
   timestamp: '2026-07-11T12:00:00.000Z',
   eventType: 'post_open',
   postId: 'post-1',
+});
+
+test('wire records reject every client-owned identity field', () => {
+  for (const field of ['userId', 'condition', 'topicId']) {
+    assert.throws(
+      () => parseIngest({ records: [{ ...validEvent(), [field]: 'client-owned' }] }),
+      new RegExp(`disallowed field: ${field}`),
+    );
+  }
 });
 
 test('parseIngest rejects a batch with more than 100 records before DB work', () => {
@@ -89,14 +97,14 @@ test('resolveAccount returns the server account mapping and null for unknown acc
   assert.equal(await resolveAccount('9999', db), null);
 });
 
-test('install resolve returns only the fixed condition and topic for a known numeric account', async () => {
+test('install resolve rejects a missing enrollment credential before account lookup', async () => {
   const db = accountDb(new Map([['1001', { condition: 'experimental', topicId: 'topic-b' }]]));
   const response = await worker.fetch(new Request('https://collector.invalid/v1/install/resolve', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ userId: '1001' }),
-  }), { DB: db });
+  }), { DB: db, RESEARCH_ENROLLMENT_CREDENTIAL: 'test-enrollment-credential' });
 
-  assert.equal(response.status, 200);
-  assert.deepEqual(await response.json(), { condition: 'experimental', topicId: 'topic-b' });
+  assert.equal(response.status, 401);
+  assert.deepEqual(await response.json(), { error: 'Unauthorized.' });
 });

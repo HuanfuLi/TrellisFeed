@@ -68,9 +68,6 @@ function ingestRequest(records) {
 function event(overrides = {}) {
   return {
     id: 'event-1',
-    userId: '1001',
-    condition: 'experimental',
-    topicId: 'client-topic',
     timestamp: '2026-07-11T12:00:00.000Z',
     eventType: 'post_open',
     postId: 'post-1',
@@ -82,8 +79,6 @@ function questionAnswer(overrides = {}) {
   return {
     id: 'qa-1',
     revision: 2,
-    userId: '1001',
-    topicId: 'client-topic',
     postId: 'post-1',
     questionId: 'question-1',
     questionText: 'How does this work?',
@@ -93,6 +88,14 @@ function questionAnswer(overrides = {}) {
     ...overrides,
   };
 }
+
+test('ingest requires a bearer install token before database work', async () => {
+  const db = fakeD1(new Map());
+  const response = await worker.fetch(ingestRequest([event()]), { DB: db });
+  assert.equal(response.status, 401);
+  assert.deepEqual(await response.json(), { error: 'Unauthorized.' });
+  assert.equal(db.events.size, 0);
+});
 
 test('re-ingesting an immutable event stores it once and acknowledges both deliveries', async () => {
   const db = fakeD1(new Map([['1001', { condition: 'control', topicId: 'server-topic' }]]));
