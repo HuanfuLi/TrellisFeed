@@ -55,6 +55,17 @@ function byteLength(value: string): number {
   return new TextEncoder().encode(value).byteLength;
 }
 
+function toIngestRecord(record: UploadRecord): UploadRecord | Omit<QuestionAnswerRecord, 'condition'> {
+  if ('revision' in record) {
+    // The durable research record retains its fixed condition. The deployed
+    // ingest contract deliberately derives Q/A condition from study_accounts
+    // and rejects that client field, so omit it only from the wire payload.
+    const { condition: _condition, ...serverOwnedCondition } = record;
+    return serverOwnedCondition;
+  }
+  return record;
+}
+
 function parseEnvelope(row: QueueRow): QueueEnvelope | null {
   try {
     const envelope = JSON.parse(row.data) as Partial<QueueEnvelope>;
@@ -79,7 +90,7 @@ function selectBoundedBatch(envelopes: QueueEnvelope[]): QueueEnvelope[] {
   for (const envelope of envelopes) {
     if (selected.length >= MAX_BATCH_RECORDS) break;
     const candidate = [...selected, envelope];
-    const body = JSON.stringify({ records: candidate.map((item) => item.record) });
+    const body = JSON.stringify({ records: candidate.map((item) => toIngestRecord(item.record)) });
     if (byteLength(body) > MAX_BATCH_BYTES) break;
     selected.push(envelope);
   }
@@ -126,7 +137,7 @@ async function runFlush(options: FlushOptions): Promise<void> {
     const response = await fetchImpl(`${apiBaseUrl}/v1/ingest`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ records: batch.map((item) => item.record) }),
+      body: JSON.stringify({ records: batch.map((item) => toIngestRecord(item.record)) }),
     });
     if (!response.ok) return;
 

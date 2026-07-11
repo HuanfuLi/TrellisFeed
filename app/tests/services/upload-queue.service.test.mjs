@@ -145,6 +145,29 @@ test('an ACK for an older revision cannot delete a newer queued replacement', as
   assert.equal(JSON.parse(rows[0].data).record.revision, 2);
 });
 
+test('question/answer upload keeps local condition but follows the server-owned wire contract', async () => {
+  await resetQueue();
+  const record = {
+    id: 'qa-wire', revision: 1, userId: '1001', condition: 'experimental', topicId: 'topic-1',
+    postId: 'post-1', questionId: 'question-1', questionText: 'Why?',
+    questionSource: 'typed', submittedAt: '2026-07-11T12:00:00.000Z',
+  };
+  await enqueue(record, { triggerFlush: false });
+  assert.equal(JSON.parse((await queueRows())[0].data).record.condition, 'experimental');
+
+  let uploaded;
+  await flushPendingUploads({
+    apiBaseUrl,
+    fetch: async (_url, init) => {
+      uploaded = JSON.parse(init.body).records[0];
+      return jsonResponse({ acknowledgedIds: ['qa-wire'] });
+    },
+  });
+
+  assert.equal(Object.hasOwn(uploaded, 'condition'), false);
+  assert.equal(uploaded.topicId, 'topic-1');
+});
+
 test('network reject, abort, and HTTP 500 retain every envelope', async (t) => {
   for (const [name, fetch] of [
     ['network reject', async () => { throw new TypeError('offline'); }],
