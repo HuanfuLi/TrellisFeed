@@ -3,6 +3,7 @@ import { createBrowserRouter, RouterProvider, Navigate, Outlet, ScrollRestoratio
 import { Capacitor } from '@capacitor/core';
 import { App as CapApp } from '@capacitor/app';
 import { Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { BottomNavigation } from './components/BottomNavigation';
 import { ToastContainer } from './components/ui/Toast';
 import { OnboardingScreen } from './screens/OnboardingScreen';
@@ -35,6 +36,7 @@ import { HeaderScrollContext } from './lib/header-scroll-context';
 import { interactionLog } from './services/interaction-log.service';
 import { eventBus } from './lib/event-bus';
 import { hasAffirmativeResearchConsent, resolveParticipantRoute } from './services/research-consent.service';
+import { contentPoolRepository, type ContentPoolRepositorySnapshot } from './services/content-pool.repository';
 
 const SCREEN_ROUTES = ['/home', '/settings'] as const;
 
@@ -268,24 +270,29 @@ const router = createBrowserRouter([
 // legacy heavy localStorage keys — ONLY after the mirrors are restored from
 // IndexedDB, never before (a pre-hydrate clear would discard data if IndexedDB
 // were somehow staler; the dual-write means IndexedDB is current).
-async function hydrateAllFromSQLite(): Promise<void> {
-  await Promise.all([
+async function hydrateAllFromSQLite(): Promise<ContentPoolRepositorySnapshot> {
+  const [, , , , , , contentPool] = await Promise.all([
     hydrateFromSQLite(),            // questions
     hydrateDailyPostsFromSQLite(),  // concept-feed daily-posts cache
     hydrateQueueFromSQLite(),       // post-queue state
     hydratePostHistoryFromSQLite(), // post history
     hydrateEngagementFromSQLite(),  // saved/liked/dismissed
     studyContextService.hydrate(),   // immutable participant identity
+    contentPoolRepository.hydrate(), // validated, version-pinned frozen pool
   ]);
   // One-time stale-key sweep (quota reclamation) — safe now that every mirror is
   // populated from the durable IndexedDB store.
   clearLegacyHeavyLocalStorageKeys();
+  return contentPool;
 }
 
 export default function App() {
+  const { t } = useTranslation();
   // Gate first render on hydration so post-boot synchronous mirror reads have
   // data (no empty-feed flash, no premature refill against an empty queue).
   const [hydrated, setHydrated] = useState(false);
+  const [poolError, setPoolError] = useState<string | null>(null);
+  const [hydrationAttempt, setHydrationAttempt] = useState(0);
   const sessionStartedAtRef = useRef<number | null>(null);
 
   const startResearchSession = () => {
@@ -306,11 +313,17 @@ export default function App() {
   // Hydrate data from IndexedDB on app start, THEN reveal the app.
   useEffect(() => {
     let cancelled = false;
-    void hydrateAllFromSQLite().finally(() => {
-      if (!cancelled) {
+    setPoolError(null);
+    void hydrateAllFromSQLite().then((contentPool) => {
+      if (cancelled) return;
+      if (contentPool.status === 'ready') {
         setHydrated(true);
         startResearchSession();
+      } else {
+        setPoolError(contentPool.errorCode ?? 'POOL_IMPORT_FAILED');
       }
+    }).catch(() => {
+      if (!cancelled) setPoolError('POOL_IMPORT_FAILED');
     });
     // Bootstrap image generation providers with keys from user settings.
     bootstrapImageGeneration();
@@ -330,7 +343,7 @@ export default function App() {
       cancelled = true;
       unsubscribeIdentity();
     };
-  }, []);
+  }, [hydrationAttempt]);
 
   // Keep theme in sync when the OS switches between light/dark while app is open
   useEffect(() => {
@@ -385,6 +398,51 @@ export default function App() {
   // Minimal neutral loading placeholder until the IndexedDB hydration resolves.
   // Plain on purpose — a spinner on the app surface color avoids a flash of an
   // empty feed / premature feed-refill against an empty in-memory queue.
+  if (poolError) {
+    return (
+      <div
+        role="alert"
+        aria-live="assertive"
+        style={{
+          position: 'fixed',
+          inset: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 24,
+          background: 'var(--surface)',
+          color: 'var(--foreground)',
+        }}
+      >
+        <div style={{ width: '100%', maxWidth: 420, textAlign: 'center' }}>
+          <h1 style={{ margin: '0 0 12px', fontSize: 22 }}>{t('errorBoundary.title')}</h1>
+          <p style={{ margin: '0 0 8px', color: 'var(--muted-foreground)', lineHeight: 1.5 }}>
+            {t('errorBoundary.fallbackMessage')}
+          </p>
+          <code style={{ display: 'block', marginBottom: 20, fontSize: 12, color: 'var(--muted-foreground)' }}>
+            {poolError}
+          </code>
+          <button
+            type="button"
+            onClick={() => setHydrationAttempt((attempt) => attempt + 1)}
+            style={{
+              minHeight: 44,
+              padding: '0 20px',
+              border: 0,
+              borderRadius: 'var(--radius-xl)',
+              background: 'var(--primary-40)',
+              color: 'white',
+              font: 'inherit',
+              fontWeight: 600,
+            }}
+          >
+            {t('home.history.errorRetry')}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (!hydrated) {
     return (
       <div

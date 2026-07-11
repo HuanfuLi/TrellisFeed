@@ -218,6 +218,24 @@ describe('bundled content pool import', () => {
     assert.equal(retried.getPost('post-video')?.id, 'post-video');
   });
 
+  it('retries a failed hydration on the same repository without a reload', async () => {
+    const packaged = fixtureReader();
+    let available = false;
+    const reader = {
+      expectedVersion: packaged.expectedVersion,
+      async readText(filename) {
+        if (!available) throw new bundleModule.ContentPoolBundleError('POOL_NOT_PACKAGED');
+        return packaged.readText(filename);
+      },
+    };
+    const repository = new repositoryModule.ContentPoolRepository({ reader });
+    assert.equal((await repository.hydrate()).status, 'error');
+
+    available = true;
+    assert.equal((await repository.hydrate()).status, 'ready');
+    assert.equal(repository.getReadyVersion(), 'v1');
+  });
+
   for (const [name, mutate, code] of [
     ['checksum mismatch', (bundle) => { bundle.manifest.artifactHashes['posts.json'] = '0'.repeat(64); }, 'POOL_CHECKSUM_MISMATCH'],
     ['count mismatch', (bundle) => { bundle.manifest.counts.posts += 1; }, 'POOL_INVALID'],

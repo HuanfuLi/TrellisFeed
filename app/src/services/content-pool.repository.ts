@@ -119,6 +119,7 @@ export class ContentPoolRepository {
   }
 
   hydrate(): Promise<ContentPoolRepositorySnapshot> {
+    if (this.snapshot.status === 'error') this.hydration = null;
     if (!this.hydration) this.hydration = this.hydrateOnce();
     return this.hydration;
   }
