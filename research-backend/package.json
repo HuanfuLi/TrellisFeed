@@ -9,6 +9,6 @@
     "wrangler": "4.110.0"
   },
   "dependencies": {
-    "fflate": "^0.8.3"
+    "fflate": "0.8.3"
   }
 }
