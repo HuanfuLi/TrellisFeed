@@ -88,4 +88,7 @@ test('stale profiler and unreferenced mock-loader family stay deleted', () => {
   for (const relativePath of deletedPaths) {
     assert.equal(existsSync(resolve(appRoot, relativePath)), false, `${relativePath} must stay deleted`);
   }
+
+  const liveFilterMock = readFileSync(resolve(appRoot, 'tests/services/_filter-mock-embedding.mjs'), 'utf8');
+  assert.doesNotMatch(liveFilterMock, /_actions-mock-embedding/);
 });
