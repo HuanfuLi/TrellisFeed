@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import { unzipSync } from 'fflate';
 
+import { renderStatusPage } from '../src/admin.ts';
 import worker from '../src/worker.ts';
 
 function basicAuth(password) {
@@ -85,16 +86,14 @@ test('correct Basic credentials receive a health-only HTML status page', async (
   assert.match(html, /2026-07-11T12:05:00.000Z/);
 });
 
-test('the health page never renders participant-authored question HTML', async () => {
-  const db = fakeAdminD1();
-  db.latestQuestionText = '<script>alert("participant text")<\/script>';
-
-  const response = await worker.fetch(adminRequest('/admin', 'correct-password'), {
-    DB: db,
-    RESEARCH_ADMIN_PASSWORD: 'correct-password',
+test('the health page escapes dynamic text instead of emitting live HTML', () => {
+  const html = renderStatusPage({
+    behavioralEventCount: 2,
+    questionAnswerRecordCount: 1,
+    lastReceivedAt: '<script>alert("participant text")<\/script>',
   });
-  const html = await response.text();
 
+  assert.match(html, /&lt;script&gt;alert\(&quot;participant text&quot;\)&lt;\/script&gt;/);
   assert.doesNotMatch(html, /<script>alert\("participant text"\)<\/script>/);
 });
 
