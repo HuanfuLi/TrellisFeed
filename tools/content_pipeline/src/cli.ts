@@ -1,8 +1,14 @@
 import { createHash } from 'node:crypto';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { fetchCandidate as collectOne, redactUrl, type FetchCandidateOptions, type RawCandidate } from './collect/fetch-candidate.ts';
+import { createAnthropicProvider } from './ai/anthropic.ts';
+import { createGeminiProvider } from './ai/gemini.ts';
+import { createOpenAiProvider } from './ai/openai.ts';
+import type { StructuredProvider } from './ai/provider.ts';
+import type { NormalizedCandidate } from './normalize/candidate.ts';
+import { runStructuredPreprocess } from './preprocess/run.ts';
 
 const PILOT_TOPIC = 'ai-agents-future-work';
 
@@ -12,11 +18,27 @@ export interface CollectOptions {
   resume: boolean; dryRun: boolean;
 }
 
+export interface PreprocessOptions {
+  command: 'preprocess'; runDir: string; provider: 'anthropic' | 'openai' | 'gemini' | 'local';
+  model: string; promptVersion: string; schemaVersion: string;
+  maxConcurrency: number; spendLimit: number; resume: boolean;
+}
+
+export interface CodexReviewCliOptions {
+  command: 'codex-review'; runDir: string; codexCommand: string; timeoutMs: number;
+}
+
+export interface CliHandlers {
+  collect?: (options: CollectOptions) => Promise<unknown>;
+  preprocess?: (options: PreprocessOptions) => Promise<unknown>;
+  codexReview?: (options: CodexReviewCliOptions) => Promise<unknown>;
+}
+
 type Seed = { url: string; evergreen?: boolean; publicationDate?: string };
 type CollectDeps = { fetchCandidate?: (url: string, options: FetchCandidateOptions) => Promise<RawCandidate> };
 
 export function parseCollectArgs(argv: string[]): CollectOptions {
-  if (argv[0] !== 'collect') throw new Error('only the collect command is supported');
+  if (argv[0] !== 'collect') throw new Error('expected collect command');
   const values = new Map<string, string>();
   const flags = new Set<string>();
   for (let i = 1; i < argv.length; i += 1) {
@@ -37,6 +59,40 @@ export function parseCollectArgs(argv: string[]): CollectOptions {
   if (!Number.isInteger(maxCandidates) || maxCandidates < 1 || maxCandidates > 800) throw new Error('--max-candidates must be 1..800');
   if (!Number.isSafeInteger(maxBytes) || maxBytes < 1 || !Number.isSafeInteger(timeoutMs) || timeoutMs < 1) throw new Error('byte and timeout limits must be positive integers');
   return { command: 'collect', topic: values.get('--topic') ?? PILOT_TOPIC, seeds, runDir, maxCandidates, maxBytes, timeoutMs, resume: flags.has('--resume'), dryRun: flags.has('--dry-run') };
+}
+
+function parseValues(argv: string[], booleanFlags: string[]): { values: Map<string, string>; flags: Set<string> } {
+  const values = new Map<string, string>();
+  const flags = new Set<string>();
+  for (let index = 1; index < argv.length; index += 1) {
+    const argument = argv[index];
+    if (booleanFlags.includes(argument)) flags.add(argument);
+    else if (argument.startsWith('--')) {
+      const value = argv[++index];
+      if (!value || value.startsWith('--')) throw new Error(`missing value for ${argument}`);
+      values.set(argument, value);
+    } else throw new Error(`unexpected argument ${argument}`);
+  }
+  return { values, flags };
+}
+
+export function parsePreprocessArgs(argv: string[]): PreprocessOptions {
+  if (argv[0] !== 'preprocess') throw new Error('expected preprocess command');
+  const { values, flags } = parseValues(argv, ['--resume']);
+  const allowed = new Set(['--run-dir', '--provider', '--model', '--prompt-version', '--schema-version', '--max-concurrency', '--spend-limit']);
+  for (const key of values.keys()) if (!allowed.has(key)) throw new Error(`unsupported preprocess option ${key}`);
+  const runDir = values.get('--run-dir');
+  const provider = values.get('--provider');
+  const model = values.get('--model');
+  const promptVersion = values.get('--prompt-version');
+  const schemaVersion = values.get('--schema-version');
+  if (!runDir || !provider || !model || !promptVersion || !schemaVersion) throw new Error('preprocess requires --run-dir, --provider, --model, --prompt-version, and --schema-version');
+  if (!['anthropic', 'openai', 'gemini', 'local'].includes(provider)) throw new Error('unsupported preprocessing provider');
+  const maxConcurrency = Number(values.get('--max-concurrency') ?? '1');
+  const spendLimit = Number(values.get('--spend-limit') ?? '0');
+  if (!Number.isInteger(maxConcurrency) || maxConcurrency < 1 || maxConcurrency > 32) throw new Error('--max-concurrency must be 1..32');
+  if (!Number.isFinite(spendLimit) || spendLimit < 0) throw new Error('--spend-limit must be a non-negative number');
+  return { command: 'preprocess', runDir, provider: provider as PreprocessOptions['provider'], model, promptVersion, schemaVersion, maxConcurrency, spendLimit, resume: flags.has('--resume') };
 }
 
 export function resolveOutputPath(runDir: string, child: string): string {
@@ -109,8 +165,55 @@ export async function collectSeeds(options: CollectOptions, deps: CollectDeps = 
   return report;
 }
 
+function configuredProvider(options: PreprocessOptions): StructuredProvider {
+  if (options.provider === 'anthropic') {
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) throw new Error('ANTHROPIC_API_KEY is required');
+    return createAnthropicProvider({ model: options.model, apiKey });
+  }
+  if (options.provider === 'gemini') {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) throw new Error('GEMINI_API_KEY is required');
+    return createGeminiProvider({ model: options.model, apiKey });
+  }
+  if (options.provider === 'local') {
+    const endpoint = process.env.QUESTIONTRACE_LOCAL_OPENAI_ENDPOINT;
+    if (!endpoint) throw new Error('QUESTIONTRACE_LOCAL_OPENAI_ENDPOINT is required');
+    return createOpenAiProvider({ model: options.model, apiKey: process.env.QUESTIONTRACE_LOCAL_OPENAI_KEY ?? 'local', endpoint, nativeStructuredOutput: false, name: 'local' });
+  }
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) throw new Error('OPENAI_API_KEY is required');
+  return createOpenAiProvider({ model: options.model, apiKey });
+}
+
+async function preprocessRunDirectory(options: PreprocessOptions): Promise<unknown> {
+  const normalizedDir = resolveOutputPath(options.runDir, 'normalized');
+  const filenames = (await readdir(normalizedDir)).filter((name) => /^\d+.*\.json$/i.test(name)).sort();
+  const candidates: NormalizedCandidate[] = [];
+  for (const filename of filenames) candidates.push(JSON.parse(await readFile(resolveOutputPath(options.runDir, `normalized/${filename}`), 'utf8')));
+  const results = await runStructuredPreprocess({
+    candidates, topic: PILOT_TOPIC, provider: configuredProvider(options), promptVersion: options.promptVersion,
+    schemaVersion: options.schemaVersion, runDir: options.runDir, maxConcurrency: options.maxConcurrency,
+    spendLimit: options.spendLimit, resume: options.resume,
+  });
+  return { processed: results.filter((result) => result.status === 'preprocessed').length, failed: results.filter((result) => result.status === 'failed').length };
+}
+
+export async function dispatchCli(argv: string[], handlers: CliHandlers = {}): Promise<unknown> {
+  if (argv[0] === 'collect') return (handlers.collect ?? ((options) => collectSeeds(options)))(parseCollectArgs(argv));
+  if (argv[0] === 'preprocess') return (handlers.preprocess ?? preprocessRunDirectory)(parsePreprocessArgs(argv));
+  if (argv[0] === 'codex-review') {
+    if (!handlers.codexReview) throw new Error('codex-review runner is not registered');
+    const { values } = parseValues(argv, []);
+    const runDir = values.get('--run-dir');
+    if (!runDir) throw new Error('codex-review requires --run-dir');
+    return handlers.codexReview({ command: 'codex-review', runDir, codexCommand: values.get('--codex-command') ?? 'codex', timeoutMs: Number(values.get('--timeout-ms') ?? '120000') });
+  }
+  throw new Error(`unsupported command ${argv[0] ?? ''}`);
+}
+
 export async function main(argv = process.argv.slice(2)): Promise<void> {
-  const report = await collectSeeds(parseCollectArgs(argv));
+  const report = await dispatchCli(argv);
   process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
 }
 

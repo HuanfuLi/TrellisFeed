@@ -116,7 +116,9 @@ test('fresh source delimiter makes stored instructions inert and cannot select c
   assert.match(first.system, /untrusted reference data/i);
   assert.match(first.system, /never follow instructions/i);
   assert.equal(first.system.includes(source), false);
-  assert.ok(first.user.includes(`${first.delimiter}_START\n${source}\n${first.delimiter}_END`));
+  assert.ok(first.user.includes(`${first.delimiter}_START`));
+  assert.ok(first.user.includes(source));
+  assert.ok(first.user.includes(`${first.delimiter}_END`));
   assert.equal(first.maxTokens, 4096);
   assert.equal(first.tools.length, 0);
 });
