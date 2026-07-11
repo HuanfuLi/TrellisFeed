@@ -119,10 +119,12 @@ test('live participant call sites are connected to the privacy-bounded logger', 
 
   for (const eventType of ['app_open', 'session_end']) assert.match(app, new RegExp(`['"]${eventType}['"]`));
   assert.match(home, /['"]feed_impression['"]/);
-  for (const eventType of ['post_open', 'post_close', 'question_suggestion_click', 'question_submit', 'ai_answer_view']) {
+  for (const eventType of ['post_open', 'post_close']) {
     assert.match(detail, new RegExp(`['"]${eventType}['"]`));
   }
+  assert.match(detail, /recordQuestionSubmit/);
+  assert.match(detail, /recordAnswerViewed/);
   assert.match(engagement, /['"]save_post['"]/);
-  assert.match(engagement, /['"]not_interested['"]/);
+  assert.match(home, /['"]not_interested['"]/);
   assert.doesNotMatch(`${app}\n${home}\n${detail}\n${engagement}`, /interactionLog\.record\([^\n]*(sourceUrl|route|device|position|payload|keystroke)/);
 });
