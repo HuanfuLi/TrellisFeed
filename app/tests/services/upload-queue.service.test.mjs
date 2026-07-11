@@ -69,6 +69,10 @@ async function queueRows() {
   return dbQuery('SELECT * FROM research_upload_queue');
 }
 
+async function metadataRows() {
+  return dbQuery('SELECT * FROM research_metadata');
+}
+
 function jsonResponse(body, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -367,6 +371,96 @@ test('a lost response retains and re-sends the same id without data loss', async
 
   assert.deepEqual(sent, ['lost-response', 'lost-response']);
   assert.equal((await queueRows()).length, 0);
+});
+
+test('ACK receipt failure retains the active envelope for safe duplicate retry', async () => {
+  await resetQueue();
+  await enqueue(event('receipt-write-fails'), { triggerFlush: false });
+  await flushPendingUploads({
+    apiBaseUrl,
+    fetch: async () => jsonResponse({ acknowledgedIds: ['receipt-write-fails'] }),
+    persistence: {
+      writeDeliveryReceipt: async () => { throw new Error('injected receipt failure'); },
+    },
+  });
+  assert.equal((await queueRows()).length, 1);
+  assert.equal((await metadataRows()).some((row) => row.id === 'delivery:receipt-write-fails'), false);
+});
+
+test('queue deletion failure leaves a durable receipt and reconciliation safely removes the duplicate', async () => {
+  await resetQueue();
+  const durable = event('delete-fails');
+  await dbExecute(
+    'INSERT OR REPLACE INTO research_records (id, kind, revision, data) VALUES (?, ?, ?, ?)',
+    [durable.id, 'event', 1, JSON.stringify(durable)],
+  );
+  await enqueue(durable, { triggerFlush: false });
+  await flushPendingUploads({
+    apiBaseUrl,
+    fetch: async () => jsonResponse({ acknowledgedIds: ['delete-fails'] }),
+    persistence: {
+      deleteQueueEnvelope: async () => { throw new Error('injected delete failure'); },
+    },
+  });
+  assert.equal((await queueRows()).length, 1);
+  assert.equal((await metadataRows()).some((row) => row.id === 'delivery:delete-fails'), true);
+
+  await uploadQueueService.reconcileResearchOutbox();
+  assert.equal((await queueRows()).length, 0);
+});
+
+test('reconciliation is idempotent, revision-aware, and does not resurrect quarantined rows', async () => {
+  await resetQueue();
+  await dbExecute('DELETE FROM research_records');
+  const absent = event('missing-outbox');
+  const quarantined = event('already-quarantined');
+  const delivered = event('already-delivered');
+  for (const record of [absent, quarantined, delivered]) {
+    await dbExecute(
+      'INSERT OR REPLACE INTO research_records (id, kind, revision, data) VALUES (?, ?, ?, ?)',
+      [record.id, 'event', 1, JSON.stringify(record)],
+    );
+  }
+  await dbExecute(
+    'INSERT OR REPLACE INTO research_upload_quarantine (id, data) VALUES (?, ?)',
+    [quarantined.id, JSON.stringify({
+      id: quarantined.id,
+      reason: 'server_rejected',
+      envelope: { id: quarantined.id, queuedAt: '2026-07-11T00:00:00.000Z', record: quarantined },
+    })],
+  );
+  await dbExecute(
+    'INSERT OR REPLACE INTO research_metadata (id, data) VALUES (?, ?)',
+    ['delivery:already-delivered', JSON.stringify({ revision: 1, deliveredAt: '2026-07-11T12:00:00.000Z' })],
+  );
+
+  await uploadQueueService.reconcileResearchOutbox();
+  await uploadQueueService.reconcileResearchOutbox();
+  assert.deepEqual((await queueRows()).map((row) => row.id), ['missing-outbox']);
+});
+
+test('a rev 1 receipt never suppresses a durable Q/A rev 2 during reconciliation', async () => {
+  await resetQueue();
+  await dbExecute('DELETE FROM research_records');
+  const revision2 = {
+    id: 'qa-ledger', revision: 2, userId: '1001', condition: 'control', topicId: 'topic-1',
+    postId: 'post-1', questionId: 'question-ledger', questionText: 'Why?',
+    questionSource: 'typed', submittedAt: '2026-07-11T12:00:00.000Z', answerText: 'Because.',
+    answerViewedAt: '2026-07-11T12:01:00.000Z',
+  };
+  await dbExecute(
+    'INSERT OR REPLACE INTO research_records (id, kind, revision, data) VALUES (?, ?, ?, ?)',
+    [revision2.id, 'qa', 2, JSON.stringify(revision2)],
+  );
+  await dbExecute(
+    'INSERT OR REPLACE INTO research_metadata (id, data) VALUES (?, ?)',
+    ['delivery:qa-ledger', JSON.stringify({ revision: 1, deliveredAt: '2026-07-11T12:00:30.000Z' })],
+  );
+
+  await uploadQueueService.reconcileResearchOutbox();
+  const queued = await queueRows();
+  assert.equal(queued.length, 1);
+  assert.equal(JSON.parse(queued[0].data).record.revision, 2);
 });
 
 test('successful ACK durably updates upload health and broadcasts the new status', async () => {

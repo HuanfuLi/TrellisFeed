@@ -118,6 +118,8 @@ test('live participant call sites are connected to the privacy-bounded logger', 
   const engagement = readFileSync(new URL('../../src/services/engagement.service.ts', import.meta.url), 'utf8');
 
   for (const eventType of ['app_open', 'session_end']) assert.match(app, new RegExp(`['"]${eventType}['"]`));
+  assert.match(app, /reconcileResearchOutbox/);
+  assert.match(app, /registerRetryTriggers/);
   assert.match(home, /['"]feed_impression['"]/);
   for (const eventType of ['post_open', 'post_close', 'source_click']) {
     assert.match(detail, new RegExp(`['"]${eventType}['"]`));

@@ -69,6 +69,26 @@ test('bound but unconsented installations cannot persist or enqueue research rec
   setConsent(true);
 });
 
+test('a record persisted before enqueue failure is recovered by outbox reconciliation', async () => {
+  await resetRecords();
+  setConsent(true);
+  const logger = createInteractionLog({
+    enqueue: async () => { throw new Error('injected enqueue crash'); },
+    now: () => '2026-07-11T12:00:00.000Z',
+    createId: () => 'reconcile-after-enqueue-crash',
+  });
+
+  await assert.rejects(() => logger.record('post_open', { postId: 'post-crash' }), /injected enqueue crash/);
+  assert.equal((await dbQuery('SELECT * FROM research_records')).length, 1);
+  assert.equal((await dbQuery('SELECT * FROM research_upload_queue')).length, 0);
+
+  const { reconcileResearchOutbox } = await import('../../src/services/upload-queue.service.ts');
+  await reconcileResearchOutbox();
+  const queued = await dbQuery('SELECT * FROM research_upload_queue');
+  assert.equal(queued.length, 1);
+  assert.equal(JSON.parse(queued[0].data).record.id, 'reconcile-after-enqueue-crash');
+});
+
 test('record snapshots immutable study identity rather than accepting caller identity', async () => {
   await resetRecords();
   const { enqueued, logger } = makeHarness();
