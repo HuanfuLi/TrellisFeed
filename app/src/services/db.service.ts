@@ -70,6 +70,10 @@ const SHARED_DDL: string[] = [
   `CREATE TABLE IF NOT EXISTS content_pool_claims (storage_id TEXT PRIMARY KEY, version TEXT NOT NULL, record_id TEXT NOT NULL, data TEXT NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS content_pool_suggestions (storage_id TEXT PRIMARY KEY, version TEXT NOT NULL, record_id TEXT NOT NULL, data TEXT NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS content_pool_assets (storage_id TEXT PRIMARY KEY, version TEXT NOT NULL, record_id TEXT NOT NULL, data TEXT NOT NULL)`,
+  // Canonical RSD Q&A records. Query columns enforce the same-user/same-post
+  // boundary without making a derived transport record the local source of truth.
+  `CREATE TABLE IF NOT EXISTS user_questions (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, post_id TEXT NOT NULL, created_at TEXT NOT NULL, data TEXT NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS ai_answers (id TEXT PRIMARY KEY, user_question_id TEXT NOT NULL, post_id TEXT NOT NULL, created_at TEXT NOT NULL, data TEXT NOT NULL)`,
 ];
 
 // Object-store names for the IndexedDB backend, derived from SHARED_DDL so the
@@ -194,7 +198,7 @@ class LocalStorageBackend implements DBBackend {
 // IDB transaction and stores are created at open()).
 
 const IDB_NAME = 'questiontrace';
-const IDB_VERSION = 4;
+const IDB_VERSION = 5;
 
 class IndexedDBBackend implements DBBackend {
   private db: IDBDatabase | null = null;
@@ -404,6 +408,8 @@ export async function clearAllTables(): Promise<void> {
     await dbExecute('DELETE FROM content_pool_claims');
     await dbExecute('DELETE FROM content_pool_suggestions');
     await dbExecute('DELETE FROM content_pool_assets');
+    await dbExecute('DELETE FROM user_questions');
+    await dbExecute('DELETE FROM ai_answers');
   } catch {
     // DB may not be available (e.g. tables not yet created) — silently ignore
   }
