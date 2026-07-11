@@ -2,31 +2,34 @@
 
 **Generated:** 2026-07-11
 **Phase:** 01-rebrand-research-shell-hardening
-**Status:** Incomplete
+**Status:** Deployment verified; study operations pending
 
-The local Worker, D1 migration, protected researcher page, and ZIP export are implemented and tested. The following items require the study operator's Cloudflare account and must remain outside the repository.
+The Worker and D1 database are deployed, protected, and live-smoke-tested. The fixed URL, database identifier, password, and temporary verification fixture remain outside the repository. Only real study-account provisioning and app-build URL injection remain.
 
 ## Environment Variables
 
 | Status | Variable | Source | Add to |
 |---|---|---|---|
-| [ ] | `RESEARCH_ADMIN_PASSWORD` | Operator-chosen management password supplied with `npx wrangler secret put RESEARCH_ADMIN_PASSWORD` | Cloudflare Worker secret only; never the app or repository |
+| [x] | `RESEARCH_ADMIN_PASSWORD` | Operator-chosen management password supplied with `npx wrangler secret put RESEARCH_ADMIN_PASSWORD` | Cloudflare Worker secret only; never the app or repository |
 | [ ] | `VITE_RESEARCH_API_BASE_URL` | Fixed deployed Worker URL | Research app build environment only; never commit a real study URL |
 
 ## Account Setup
 
-- [ ] **Create or select the Cloudflare account and D1 database for this study**
-  - Required because the operator controls the study URL, D1 binding, and data-access account.
-  - Do not place the database identifier, account mappings, or resulting URL in Git.
+- [x] **Create the Cloudflare D1 database and deploy the study Worker**
+  - The live binding, migration, Worker secret, and fixed HTTPS endpoint were verified by the operator.
+  - The database identifier and resulting URL remain private and are not recorded here.
+
+- [ ] **Batch-provision the real numeric research accounts**
+  - Insert the final `study_accounts` mappings through the operator's private process before participant installation.
+  - Keep account IDs, conditions, topic IDs, and assignment materials outside Git. The temporary smoke-test account and event have already been removed.
 
 ## Deployment Configuration
 
-- [ ] **Bind the selected D1 database as `DB` in the local deployment configuration**
-  - Location: `research-backend/wrangler.jsonc` in the operator's private deployment copy.
-  - Add the actual database name/ID only outside committed source.
+- [x] **Bind the selected D1 database as `DB` in the private deployment configuration**
+  - The live Worker is using the selected database; its actual name/ID remains outside committed source.
 
-- [ ] **Apply the schema, provision private numeric study accounts, set the server secret, and deploy**
-  - Run from `research-backend/` after the private binding is available:
+- [x] **Apply migration 0001, set the server secret, and deploy**
+  - These authenticated Cloudflare steps have been completed. The commands used were:
 
 ```powershell
 npx wrangler d1 migrations apply <D1_DATABASE_NAME> --remote
@@ -34,17 +37,22 @@ npx wrangler secret put RESEARCH_ADMIN_PASSWORD
 npx wrangler deploy
 ```
 
-  - Provision the real `study_accounts` rows through the operator's private process. Do not commit account IDs, conditions, topic IDs, passwords, or the study URL.
+  - Do not commit account IDs, conditions, topic IDs, passwords, the database identifier, or the study URL.
 
 ## Verification
 
-After deployment, verify over the fixed HTTPS Worker URL:
+Live verification over the fixed HTTPS Worker URL is complete:
 
-1. `GET /admin` prompts for HTTP Basic credentials and then shows only event count, Q/A count, and last-received time.
-2. A valid `POST /v1/ingest` returns `acknowledgedIds`.
-3. `GET /admin/export.zip` downloads an archive containing exactly `behavioral-events.csv` and `question-answer-records.csv`.
-4. Inject the fixed public URL only at app package build time as `VITE_RESEARCH_API_BASE_URL`; do not commit it.
+1. [x] Unauthenticated `GET /admin` and `GET /admin/export.zip` return HTTP 401.
+2. [x] Authenticated `GET /admin` shows only event count, Q/A count, and last-received time.
+3. [x] `GET /admin/export.zip` downloads an archive containing exactly `behavioral-events.csv` and `question-answer-records.csv`.
+4. [x] A temporary numeric account completed install resolution; a valid `app_open` ingest returned an acknowledgement and used the server-owned condition/topic values.
+5. [x] The temporary account and test event were removed after verification.
+
+## Remaining App Build Step
+
+- [ ] After the real numeric research accounts have been batch-provisioned, inject the fixed public URL as `VITE_RESEARCH_API_BASE_URL` while producing and verifying the participant app package; do not commit it.
 
 ---
 
-**Once all items complete:** Mark status as "Complete" at top of file.
+**Once both remaining study-operations items are complete:** Mark status as "Complete" at the top of this file.

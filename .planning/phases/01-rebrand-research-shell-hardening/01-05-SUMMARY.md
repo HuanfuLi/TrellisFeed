@@ -11,6 +11,7 @@ provides:
   - "Password-protected, read-only researcher status and aggregate ZIP export routes."
   - "Formula-safe CSV serialization and exactly two deterministic archive entries."
   - "Local regression coverage for authorization-before-query, escaped HTML, read-only methods, and archive response headers."
+  - "Operator-verified fixed HTTPS deployment backed by the migrated D1 database and a server-side admin secret."
 affects: [cloudflare-deployment, research-admin-export, phase-1-upload-collection]
 
 tech-stack:
@@ -57,10 +58,13 @@ coverage:
         status: pass
     human_judgment: false
   - id: D3
-    description: "A fixed HTTPS Worker deployment with a real D1 binding, server-side password, private account map, and researcher smoke test."
-    verification: []
+    description: "A fixed HTTPS Worker deployment with a real D1 binding, server-side password, and researcher smoke test using a temporary private account fixture."
+    verification:
+      - kind: human
+        ref: "Operator deployment checkpoint: migration, protected admin routes, two-file export, account resolution, ingest acknowledgement, and server-owned context were verified against the live Worker."
+        status: pass
     human_judgment: true
-    rationale: "Cloudflare resource provisioning, private credentials, account mappings, and the fixed study URL deliberately require the operator and were not run by this autonomous-false plan."
+    rationale: "The operator completed the Cloudflare-authenticated deployment and live smoke test without committing the fixed URL, D1 identifier, credentials, or temporary account fixture. Real study-account provisioning remains a study-operations step."
 
 duration: 5m
 completed: 2026-07-11
@@ -76,7 +80,7 @@ status: complete
 - **Duration:** 5m
 - **Started:** 2026-07-11T04:24:12Z
 - **Completed:** 2026-07-11T04:29:31Z
-- **Tasks:** 2 local implementation tasks completed; 1 Cloudflare deployment checkpoint pending
+- **Tasks:** 2 local implementation tasks and 1 Cloudflare deployment checkpoint completed
 - **Files modified:** 7 implementation files
 
 ## Accomplishments
@@ -84,6 +88,7 @@ status: complete
 - Added exact-version `fflate@0.8.3` and a stable, injection-safe CSV/ZIP builder that always emits `behavioral-events.csv` and `question-answer-records.csv`.
 - Added `GET /admin` and `GET /admin/export.zip`, both protected by HTTP Basic authentication against `RESEARCH_ADMIN_PASSWORD`, a Worker-only secret.
 - Kept the researcher surface read-only and health-only: counts plus latest receipt time, escaped dynamic output, `no-store` responses, attachment export, and no participant Q/A content.
+- Deployed the Worker against the migrated D1 database and completed the live authorization, archive, account-resolution, ingest-acknowledgement, and server-owned context smoke tests.
 
 ## Task Commits
 
@@ -130,11 +135,11 @@ Each task was committed atomically:
 
 ## Issues Encountered
 
-- npm reported existing deferred install-script approvals for transitive Wrangler tooling packages. No such script was approved or run in this plan, and the Node test path does not use Wrangler. This is not a deployment blocker for the local implementation; Cloudflare deployment remains the explicit operator checkpoint below.
+- npm reported existing deferred install-script approvals for transitive Wrangler tooling packages during local implementation. The operator subsequently approved the required Wrangler use and completed the Cloudflare deployment checkpoint successfully.
 
 ## User Setup Required
 
-**External services require manual configuration.** See [01-USER-SETUP.md](./01-USER-SETUP.md) for the private D1 binding, migration, Worker secret, private account provisioning, deployment, and smoke-test steps.
+**Deployment setup is complete.** See [01-USER-SETUP.md](./01-USER-SETUP.md) for the remaining study-operations steps: privately batch-provision the real numeric research accounts and inject the already-deployed Worker URL when building the participant app package.
 
 ## Verification
 
@@ -142,16 +147,20 @@ Each task was committed atomically:
 - `cd research-backend && node --test test/admin-auth.test.mjs` — passed (5 tests).
 - `cd research-backend && npm test` — passed (19 tests).
 - `git diff --check 5491ad4^..HEAD` — passed with no whitespace errors.
+- Live D1 migration and Worker deployment — completed by the authenticated operator.
+- Live unauthenticated checks — `/admin` and `/admin/export.zip` both returned HTTP 401.
+- Live authenticated checks — the health-only status page loaded and the ZIP contained exactly `behavioral-events.csv` and `question-answer-records.csv`.
+- Live ingest closure — a temporary numeric account resolved successfully, an `app_open` record was acknowledged, and server-owned condition/topic values were enforced; the temporary account and test event were then removed.
 
 ## Next Phase Readiness
 
-- The local backend implementation is ready for the mobile upload queue and the researcher-page deployment checkpoint.
-- Deployment is intentionally not complete: no Cloudflare login, D1 creation/migration application, remote account provisioning, Worker secret configuration, deploy, real URL, or app build configuration was performed.
+- The protected researcher backend is deployed and its collection/export path has passed the live smoke test.
+- Before participant builds are produced, the research team must privately batch-provision the real numeric account-to-condition/topic mappings and inject the fixed Worker URL as `VITE_RESEARCH_API_BASE_URL` at package build time.
 
 ## Self-Check: PASSED
 
 - Confirmed both archive filenames, CSV formula escaping, correct auth-before-read behavior, aggregate-only health fields, read-only admin methods, and no-store export headers through executable tests.
-- Confirmed no actual password, URL, account mapping, client key, or researcher PIN was created or committed by this plan.
+- Confirmed the live deployment and end-to-end smoke test without recording an actual password, URL, D1 identifier, account mapping, client key, or researcher PIN in the repository.
 
 ---
 *Phase: 01-rebrand-research-shell-hardening*
