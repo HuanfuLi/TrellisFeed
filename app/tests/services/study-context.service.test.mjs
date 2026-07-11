@@ -12,6 +12,7 @@ globalThis.localStorage = {
 };
 
 const { dbExecute, dbQuery } = await import('../../src/services/db.service.ts');
+const { eventBus } = await import('../../src/lib/event-bus.ts');
 const serviceUrl = new URL('../../src/services/study-context.service.ts', import.meta.url);
 let serviceInstance = 0;
 
@@ -37,9 +38,13 @@ test('study context binds one durable identity and rejects a conflicting re-bind
   assert.equal(unbound.getOptional(), null);
   assert.throws(() => unbound.getRequired(), /not bound/i);
 
+  const emitted = [];
+  const unsubscribe = eventBus.subscribe('RESEARCH_IDENTITY_BOUND', (event) => emitted.push(event.payload));
   await unbound.bindOnce(original);
+  unsubscribe();
   const rows = await dbQuery('SELECT * FROM research_metadata WHERE id = ?', ['identity']);
   assert.deepEqual(rows, [{ id: 'identity', data: JSON.stringify(original) }]);
+  assert.deepEqual(emitted, [{ userId: '1042', condition: 'experimental', topicId: 'topic-opaque-1' }]);
 
   // A distinct service instance proves the identity is read through dbQuery,
   // rather than remaining only in the first module's synchronous mirror.
