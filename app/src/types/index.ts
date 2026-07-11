@@ -1,3 +1,13 @@
+import type { StudyCondition } from './research';
+
+export type {
+  InteractionEventType,
+  QuestionAnswerRecord,
+  ResearchIdentity,
+  StudyCondition,
+  UserInteractionEvent,
+} from './research';
+
 // ═══════════════════════════════════════════════════════════════════════════
 // QUESTION & KNOWLEDGE DOMAIN
 // ═══════════════════════════════════════════════════════════════════════════
@@ -495,6 +505,8 @@ export type AppEvent =
   | { type: 'CONCEPT_EXPLORED'; payload: { anchorId: string } }
   | { type: 'ANCHOR_DISMISSED'; payload: { anchorId: string } }
   | { type: 'ENGAGEMENT_CHANGED'; payload: { kind: 'save' | 'unsave' | 'like' | 'unlike' | 'undismiss'; id: string } }
+  | { type: 'RESEARCH_IDENTITY_BOUND'; payload: { userId: string; condition: StudyCondition; topicId: string } }
+  | { type: 'UPLOAD_STATUS_CHANGED'; payload: { pending: number; lastSuccessAt: string | null } }
   // Unified graph-mutation signal. Fires after any classification commit, anchor
   // creation, prune, replant, or reorg step. Subscribers don't need to discriminate
   // why the graph changed — just re-read store. Replaces the former
