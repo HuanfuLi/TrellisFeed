@@ -678,13 +678,8 @@ export const questionService = {
 
   /**
    * Replace the entire store, writing through to IndexedDB.
-   *
-   * Used by the mindmap reorganization paths (reorganizeMindmap's post-LLM
-   * reconcile, revertReorganization), which rebuild the whole question set at
-   * once. Rows dropped from the new set are DELETED from IndexedDB — and those
-   * deletes are awaited, for the same reason `delete()` awaits: IndexedDB is
-   * primary, so a fire-and-forget delete could resurrect the row on the next
-   * boot-hydrate if the app is killed mid-write.
+   * Rows dropped from the new set are DELETED from IndexedDB, and those deletes
+   * are awaited so a killed app cannot resurrect them during the next hydrate.
    */
   async replaceAll(questions: Question[]): Promise<void> {
     const previous = loadStore({ includeFlagged: true });

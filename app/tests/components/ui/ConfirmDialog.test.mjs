@@ -2,7 +2,7 @@
  * ConfirmDialog.test.mjs — Phase 49-03
  *
  * 6 tests covering the reusable confirm modal extracted from GraphScreen's
- * inline reorganize-confirm pattern (lines 851-868 in the pre-49-03 source).
+ * inherited inline confirmation pattern.
  * Source-reading approach (matches the rest of the Phase 49 suite) — no jsdom
  * dependency, no TSX loader required.
  */
@@ -32,7 +32,7 @@ test('Test 1 — render: open=false returns null; open=true renders zIndex 300 +
   assert.match(
     src,
     /zIndex:\s*300/,
-    'modal backdrop must use zIndex: 300 (matches existing reorganize-modal pattern)',
+    'modal backdrop must use zIndex: 300',
   );
   assert.match(
     src,

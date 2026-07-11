@@ -283,23 +283,6 @@ export interface ClassificationResult {
   anchorId?: string;
 }
 
-export interface ReorganizationResult {
-  hierarchy: Array<{
-    rootLabel: string;
-    branches: Array<{
-      branchLabel: string;
-      clusters: Array<{
-        clusterLabel: string;
-        anchors: Array<{
-          anchorName: string;
-          keyword: string;
-          qaIds: string[];
-        }>;
-      }>;
-    }>;
-  }>;
-}
-
 export type PostNarrativeMode =
   | 'example-first'
   | 'historical-story'
@@ -499,16 +482,13 @@ export type AppEvent =
   | { type: 'FEED_REFILL_COMPLETED'; payload: { added: number; error?: string } }
   | { type: 'SESSION_CREATED'; payload: ChatSession }
   | { type: 'SESSION_UPDATED'; payload: { id: string } }
-  | { type: 'REORG_STARTED' }
-  | { type: 'REORG_COMPLETED'; payload: { anchorCount: number; clusterCount: number } }
-  | { type: 'REORG_FAILED'; payload: { error: string } }
   | { type: 'CONCEPT_EXPLORED'; payload: { anchorId: string } }
   | { type: 'ANCHOR_DISMISSED'; payload: { anchorId: string } }
   | { type: 'ENGAGEMENT_CHANGED'; payload: { kind: 'save' | 'unsave' | 'like' | 'unlike' | 'undismiss'; id: string } }
   | { type: 'RESEARCH_IDENTITY_BOUND'; payload: { userId: string; condition: StudyCondition; topicId: string } }
   | { type: 'UPLOAD_STATUS_CHANGED'; payload: { pending: number; lastSuccessAt: string | null } }
   // Unified graph-mutation signal. Fires after any classification commit, anchor
-  // creation, prune, replant, or reorg step. Subscribers don't need to discriminate
+  // creation, prune, or replant step. Subscribers don't need to discriminate
   // why the graph changed — just re-read store. Replaces the former
   // CLASSIFICATION_COMPLETED event (semantic duplicate of this one; payload was
   // never read by any subscriber).

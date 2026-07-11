@@ -19,11 +19,10 @@ const STORAGE_KEY = 'questiontrace_daily_read';
 interface DailyReadState {
   date: string;
   exploredAnchors: string[];
-  creditAwarded: boolean;
 }
 
 function freshState(): DailyReadState {
-  return { date: today(), exploredAnchors: [], creditAwarded: false };
+  return { date: today(), exploredAnchors: [] };
 }
 
 function loadState(): DailyReadState {
@@ -35,7 +34,6 @@ function loadState(): DailyReadState {
     return {
       date: parsed.date,
       exploredAnchors: Array.isArray(parsed.exploredAnchors) ? parsed.exploredAnchors : [],
-      creditAwarded: parsed.creditAwarded === true,
     };
   } catch {
     return freshState();
@@ -68,18 +66,6 @@ export const dailyReadService = {
   /** Get all explored anchor IDs for today. */
   getExploredAnchors(): string[] {
     return loadState().exploredAnchors;
-  },
-
-  /** Check if credit has been awarded today. */
-  isCreditAwarded(): boolean {
-    return loadState().creditAwarded;
-  },
-
-  /** Mark credit as awarded today (prevents double-awarding). */
-  markCreditAwarded(): void {
-    const state = loadState();
-    state.creditAwarded = true;
-    saveState(state);
   },
 
   /** Reset state (primarily for testing). */

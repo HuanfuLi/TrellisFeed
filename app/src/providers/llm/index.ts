@@ -132,7 +132,7 @@ async function openAICompletion(messages: ChatMessage[], config: LLMConfig, maxT
   const body: Record<string, unknown> = { model: config.model, messages, max_tokens: maxTokens, stream: false };
   // LM Studio rejects `json_object` ("must be 'json_schema' or 'text'") and other local
   // OpenAI-compatible servers vary in support. Skip the hint for local providers and rely
-  // on prompt guidance + the three-tier repair parser in _doReorganize.
+  // on prompt guidance and schema validation at the call site.
   if (options?.jsonMode && !isLocal) body.response_format = { type: 'json_object' };
 
   const response = isLocal

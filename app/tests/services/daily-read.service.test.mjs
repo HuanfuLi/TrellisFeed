@@ -60,21 +60,4 @@ describe('dailyReadService', () => {
     assert.equal(dailyReadService.isExplored('anchor-1'), false);
   });
 
-  it('isCreditAwarded returns false initially, true after markCreditAwarded', () => {
-    assert.equal(dailyReadService.isCreditAwarded(), false);
-    dailyReadService.markCreditAwarded();
-    assert.equal(dailyReadService.isCreditAwarded(), true);
-  });
-
-  it('creditAwarded resets on new day', () => {
-    dailyReadService.markCreditAwarded();
-    assert.equal(dailyReadService.isCreditAwarded(), true);
-
-    // Manually overwrite stored JSON with a different date
-    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    raw.date = '1999-01-01';
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(raw));
-
-    assert.equal(dailyReadService.isCreditAwarded(), false);
-  });
 });

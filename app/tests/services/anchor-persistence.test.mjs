@@ -109,7 +109,7 @@ describe('anchor + cluster persistence (Phase 55 migration regression)', () => {
     questionService.insertNode(anchor('drop-me', 'Drop'));
     await flushWrites();
 
-    // The reorg reconcile path rebuilds the whole store in one shot.
+    // Bulk replacement rebuilds the whole store in one shot.
     await questionService.replaceAll([anchor('keep-me', 'Keep'), anchor('added', 'Added')]);
     await flushWrites();
 

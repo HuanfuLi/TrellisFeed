@@ -3,11 +3,7 @@ import type { ReactNode } from 'react';
 /**
  * ConfirmDialog — reusable confirmation modal (Phase 49-03).
  *
- * Extracted from the inline Reorganize-confirm modal that previously lived at
- * GraphScreen.tsx:851-868. Now consumed by THREE flows in Phase 49:
- *   1. Reorganize (migrated from inline).
- *   2. Merge confirm — renders <MergeConfirmPreview> via the `children` slot.
- *   3. Delete confirm — uses `destructive` prop for the red --danger CTA.
+ * Shared by confirmation flows that need a consistent modal surface.
  *
  * Invariants (CLAUDE.md / 49-PATTERNS.md):
  *   - Backdrop click invokes `onCancel`, NEVER `onConfirm` (T-49-11 click-jacking
@@ -15,8 +11,7 @@ import type { ReactNode } from 'react';
  *   - zIndex 300 — sits above BottomNavigation (~zIndex 100) and above
  *     CorrectionCard's backdrop (zIndex 249) + card (250) from Plan 49-02.
  *     Below BottomSheet (~zIndex 500) since dialog is the higher-trust surface.
- *   - CSS variables only — no Tailwind classes. Mirrors the inline pattern from
- *     the old reorganize modal so a side-by-side visual diff is null.
+ *   - CSS variables only — no Tailwind classes.
  *   - `children` slot renders BETWEEN the body and the button row. Plan 49-03
  *     Test 2 ("ConfirmDialog children slot renders between body and buttons")
  *     enforces this ordering.
@@ -47,8 +42,7 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   if (!open) return null;
 
-  // D-09 — destructive variant swaps to var(--danger). Default is the existing
-  // primary CTA color so the migrated reorganize modal stays byte-stable visually.
+  // D-09 — destructive variant swaps to var(--danger).
   const confirmColor = destructive ? 'var(--danger)' : 'var(--primary-40)';
 
   return (
