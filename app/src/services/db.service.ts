@@ -56,6 +56,9 @@ const SHARED_DDL: string[] = [
   `CREATE TABLE IF NOT EXISTS post_queue (id TEXT PRIMARY KEY, data TEXT NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS post_history (id TEXT PRIMARY KEY, data TEXT NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS engagement (id TEXT PRIMARY KEY, data TEXT NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS research_records (id TEXT PRIMARY KEY, kind TEXT NOT NULL, revision INTEGER NOT NULL, data TEXT NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS research_upload_queue (id TEXT PRIMARY KEY, data TEXT NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS research_metadata (id TEXT PRIMARY KEY, data TEXT NOT NULL)`,
 ];
 
 // Object-store names for the IndexedDB backend, derived from SHARED_DDL so the
@@ -68,7 +71,7 @@ const TABLE_NAMES: string[] = SHARED_DDL
 
 // ─── localStorage Backend (Node test runner + last-resort fallback) ──────────
 
-const PREFIX = 'trellis_db_';
+const PREFIX = 'questiontrace_db_';
 
 class LocalStorageBackend implements DBBackend {
   // We simulate a table as a JSON blob keyed by tableName.
@@ -179,8 +182,8 @@ class LocalStorageBackend implements DBBackend {
 // COMMIT/ROLLBACK and CREATE TABLE are no-ops — each op is its own auto-committed
 // IDB transaction and stores are created at open()).
 
-const IDB_NAME = 'trellis';
-const IDB_VERSION = 1;
+const IDB_NAME = 'questiontrace';
+const IDB_VERSION = 2;
 
 class IndexedDBBackend implements DBBackend {
   private db: IDBDatabase | null = null;
@@ -301,10 +304,10 @@ export async function getDB(): Promise<DBBackend> {
     backend = candidate;
     // Logged so the operator can confirm the active backend (IndexedDB vs fallback)
     // from the browser/WebView console.
-    console.info('[Trellis] DB backend active:', candidate.constructor.name);
+    console.info('[QuestionTrace] DB backend active:', candidate.constructor.name);
   }).catch(async (err) => {
     if (!(candidate instanceof LocalStorageBackend)) {
-      console.warn('[Trellis] IndexedDB unavailable, falling back to LocalStorageBackend:', err);
+      console.warn('[QuestionTrace] IndexedDB unavailable, falling back to LocalStorageBackend:', err);
       const fb = new LocalStorageBackend();
       await fb.init();
       backend = fb;
@@ -378,6 +381,9 @@ export async function clearAllTables(): Promise<void> {
     await dbExecute('DELETE FROM post_queue');
     await dbExecute('DELETE FROM post_history');
     await dbExecute('DELETE FROM engagement');
+    await dbExecute('DELETE FROM research_records');
+    await dbExecute('DELETE FROM research_upload_queue');
+    await dbExecute('DELETE FROM research_metadata');
   } catch {
     // DB may not be available (e.g. tables not yet created) — silently ignore
   }

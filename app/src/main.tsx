@@ -6,7 +6,6 @@ import App from './App.tsx';
 import { AppProvider } from './state/AppProvider.tsx';
 import { applyTheme } from './lib/theme';
 import { settingsService } from './services/settings.service';
-import { migrateLegacyKeys } from './services/legacy-migration.service';
 import { bindI18nLeaf } from './lib/i18n-leaf';
 
 // Phase 37 (TECHDEBT-01): Wire the leaf shim to the live i18next instance.
@@ -17,10 +16,6 @@ import { bindI18nLeaf } from './lib/i18n-leaf';
 // compile-time narrowness, not runtime behavior.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 bindI18nLeaf(i18n.t.bind(i18n) as any, () => i18n.language);
-
-// Migrate pre-rebrand echolearn_* localStorage keys to trellis_* before any
-// service reads from storage. Idempotent — safe on every boot.
-migrateLegacyKeys();
 
 // Apply theme before first paint to prevent flash of wrong theme
 applyTheme(settingsService.getSync().preferences.theme);
