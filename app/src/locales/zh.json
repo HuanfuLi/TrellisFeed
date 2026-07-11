@@ -250,14 +250,6 @@
   "graph": {
     "title": "知识图谱",
     "headerTitle": "知识图谱",
-    "reorganizeButton": "重新组织",
-    "reorganizingButton": "正在重新组织…",
-    "reorganizeModal": {
-      "title": "重新组织地图",
-      "description": "这将使用 AI 重新组织你的整个知识图谱。你的问答、复习计划和闪卡都会保留 — 只会调整层级结构。",
-      "cancel": "取消",
-      "confirm": "重新组织"
-    },
     "rootLabel": "知识",
     "empty": {
       "heading": "你的知识反思图谱是空的。",
@@ -271,11 +263,6 @@
       "anchorMoreSuffix": " +{{count}} 个更多",
       "connectionsCount": "{{count}} 条关联",
       "viewDetails": "查看详情"
-    },
-    "toast": {
-      "reorganized": "地图已重组：{{clusterCount}} 个集群，{{anchorCount}} 个概念",
-      "reorganizeFailed": "重组失败",
-      "reorganizing": "正在重新组织你的知识图谱…"
     },
     "correction": {
       "actions": {
@@ -328,11 +315,9 @@
         "undone": "已撤销:{{summary}}",
         "nothingToUndo": "没有可撤销的操作",
         "dropInvalid": "不是有效的放置目标",
-        "reorgInProgress": "重组进行中 — 请稍后再试",
         "rootNotEditable": "根节点 — 不可编辑",
         "branchNotEditable": "分支重命名即将推出"
-      },
-      "reorgPaused": "正在重组 — 手动修正已暂停"
+      }
     },
     "anchor": {
       "title": "概念锚点",
@@ -444,7 +429,6 @@
       "reminderTime": "提醒时间",
       "dailyAutoRefresh": "每日自动刷新",
       "preferredRefreshTime": "偏好刷新时间",
-      "trellisDevMode": "QuestionTrace 开发模式",
       "aiDataTransmission": "AI 数据传输",
       "similarityThreshold": "相似度阈值",
       "showSimilarityScores": "显示相似度分数",
@@ -497,7 +481,6 @@
       "podcastAdvance": "就寝前几分钟开始生成",
       "plannerAutoRefresh": "每天刷新一次建议",
       "plannerRefreshTime": "默认：上午 8:00；也会在播客生成后触发",
-      "trellisDevModeHint": "在虚拟节点上显示全部 7 种叶子状态（新芽、绿叶、黄叶、落叶中、已落、花开、结果），便于视觉调试。",
       "developerBlurb": "开发用的调试工具。破坏性操作无法撤销。",
       "usageBlurb": "每月提问限额和 LLM API Token 使用情况。",
       "privacyBlurb": "研究交互和问答记录会先存储在此设备上，再上传到研究数据收集端。应用可离线使用，并会在网络恢复后重试上传。",

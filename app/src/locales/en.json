@@ -250,14 +250,6 @@
   "graph": {
     "title": "Knowledge Graph",
     "headerTitle": "Knowledge Graph",
-    "reorganizeButton": "Reorganize",
-    "reorganizingButton": "Reorganizing...",
-    "reorganizeModal": {
-      "title": "Reorganize Map",
-      "description": "This will reorganize your entire knowledge map using AI. Your Q&As, review schedules, and flashcards will be preserved — only the hierarchy structure will change.",
-      "cancel": "Cancel",
-      "confirm": "Reorganize"
-    },
     "rootLabel": "Knowledge",
     "empty": {
       "heading": "Your knowledge reflection map is empty.",
@@ -271,11 +263,6 @@
       "anchorMoreSuffix": " +{{count}} more",
       "connectionsCount": "{{count}} connections",
       "viewDetails": "View details"
-    },
-    "toast": {
-      "reorganized": "Map reorganized: {{clusterCount}} clusters, {{anchorCount}} concepts",
-      "reorganizeFailed": "Reorganization failed",
-      "reorganizing": "Reorganizing your knowledge map..."
     },
     "correction": {
       "actions": {
@@ -328,11 +315,9 @@
         "undone": "Undone: {{summary}}",
         "nothingToUndo": "Nothing to undo",
         "dropInvalid": "Not a valid drop target",
-        "reorgInProgress": "Reorganize in progress — try again in a moment",
         "rootNotEditable": "Root node — not editable",
         "branchNotEditable": "Branch rename coming soon"
-      },
-      "reorgPaused": "Reorganizing — manual corrections paused"
+      }
     },
     "anchor": {
       "title": "Concept Anchor",
@@ -444,7 +429,6 @@
       "reminderTime": "Reminder Time",
       "dailyAutoRefresh": "Daily Auto-Refresh",
       "preferredRefreshTime": "Preferred Refresh Time",
-      "trellisDevMode": "QuestionTrace Dev Mode",
       "aiDataTransmission": "AI Data Transmission",
       "similarityThreshold": "Similarity Threshold",
       "showSimilarityScores": "Show Similarity Scores",
@@ -497,7 +481,6 @@
       "podcastAdvance": "Minutes before sleep to generate",
       "plannerAutoRefresh": "Refresh suggestions once per day",
       "plannerRefreshTime": "Default: 8:00 AM; also triggers after podcast",
-      "trellisDevModeHint": "Shows all 7 leaf states (bud, green, yellow, falling, fallen, blossom, fruit) on dummy nodes for visual debugging.",
       "developerBlurb": "Debug tools for development. Destructive actions cannot be undone.",
       "usageBlurb": "Monthly question limit and LLM API token usage.",
       "privacyBlurb": "Study interaction and question/answer records are stored on this device first and uploaded to the research data collector. The app works offline and retries uploads when a connection returns.",

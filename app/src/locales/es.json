@@ -250,14 +250,6 @@
   "graph": {
     "title": "Grafo de conocimiento",
     "headerTitle": "Grafo de conocimiento",
-    "reorganizeButton": "Reorganizar",
-    "reorganizingButton": "Reorganizando…",
-    "reorganizeModal": {
-      "title": "Reorganizar mapa",
-      "description": "Esto reorganizará todo tu mapa de conocimiento con IA. Tus preguntas, planes de repaso y fichas se conservarán — solo cambiará la jerarquía.",
-      "cancel": "Cancelar",
-      "confirm": "Reorganizar"
-    },
     "rootLabel": "Conocimiento",
     "empty": {
       "heading": "Tu mapa de reflexión está vacío.",
@@ -271,11 +263,6 @@
       "anchorMoreSuffix": " +{{count}} más",
       "connectionsCount": "{{count}} conexiones",
       "viewDetails": "Ver detalles"
-    },
-    "toast": {
-      "reorganized": "Mapa reorganizado: {{clusterCount}} clústeres, {{anchorCount}} conceptos",
-      "reorganizeFailed": "Falló la reorganización",
-      "reorganizing": "Reorganizando tu mapa de conocimiento…"
     },
     "correction": {
       "actions": {
@@ -328,11 +315,9 @@
         "undone": "Deshecho: {{summary}}",
         "nothingToUndo": "Nada que deshacer",
         "dropInvalid": "No es un destino válido",
-        "reorgInProgress": "Reorganización en curso — inténtalo de nuevo en un momento",
         "rootNotEditable": "Nodo raíz — no editable",
         "branchNotEditable": "Renombrar ramas: próximamente"
-      },
-      "reorgPaused": "Reorganizando — correcciones manuales en pausa"
+      }
     },
     "anchor": {
       "title": "Ancla de concepto",
@@ -444,7 +429,6 @@
       "reminderTime": "Hora del recordatorio",
       "dailyAutoRefresh": "Actualización diaria",
       "preferredRefreshTime": "Hora de actualización preferida",
-      "trellisDevMode": "Modo de desarrollo de QuestionTrace",
       "aiDataTransmission": "Transmisión de datos a IA",
       "similarityThreshold": "Umbral de similitud",
       "showSimilarityScores": "Mostrar puntuaciones",
@@ -497,7 +481,6 @@
       "podcastAdvance": "Minutos antes de dormir para generar",
       "plannerAutoRefresh": "Actualizar sugerencias una vez al día",
       "plannerRefreshTime": "Por defecto: 8:00; también tras el podcast",
-      "trellisDevModeHint": "Muestra los 7 estados de hojas (brote, verde, amarilla, cayendo, caída, flor, fruto) en nodos de prueba.",
       "developerBlurb": "Herramientas de depuración. Las acciones destructivas no se pueden deshacer.",
       "usageBlurb": "Límite mensual de preguntas y uso de tokens de la API del LLM.",
       "privacyBlurb": "Los registros de interacción y de preguntas/respuestas del estudio se almacenan primero en este dispositivo y se cargan al recolector de datos de investigación. La app funciona sin conexión y reintenta las cargas al recuperar la conexión.",

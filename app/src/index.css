@@ -117,27 +117,12 @@
   /* Canonical between-sections vertical gap for page-level rhythm. */
   --section-gap: 24px;
 
-  /* News card (InfoFlow newspaper-style) */
-  --news-card-bg: #faf8f4;
-  --news-card-border: #e8e2d8;
-  --news-card-dot: #d4c9b8;
-  --news-card-headline: #1a1a1a;
-  --news-card-body: #444444;
-  --news-card-source: #888888;
-  --news-card-tag-text: #6B4C35;
-  --news-card-tag-bg: rgba(107, 76, 53, 0.08);
-  --news-card-tag-border: #e8e2d8;
-  --news-card-muted: #999999;
-  --news-card-divider: #d4c9b8;
-
   /* Badge — dark text on light tinted backgrounds */
   --badge-yellow-text: #5D4037;
   --badge-yellow-bg: var(--secondary-80);
   --badge-blue-text: #01579B;
   --badge-purple-text: #4A148C;
 
-  /* TrellisEmptyState overlay */
-  --trellis-empty-bg: rgba(255, 251, 245, 0.7);
 }
 
 /* Locale-specific --font-sans overrides (D-23) — kept un-layered so data-locale cascade wins. */
@@ -243,27 +228,12 @@ body.keyboard-open {
   --corner-chip-fg-saved: #FFFFFF;
   --corner-chip-fg-liked: #FF8A80;
 
-  /* News card — dark surfaces with light text */
-  --news-card-bg: #1A1A1A;
-  --news-card-border: rgba(255, 255, 255, 0.10);
-  --news-card-dot: rgba(255, 255, 255, 0.06);
-  --news-card-headline: #FFFFFF;
-  --news-card-body: #B0B0B0;
-  --news-card-source: #808080;
-  --news-card-tag-text: #B0B0B0;
-  --news-card-tag-bg: rgba(255, 255, 255, 0.06);
-  --news-card-tag-border: rgba(255, 255, 255, 0.10);
-  --news-card-muted: #707070;
-  --news-card-divider: rgba(255, 255, 255, 0.10);
-
   /* Badge — light text on dark tinted backgrounds */
   --badge-yellow-text: #FFE0B2;
   --badge-yellow-bg: #3E2723;
   --badge-blue-text: #90CAF9;
   --badge-purple-text: #CE93D8;
 
-  /* TrellisEmptyState overlay */
-  --trellis-empty-bg: rgba(17, 17, 17, 0.85);
 }
 
 @layer base {

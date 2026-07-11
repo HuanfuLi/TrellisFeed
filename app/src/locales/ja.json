@@ -250,14 +250,6 @@
   "graph": {
     "title": "知識グラフ",
     "headerTitle": "ナレッジグラフ",
-    "reorganizeButton": "再編成",
-    "reorganizingButton": "再編成中…",
-    "reorganizeModal": {
-      "title": "マップを再編成",
-      "description": "AI を使って知識マップ全体を再編成します。Q&A、復習スケジュール、フラッシュカードは保持され、階層構造のみが変わります。",
-      "cancel": "キャンセル",
-      "confirm": "再編成"
-    },
     "rootLabel": "知識",
     "empty": {
       "heading": "知識リフレクションマップは空です。",
@@ -271,11 +263,6 @@
       "anchorMoreSuffix": " 他 +{{count}} 件",
       "connectionsCount": "{{count}} 件のつながり",
       "viewDetails": "詳細を表示"
-    },
-    "toast": {
-      "reorganized": "マップを再編成しました：{{clusterCount}} クラスター、{{anchorCount}} 概念",
-      "reorganizeFailed": "再編成に失敗しました",
-      "reorganizing": "知識マップを再編成中…"
     },
     "correction": {
       "actions": {
@@ -328,11 +315,9 @@
         "undone": "元に戻しました:{{summary}}",
         "nothingToUndo": "元に戻す操作はありません",
         "dropInvalid": "ドロップ先として無効です",
-        "reorgInProgress": "再編成中です — 少し時間をおいてから再試行してください",
         "rootNotEditable": "ルートノード — 編集不可",
         "branchNotEditable": "ブランチの名前変更は近日対応予定"
-      },
-      "reorgPaused": "再編成中 — 手動修正は一時停止中"
+      }
     },
     "anchor": {
       "title": "概念アンカー",
@@ -444,7 +429,6 @@
       "reminderTime": "リマインダー時刻",
       "dailyAutoRefresh": "毎日自動更新",
       "preferredRefreshTime": "希望更新時刻",
-      "trellisDevMode": "QuestionTrace 開発モード",
       "aiDataTransmission": "AI データ送信",
       "similarityThreshold": "類似度しきい値",
       "showSimilarityScores": "スコアを表示",
@@ -497,7 +481,6 @@
       "podcastAdvance": "就寝前に生成する分数",
       "plannerAutoRefresh": "1 日 1 回提案を更新",
       "plannerRefreshTime": "既定：午前 8:00、ポッドキャスト後にも実行",
-      "trellisDevModeHint": "ダミーノードで 7 種類の葉の状態（芽、緑、黄、落下中、落葉、花、果実）を表示し、視覚デバッグに使います。",
       "developerBlurb": "開発用のデバッグツール。破壊的操作は元に戻せません。",
       "usageBlurb": "月間の質問上限と LLM API トークン使用状況。",
       "privacyBlurb": "研究用の操作記録と質問・回答記録は、まずこの端末に保存され、その後研究データ収集先へアップロードされます。アプリはオフラインでも利用でき、接続が戻るとアップロードを再試行します。",
