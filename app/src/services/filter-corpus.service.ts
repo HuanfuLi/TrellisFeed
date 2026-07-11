@@ -54,7 +54,7 @@ export const FILTER_CORPUS_VERSION = 2;
  * app — the (provider, model) discriminator lives INSIDE the payload, so
  * a settings change overwrites cleanly.
  */
-export const FILTER_CORPUS_CACHE_KEY = 'trellis_filter_corpus_emb_v1';
+export const FILTER_CORPUS_CACHE_KEY = 'questiontrace_filter_corpus_emb_v1';
 
 export type FilterLabel = 'on-topic' | 'off-topic' | 'malicious';
 

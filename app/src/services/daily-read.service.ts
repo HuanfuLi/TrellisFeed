@@ -14,7 +14,7 @@ function today(): string {
   return `${y}-${m}-${day}`;
 }
 
-const STORAGE_KEY = 'trellis_daily_read';
+const STORAGE_KEY = 'questiontrace_daily_read';
 
 interface DailyReadState {
   date: string;

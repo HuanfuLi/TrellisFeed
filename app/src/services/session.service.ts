@@ -9,7 +9,7 @@ import { dbExecute, dbQuery } from './db.service.ts';
 // `_store` is the synchronous read+write mirror (starts empty, hydrated from
 // IndexedDB at boot). The tiny active-session-ID pointer (ACTIVE_ID_KEY) stays
 // in localStorage — it is a boot-critical pref, not a heavy store.
-const ACTIVE_ID_KEY = 'trellis_active_session';
+const ACTIVE_ID_KEY = 'questiontrace_active_session';
 
 let _store: ChatSession[] = [];
 

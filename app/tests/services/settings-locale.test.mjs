@@ -27,7 +27,7 @@ test('locale round-trips through set/get', async () => {
 test('legacy preferences.language migrates to locale on load', () => {
   store.clear();
   store.set(
-    'trellis_settings',
+    'questiontrace_settings',
     JSON.stringify({
       preferences: {
         theme: 'system',
@@ -42,7 +42,7 @@ test('legacy preferences.language migrates to locale on load', () => {
 test('legacy language=en-US normalizes to locale=en', () => {
   store.clear();
   store.set(
-    'trellis_settings',
+    'questiontrace_settings',
     JSON.stringify({
       preferences: {
         theme: 'system',
@@ -57,7 +57,7 @@ test('legacy language=en-US normalizes to locale=en', () => {
 test('legacy language=ko-KR (unsupported) → locale=en', () => {
   store.clear();
   store.set(
-    'trellis_settings',
+    'questiontrace_settings',
     JSON.stringify({
       preferences: {
         theme: 'system',
@@ -77,7 +77,7 @@ test('fresh install (no stored settings) → locale=en', () => {
 test('stored locale wins over stored legacy language', () => {
   store.clear();
   store.set(
-    'trellis_settings',
+    'questiontrace_settings',
     JSON.stringify({
       preferences: {
         theme: 'system',

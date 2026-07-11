@@ -26,8 +26,8 @@ import type { IImageProvider } from '../providers/imageProvider.interface';
 
 // ─── Cache constants ─────────────────────────────────────────────────────────
 
-const CACHE_KEY_PREFIX = 'img-cache-';
-const CACHE_META_KEY = 'img-cache-meta';
+const CACHE_KEY_PREFIX = 'questiontrace_img_cache_';
+const CACHE_META_KEY = 'questiontrace_img_cache_meta';
 const DEFAULT_MAX_CACHE_BYTES = 200 * 1024 * 1024; // 200 MB (IndexedDB can handle this)
 const DEFAULT_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
@@ -35,7 +35,7 @@ const DEFAULT_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 // Image binary data (base64 strings) is stored in IndexedDB, not localStorage,
 // to avoid the ~5 MB localStorage cap on iOS Safari.
 
-const IDB_NAME = 'trellis_images';
+const IDB_NAME = 'questiontrace_images';
 const IDB_STORE = 'images';
 const IDB_VERSION = 1;
 

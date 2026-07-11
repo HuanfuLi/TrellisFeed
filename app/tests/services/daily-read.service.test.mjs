@@ -12,7 +12,7 @@ globalThis.localStorage = {
 
 const { dailyReadService } = await import('../../src/services/daily-read.service.ts');
 
-const STORAGE_KEY = 'trellis_daily_read';
+const STORAGE_KEY = 'questiontrace_daily_read';
 
 describe('dailyReadService', () => {
   beforeEach(() => {

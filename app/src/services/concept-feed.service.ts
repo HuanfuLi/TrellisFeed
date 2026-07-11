@@ -20,7 +20,7 @@ import { createPromiseMutex } from './refill-mutex.ts';
 import { isUnusableTextArtFragment } from './text-art-fragment.ts';
 import { dbExecute, dbQuery } from './db.service.ts';
 
-const CONNECTION_POSTS_KEY = 'trellis_connection_posts';
+const CONNECTION_POSTS_KEY = 'questiontrace_connection_posts';
 // Phase 55-07: the daily-posts cache (a single JSON blob) persists ONLY to one
 // row in the IndexedDB `posts` table. The module-level `_cache` mirror is the
 // synchronous read+write path (starts empty, hydrated from IndexedDB at boot).

@@ -22,7 +22,7 @@
  * the device console table for that wall-clock number.
  */
 
-export const COLD_START_PROFILE_KEY = 'trellis_cold_start_profile';
+export const COLD_START_PROFILE_KEY = 'questiontrace_cold_start_profile';
 
 function gateOn(): boolean {
   try {
