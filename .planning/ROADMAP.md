@@ -39,7 +39,17 @@ QuestionTrace goes from a pruned research shell (Phase 0, done) to a study-ready
   3. A `"control" | "experimental"` condition value is assignable and readable app-wide, and downstream services can branch on it.
   4. `UserInteractionEvent` logging records every §14.1 event type with userId/condition/topicId/timestamp, excludes all §14.2 do-not-collect categories, and exists before any personalization.
   5. No unreferenced code, exports, or assets tied to §15.3 pruned features remain in `app/src`; all gates stay green after the sweep.
-**Plans**: TBD
+**Plans**: 10 plans (5 waves)
+- [ ] 01-01-PLAN.md — Rebrand display/native/locale surfaces; preserve bundle IDs (SHELL-01)
+- [ ] 01-02-PLAN.md — Storage namespace rename to `questiontrace` + research-store schema; remove legacy migration (SHELL-02)
+- [ ] 01-03-PLAN.md — Backend: Cloudflare Worker + D1 ingest/resolve + validation (idempotent, field-allowlisted) (LOG-01)
+- [ ] 01-04-PLAN.md — Research types + immutable study-context (condition plumbing) + App hydration gate (SHELL-03)
+- [ ] 01-05-PLAN.md — Backend: password-protected admin page + CSV/ZIP export + deploy checkpoint (LOG-01)
+- [ ] 01-06-PLAN.md — Durable upload queue + retry + upload-health metadata (LOG-01)
+- [ ] 01-07-PLAN.md — Interaction-log service: whitelisted events + revisioned Q/A records (LOG-01)
+- [ ] 01-08-PLAN.md — Instrumentation wiring at call sites + RQ-01 coverage (LOG-01, RQ-01)
+- [ ] 01-09-PLAN.md — Participant surface reduction + PIN-gated researcher diagnostics + recovery export (SHELL-04, LOG-01)
+- [ ] 01-10-PLAN.md — Dead-code sweep: pruned residue removed, load-bearing infra preserved (SHELL-04)
 **UI hint**: no
 
 ### Phase 2: Content pool + feed/post UI on frozen data
@@ -86,7 +96,7 @@ Phases execute in numeric order: 0 → 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 0. Rename, scope, and prune | - | Complete | 2026-07-09 |
-| 1. Rebrand + research shell hardening | 0/TBD | Not started | - |
+| 1. Rebrand + research shell hardening | 0/10 | Planned | - |
 | 2. Content pool + feed/post UI on frozen data | 0/TBD | Not started | - |
 | 3. Graph-memory + recommendation engine | 0/TBD | Not started | - |
 | 4. Study infrastructure + pilot | 0/TBD | Not started | - |
