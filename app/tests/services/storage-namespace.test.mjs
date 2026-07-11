@@ -58,6 +58,11 @@ test('research persistence stores round-trip through the dbQuery seam', async ()
       columns: 'id, data',
       values: ['last_upload', '{"at":0}'],
     },
+    {
+      table: 'research_upload_quarantine',
+      columns: 'id, data',
+      values: ['quarantine-1', '{"reason":"invalid_record"}'],
+    },
   ];
 
   for (const { table } of rows) {

@@ -13,17 +13,30 @@ globalThis.localStorage = {
 
 const { dbExecute, dbQuery } = await import('../../src/services/db.service.ts');
 const { eventBus } = await import('../../src/lib/event-bus.ts');
+const uploadQueueService = await import('../../src/services/upload-queue.service.ts');
 const {
   enqueue,
   flushPendingUploads,
   getPendingCount,
   registerRetryTriggers,
-} = await import('../../src/services/upload-queue.service.ts');
+} = uploadQueueService;
+const { studyContextService } = await import('../../src/services/study-context.service.ts');
 const {
   getLastSuccessfulUploadAt,
 } = await import('../../src/services/research-metadata.service.ts');
 
 const apiBaseUrl = 'https://collector.invalid';
+const installToken = 'test-install-token-00000000000000001001';
+
+await studyContextService.hydrate();
+if (!studyContextService.isBound()) {
+  await studyContextService.bindOnce({
+    userId: '1001',
+    condition: 'control',
+    topicId: 'topic-1',
+    boundAt: '2026-07-11T00:00:00.000Z',
+  }, installToken);
+}
 
 function event(id, overrides = {}) {
   return {
@@ -40,6 +53,7 @@ function event(id, overrides = {}) {
 
 async function resetQueue() {
   await dbExecute('DELETE FROM research_upload_queue');
+  await dbExecute('DELETE FROM research_upload_quarantine');
   await dbExecute('DELETE FROM research_metadata WHERE id = ?', ['upload']);
 }
 
@@ -91,26 +105,24 @@ test('concurrent flush calls are single-flighted and issue one POST', async () =
   assert.equal(calls, 1);
 });
 
-test('one flush sends the oldest bounded batch of at most 100 records and 256 KiB', async () => {
+test('one flush drains every bounded batch in a 250-record backlog', async () => {
   await resetQueue();
   for (let index = 0; index < 250; index += 1) {
     await enqueue(event(`batch-${String(index).padStart(3, '0')}`), { triggerFlush: false });
   }
 
-  let sentBody = '';
+  const sentBodies = [];
   const fetch = async (_url, init) => {
-    sentBody = init.body;
-    const parsed = JSON.parse(sentBody);
+    sentBodies.push(init.body);
+    const parsed = JSON.parse(init.body);
     return jsonResponse({ acknowledgedIds: parsed.records.map((record) => record.id) });
   };
   await flushPendingUploads({ apiBaseUrl, fetch });
 
-  const records = JSON.parse(sentBody).records;
-  assert.equal(records.length, 100);
-  assert.ok(new TextEncoder().encode(sentBody).byteLength <= 256 * 1024);
-  assert.deepEqual(records.map((record) => record.id),
-    Array.from({ length: 100 }, (_, index) => `batch-${String(index).padStart(3, '0')}`));
-  assert.equal((await queueRows()).length, 150);
+  assert.equal(sentBodies.length, 3);
+  assert.deepEqual(sentBodies.map((body) => JSON.parse(body).records.length), [100, 100, 50]);
+  assert.ok(sentBodies.every((body) => new TextEncoder().encode(body).byteLength <= 256 * 1024));
+  assert.equal((await queueRows()).length, 0);
 });
 
 test('a partial ACK deletes only acknowledged ids', async () => {
@@ -156,16 +168,87 @@ test('question/answer upload keeps local condition but follows the server-owned 
   assert.equal(JSON.parse((await queueRows())[0].data).record.condition, 'experimental');
 
   let uploaded;
+  let authorization;
   await flushPendingUploads({
     apiBaseUrl,
     fetch: async (_url, init) => {
       uploaded = JSON.parse(init.body).records[0];
+      authorization = init.headers.Authorization;
       return jsonResponse({ acknowledgedIds: ['qa-wire'] });
     },
   });
 
-  assert.equal(Object.hasOwn(uploaded, 'condition'), false);
-  assert.equal(uploaded.topicId, 'topic-1');
+  for (const field of ['userId', 'condition', 'topicId']) {
+    assert.equal(Object.hasOwn(uploaded, field), false);
+  }
+  assert.equal(authorization, `Bearer ${installToken}`);
+});
+
+test('malformed and individually oversized queue heads are quarantined while later rows upload', async () => {
+  await resetQueue();
+  await dbExecute(
+    'INSERT OR REPLACE INTO research_upload_queue (id, data) VALUES (?, ?)',
+    ['malformed', '{not-json'],
+  );
+  await enqueue(event('oversized', { postId: 'x'.repeat(300) }), { triggerFlush: false });
+  await enqueue(event('valid-after-poison'), { triggerFlush: false });
+
+  const sent = [];
+  await flushPendingUploads({
+    apiBaseUrl,
+    fetch: async (_url, init) => {
+      const ids = JSON.parse(init.body).records.map((record) => record.id);
+      sent.push(...ids);
+      return jsonResponse({ acknowledgedIds: ids });
+    },
+  });
+
+  assert.deepEqual(sent, ['valid-after-poison']);
+  assert.equal((await queueRows()).length, 0);
+  const quarantine = await dbQuery('SELECT * FROM research_upload_quarantine');
+  assert.equal(quarantine.length, 2);
+  assert.deepEqual(quarantine.map((row) => row.id).sort(), ['malformed', 'oversized']);
+  assert.equal(uploadQueueService.getQuarantineCount(), 2);
+  assert.equal(getPendingCount(), 2);
+  assert.equal(JSON.stringify(quarantine).includes(installToken), false);
+});
+
+test('permanent batch failures split to quarantine only the bad singleton', async () => {
+  await resetQueue();
+  for (const id of ['valid-before', 'server-poison', 'valid-after']) {
+    await enqueue(event(id), { triggerFlush: false });
+  }
+
+  const accepted = [];
+  await flushPendingUploads({
+    apiBaseUrl,
+    fetch: async (_url, init) => {
+      const records = JSON.parse(init.body).records;
+      if (records.some((record) => record.id === 'server-poison')) {
+        return jsonResponse({ error: 'invalid' }, 422);
+      }
+      accepted.push(...records.map((record) => record.id));
+      return jsonResponse({ acknowledgedIds: records.map((record) => record.id) });
+    },
+  });
+
+  assert.deepEqual(accepted.sort(), ['valid-after', 'valid-before']);
+  assert.equal((await queueRows()).length, 0);
+  const quarantine = await dbQuery('SELECT * FROM research_upload_quarantine');
+  assert.deepEqual(quarantine.map((row) => row.id), ['server-poison']);
+});
+
+test('authentication failures retain active rows and never quarantine them', async () => {
+  for (const status of [401, 403]) {
+    await resetQueue();
+    await enqueue(event(`auth-${status}`), { triggerFlush: false });
+    await flushPendingUploads({
+      apiBaseUrl,
+      fetch: async () => jsonResponse({ error: 'unauthorized' }, status),
+    });
+    assert.equal((await queueRows()).length, 1);
+    assert.equal((await dbQuery('SELECT * FROM research_upload_quarantine')).length, 0);
+  }
 });
 
 test('network reject, abort, and HTTP 500 retain every envelope', async (t) => {

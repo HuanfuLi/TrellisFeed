@@ -91,6 +91,7 @@ test('local recovery export contains only durable records for the bound particip
 
   await dbExecute('DELETE FROM research_metadata');
   await dbExecute('DELETE FROM research_records');
+  await dbExecute('DELETE FROM research_upload_quarantine');
   await studyContextService.hydrate();
   await studyContextService.bindOnce({
     userId: '0017',
@@ -109,10 +110,23 @@ test('local recovery export contains only durable records for the bound particip
     'INSERT OR REPLACE INTO research_records (id, kind, revision, data) VALUES (?, ?, ?, ?)',
     [otherRecord.id, 'event', 1, JSON.stringify(otherRecord)],
   );
+  await dbExecute(
+    'INSERT OR REPLACE INTO research_upload_quarantine (id, data) VALUES (?, ?)',
+    ['event-own', JSON.stringify({
+      id: 'event-own',
+      reason: 'invalid_record',
+      quarantinedAt: '2026-07-11T00:00:00.000Z',
+      envelope: { id: 'event-own', record: ownRecord },
+    })],
+  );
 
   const blob = await exportLocalRecoveryBlob();
   const payload = JSON.parse(await blob.text());
   assert.equal(payload.userId, '0017');
   assert.deepEqual(payload.records, [ownRecord]);
+  assert.equal(payload.format, 'questiontrace-local-recovery-v2');
+  assert.equal(payload.quarantine.length, 1);
+  assert.equal(payload.quarantine[0].reason, 'invalid_record');
+  assert.equal(JSON.stringify(payload).includes('test-install-token'), false);
   assert.equal(JSON.stringify(payload).includes('0024'), false);
 });
