@@ -50,6 +50,17 @@
       "refreshFailed": "Falló la actualización"
     }
   },
+  "researchSetup": {
+    "title": "Configuración de investigación",
+    "body": "Introduce el ID numérico de cuenta asignado para preparar esta instalación.",
+    "accountIdLabel": "ID de cuenta",
+    "confirm": "Confirmar cuenta",
+    "invalidAccountId": "Introduce un ID de cuenta numérico.",
+    "resolveFailed": "No se pudo preparar esta cuenta. Comprueba el ID y la conexión e inténtalo de nuevo."
+  },
+  "researchDiagnostics": {
+    "placeholder": "Cargando diagnósticos de investigación."
+  },
   "home": {
     "title": "Inicio",
     "bento": {

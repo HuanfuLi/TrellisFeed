@@ -50,6 +50,17 @@
       "refreshFailed": "Refresh failed"
     }
   },
+  "researchSetup": {
+    "title": "Research setup",
+    "body": "Enter the assigned numeric account ID to prepare this installation.",
+    "accountIdLabel": "Account ID",
+    "confirm": "Confirm account",
+    "invalidAccountId": "Enter a numeric account ID.",
+    "resolveFailed": "This account could not be prepared. Check the account ID and connection, then try again."
+  },
+  "researchDiagnostics": {
+    "placeholder": "Research diagnostics are loading."
+  },
   "home": {
     "title": "Home",
     "bento": {

@@ -50,6 +50,17 @@
       "refreshFailed": "更新に失敗しました"
     }
   },
+  "researchSetup": {
+    "title": "研究設定",
+    "body": "このインストールを準備するには、割り当てられた数字のアカウント ID を入力してください。",
+    "accountIdLabel": "アカウント ID",
+    "confirm": "アカウントを確認",
+    "invalidAccountId": "数字のアカウント ID を入力してください。",
+    "resolveFailed": "このアカウントを準備できませんでした。アカウント ID と接続を確認して、もう一度お試しください。"
+  },
+  "researchDiagnostics": {
+    "placeholder": "研究診断を読み込んでいます。"
+  },
   "home": {
     "title": "ホーム",
     "bento": {

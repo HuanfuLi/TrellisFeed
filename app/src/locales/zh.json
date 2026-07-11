@@ -50,6 +50,17 @@
       "refreshFailed": "刷新失败"
     }
   },
+  "researchSetup": {
+    "title": "研究设置",
+    "body": "请输入已分配的数字账号编号，以准备此安装。",
+    "accountIdLabel": "账号编号",
+    "confirm": "确认账号",
+    "invalidAccountId": "请输入数字账号编号。",
+    "resolveFailed": "无法准备此账号。请检查账号编号和网络连接后重试。"
+  },
+  "researchDiagnostics": {
+    "placeholder": "正在加载研究诊断信息。"
+  },
   "home": {
     "title": "首页",
     "bento": {

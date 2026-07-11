@@ -8,10 +8,8 @@ import { ToastContainer } from './components/ui/Toast';
 import { OnboardingScreen } from './screens/OnboardingScreen';
 import { HomeScreen } from './screens/HomeScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
-import { SettingsAIScreen } from './screens/settings/SettingsAIScreen';
-import { SettingsContentScreen } from './screens/settings/SettingsContentScreen';
-import { SettingsFeaturesScreen } from './screens/settings/SettingsFeaturesScreen';
-import { SettingsDataScreen } from './screens/settings/SettingsDataScreen';
+import { ResearchSetupScreen } from './screens/ResearchSetupScreen';
+import { ResearchDiagnosticsScreen } from './screens/ResearchDiagnosticsScreen';
 import { SwipeTabContainer } from './components/SwipeTabContainer';
 import { PostDetailScreen } from './screens/PostDetailScreen';
 import SavedScreen from './screens/SavedScreen';
@@ -22,6 +20,7 @@ import { hydrateDailyPostsFromSQLite } from './services/concept-feed.service';
 import { hydrateQueueFromSQLite } from './services/post-queue.service';
 import { hydratePostHistoryFromSQLite } from './services/post-history.service';
 import { hydrateEngagementFromSQLite } from './services/engagement.service';
+import { studyContextService } from './services/study-context.service';
 import { clearLegacyHeavyLocalStorageKeys } from './services/db.service';
 // Phase 55.1-07 GAP-C — boot pre-warm of the filter-corpus embedding cache so the
 // first ask doesn't pay the 124-sequential-embed cold path (measured dominant
@@ -199,6 +198,9 @@ function RootLayout() {
 }
 
 function HomeRedirect() {
+  if (!studyContextService.isBound()) {
+    return <Navigate to="/research-setup" replace />;
+  }
   const settings = settingsService.getSync();
   if (!settings.preferences.onboardingCompleted) {
     return <Navigate to="/onboarding" replace />;
@@ -206,24 +208,36 @@ function HomeRedirect() {
   return <Navigate to="/home" replace />;
 }
 
+/** Ensure deep links cannot reveal participant routes before researcher binding. */
+function ParticipantRouteGate() {
+  if (!studyContextService.isBound()) {
+    return <Navigate to="/research-setup" replace />;
+  }
+  return <RootLayout />;
+}
+
 const router = createBrowserRouter([
+  {
+    path: '/research-setup',
+    element: <ResearchSetupScreen />,
+  },
+  {
+    path: '/research-diagnostics',
+    element: <ResearchDiagnosticsScreen />,
+  },
   {
     path: '/onboarding',
     element: <OnboardingScreen />,
   },
   {
     path: '/',
-    element: <ErrorBoundary><RootLayout /></ErrorBoundary>,
+    element: <ErrorBoundary><ParticipantRouteGate /></ErrorBoundary>,
     children: [
       { index: true, element: <HomeRedirect /> },
       { path: 'home', element: null },
       { path: 'posts/:id', element: <PageTransition><PostDetailScreen /></PageTransition> },
       { path: 'saved', element: <PageTransition><SavedScreen /></PageTransition> },
       { path: 'settings', element: null },
-      { path: 'settings/ai', element: <PageTransition><SettingsAIScreen /></PageTransition> },
-      { path: 'settings/content', element: <PageTransition><SettingsContentScreen /></PageTransition> },
-      { path: 'settings/features', element: <PageTransition><SettingsFeaturesScreen /></PageTransition> },
-      { path: 'settings/data', element: <PageTransition><SettingsDataScreen /></PageTransition> },
       { path: '*', element: <Navigate to="/home" replace /> },
     ],
   },
@@ -249,6 +263,7 @@ async function hydrateAllFromSQLite(): Promise<void> {
     hydrateQueueFromSQLite(),       // post-queue state
     hydratePostHistoryFromSQLite(), // post history
     hydrateEngagementFromSQLite(),  // saved/liked/dismissed
+    studyContextService.hydrate(),   // immutable participant identity
   ]);
   // One-time stale-key sweep (quota reclamation) — safe now that every mirror is
   // populated from the durable IndexedDB store.
