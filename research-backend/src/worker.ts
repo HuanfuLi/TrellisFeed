@@ -237,6 +237,33 @@ function adminMethodNotAllowed() {
   return json({ error: 'Method not allowed.' }, 405, { allow: 'GET' });
 }
 
+const PUBLIC_PATHS = new Set(['/v1/install/resolve', '/v1/ingest']);
+
+function allowedOrigins(env) {
+  if (typeof env.RESEARCH_ALLOWED_ORIGINS !== 'string') return new Set();
+  return new Set(env.RESEARCH_ALLOWED_ORIGINS.split(',').map((value) => value.trim().replace(/\/$/, '')).filter(Boolean));
+}
+
+function corsOrigin(request, env) {
+  const origin = request.headers.get('origin');
+  if (origin === null) return { origin: null, allowed: true };
+  return { origin, allowed: allowedOrigins(env).has(origin) };
+}
+
+function withCors(response, origin) {
+  if (!origin) return response;
+  const next = new Response(response.body, response);
+  next.headers.set('access-control-allow-origin', origin);
+  next.headers.set('access-control-allow-methods', 'POST, OPTIONS');
+  next.headers.set('access-control-allow-headers', 'Content-Type, Authorization');
+  next.headers.set('vary', 'Origin');
+  return next;
+}
+
+function preflight(origin) {
+  return withCors(new Response(null, { status: 204, headers: { 'cache-control': 'no-store' } }), origin);
+}
+
 async function selectAdminRows(db, sql) {
   const result = await db.prepare(sql).all();
   return Array.isArray(result?.results) ? result.results : [];
@@ -298,6 +325,13 @@ async function handleAdminExport(env) {
 const worker = {
   async fetch(request, env) {
     const url = new URL(request.url);
+    const isPublic = PUBLIC_PATHS.has(url.pathname);
+    const cors = isPublic ? corsOrigin(request, env) : { origin: null, allowed: true };
+
+    if (isPublic && !cors.allowed) return json({ error: 'Origin not allowed.' }, 403);
+    if (isPublic && request.method === 'OPTIONS') {
+      return cors.origin ? preflight(cors.origin) : json({ error: 'Origin required.' }, 403);
+    }
 
     try {
       if (url.pathname === '/admin' || url.pathname === '/admin/export.zip') {
@@ -308,22 +342,22 @@ const worker = {
       }
 
       if (url.pathname === '/v1/install/resolve') {
-        if (request.method !== 'POST') return methodNotAllowed();
-        return await handleInstallResolve(request, env);
+        const response = request.method !== 'POST' ? methodNotAllowed() : await handleInstallResolve(request, env);
+        return withCors(response, cors.origin);
       }
 
       if (url.pathname === '/v1/ingest') {
-        if (request.method !== 'POST') return methodNotAllowed();
-        return await handleIngest(request, env);
+        const response = request.method !== 'POST' ? methodNotAllowed() : await handleIngest(request, env);
+        return withCors(response, cors.origin);
       }
 
       return json({ error: 'Not found.' }, 404);
     } catch (error) {
       if (error instanceof ValidationError) {
-        return json({ error: error.message }, error.status);
+        return withCors(json({ error: error.message }, error.status), isPublic ? cors.origin : null);
       }
 
-      return json({ error: 'Collection service error.' }, 500);
+      return withCors(json({ error: 'Collection service error.' }, 500), isPublic ? cors.origin : null);
     }
   },
 };

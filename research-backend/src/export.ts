@@ -33,7 +33,7 @@ export const QUESTION_ANSWER_COLUMNS = [
 /** Escape a value for a spreadsheet-safe RFC 4180-style CSV cell. */
 export function escapeCsvCell(value: unknown) {
   let text = value === null || value === undefined ? '' : String(value);
-  if (/^[=+\-@]/.test(text)) text = `'${text}`;
+  if (/^[\x00-\x20]*[=+\-@]/.test(text)) text = `'${text}`;
   return /[",\r\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
 }
 
