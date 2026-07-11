@@ -414,6 +414,7 @@
       "usage": "使用状況"
     },
     "fields": {
+      "accountId": "アカウント ID",
       "provider": "プロバイダー",
       "apiKey": "API キー",
       "baseUrl": "ベース URL",

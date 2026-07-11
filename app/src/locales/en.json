@@ -414,6 +414,7 @@
       "usage": "Usage"
     },
     "fields": {
+      "accountId": "Account ID",
       "provider": "Provider",
       "apiKey": "API Key",
       "baseUrl": "Base URL",

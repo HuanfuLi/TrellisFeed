@@ -414,6 +414,7 @@
       "usage": "Uso"
     },
     "fields": {
+      "accountId": "ID de cuenta",
       "provider": "Proveedor",
       "apiKey": "Clave de API",
       "baseUrl": "URL base",
