@@ -5,6 +5,7 @@ import type { NormalizedCandidate } from '../normalize/candidate.ts';
 import { deriveProviderSchema, type StructuredProvider } from '../ai/provider.ts';
 import { parseAndValidateDraft, validateCompletedResult, validateDraftReferences, type StructuredFailure } from '../ai/validate.ts';
 import { buildPreprocessPrompt } from './prompt.ts';
+import { disabledPipelineTracer, type PipelineTracer } from '../observability/trace.ts';
 
 export interface PreprocessRunKey {
   normalizedContentSha256: string;
@@ -67,6 +68,7 @@ export interface RunStructuredPreprocessOptions {
   logger?: (entry: PreprocessLogEntry) => void;
   environment?: Record<string, string | undefined>;
   sleep?: (milliseconds: number) => Promise<void>;
+  tracer?: PipelineTracer;
 }
 
 const sha256 = (value: string) => createHash('sha256').update(value, 'utf8').digest('hex');
@@ -102,6 +104,7 @@ export async function runStructuredPreprocess(options: RunStructuredPreprocessOp
   // when the operator has not supplied provider-specific pricing.
   const estimate = options.estimateRequestCostUsd ?? (() => 0.25);
   const sleep = options.sleep ?? ((milliseconds: number) => new Promise<void>((resolve) => setTimeout(resolve, milliseconds)));
+  const tracer = options.tracer ?? disabledPipelineTracer;
   let nextIndex = 0;
   let committedSpend = 0;
   let reservedSpend = 0;
@@ -139,11 +142,23 @@ export async function runStructuredPreprocess(options: RunStructuredPreprocessOp
         for (let attempt = 1; attempt <= 3; attempt += 1) {
           attempts = attempt;
           const prompt = buildPreprocessPrompt(candidate, options.topic);
+          const startedAt = Date.now();
+          tracer.record('preprocess.request', {
+            candidateHash: candidate.contentHash, promptVersion: options.promptVersion,
+            schemaVersion: options.schemaVersion, modelVersion: options.provider.model,
+          });
           const result = await options.provider.call({
             model: options.provider.model, prompt, schema: deriveProviderSchema('preprocessed-post-v1'),
             maxTokens: 4096, attempt, validationPaths: lastFailure.paths,
           });
           actualCost += Math.max(0, result.costUsd ?? 0);
+          tracer.record('preprocess.response', {
+            requestId: result.requestId, candidateHash: candidate.contentHash,
+            promptVersion: options.promptVersion, schemaVersion: options.schemaVersion,
+            modelVersion: result.model || options.provider.model, stopReason: result.stopReason,
+            inputTokens: result.inputTokens, outputTokens: result.outputTokens,
+            latencyMs: Math.max(0, Date.now() - startedAt), persistenceOutcome: 'pending_validation',
+          });
           const completed = validateCompletedResult(result);
           if (!completed.ok) {
             lastFailure = completed.error;
@@ -162,6 +177,13 @@ export async function runStructuredPreprocess(options: RunStructuredPreprocessOp
                   usage: { inputTokens: result.inputTokens, outputTokens: result.outputTokens, costUsd: actualCost },
                 };
                 await writeAtomic(cachePath, success);
+                tracer.record('preprocess.persist', {
+                  requestId: result.requestId, candidateHash: candidate.contentHash,
+                  promptVersion: options.promptVersion, schemaVersion: options.schemaVersion,
+                  modelVersion: result.model || options.provider.model, stopReason: result.stopReason,
+                  inputTokens: result.inputTokens, outputTokens: result.outputTokens,
+                  persistenceOutcome: 'preprocessed_cache_written',
+                });
                 outcomes[index] = success;
                 options.logger?.({ stage: 'preprocess', candidateHash: candidate.contentHash, provider: options.provider.name, model: result.model || options.provider.model, promptVersion: options.promptVersion, schemaVersion: options.schemaVersion, attempt, stopReason: result.stopReason, inputTokens: result.inputTokens, outputTokens: result.outputTokens, outcome: 'success' });
                 break;

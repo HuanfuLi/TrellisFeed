@@ -1,0 +1,68 @@
+description: QuestionTrace Phase 2 adjudicated offline reference set
+sharing: false
+
+prompts:
+  - '{{caseId}}'
+
+providers:
+  - exec:node fixtures/offline-provider.js
+
+defaultTest:
+  vars:
+    offlineHarness: true
+
+tests:
+  - vars: {caseId: content-evergreen-article}
+    assert: &offline_assertions
+    - type: is-json
+    - type: javascript
+      value: |
+        const result = JSON.parse(output);
+        return result.offline === true && result.provider === 'fixture' && result.networkPolicy === 'deny';
+    - type: javascript
+      value: |
+        const result = JSON.parse(output);
+        return result.criticalPassed === true && result.forbiddenClaimsPresent === false && result.allowedEvidenceOnly === true && result.provenancePresent === true;
+    - type: javascript
+      value: |
+        const result = JSON.parse(output);
+        const gates = result.releaseGates;
+        return gates.sourceOrQaFidelity >= 0.90 && gates.evidenceAndSuggestionQuality >= 0.85 && gates.regressionPercentagePoints <= 5 && gates.judgeRole === 'triage-only';
+    - type: javascript
+      value: |
+        const result = JSON.parse(output);
+        return result.kind !== 'qa' || (result.replayedConditions.join(',') === 'control,experimental' && result.fullRequestEnvelopeParity === true && JSON.stringify(result.controlEnvelope) === JSON.stringify(result.experimentalEnvelope));
+    - type: javascript
+      value: |
+        const result = JSON.parse(output);
+        return result.kind !== 'content' || result.operatorIsFinalGate === true;
+  - vars: {caseId: content-video-transcript}
+    assert: *offline_assertions
+  - vars: {caseId: content-dissenting-viewpoint}
+    assert: *offline_assertions
+  - vars: {caseId: content-promotional-source}
+    assert: *offline_assertions
+  - vars: {caseId: content-dated-forecast}
+    assert: *offline_assertions
+  - vars: {caseId: content-attribution-drift}
+    assert: *offline_assertions
+  - vars: {caseId: content-stored-injection}
+    assert: *offline_assertions
+  - vars: {caseId: content-malformed-output}
+    assert: *offline_assertions
+  - vars: {caseId: qa-direct-supported}
+    assert: *offline_assertions
+  - vars: {caseId: qa-suggested-supported}
+    assert: *offline_assertions
+  - vars: {caseId: qa-same-post-followup}
+    assert: *offline_assertions
+  - vars: {caseId: qa-insufficient-evidence}
+    assert: *offline_assertions
+  - vars: {caseId: qa-cross-post-lure}
+    assert: *offline_assertions
+  - vars: {caseId: qa-stored-injection}
+    assert: *offline_assertions
+  - vars: {caseId: qa-benign-offtopic}
+    assert: *offline_assertions
+  - vars: {caseId: qa-raw-malicious}
+    assert: *offline_assertions

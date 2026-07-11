@@ -5,12 +5,15 @@ from __future__ import annotations
 import importlib.util
 import io
 import pathlib
+import json
 import socket
+import sys
 import unittest
 from unittest import mock
 
 
 MODULE_PATH = pathlib.Path(__file__).with_name("phoenix-local.py")
+sys.dont_write_bytecode = True
 
 
 def load_module():
@@ -64,6 +67,18 @@ class PhoenixLocalContractTests(unittest.TestCase):
         )
         self.assertEqual(stderr, "")
 
+    def test_dependency_manifests_pin_exact_local_versions(self):
+        root = pathlib.Path(__file__).parent
+        requirements = (root / "requirements.txt").read_text(encoding="utf-8").splitlines()
+        package = json.loads((root / "package.json").read_text(encoding="utf-8"))
+        lock = json.loads((root / "package-lock.json").read_text(encoding="utf-8"))
+        self.assertEqual(requirements, ["arize-phoenix==17.26.0", "opentelemetry-sdk==1.43.0"])
+        self.assertEqual(package["devDependencies"]["promptfoo"], "0.40.0")
+        self.assertEqual(package["overrides"]["uuid"], "11.1.1")
+        self.assertEqual(lock["packages"][""]["devDependencies"]["promptfoo"], "0.40.0")
+        self.assertEqual(lock["packages"]["node_modules/promptfoo"]["version"], "0.40.0")
+        self.assertEqual(lock["packages"]["node_modules/uuid"]["version"], "11.1.1")
+
     def test_check_missing_distribution_or_import_is_exact_exit_2(self):
         install = ' install="python -m pip install --requirement evals/phase-2/requirements.txt"\n'
         for package, versions, imports in [
@@ -93,7 +108,10 @@ class PhoenixLocalContractTests(unittest.TestCase):
         cases = [
             ({"PHOENIX_HOST": "0.0.0.0"}, "host_must_be_127.0.0.1"),
             ({"PHOENIX_COLLECTOR_ENDPOINT": "https://app.phoenix.arize.com"}, "hosted_exporter_forbidden"),
+            ({"PHOENIX_CLOUD_ENDPOINT": "https://app.phoenix.arize.com"}, "hosted_exporter_forbidden"),
+            ({"PHOENIX_API_KEY": "secret"}, "hosted_exporter_forbidden"),
             ({"OTEL_EXPORTER_OTLP_ENDPOINT": "http://collector:4317"}, "otel_exporter_forbidden"),
+            ({"OTEL_EXPORTER_OTLP_TRACES_ENDPOINT": "http://collector:4318"}, "otel_exporter_forbidden"),
             ({"PHOENIX_TELEMETRY_ENABLED": "true"}, "telemetry_must_be_disabled"),
         ]
         for env, reason in cases:
