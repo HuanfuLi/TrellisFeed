@@ -878,8 +878,7 @@
       "featureReviewDesc": "Review cards at optimal intervals to maximize retention",
       "featurePodcastTitle": "Daily Podcasts",
       "featurePodcastDesc": "Listen to summaries of your learning while on the go",
-      "getStarted": "Get Started",
-      "skip": "Skip for now"
+      "getStarted": "Get Started"
     },
     "languageStep": {
       "choose": "Choose your language · 选择语言 · Elige tu idioma · 言語を選択"
@@ -891,8 +890,7 @@
       "rowCloud": "These records are securely uploaded to the study's research data collector. The app works offline and retries uploads when a connection returns.",
       "rowNoServer": "The research collector receives only the records needed for this study; it does not collect device metadata or activity outside QuestionTrace.",
       "consent": "I understand and agree that my interaction and question/answer records will be collected for this study.",
-      "continue": "Continue",
-      "skip": "Skip for now"
+      "continue": "Continue"
     },
     "llm": {
       "title": "Configure LLM",

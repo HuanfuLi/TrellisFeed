@@ -34,6 +34,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { HeaderScrollContext } from './lib/header-scroll-context';
 import { interactionLog } from './services/interaction-log.service';
 import { eventBus } from './lib/event-bus';
+import { hasAffirmativeResearchConsent, resolveParticipantRoute } from './services/research-consent.service';
 
 const SCREEN_ROUTES = ['/home', '/settings'] as const;
 
@@ -200,11 +201,11 @@ function RootLayout() {
 }
 
 function HomeRedirect() {
-  if (!studyContextService.isBound()) {
+  const decision = resolveParticipantRoute(studyContextService.isBound());
+  if (decision === 'research-setup') {
     return <Navigate to="/research-setup" replace />;
   }
-  const settings = settingsService.getSync();
-  if (!settings.preferences.onboardingCompleted) {
+  if (decision === 'onboarding') {
     return <Navigate to="/onboarding" replace />;
   }
   return <Navigate to="/home" replace />;
@@ -212,10 +213,19 @@ function HomeRedirect() {
 
 /** Ensure deep links cannot reveal participant routes before researcher binding. */
 function ParticipantRouteGate() {
-  if (!studyContextService.isBound()) {
+  const decision = resolveParticipantRoute(studyContextService.isBound());
+  if (decision === 'research-setup') {
     return <Navigate to="/research-setup" replace />;
   }
+  if (decision === 'onboarding') return <Navigate to="/onboarding" replace />;
   return <RootLayout />;
+}
+
+function OnboardingRouteGate() {
+  const decision = resolveParticipantRoute(studyContextService.isBound());
+  if (decision === 'research-setup') return <Navigate to="/research-setup" replace />;
+  if (decision === 'participant') return <Navigate to="/home" replace />;
+  return <OnboardingScreen />;
 }
 
 const router = createBrowserRouter([
@@ -229,7 +239,7 @@ const router = createBrowserRouter([
   },
   {
     path: '/onboarding',
-    element: <OnboardingScreen />,
+    element: <OnboardingRouteGate />,
   },
   {
     path: '/',
@@ -279,7 +289,7 @@ export default function App() {
   const sessionStartedAtRef = useRef<number | null>(null);
 
   const startResearchSession = () => {
-    if (!studyContextService.isBound() || sessionStartedAtRef.current !== null) return;
+    if (!studyContextService.isBound() || !hasAffirmativeResearchConsent() || sessionStartedAtRef.current !== null) return;
     sessionStartedAtRef.current = Date.now();
     void interactionLog.record('app_open').catch(() => { /* observer only */ });
   };

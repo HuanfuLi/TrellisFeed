@@ -38,18 +38,6 @@ export function OnboardingScreen() {
     void detectDeviceLocale().then((detected) => setSelectedLocale(detected));
   }, []);
 
-  // "Skip for now" — completes onboarding, preserves consent value at time of call
-  const handleSkip = async (consent: boolean) => {
-    await set('preferences', {
-      theme: 'system',
-      locale: selectedLocale,
-      language: selectedLocale,   // legacy back-compat; matches locale
-      onboardingCompleted: true,
-      aiConsentGiven: consent,
-    });
-    navigate('/home', { replace: true });
-  };
-
   // Research credentials are supplied by the study build; participants only consent.
   const handleContinue = async () => {
     setIsSaving(true);
@@ -129,12 +117,6 @@ export function OnboardingScreen() {
             </div>
 
             <Button fullWidth onClick={() => setStep('language')}>{t('onboarding.welcome.getStarted')}</Button>
-            <button
-              onClick={() => void handleSkip(false)}
-              style={{ display: 'block', width: '100%', marginTop: '12px', padding: '12px', background: 'none', color: 'var(--muted-foreground)', fontSize: '0.875rem' }}
-            >
-              {t('onboarding.welcome.skip')}
-            </button>
           </div>
         )}
 
@@ -257,12 +239,6 @@ export function OnboardingScreen() {
             <Button fullWidth onClick={() => void handleContinue()} disabled={!consentChecked || isSaving} loading={isSaving}>
               {t('onboarding.consent.continue')}
             </Button>
-            <button
-              onClick={() => void handleSkip(false)}
-              style={{ display: 'block', width: '100%', marginTop: '12px', padding: '12px', background: 'none', color: 'var(--muted-foreground)', fontSize: '0.875rem' }}
-            >
-              {t('onboarding.consent.skip')}
-            </button>
           </div>
         )}
 

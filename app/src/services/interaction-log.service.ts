@@ -6,6 +6,7 @@ import type {
   QuestionAnswerRecord,
   UserInteractionEvent,
 } from '../types/index.ts';
+import { hasAffirmativeResearchConsent } from './research-consent.service.ts';
 
 type EventField = 'postId' | 'questionId' | 'recommendationId' | 'durationMs';
 type InteractionEventFields = Partial<Pick<UserInteractionEvent, EventField>>;
@@ -131,6 +132,7 @@ export function createInteractionLog(dependencies: InteractionLogDependencies) {
     record: UserInteractionEvent | QuestionAnswerRecord,
     kind: 'event' | 'qa',
   ): Promise<void> {
+    if (!hasAffirmativeResearchConsent()) return;
     await persistRecord(record, kind);
     await dependencies.enqueue(record);
   }

@@ -46,14 +46,18 @@ async function recordRows() {
   return dbQuery('SELECT * FROM research_records');
 }
 
-test('bound but unconsented installations cannot persist or enqueue research records', async () => {
-  await resetRecords();
+function setConsent(aiConsentGiven) {
   localStorage.setItem('questiontrace_settings', JSON.stringify({
     preferences: {
       theme: 'system', locale: 'en', language: 'en',
-      onboardingCompleted: true, aiConsentGiven: false,
+      onboardingCompleted: true, aiConsentGiven,
     },
   }));
+}
+
+test('bound but unconsented installations cannot persist or enqueue research records', async () => {
+  await resetRecords();
+  setConsent(false);
   const { enqueued, logger } = makeHarness();
 
   await logger.record('app_open');
@@ -62,7 +66,7 @@ test('bound but unconsented installations cannot persist or enqueue research rec
   assert.equal((await dbQuery('SELECT * FROM research_records')).length, 0);
   assert.equal((await dbQuery('SELECT * FROM research_upload_queue')).length, 0);
   assert.equal(enqueued.length, 0);
-  localStorage.removeItem('questiontrace_settings');
+  setConsent(true);
 });
 
 test('record snapshots immutable study identity rather than accepting caller identity', async () => {

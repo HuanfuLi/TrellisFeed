@@ -878,8 +878,7 @@
       "featureReviewDesc": "最適な間隔で復習し記憶を最大化",
       "featurePodcastTitle": "毎日のポッドキャスト",
       "featurePodcastDesc": "移動中でも学んだ内容のサマリーを聴ける",
-      "getStarted": "はじめる",
-      "skip": "今はスキップ"
+      "getStarted": "はじめる"
     },
     "languageStep": {
       "choose": "Choose your language · 选择语言 · Elige tu idioma · 言語を選択"
@@ -891,8 +890,7 @@
       "rowCloud": "これらの記録は研究データ収集先へ安全にアップロードされます。アプリはオフラインでも利用でき、接続が戻るとアップロードを再試行します。",
       "rowNoServer": "研究データ収集先が受け取るのはこの研究に必要な記録だけで、デバイスのメタデータや QuestionTrace 外での活動は収集しません。",
       "consent": "この研究のために自分の操作記録と質問・回答記録が収集されることを理解し、同意します。",
-      "continue": "続ける",
-      "skip": "今はスキップ"
+      "continue": "続ける"
     },
     "llm": {
       "title": "LLM を設定",

@@ -878,8 +878,7 @@
       "featureReviewDesc": "Repasa las fichas en el intervalo óptimo para maximizar la retención",
       "featurePodcastTitle": "Podcasts diarios",
       "featurePodcastDesc": "Escucha resúmenes de tu aprendizaje mientras haces otras cosas",
-      "getStarted": "Empezar",
-      "skip": "Omitir por ahora"
+      "getStarted": "Empezar"
     },
     "languageStep": {
       "choose": "Choose your language · 选择语言 · Elige tu idioma · 言語を選択"
@@ -891,8 +890,7 @@
       "rowCloud": "Estos registros se cargan de forma segura al recolector de datos de investigación. La app funciona sin conexión y reintenta las cargas al recuperar la conexión.",
       "rowNoServer": "El recolector de investigación recibe solo los registros necesarios para este estudio; no recopila metadatos del dispositivo ni actividad fuera de QuestionTrace.",
       "consent": "Entiendo y acepto que se recopilen mis registros de interacción y de preguntas/respuestas para este estudio.",
-      "continue": "Continuar",
-      "skip": "Omitir por ahora"
+      "continue": "Continuar"
     },
     "llm": {
       "title": "Configurar LLM",

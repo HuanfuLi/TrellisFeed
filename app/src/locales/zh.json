@@ -878,8 +878,7 @@
       "featureReviewDesc": "在最佳间隔复习卡片，最大化记忆效果",
       "featurePodcastTitle": "每日播客",
       "featurePodcastDesc": "在路上聆听你的学习摘要",
-      "getStarted": "开始使用",
-      "skip": "暂时跳过"
+      "getStarted": "开始使用"
     },
     "languageStep": {
       "choose": "Choose your language · 选择语言 · Elige tu idioma · 言語を選択"
@@ -891,8 +890,7 @@
       "rowCloud": "这些记录会安全上传到研究的数据收集端。应用可离线使用，并会在网络恢复后重试上传。",
       "rowNoServer": "研究数据收集端只接收本研究需要的记录；不会收集设备元数据或你在 QuestionTrace 之外的活动。",
       "consent": "我理解并同意，为本研究收集我的交互和问答记录。",
-      "continue": "继续",
-      "skip": "暂时跳过"
+      "continue": "继续"
     },
     "llm": {
       "title": "配置 LLM",

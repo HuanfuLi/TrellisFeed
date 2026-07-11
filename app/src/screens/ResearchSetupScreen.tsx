@@ -58,7 +58,7 @@ export function ResearchSetupScreen() {
         topicId: assignment.topicId,
         boundAt: new Date().toISOString(),
       });
-      navigate('/home', { replace: true });
+      navigate('/onboarding', { replace: true });
     } catch {
       // Keep server assignment details and any network implementation details out
       // of the setup UI; researchers can retry after resolving the local issue.
