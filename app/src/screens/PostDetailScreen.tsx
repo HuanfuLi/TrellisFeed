@@ -10,7 +10,7 @@ import { useQuestions } from '../state/useQuestions';
 import { conceptFeedService } from '../services/concept-feed.service';
 import { imageGenerationService } from '../services/imageGeneration.service';
 import { sessionService } from '../services/session.service';
-import { postQaService } from '../services/post-qa.service';
+import { postQaRepository, postQaService } from '../services/post-qa.service';
 import { studyContextService } from '../services/study-context.service';
 import { frozenFeedService } from '../services/frozen-feed.service';
 import { dailyReadService, getAnchorIdForPost } from '../services/daily-read.service';
@@ -194,7 +194,23 @@ export function PostDetailScreen() {
     if (loaded) {
       setPost(loaded);
       setLoadingPost(false);
-      setSession(sessionService.getOrCreatePostSession(loaded, questionsRef.current));
+      const shell = sessionService.getOrCreatePostSession(loaded, questionsRef.current);
+      setSession({ ...shell, messages: [] });
+      try {
+        const identity = studyContextService.getRequired();
+        void postQaRepository.loadSamePostThread(identity.userId, loaded.id).then((turns) => {
+          setSession((current) => current?.origin?.postId === loaded.id ? {
+            ...current,
+            messages: turns.flatMap((turn) => [
+              { id: turn.question.id, type: 'user' as const, content: turn.question.text },
+              { id: turn.answer.id, type: 'ai' as const, content: turn.answer.answerText },
+            ]),
+          } : current);
+        });
+      } catch {
+        // App hydration normally guarantees identity; keep the empty shell if
+        // this screen is reached before researcher binding.
+      }
       return;
     }
 
@@ -482,7 +498,6 @@ export function PostDetailScreen() {
       };
       const updated: ChatSession = { ...session, messages: [...session.messages, userMsg, aiMsg] };
       setSession(updated);
-      sessionService.save(updated);
       sessionService.setActiveId(updated.id);
       setQaStreaming('');
       try {

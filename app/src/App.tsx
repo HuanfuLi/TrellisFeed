@@ -37,6 +37,7 @@ import { interactionLog } from './services/interaction-log.service';
 import { eventBus } from './lib/event-bus';
 import { hasAffirmativeResearchConsent, resolveParticipantRoute } from './services/research-consent.service';
 import { contentPoolRepository, type ContentPoolRepositorySnapshot } from './services/content-pool.repository';
+import { hydratePostQa } from './services/post-qa.service';
 import {
   flushPendingUploads,
   reconcileResearchOutbox,
@@ -284,6 +285,7 @@ async function hydrateAllFromSQLite(): Promise<ContentPoolRepositorySnapshot> {
     hydrateEngagementFromSQLite(),  // saved/liked/dismissed
     studyContextService.hydrate(),   // immutable participant identity
     contentPoolRepository.hydrate(), // validated, version-pinned frozen pool
+    hydratePostQa(),                 // canonical same-post Q&A records
   ]);
   // One-time stale-key sweep (quota reclamation) — safe now that every mirror is
   // populated from the durable IndexedDB store.
