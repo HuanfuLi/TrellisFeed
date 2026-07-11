@@ -1,5 +1,3 @@
-import { Capacitor } from '@capacitor/core';
-import { Device } from '@capacitor/device';
 import type { SupportedLocale } from '../types';
 
 // Duplicated from `locales/index.ts` to break circular import (locales/index.ts → lib/locale.ts → locales/index.ts).
@@ -14,26 +12,11 @@ export function normalizeLocale(raw: string | undefined | null): SupportedLocale
 
 /**
  * Called SYNCHRONOUSLY at i18n init time.
- * Priority: (1) saved preference, (2) navigator.language (sync on web), (3) default 'en'.
- * For native-device detection (async), use `detectDeviceLocale()`.
+ * Priority: (1) saved preference, (2) deterministic research default 'en'.
+ * Device/browser locale is intentionally ignored on first launch; participants
+ * may explicitly select any supported UI language during onboarding or Settings.
  */
 export function detectInitialLocale(savedPref: SupportedLocale | undefined): SupportedLocale {
   if (savedPref) return savedPref;
-  if (typeof navigator !== 'undefined' && navigator) {
-    return normalizeLocale(navigator.language ?? navigator.languages?.[0]);
-  }
   return 'en';
-}
-
-/** Native-device locale detection (async; for first-launch onboarding prefill). */
-export async function detectDeviceLocale(): Promise<SupportedLocale> {
-  try {
-    if (Capacitor.isNativePlatform()) {
-      const { value } = await Device.getLanguageCode();
-      return normalizeLocale(value);
-    }
-  } catch {
-    /* fall through to navigator */
-  }
-  return normalizeLocale(typeof navigator !== 'undefined' ? navigator.language : 'en');
 }

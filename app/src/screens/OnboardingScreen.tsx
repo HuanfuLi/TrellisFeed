@@ -1,11 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Brain, Shield, Smartphone, Cloud, Lock } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { useSettings } from '../state/useSettings';
 import i18n from '../locales';
-import { detectDeviceLocale } from '../lib/locale';
 import { eventBus } from '../lib/event-bus';
 import type { SupportedLocale } from '../types';
 
@@ -26,17 +25,14 @@ export function OnboardingScreen() {
   const [consentChecked, setConsentChecked] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Seed from i18n.language synchronously, then refine via async device detection.
+  // Seed from the saved i18n preference. A fresh study install is always English;
+  // device/browser locale never silently changes the assigned research shell.
   const [selectedLocale, setSelectedLocale] = useState<SupportedLocale>(() => {
     const cur = i18n.language;
     return (['en', 'zh', 'es', 'ja'] as const).includes(cur as SupportedLocale)
       ? (cur as SupportedLocale)
       : 'en';
   });
-
-  useEffect(() => {
-    void detectDeviceLocale().then((detected) => setSelectedLocale(detected));
-  }, []);
 
   // Research credentials are supplied by the study build; participants only consent.
   const handleContinue = async () => {
