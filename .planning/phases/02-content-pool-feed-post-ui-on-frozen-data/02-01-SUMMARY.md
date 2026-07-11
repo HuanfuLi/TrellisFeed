@@ -92,7 +92,7 @@ Each task was committed atomically:
 ## Files Created/Modified
 
 - `app/src/domain/content.types.ts` - Canonical records plus separate asset/manifest transport types.
-- `tools/content_pipeline/schemas/*.schema.json` - Strict record and aggregate JSON Schemas.
+- `tools/content_pipeline/schemas/frozen-pool.schema.json` - Strict aggregate schema referencing the strict record-schema family.
 - `tools/content_pipeline/src/schema/validate.ts` - Pure Ajv and referential-integrity validator.
 - `app/tests/fixtures/content-pool/minimal-valid-pool.json` - Shared article/video gold fixture with inert markup.
 - `tools/content_pipeline/test/schema.test.mjs` - Record, bundle, threat, and dependency-boundary tests.
@@ -137,7 +137,7 @@ Each task was committed atomically:
 
 None - no external service configuration required.
 
-## Verification
+## Test Results
 
 - `npm --prefix tools/content_pipeline test` — 27/27 passed.
 - `npm --prefix tools/content_pipeline run build` — passed.
