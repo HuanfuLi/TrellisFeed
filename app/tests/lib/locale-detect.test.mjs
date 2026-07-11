@@ -28,7 +28,7 @@ test('detectInitialLocale: saved pref wins', () => {
   assert.equal(detectInitialLocale('ja'), 'ja');
 });
 
-test('detectInitialLocale: falls back to navigator.language', () => {
+test('detectInitialLocale: fresh research install ignores navigator.language', () => {
   const origDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
   Object.defineProperty(globalThis, 'navigator', {
     value: { language: 'ja-JP', languages: ['ja-JP'] },
@@ -36,7 +36,7 @@ test('detectInitialLocale: falls back to navigator.language', () => {
     writable: true,
   });
   try {
-    assert.equal(detectInitialLocale(undefined), 'ja');
+    assert.equal(detectInitialLocale(undefined), 'en');
   } finally {
     if (origDescriptor) Object.defineProperty(globalThis, 'navigator', origDescriptor);
   }
