@@ -125,6 +125,26 @@ test('a partial ACK deletes only acknowledged ids', async () => {
   assert.deepEqual((await queueRows()).map((row) => row.id), ['partial-b']);
 });
 
+test('an ACK for an older revision cannot delete a newer queued replacement', async () => {
+  await resetQueue();
+  const original = {
+    id: 'qa-race', revision: 1, userId: '1001', condition: 'control', topicId: 'topic-1',
+    postId: 'post-1', questionId: 'question-1', questionText: 'Why?',
+    questionSource: 'typed', submittedAt: '2026-07-11T12:00:00.000Z',
+  };
+  await enqueue(original, { triggerFlush: false });
+
+  const fetch = async () => {
+    await enqueue({ ...original, revision: 2, answerText: 'Because.' }, { triggerFlush: false });
+    return jsonResponse({ acknowledgedIds: ['qa-race'] });
+  };
+  await flushPendingUploads({ apiBaseUrl, fetch });
+
+  const rows = await queueRows();
+  assert.equal(rows.length, 1);
+  assert.equal(JSON.parse(rows[0].data).record.revision, 2);
+});
+
 test('network reject, abort, and HTTP 500 retain every envelope', async (t) => {
   for (const [name, fetch] of [
     ['network reject', async () => { throw new TypeError('offline'); }],
