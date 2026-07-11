@@ -547,7 +547,13 @@ The RSD requires app open, feed/post/Q&A/save/dismiss/reason/notification/sessio
 | A5 | The current participant Q&A setup can be reconciled with D-04/D-12 without adding a general-purpose LLM backend. | Open Questions | If research deployments must remove user API-key setup while retaining live Q&A, a server-side constrained LLM proxy becomes a scope/credential decision. |
 | A6 | CSV formula escaping and page output escaping are sufficient export-surface hardening for this minimal internal page. | Security Domain | Institutional or legal requirements may require an additional retention/access-control review. |
 
-## Open Questions
+## Open Questions (RESOLVED)
+
+> **Planning resolution (2026-07-10):** all four questions have concrete resolution mechanisms embedded in the Phase 1 plans:
+> **Q1** — RESOLVED: `topicId` flows from the server-side `study_accounts` map at bind time (plans 01-03/01-04); a documented fixture value appears only in tests.
+> **Q2** — RESOLVED (deferred to checkpoint): Q&A credentialing under the reduced Settings surface is a blocking `checkpoint:decision` in plan 01-09.
+> **Q3** — RESOLVED (deferred to checkpoint): Cloudflare account/URL/secret provisioning is a blocking `checkpoint:human-action` in plan 01-05.
+> **Q4** — RESOLVED: the researcher PIN is a non-destructive local UI gate with its limitation documented in plan 01-09's threat model; Worker Basic auth remains the server boundary.
 
 1. **What exact opaque `topicId` should Phase-1 shell events carry before Phase 4 topic selection is implemented?**
    - What we know: `topicId` is mandatory on every logged event/record, while final study topics remain an identified project concern. [VERIFIED: .planning/REQUIREMENTS.md; .planning/STATE.md]
