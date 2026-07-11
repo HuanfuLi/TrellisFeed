@@ -79,10 +79,10 @@ const VALID_SOURCE_TYPES = new Set<DailyPost['sourceType']>(['recent', 'related'
 export const STARTER_POSTS: DailyPost[] = [
   makeStarterPost(
     'starter-welcome',
-    'Welcome to Trellis',
+    'Welcome to QuestionTrace',
     'Your AI learning companion',
-    'Ask any question and watch your knowledge grow. Trellis uses AI to create personalized learning paths.',
-    '# Welcome to Trellis\n\nTrellis is your AI-powered learning companion. Here\'s how to get started:\n\n1. **Explore your feed** — This feed brings you fresh content based on what you\'re learning.\n2. **Open a post** — Ask follow-up questions in the context of that post.\n3. **Save what matters** — Bookmarks and likes help preserve study-relevant signals.\n\nStart by opening a post that catches your attention.',
+    'Ask questions about the prepared posts and build a trace of what you explored.',
+    '# Welcome to QuestionTrace\n\nQuestionTrace is a research reading and question-asking app. Here\'s how to get started:\n\n1. **Explore your feed** — Read the prepared study posts.\n2. **Open a post** — Ask follow-up questions in the context of that post.\n3. **Save what matters** — Bookmarks help you return to useful material.\n\nStart by opening a post that catches your attention.',
     'Getting Started',
   ),
   makeStarterPost(
@@ -90,7 +90,7 @@ export const STARTER_POSTS: DailyPost[] = [
     'How your knowledge grows',
     'From questions to mastery',
     'Every post-context question becomes part of your local question trace.',
-    '# How Your Knowledge Grows\n\nTrellis follows a focused research loop:\n\n1. **Read** — Open posts that match your current learning context.\n2. **Ask** — Ask follow-up questions while the post context is fresh.\n3. **Connect** — Your questions are classified into concept anchors.\n4. **Return** — The feed uses those anchors to keep surfacing related material.\n\nThe more you ask from context, the richer your question trace becomes.',
+    '# How Your Knowledge Grows\n\nQuestionTrace follows a focused research loop:\n\n1. **Read** — Open posts that match your current learning context.\n2. **Ask** — Ask follow-up questions while the post context is fresh.\n3. **Connect** — Your questions are classified into concept anchors.\n4. **Return** — The feed uses those anchors to keep surfacing related material.\n\nThe more you ask from context, the richer your question trace becomes.',
     'How It Works',
   ),
   makeStarterPost(
@@ -123,7 +123,7 @@ function makeStarterPost(
     presentationStyle: 'text-art' as PresentationStyle,
     sourceQuestionIds: [],
     sourceQuestionTitles: [],
-    keywords: ['trellis', 'getting-started'],
+    keywords: ['questiontrace', 'getting-started'],
     generatedAt: Date.now(),
     origin: 'ai',
     whyCare: '',

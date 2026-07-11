@@ -596,7 +596,7 @@ async function backfillAnchorEmbedding(
     questionService.patchQuestion(anchor.id, { embeddingVector: vec });
     return vec;
   } catch (err) {
-    console.warn('[Trellis] anchor embedding backfill failed:', err instanceof Error ? err.message : err);
+    console.warn('[QuestionTrace] anchor embedding backfill failed:', err instanceof Error ? err.message : err);
     return undefined;
   }
 }
@@ -656,7 +656,7 @@ export async function preCheckAnchorMatch(
       // pre-computed embeddingVector is already present).
       queryVec = await embedText(question.content, embCfg);
     } catch (err) {
-      console.warn('[Trellis] pre-check query embedding failed:', err instanceof Error ? err.message : err);
+      console.warn('[QuestionTrace] pre-check query embedding failed:', err instanceof Error ? err.message : err);
       return null;
     }
   }
@@ -1116,11 +1116,11 @@ export async function classifyAndAnchorIncremental(
 
     await commitClassificationResult(question, result, allQuestions);
   } catch (err) {
-    console.warn('[Trellis] Incremental pipeline failed — falling back to single-call classification:', err instanceof Error ? err.message : err);
+    console.warn('[QuestionTrace] Incremental pipeline failed — falling back to single-call classification:', err instanceof Error ? err.message : err);
     try {
       await classifyAndAnchor(question, allQuestions, llmConfig);
     } catch (fallbackErr) {
-      console.warn('[Trellis] Fallback classification also failed:', fallbackErr instanceof Error ? fallbackErr.message : fallbackErr);
+      console.warn('[QuestionTrace] Fallback classification also failed:', fallbackErr instanceof Error ? fallbackErr.message : fallbackErr);
     }
   }
 }
@@ -1193,7 +1193,7 @@ export async function classifyAndAnchor(
   } catch (err) {
     // Second call failed — Q&A keeps whatever labels it had (empty/undefined from first call).
     // Fallback: labels will be derived from keywords at display time via buildFallbackPlacement.
-    console.warn('[Trellis] Second classification call failed — labels will use keyword fallback:', err instanceof Error ? err.message : err);
+    console.warn('[QuestionTrace] Second classification call failed — labels will use keyword fallback:', err instanceof Error ? err.message : err);
   }
 }
 

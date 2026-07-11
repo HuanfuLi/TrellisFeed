@@ -152,13 +152,13 @@ export async function loadCorpusEmbeddings(
   } catch (e: unknown) {
     if (e instanceof DOMException && e.name === 'QuotaExceededError') {
       console.warn(
-        '[Trellis] filter corpus cache write failed (storage full); will re-embed on next ask',
+        '[QuestionTrace] filter corpus cache write failed (storage full); will re-embed on next ask',
       );
     } else {
       // Non-quota error — also non-fatal; we still return the in-memory
       // entries. Logged at warn level for diagnostic visibility.
       console.warn(
-        '[Trellis] filter corpus cache write failed:',
+        '[QuestionTrace] filter corpus cache write failed:',
         e instanceof Error ? e.message : e,
       );
     }
@@ -219,7 +219,7 @@ export function prewarmFilterCorpus(embConfig: EmbeddingConfig): Promise<void> {
       // works (it re-attempts the embed and falls back to on-topic on failure
       // per D-12). Logged at warn for diagnostic visibility.
       console.warn(
-        '[Trellis] filter-corpus boot pre-warm failed (non-fatal):',
+        '[QuestionTrace] filter-corpus boot pre-warm failed (non-fatal):',
         e instanceof Error ? e.message : e,
       );
     } finally {

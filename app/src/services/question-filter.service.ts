@@ -407,7 +407,7 @@ export async function evaluateQuestion(
       return { label: 'on-topic' };
     }
     console.warn(
-      '[Trellis] filter Layer 2 failed, defaulting to on-topic:',
+      '[QuestionTrace] filter Layer 2 failed, defaulting to on-topic:',
       e instanceof Error ? e.message : e,
     );
     return { label: 'on-topic' };

@@ -274,7 +274,7 @@ export const questionService = {
         };
       }
       console.warn(
-        '[Trellis] filterQuestion pre-gate failed, defaulting to on-topic:',
+        '[QuestionTrace] filterQuestion pre-gate failed, defaulting to on-topic:',
         err instanceof Error ? err.message : err,
       );
       filterResult = { label: 'on-topic' };
@@ -303,7 +303,7 @@ export const questionService = {
       try {
         queryEmbedding = await embedText(content, embCfgEarly);
       } catch (err) {
-        console.warn('[Trellis] pre-call embedding failed — context ranking will use keywords only:', err instanceof Error ? err.message : err);
+        console.warn('[QuestionTrace] pre-call embedding failed — context ranking will use keywords only:', err instanceof Error ? err.message : err);
       }
     }
 
@@ -389,7 +389,7 @@ export const questionService = {
         // completes. Preserves existing behavior verbatim with `question`
         // substituted for the deleted post-LLM `flagged` variable.
         void classifyAndAnchorIncremental(question, loadStore({ includeFlagged: true }), llmConfig, signal).catch((err: unknown) => {
-          console.warn('[Trellis] classifyAndAnchorIncremental failed:', err instanceof Error ? err.message : err);
+          console.warn('[QuestionTrace] classifyAndAnchorIncremental failed:', err instanceof Error ? err.message : err);
         });
       }
 
@@ -488,7 +488,7 @@ export const questionService = {
               }
             })
             .catch((err: unknown) => {
-            console.warn('[Trellis] embedding failed for merged question %s — semantic features will fall back to keywords:', mergedQuestion.id, err instanceof Error ? err.message : err);
+            console.warn('[QuestionTrace] embedding failed for merged question %s — semantic features will fall back to keywords:', mergedQuestion.id, err instanceof Error ? err.message : err);
           });
         }
 
@@ -565,7 +565,7 @@ export const questionService = {
           }
         })
         .catch((err: unknown) => {
-          console.warn('[Trellis] embedding failed for question %s — semantic features will fall back to keywords:', question.id, err instanceof Error ? err.message : err);
+          console.warn('[QuestionTrace] embedding failed for question %s — semantic features will fall back to keywords:', question.id, err instanceof Error ? err.message : err);
         });
     }
 

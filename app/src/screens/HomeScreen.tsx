@@ -753,16 +753,6 @@ export function HomeScreen() {
             }}>
               {t('home.feed.loadingTitle')}
             </span>
-            <a
-              href="mailto:huanfuli4408@gmail.com?subject=Trellis%20Feedback"
-              style={{
-                fontSize: '12px', fontWeight: 400,
-                color: 'var(--primary-40)', textDecoration: 'underline',
-                marginTop: '16px',
-              }}
-            >
-              {t('home.feed.feedbackPrompt')}
-            </a>
           </div>
         )}
 
@@ -791,15 +781,6 @@ export function HomeScreen() {
             >
               {t('home.feed.generationErrorRetry')}
             </button>
-            <a
-              href="mailto:huanfuli4408@gmail.com?subject=Trellis%20Feedback"
-              style={{
-                fontSize: '12px', color: 'var(--primary-40)',
-                textDecoration: 'underline', marginTop: '16px',
-              }}
-            >
-              {t('home.feed.feedbackPrompt')}
-            </a>
           </div>
         )}
 
