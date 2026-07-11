@@ -139,19 +139,29 @@ test('one flush drains every bounded batch in a 250-record backlog', async () =>
   assert.equal((await queueRows()).length, 0);
 });
 
-test('a partial ACK deletes only acknowledged ids', async () => {
+test('partial ACK responses continue making progress until every row is delivered', async () => {
   await resetQueue();
   for (const id of ['partial-a', 'partial-b', 'partial-c']) {
     await enqueue(event(id), { triggerFlush: false });
   }
-  const fetch = async () => jsonResponse({ acknowledgedIds: ['partial-a', 'partial-c', 'not-in-batch'] });
+  const requests = [];
+  const fetch = async (_url, init) => {
+    const ids = JSON.parse(init.body).records.map((record) => record.id);
+    requests.push(ids);
+    return jsonResponse({ acknowledgedIds: [ids[0], 'not-in-batch'] });
+  };
 
   await flushPendingUploads({ apiBaseUrl, fetch });
 
-  assert.deepEqual((await queueRows()).map((row) => row.id), ['partial-b']);
+  assert.deepEqual(requests, [
+    ['partial-a', 'partial-b', 'partial-c'],
+    ['partial-b', 'partial-c'],
+    ['partial-c'],
+  ]);
+  assert.equal((await queueRows()).length, 0);
 });
 
-test('an ACK for an older revision cannot delete a newer queued replacement', async () => {
+test('an ACK for an older revision cannot delete rev 2 and the shared drain uploads rev 2', async () => {
   await resetQueue();
   const original = {
     id: 'qa-race', revision: 1, userId: '1001', condition: 'control', topicId: 'topic-1',
@@ -160,15 +170,76 @@ test('an ACK for an older revision cannot delete a newer queued replacement', as
   };
   await enqueue(original, { triggerFlush: false });
 
-  const fetch = async () => {
-    await enqueue({ ...original, revision: 2, answerText: 'Because.' }, { triggerFlush: false });
+  const revisions = [];
+  const fetch = async (_url, init) => {
+    const record = JSON.parse(init.body).records[0];
+    revisions.push(record.revision);
+    if (record.revision === 1) {
+      await enqueue({ ...original, revision: 2, answerText: 'Because.' }, { triggerFlush: false });
+    }
     return jsonResponse({ acknowledgedIds: ['qa-race'] });
   };
   await flushPendingUploads({ apiBaseUrl, fetch });
 
-  const rows = await queueRows();
-  assert.equal(rows.length, 1);
-  assert.equal(JSON.parse(rows[0].data).record.revision, 2);
+  assert.deepEqual(revisions, [1, 2]);
+  assert.equal((await queueRows()).length, 0);
+});
+
+test('enqueue during an in-flight request is included before the shared flush resolves', async () => {
+  await resetQueue();
+  await enqueue(event('in-flight-a'), { triggerFlush: false });
+  let releaseFirst;
+  const firstGate = new Promise((resolve) => { releaseFirst = resolve; });
+  const sent = [];
+  const fetch = async (_url, init) => {
+    const ids = JSON.parse(init.body).records.map((record) => record.id);
+    sent.push(ids);
+    if (sent.length === 1) await firstGate;
+    return jsonResponse({ acknowledgedIds: ids });
+  };
+
+  const flush = flushPendingUploads({ apiBaseUrl, fetch });
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  await enqueue(event('in-flight-b'), { triggerFlush: false });
+  releaseFirst();
+  await flush;
+
+  assert.deepEqual(sent, [['in-flight-a'], ['in-flight-b']]);
+  assert.equal((await queueRows()).length, 0);
+});
+
+test('a successful response with zero recognized ACK stops without a busy loop', async () => {
+  await resetQueue();
+  await enqueue(event('zero-ack'), { triggerFlush: false });
+  let calls = 0;
+  await flushPendingUploads({
+    apiBaseUrl,
+    fetch: async () => {
+      calls += 1;
+      return jsonResponse({ acknowledgedIds: ['not-in-batch'] });
+    },
+  });
+  assert.equal(calls, 1);
+  assert.equal((await queueRows()).length, 1);
+});
+
+test('a transient failure on batch 2 keeps only the remaining rows and stops', async () => {
+  await resetQueue();
+  for (let index = 0; index < 150; index += 1) {
+    await enqueue(event(`transient-${String(index).padStart(3, '0')}`), { triggerFlush: false });
+  }
+  let calls = 0;
+  await flushPendingUploads({
+    apiBaseUrl,
+    fetch: async (_url, init) => {
+      calls += 1;
+      const ids = JSON.parse(init.body).records.map((record) => record.id);
+      if (calls === 2) return jsonResponse({ error: 'retry later' }, 503);
+      return jsonResponse({ acknowledgedIds: ids });
+    },
+  });
+  assert.equal(calls, 2);
+  assert.equal((await queueRows()).length, 50);
 });
 
 test('question/answer upload keeps local condition but follows the server-owned wire contract', async () => {
