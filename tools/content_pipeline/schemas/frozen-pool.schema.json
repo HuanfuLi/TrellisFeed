@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "frozen-pool.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["manifest", "topics", "posts", "concepts", "claims", "suggestedQuestions", "sourceAssets"],
+  "properties": {
+    "manifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contentPoolVersion", "generatedAt", "preprocessingModelVersions", "rawCandidateCount", "approvedCount", "rejectedCount", "reviewProcedureSummary", "counts", "artifactHashes", "feedOrderPostIds"],
+      "properties": {
+        "contentPoolVersion": {"type": "string", "minLength": 1, "maxLength": 64},
+        "generatedAt": {"type": "string", "format": "date-time"},
+        "preprocessingModelVersions": {"type": "array", "items": {"type": "string", "minLength": 1, "maxLength": 200}, "uniqueItems": true, "maxItems": 50},
+        "rawCandidateCount": {"type": "integer", "minimum": 0},
+        "approvedCount": {"type": "integer", "minimum": 0},
+        "rejectedCount": {"type": "integer", "minimum": 0},
+        "reviewProcedureSummary": {"type": "string", "minLength": 1, "maxLength": 4000},
+        "counts": {
+          "type": "object", "additionalProperties": false,
+          "required": ["topics", "posts", "concepts", "claims", "suggestedQuestions", "sourceAssets"],
+          "properties": {"topics":{"type":"integer","minimum":0},"posts":{"type":"integer","minimum":0},"concepts":{"type":"integer","minimum":0},"claims":{"type":"integer","minimum":0},"suggestedQuestions":{"type":"integer","minimum":0},"sourceAssets":{"type":"integer","minimum":0}}
+        },
+        "artifactHashes": {
+          "type": "object", "additionalProperties": false,
+          "required": ["topics.json", "posts.json", "concepts.json", "claims.json", "suggested_questions.json", "source_assets.json"],
+          "properties": {"topics.json":{"$ref":"#/$defs/sha256"},"posts.json":{"$ref":"#/$defs/sha256"},"concepts.json":{"$ref":"#/$defs/sha256"},"claims.json":{"$ref":"#/$defs/sha256"},"suggested_questions.json":{"$ref":"#/$defs/sha256"},"source_assets.json":{"$ref":"#/$defs/sha256"}}
+        },
+        "feedOrderPostIds": {"type": "array", "items": {"type": "string", "minLength": 1, "maxLength": 128}, "uniqueItems": true}
+      }
+    },
+    "topics": {"type": "array", "items": {"$ref": "topic.schema.json"}},
+    "posts": {"type": "array", "items": {"$ref": "post.schema.json"}},
+    "concepts": {"type": "array", "items": {"$ref": "concept.schema.json"}},
+    "claims": {"type": "array", "items": {"$ref": "claim.schema.json"}},
+    "suggestedQuestions": {"type": "array", "items": {"$ref": "suggested-question.schema.json"}},
+    "sourceAssets": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["postId", "kind", "sourceUrl", "sha256"],
+        "properties": {"postId":{"type":"string","minLength":1,"maxLength":128},"kind":{"enum":["article","video"]},"sourceUrl":{"type":"string","format":"uri","pattern":"^https://","maxLength":2048},"body":{"type":"string","minLength":1,"maxLength":2000000},"transcript":{"type":"string","minLength":1,"maxLength":2000000},"sha256":{"$ref":"#/$defs/sha256"}},
+        "allOf": [{"if":{"properties":{"kind":{"const":"article"}}},"then":{"properties":{"body":{}},"required":["body"]}},{"if":{"properties":{"kind":{"const":"video"}}},"then":{"properties":{"transcript":{}},"required":["transcript"]}}]
+      }
+    }
+  },
+  "$defs": {"sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}}
+}

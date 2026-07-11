@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
+import { validateFrozenPoolBundle } from '../src/schema/validate.ts';
 
 const ajv = new Ajv2020({ allErrors: true, strict: true });
 addFormats(ajv);
@@ -44,4 +45,41 @@ test('record schemas reject invalid enums and out-of-range scores', () => {
   assert.equal(compile('user-question')({ ...records['user-question'], source: 'user' }), false);
   assert.equal(compile('recommendation')({ ...records.recommendation, score: -0.01 }), false);
   assert.equal(compile('user-concept-state')({ ...records['user-concept-state'], familiarityEstimate: 2 }), false);
+});
+
+const fixture = JSON.parse(readFileSync(new URL('../../../app/tests/fixtures/content-pool/minimal-valid-pool.json', import.meta.url)));
+const mutate = (change) => { const copy = structuredClone(fixture); change(copy); return copy; };
+
+test('content pool schema and cross-record contract accept the shared article/video fixture', () => {
+  assert.deepEqual(validateFrozenPoolBundle(fixture), { valid: true, errors: [] });
+});
+
+for (const [name, bundle, path] of [
+  ['dangling concept', mutate((x) => { x.posts[0].conceptIds = ['missing']; }), '/posts/0/conceptIds'],
+  ['duplicate feed id', mutate((x) => { x.manifest.feedOrderPostIds = ['post-article', 'post-article']; }), '/manifest/feedOrderPostIds'],
+  ['non-frozen post', mutate((x) => { x.posts[0].status = 'approved'; }), '/posts/0/status'],
+  ['artifact-provided traversal path', mutate((x) => { x.sourceAssets[0].path = '../outside'; }), '/sourceAssets/0'],
+  ['artifact-provided absolute path', mutate((x) => { x.sourceAssets[0].path = 'C:\\secrets'; }), '/sourceAssets/0'],
+  ['manifest count mismatch', mutate((x) => { x.manifest.counts.posts = 99; }), '/manifest/counts/posts'],
+  ['schema extra', mutate((x) => { x.posts[0].html = '<script>run()</script>'; }), '/posts/0'],
+]) {
+  test(`frozen bundle rejects ${name} with a stable path`, () => {
+    const result = validateFrozenPoolBundle(bundle);
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.some((error) => error.path === path), JSON.stringify(result.errors));
+  });
+}
+
+test('manifest hash consistency hook rejects mismatched computed hashes', () => {
+  const result = validateFrozenPoolBundle(fixture, { 'posts.json': '0'.repeat(64) });
+  assert.equal(result.valid, false);
+  assert.equal(result.errors[0].path, '/manifest/artifactHashes/posts.json');
+});
+
+test('validation dependencies are pinned and have no install scripts or binary downloads', () => {
+  const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url)));
+  const lock = JSON.parse(readFileSync(new URL('../package-lock.json', import.meta.url)));
+  assert.equal(pkg.dependencies.ajv, '8.17.1');
+  assert.equal(pkg.dependencies['ajv-formats'], '3.0.1');
+  for (const entry of Object.values(lock.packages)) assert.equal(entry.hasInstallScript, undefined);
 });

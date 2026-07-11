@@ -1,0 +1,36 @@
+{
+  "manifest": {
+    "contentPoolVersion": "v1",
+    "generatedAt": "2026-07-11T12:00:00.000Z",
+    "preprocessingModelVersions": ["mock-preprocessor-1"],
+    "rawCandidateCount": 3,
+    "approvedCount": 2,
+    "rejectedCount": 1,
+    "reviewProcedureSummary": "Codex advisory review followed by explicit operator approval.",
+    "counts": {"topics": 1, "posts": 2, "concepts": 1, "claims": 1, "suggestedQuestions": 2, "sourceAssets": 2},
+    "artifactHashes": {
+      "topics.json": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "posts.json": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "concepts.json": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "claims.json": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "suggested_questions.json": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "source_assets.json": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    "feedOrderPostIds": ["post-article", "post-video"]
+  },
+  "topics": [{"id":"topic-1","name":"Systems Thinking","shortDescription":"How connected systems behave.","hooks":["Feedback changes outcomes."],"coreConceptIds":["concept-1"],"testRubricId":"rubric-1","contentPoolVersion":"v1"}],
+  "posts": [
+    {"id":"post-article","topicId":"topic-1","sourceUrl":"https://example.com/article","sourcePlatform":"article","sourceName":"Example Journal","author":"A. Researcher","originalTitle":"Feedback Loops","displayTitle":"Why Feedback Loops Matter","hook":"Small loops can create large effects.","shortSummary":"An introduction to feedback loops.","longSummary":"The article compares reinforcing and balancing feedback.","language":"en","readingTimeMinutes":5,"originalPublishedAt":"2026-01-01T00:00:00.000Z","collectedAt":"2026-07-01T00:00:00.000Z","approvedAt":"2026-07-10T00:00:00.000Z","qualityScore":0.9,"interestingnessScore":0.8,"educationalValueScore":0.9,"difficulty":0.3,"viewpoint":"neutral","conceptIds":["concept-1"],"claimIds":["claim-1"],"suggestedQuestionIds":["sq-article"],"status":"frozen"},
+    {"id":"post-video","topicId":"topic-1","sourceUrl":"https://www.youtube.com/watch?v=example","sourcePlatform":"youtube","sourceName":"Example Channel","originalTitle":"Feedback Video","displayTitle":"Feedback in Motion","hook":"Watch a loop unfold.","shortSummary":"A short visual explanation.","language":"en","durationSeconds":180,"collectedAt":"2026-07-01T00:00:00.000Z","approvedAt":"2026-07-10T00:00:00.000Z","qualityScore":0.8,"interestingnessScore":0.9,"educationalValueScore":0.8,"difficulty":0.4,"conceptIds":["concept-1"],"claimIds":["claim-1"],"suggestedQuestionIds":["sq-video"],"status":"frozen"}
+  ],
+  "concepts": [{"id":"concept-1","topicId":"topic-1","label":"Feedback loop","description":"Outputs return as inputs.","aliases":["feedback cycle"]}],
+  "claims": [{"id":"claim-1","topicId":"topic-1","text":"Reinforcing feedback can amplify change.","stance":"neutral","conceptIds":["concept-1"]}],
+  "suggestedQuestions": [
+    {"id":"sq-article","postId":"post-article","topicId":"topic-1","text":"What is a balancing loop?","type":"clarification","targetConceptIds":["concept-1"],"targetClaimIds":["claim-1"],"generic":false},
+    {"id":"sq-video","postId":"post-video","topicId":"topic-1","text":"Where else does this pattern appear?","type":"connection","targetConceptIds":["concept-1"],"generic":true}
+  ],
+  "sourceAssets": [
+    {"postId":"post-article","kind":"article","sourceUrl":"https://example.com/article","body":"<script>alert('inert')</script> Article text.","sha256":"1111111111111111111111111111111111111111111111111111111111111111"},
+    {"postId":"post-video","kind":"video","sourceUrl":"https://www.youtube.com/watch?v=example","transcript":"Stored transcript text.","sha256":"2222222222222222222222222222222222222222222222222222222222222222"}
+  ]
+}
