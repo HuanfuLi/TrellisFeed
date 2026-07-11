@@ -38,8 +38,11 @@ function resolveBaseUrl(rawValue: string | undefined): string {
 export function resolveResearchConfig(env = import.meta.env): ResearchConfig {
   const apiBaseUrl = resolveBaseUrl(env.VITE_RESEARCH_API_BASE_URL);
   const enrollmentCredential = env.VITE_RESEARCH_ENROLLMENT_CREDENTIAL?.trim();
-  if (!enrollmentCredential || enrollmentCredential.length < 16) {
+  if (!enrollmentCredential) {
     throw new Error('VITE_RESEARCH_ENROLLMENT_CREDENTIAL is required for a research build');
+  }
+  if (enrollmentCredential.length < 16) {
+    throw new Error('VITE_RESEARCH_ENROLLMENT_CREDENTIAL must contain at least 16 characters');
   }
   const pinSha256 = env.VITE_RESEARCH_PIN_SHA256?.trim();
 

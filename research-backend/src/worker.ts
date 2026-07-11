@@ -51,6 +51,12 @@ function bearerToken(request) {
   return match?.[1] ?? null;
 }
 
+function enrollmentCredential(request) {
+  const value = request.headers.get('authorization');
+  const match = /^Bearer ([^\s]+)$/.exec(value ?? '');
+  return match?.[1] ?? null;
+}
+
 async function sha256Hex(value) {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
@@ -92,7 +98,7 @@ export async function resolveAccount(userId, db) {
 }
 
 async function handleInstallResolve(request, env) {
-  const credential = bearerToken(request);
+  const credential = enrollmentCredential(request);
   if (!await constantTimeCredentialMatches(credential, env.RESEARCH_ENROLLMENT_CREDENTIAL)) {
     return json({ error: 'Unauthorized.' }, 401);
   }
