@@ -11,6 +11,14 @@ test('escapeCsvCell neutralizes formula-leading values', () => {
   }
 });
 
+test('escapeCsvCell neutralizes whitespace and control-prefixed formulas without trimming', () => {
+  for (const formula of [' =cmd()', '\t+SUM(A1:A2)', '\r-1+2', '\n@SUM(A1:A2)', ' \t\r\n=1+1']) {
+    const escaped = escapeCsvCell(formula);
+    assert.equal(escaped.startsWith(formula.includes('\r') || formula.includes('\n') ? '"\'' : "'"), true);
+    assert.equal(escaped.includes(formula.replaceAll('"', '""')), true);
+  }
+});
+
 test('toCsv quotes comma, quote, and newline values', () => {
   const csv = toCsv(
     [{ text: 'first, "quoted"\nsecond' }],
