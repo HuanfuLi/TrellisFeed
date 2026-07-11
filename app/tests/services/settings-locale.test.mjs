@@ -16,6 +16,7 @@ Object.defineProperty(globalThis, 'localStorage', {
 });
 
 const { settingsService } = await import('../../src/services/settings.service.ts');
+const { detectInitialLocale } = await import('../../src/lib/locale.ts');
 
 test('locale round-trips through set/get', async () => {
   store.clear();
@@ -72,6 +73,24 @@ test('legacy language=ko-KR (unsupported) → locale=en', () => {
 test('fresh install (no stored settings) → locale=en', () => {
   store.clear();
   assert.equal(settingsService.getSync().preferences.locale, 'en');
+});
+
+test('fresh install ignores a non-English navigator locale', () => {
+  const previousNavigator = globalThis.navigator;
+  Object.defineProperty(globalThis, 'navigator', {
+    value: { language: 'zh-CN', languages: ['zh-CN', 'en-US'] },
+    configurable: true,
+  });
+  try {
+    assert.equal(detectInitialLocale(undefined), 'en');
+  } finally {
+    if (previousNavigator === undefined) delete globalThis.navigator;
+    else Object.defineProperty(globalThis, 'navigator', { value: previousNavigator, configurable: true });
+  }
+});
+
+test('a persisted supported locale still wins', () => {
+  assert.equal(detectInitialLocale('ja'), 'ja');
 });
 
 test('stored locale wins over stored legacy language', () => {
