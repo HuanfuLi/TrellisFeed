@@ -1,0 +1,102 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+
+import { MAX_REQUEST_BYTES, ValidationError, parseIngest } from '../src/validation.ts';
+import worker, { resolveAccount } from '../src/worker.ts';
+
+const validEvent = () => ({
+  id: 'event-1',
+  userId: '1001',
+  timestamp: '2026-07-11T12:00:00.000Z',
+  eventType: 'post_open',
+  postId: 'post-1',
+});
+
+test('parseIngest rejects a batch with more than 100 records before DB work', () => {
+  const records = Array.from({ length: 101 }, (_, index) => ({
+    ...validEvent(),
+    id: `event-${index}`,
+  }));
+
+  assert.throws(
+    () => parseIngest({ records }),
+    (error) => error instanceof ValidationError && error.status === 413,
+  );
+});
+
+test('parseIngest rejects a body larger than 256 KiB', () => {
+  assert.throws(
+    () => parseIngest({ records: [validEvent()] }, MAX_REQUEST_BYTES + 1),
+    (error) => error instanceof ValidationError && error.status === 413,
+  );
+});
+
+test('parseIngest rejects prohibited source and arbitrary payload fields', () => {
+  for (const prohibitedField of ['sourceUrl', 'feedPosition', 'route', 'device']) {
+    assert.throws(
+      () => parseIngest({ records: [{ ...validEvent(), [prohibitedField]: 'forbidden' }] }),
+      new RegExp(`disallowed field: ${prohibitedField}`),
+    );
+  }
+  assert.throws(
+    () => parseIngest({ records: [{ ...validEvent(), payload: { route: '/posts/post-1' } }] }),
+    /disallowed field: payload/,
+  );
+});
+
+test('parseIngest rejects unknown interaction event types', () => {
+  assert.throws(
+    () => parseIngest({ records: [{ ...validEvent(), eventType: 'keystroke_capture' }] }),
+    /eventType is not allowed/,
+  );
+});
+
+test('parseIngest accepts a valid allowlisted event', () => {
+  const [record] = parseIngest({ records: [validEvent()] });
+  assert.equal(record.kind, 'event');
+  assert.equal(record.id, 'event-1');
+});
+
+function accountDb(accounts) {
+  return {
+    prepare(sql) {
+      assert.match(sql, /WHERE user_id = \?/);
+      return {
+        bind(userId) {
+          return {
+            async all() {
+              const account = accounts.get(userId);
+              return {
+                results: account
+                  ? [{ condition: account.condition, topic_id: account.topicId }]
+                  : [],
+              };
+            },
+            async run() {
+              return { success: true };
+            },
+          };
+        },
+      };
+    },
+  };
+}
+
+test('resolveAccount returns the server account mapping and null for unknown accounts', async () => {
+  const db = accountDb(new Map([['1001', { condition: 'control', topicId: 'topic-a' }]]));
+
+  assert.deepEqual(await resolveAccount('1001', db), { condition: 'control', topicId: 'topic-a' });
+  assert.equal(await resolveAccount('9999', db), null);
+});
+
+test('install resolve returns only the fixed condition and topic for a known numeric account', async () => {
+  const db = accountDb(new Map([['1001', { condition: 'experimental', topicId: 'topic-b' }]]));
+  const response = await worker.fetch(new Request('https://collector.invalid/v1/install/resolve', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ userId: '1001' }),
+  }), { DB: db });
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { condition: 'experimental', topicId: 'topic-b' });
+});
