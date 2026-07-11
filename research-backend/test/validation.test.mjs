@@ -65,6 +65,19 @@ test('parseIngest accepts a valid allowlisted event', () => {
   assert.equal(record.id, 'event-1');
 });
 
+test('parseIngest accepts canonical Q&A fields and rejects unknown or identity fields', () => {
+  const canonical = {
+    id: 'qa:question-1', revision: 1, postId: 'post-1', questionId: 'question-1', answerId: 'answer-1',
+    questionText: 'How?', questionSource: 'typed', questionCreatedAt: '2026-07-11T00:00:00.000Z',
+    answerText: 'Like this.', answerCreatedAt: '2026-07-11T00:00:01.000Z', modelName: 'fake-main',
+    citedPostIds: ['post-1'], citedSourceUrls: ['https://example.test'], conceptIds: ['concept-1'], claimIds: ['claim-1'],
+  };
+  assert.equal(parseIngest({ records: [canonical] })[0].kind, 'question_answer');
+  for (const extra of [{ payload: {} }, { reasoning: 'hidden' }, { condition: 'control' }, { arbitrary: 'x' }]) {
+    assert.throws(() => parseIngest({ records: [{ ...canonical, ...extra }] }), /disallowed field/i);
+  }
+});
+
 function accountDb(accounts) {
   return {
     prepare(sql) {

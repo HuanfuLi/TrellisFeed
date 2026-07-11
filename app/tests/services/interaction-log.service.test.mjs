@@ -185,88 +185,51 @@ test('validates allowed field values before persistence', async () => {
   assert.equal(enqueued.length, 0);
 });
 
-test('stores question and answer text only in a revisioned Q/A record', async () => {
+test('projects canonical question and answer only after local canonical persistence', async () => {
   await resetRecords();
   const { enqueued, logger } = makeHarness();
-
-  const submitted = await logger.recordQuestionSubmit({
-    postId: 'post-1',
-    questionId: 'question-1',
-    questionText: 'Why does this happen?',
-    questionSource: 'typed',
+  await dbExecute('INSERT OR REPLACE INTO user_questions (id, user_id, post_id, created_at, data) VALUES (?, ?, ?, ?, ?)', ['question-1', '1042', 'post-1', '2026-07-11T11:59:00.000Z', '{}']);
+  await dbExecute('INSERT OR REPLACE INTO ai_answers (id, user_question_id, post_id, created_at, data) VALUES (?, ?, ?, ?, ?)', ['answer-1', 'question-1', 'post-1', '2026-07-11T12:00:00.000Z', '{}']);
+  const projected = await logger.recordQuestionSubmit({
+    question: {
+      id: 'question-1', userId: '1042', condition: 'experimental', topicId: 'topic-opaque-1', postId: 'post-1',
+      text: 'Why does this happen?', source: 'suggested_question', suggestedQuestionId: 'suggestion-1',
+      createdAt: '2026-07-11T11:59:00.000Z', extractedConceptIds: ['concept-1'], extractedClaimIds: ['claim-1'], aiAnswerId: 'answer-1',
+    },
+    answer: {
+      id: 'answer-1', userQuestionId: 'question-1', postId: 'post-1', answerText: 'Because the mechanism is deterministic.',
+      citedPostIds: ['post-1'], citedSourceUrls: ['https://example.test'], conceptIds: ['concept-1'], claimIds: ['claim-1'],
+      createdAt: '2026-07-11T12:00:00.000Z', modelName: 'fake-main',
+    },
   });
-  assert.equal(submitted.revision, 1);
-  assert.equal(submitted.questionText, 'Why does this happen?');
+  assert.equal(projected.revision, 1);
+  assert.equal(projected.answerId, 'answer-1');
+  assert.equal(projected.suggestedQuestionId, 'suggestion-1');
 
-  let rows = await recordRows();
-  assert.equal(rows.length, 2);
-  const submittedQaRow = rows.find((row) => row.kind === 'qa');
-  const submitEvent = JSON.parse(rows.find((row) => row.kind === 'event').data);
-  assert.equal(submittedQaRow.revision, 1);
-  assert.deepEqual(JSON.parse(submittedQaRow.data), submitted);
-  assert.equal(submitEvent.eventType, 'question_submit');
-  assert.equal(submitEvent.questionId, 'question-1');
-  assert.equal(Object.hasOwn(submitEvent, 'questionText'), false);
-  assert.equal(enqueued.length, 2);
-
-  const answered = await logger.recordAnswerViewed({
-    questionId: 'question-1',
-    answerText: 'Because the mechanism is deterministic.',
-  });
-  assert.equal(answered.id, submitted.id);
-  assert.equal(answered.revision, 2);
-  assert.equal(answered.answerText, 'Because the mechanism is deterministic.');
-  assert.equal(answered.answerViewedAt, '2026-07-11T12:00:00.000Z');
-
-  rows = await recordRows();
-  assert.equal(rows.length, 3);
-  const answeredQaRow = rows.find((row) => row.kind === 'qa');
-  assert.equal(answeredQaRow.revision, 2);
-  assert.deepEqual(JSON.parse(answeredQaRow.data), answered);
+  await logger.recordAnswerViewed({ postId: 'post-1', questionId: 'question-1' });
+  const rows = await recordRows();
+  const qaRow = rows.find((row) => row.kind === 'qa');
+  assert.deepEqual(JSON.parse(qaRow.data), projected);
   const events = rows.filter((row) => row.kind === 'event').map((row) => JSON.parse(row.data));
-  assert.deepEqual(new Set(events.map((event) => event.eventType)), new Set(['question_submit', 'ai_answer_view']));
+  assert.deepEqual(events.map((event) => event.eventType), ['question_submit', 'ai_answer_view']);
   assert.ok(events.every((event) => !Object.hasOwn(event, 'questionText') && !Object.hasOwn(event, 'answerText')));
-  assert.equal(enqueued.length, 4);
-  assert.deepEqual(enqueued.map((record) => 'revision' in record ? `qa-${record.revision}` : record.eventType), [
-    'qa-1', 'question_submit', 'qa-2', 'ai_answer_view',
-  ]);
+  assert.deepEqual(enqueued.map((record) => 'revision' in record ? 'qa' : record.eventType), ['qa', 'question_submit', 'ai_answer_view']);
 });
 
-test('suggested questions emit only the suggestion click event and reject extra Q/A context', async () => {
+test('canonical projection rejects identity conflicts and arbitrary extra context', async () => {
   await resetRecords();
-  const { enqueued, logger } = makeHarness();
-
-  await logger.recordQuestionSubmit({
-    postId: 'post-2',
-    questionId: 'question-suggested',
-    questionText: 'A curated suggested question?',
-    questionSource: 'suggested_question',
-  });
-  const event = enqueued.find((record) => 'eventType' in record);
-  assert.equal(event.eventType, 'question_suggestion_click');
-
-  const before = (await recordRows()).length;
+  const { logger } = makeHarness();
+  const canonical = {
+    question: { id: 'q', userId: 'wrong', condition: 'control', topicId: 'wrong', postId: 'p', text: 'Q?', source: 'typed', createdAt: '2026-07-11T00:00:00.000Z', extractedConceptIds: [], aiAnswerId: 'a' },
+    answer: { id: 'a', userQuestionId: 'q', postId: 'p', answerText: 'A.', citedPostIds: ['p'], conceptIds: [], createdAt: '2026-07-11T00:00:01.000Z', modelName: 'm' },
+  };
   await assert.rejects(
-    () => logger.recordQuestionSubmit({
-      postId: 'post-3',
-      questionId: 'question-private',
-      questionText: 'Question?',
-      questionSource: 'typed',
-      sourceUrl: 'https://example.invalid/private',
-    }),
-    /disallowed field: sourceUrl/i,
+    () => logger.recordQuestionSubmit(canonical),
+    /identity does not match/i,
   );
-  assert.equal((await recordRows()).length, before);
-});
-
-test('answer attachment fails closed when no submitted Q/A record exists', async () => {
-  await resetRecords();
-  const { enqueued, logger } = makeHarness();
-
   await assert.rejects(
-    () => logger.recordAnswerViewed({ questionId: 'missing-question', answerText: 'Orphan answer' }),
-    /submitted question.*not found/i,
+    () => logger.recordQuestionSubmit({ ...canonical, payload: { secret: true } }),
+    /disallowed field: payload/i,
   );
   assert.equal((await recordRows()).length, 0);
-  assert.equal(enqueued.length, 0);
 });

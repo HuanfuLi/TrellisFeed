@@ -51,11 +51,18 @@ test('buildExportZip produces exactly the two aggregate CSV files', () => {
       topic_id: 'topic-a',
       post_id: 'post-1',
       question_id: 'question-1',
+      answer_id: 'answer-1',
       question_text: 'How does this work?',
       question_source: 'typed',
-      submitted_at: '2026-07-11T12:00:00.000Z',
+      suggested_question_id: null,
+      question_created_at: '2026-07-11T12:00:00.000Z',
       answer_text: 'Like this.',
-      answer_viewed_at: null,
+      answer_created_at: '2026-07-11T12:00:01.000Z',
+      model_name: 'fake-main',
+      cited_post_ids: '["post-1"]',
+      cited_source_urls: '[]',
+      concept_ids: '[]',
+      claim_ids: '[]',
       received_at: '2026-07-11T12:00:01.000Z',
     }],
   );
@@ -66,5 +73,5 @@ test('buildExportZip produces exactly the two aggregate CSV files', () => {
     'question-answer-records.csv',
   ]);
   assert.match(strFromU8(files['behavioral-events.csv']), /^id,user_id,condition,topic_id,timestamp,event_type,post_id,question_id,recommendation_id,duration_ms,received_at\r?\n/);
-  assert.match(strFromU8(files['question-answer-records.csv']), /^id,revision,user_id,condition,topic_id,post_id,question_id,question_text,question_source,submitted_at,answer_text,answer_viewed_at,received_at\r?\n/);
+  assert.match(strFromU8(files['question-answer-records.csv']), /^id,revision,user_id,condition,topic_id,post_id,question_id,answer_id,question_text,question_source,suggested_question_id,question_created_at,answer_text,answer_created_at,model_name,cited_post_ids,cited_source_urls,concept_ids,claim_ids,received_at\r?\n/);
 });

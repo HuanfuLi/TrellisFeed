@@ -59,7 +59,7 @@ function ingestRequest(records, token) {
 }
 
 const event = (overrides = {}) => ({ id: 'event-1', timestamp: '2026-07-11T12:00:00.000Z', eventType: 'post_open', postId: 'post-1', ...overrides });
-const questionAnswer = (overrides = {}) => ({ id: 'qa-1', revision: 2, postId: 'post-1', questionId: 'question-1', questionText: 'How does this work?', questionSource: 'typed', submittedAt: '2026-07-11T12:00:00.000Z', answerText: 'A newer answer.', ...overrides });
+const questionAnswer = (overrides = {}) => ({ id: 'qa-1', revision: 2, postId: 'post-1', questionId: 'question-1', answerId: 'answer-1', questionText: 'How does this work?', questionSource: 'typed', questionCreatedAt: '2026-07-11T12:00:00.000Z', answerText: 'A newer answer.', answerCreatedAt: '2026-07-11T12:00:01.000Z', modelName: 'fake-main', citedPostIds: ['post-1'], citedSourceUrls: ['https://example.test'], conceptIds: ['concept-1'], claimIds: ['claim-1'], ...overrides });
 const accountA = { userId: '1001', condition: 'control', topicId: 'server-topic-a' };
 const accountB = { userId: '1002', condition: 'experimental', topicId: 'server-topic-b' };
 
