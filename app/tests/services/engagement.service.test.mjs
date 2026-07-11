@@ -21,6 +21,7 @@ globalThis.localStorage = {
 const { engagementService } = await import('../../src/services/engagement.service.ts');
 const { postHistoryService } = await import('../../src/services/post-history.service.ts');
 const { eventBus } = await import('../../src/lib/event-bus.ts');
+const { dbQuery, clearAllTables } = await import('../../src/services/db.service.ts');
 
 // Phase 55-07: engagement + post-history are now in-memory mirrors persisted to
 // IndexedDB (not localStorage). Tests reset via the services' own reset/clear
@@ -49,8 +50,9 @@ function captureAll() {
 }
 
 describe('engagementService — Phase 39', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     localStorage.clear();
+    await clearAllTables();
     // Reset the in-memory mirrors (the localStorage clear no longer does this
     // now that the stores are in-memory + IndexedDB).
     engagementService.reset();
@@ -138,17 +140,6 @@ describe('engagementService — Phase 39', () => {
     assert.equal(pinned.size, 2);
   });
 
-  it('getSavedPosts resolves through postHistoryService and silently drops missing posts', () => {
-    // Pre-seed post-history so 'p1' resolves but 'p-missing' does not.
-    postHistoryService.addPost({ id: 'p1', generatedAt: Date.now(), title: 'one' });
-    engagementService.savePost('p1');
-    engagementService.savePost('p-missing');
-    assert.equal(engagementService.getSavedPostIds().length, 2);
-    const posts = engagementService.getSavedPosts();
-    assert.equal(posts.length, 1, 'missing post should be silently dropped (D-04 graceful degradation)');
-    assert.equal(posts[0].id, 'p1');
-  });
-
   it('state round-trips through the public getters (saved/liked/dismissed)', () => {
     engagementService.savePost('p1');
     engagementService.likePost('p2');
@@ -185,58 +176,40 @@ describe('engagementService — Phase 39', () => {
     assert.deepEqual(engagementService.getDismissedAnchorIds(), []);
   });
 
-  // Phase 50 UAT G14: optional snapshot parameter persists stub posts to
-  // postHistoryService at save/like time so unopened posts surface on /saved
-  // and /saved → Liked. Without this, resolvePostsByIds silently drops the
-  // id because postHistoryService.getPosts() is the only resolution path.
-  it('G14: savePost with snapshot persists the post to postHistoryService and getSavedPosts resolves it', () => {
-    const stub = {
-      id: 'stub-1',
-      generatedAt: Date.now(),
-      title: 'Unopened stub',
-      bodyMarkdown: '', // deliberate — stub posts have empty body before on-open generation
-    };
-    engagementService.savePost('stub-1', stub);
-    const posts = engagementService.getSavedPosts();
-    assert.equal(posts.length, 1, 'getSavedPosts must surface the stub even before it has a body');
-    assert.equal(posts[0].id, 'stub-1');
-    assert.equal(posts[0].title, 'Unopened stub');
+  it('canonical save and like APIs accept immutable post IDs only', () => {
+    assert.equal(engagementService.savePost.length, 1);
+    assert.equal(engagementService.likePost.length, 1);
   });
 
-  it('G14: likePost with snapshot persists the post to postHistoryService and getLikedPosts resolves it', () => {
-    const stub = {
-      id: 'stub-2',
-      generatedAt: Date.now(),
-      title: 'Unopened liked stub',
-      bodyMarkdown: '',
-    };
-    engagementService.likePost('stub-2', stub);
-    const posts = engagementService.getLikedPosts();
-    assert.equal(posts.length, 1, 'getLikedPosts must surface the stub even before it has a body');
-    assert.equal(posts[0].id, 'stub-2');
+  it('dismissPost is idempotent and emits one engagement event', () => {
+    engagementService.dismissPost('post-1');
+    engagementService.dismissPost('post-1');
+    assert.deepEqual(engagementService.getDismissedPostIds(), ['post-1']);
+    assert.equal(engagementEvents.length, 1);
+    assert.deepEqual(engagementEvents[0].payload, { kind: 'dismiss', id: 'post-1' });
   });
 
-  it('G14: savePost WITHOUT snapshot leaves history unchanged (back-compat with non-host callers)', () => {
-    // No prior history seed → no post resolves. The id is still saved.
-    engagementService.savePost('p-no-snapshot');
-    assert.deepEqual(engagementService.getSavedPostIds(), ['p-no-snapshot']);
-    // History remains untouched.
-    assert.equal(postHistoryService.getPosts().length, 0, 'savePost without snapshot must not create a history entry');
-    // getSavedPosts silently drops the unresolved id (T-50-ORPHAN / D-04).
-    assert.equal(engagementService.getSavedPosts().length, 0);
+  it('persists engagement as ID-only metadata through the DB seam', async () => {
+    engagementService.savePost('post-saved');
+    engagementService.dismissPost('post-dismissed');
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const rows = await dbQuery('SELECT * FROM engagement WHERE id = ?', ['engagement_state']);
+    assert.equal(rows.length, 1);
+    const stored = JSON.parse(rows[0].data);
+    assert.deepEqual(stored.saved, ['post-saved']);
+    assert.deepEqual(stored.dismissed, ['post-dismissed']);
+    assert.equal(JSON.stringify(stored).includes('bodyMarkdown'), false);
   });
 
-  it('G14: savePost with snapshot is idempotent — second call does not duplicate history entry', () => {
-    const stub = { id: 'stub-3', generatedAt: Date.now(), title: 'once', bodyMarkdown: '' };
-    engagementService.savePost('stub-3', stub);
-    // Second call with a DIFFERENT title — postHistoryService.addPost dedups
-    // by id, so the original snapshot survives. savePost itself is also
-    // idempotent (already covered above) so no double-event either.
-    engagementService.savePost('stub-3', { ...stub, title: 'twice' });
-    const posts = engagementService.getSavedPosts();
-    assert.equal(posts.length, 1);
-    assert.equal(posts[0].title, 'once', 'postHistoryService.addPost dedups by id; original snapshot wins');
-    const saveEvents = engagementEvents.filter(e => e.payload.kind === 'save');
-    assert.equal(saveEvents.length, 1, 'savePost idempotency still holds — second call must not re-emit');
+  it('post history persists only postId and viewedAt and groups metadata by day', async () => {
+    await postHistoryService.recordPostViewed('post-viewed', '2026-07-11T12:30:00.000Z');
+    const rows = await dbQuery('SELECT * FROM post_history WHERE id = ?', ['post-viewed']);
+    assert.equal(rows.length, 1);
+    assert.deepEqual(JSON.parse(rows[0].data), {
+      postId: 'post-viewed',
+      viewedAt: '2026-07-11T12:30:00.000Z',
+    });
+    assert.deepEqual(postHistoryService.getViewedPostIds(), ['post-viewed']);
+    assert.equal(postHistoryService.getEntriesByDay().get('2026-07-11')?.[0].postId, 'post-viewed');
   });
 });

@@ -34,14 +34,16 @@ test('SV-01: /saved route registered in App.tsx with PageTransition wrapper', ()
   );
 });
 
-test('SV-03/04: SavedScreen exports default + reads saved posts from engagementService', () => {
+test('SV-03/04: SavedScreen resolves saved IDs through the frozen feed facade', () => {
   const src = readSrc('src/screens/SavedScreen.tsx');
   assert.match(src, /export default SavedScreen/, 'default export present');
   assert.match(
     src,
-    /engagementService\.getSavedPosts\(\)/,
-    'Saved tab data source: engagementService.getSavedPosts()',
+    /engagementService\.getSavedPostIds\(\)/,
+    'Saved tab data source is ID-only engagement state',
   );
+  assert.match(src, /frozenFeedService\.getPostById\(/, 'immutable post content resolves through frozenFeedService');
+  assert.doesNotMatch(src, /engagementService\.getSavedPosts\(\)/, 'engagement does not duplicate or resolve post bodies');
   assert.doesNotMatch(src, /getSavedPodcastIds|savePodcast|removeSavedPodcast/, 'Saved podcasts are removed');
 });
 
@@ -61,12 +63,12 @@ test('Side feature: Liked tab removed — likes are now a hidden recommendation 
   );
 });
 
-test('Archive consolidation 2026-05-12: History tab reads postHistoryService.getPostsByDay', () => {
+test('History tab resolves ID/timestamp metadata through frozenFeedService', () => {
   const src = readSrc('src/screens/SavedScreen.tsx');
   assert.match(
     src,
-    /postHistoryService\.getPostsByDay\(\)/,
-    'History tab data source: postHistoryService.getPostsByDay() — day-grouped Map',
+    /postHistoryService\.getEntriesByDay\(\)/,
+    'History tab data source contains metadata only',
   );
   assert.match(
     src,
@@ -146,4 +148,5 @@ test('SV: row tap navigates to /posts/:id', () => {
     /navigate\(`\/posts\/\$\{post\.id\}`\)|navigate\(\s*['"`]\/posts\//,
     'list row onOpen navigates to /posts/:id',
   );
+  assert.doesNotMatch(src, /state:\s*\{\s*post\s*\}/, 'router state must not duplicate immutable post content');
 });
