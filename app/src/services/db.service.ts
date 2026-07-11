@@ -59,6 +59,16 @@ const SHARED_DDL: string[] = [
   `CREATE TABLE IF NOT EXISTS research_records (id TEXT PRIMARY KEY, kind TEXT NOT NULL, revision INTEGER NOT NULL, data TEXT NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS research_upload_queue (id TEXT PRIMARY KEY, data TEXT NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS research_metadata (id TEXT PRIMARY KEY, data TEXT NOT NULL)`,
+  // ── Phase 2 frozen content-pool stores ────────────────────────────────────
+  // Rows are version-qualified. `storage_id` is `${version}:${recordId}` so a
+  // staged version cannot overwrite or become confused with a ready version.
+  `CREATE TABLE IF NOT EXISTS content_pool_meta (version TEXT PRIMARY KEY, status TEXT NOT NULL, data TEXT NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS content_pool_topics (storage_id TEXT PRIMARY KEY, version TEXT NOT NULL, record_id TEXT NOT NULL, data TEXT NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS content_pool_posts (storage_id TEXT PRIMARY KEY, version TEXT NOT NULL, record_id TEXT NOT NULL, data TEXT NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS content_pool_concepts (storage_id TEXT PRIMARY KEY, version TEXT NOT NULL, record_id TEXT NOT NULL, data TEXT NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS content_pool_claims (storage_id TEXT PRIMARY KEY, version TEXT NOT NULL, record_id TEXT NOT NULL, data TEXT NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS content_pool_suggestions (storage_id TEXT PRIMARY KEY, version TEXT NOT NULL, record_id TEXT NOT NULL, data TEXT NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS content_pool_assets (storage_id TEXT PRIMARY KEY, version TEXT NOT NULL, record_id TEXT NOT NULL, data TEXT NOT NULL)`,
 ];
 
 // Object-store names for the IndexedDB backend, derived from SHARED_DDL so the
@@ -183,7 +193,7 @@ class LocalStorageBackend implements DBBackend {
 // IDB transaction and stores are created at open()).
 
 const IDB_NAME = 'questiontrace';
-const IDB_VERSION = 2;
+const IDB_VERSION = 3;
 
 class IndexedDBBackend implements DBBackend {
   private db: IDBDatabase | null = null;
@@ -384,6 +394,14 @@ export async function clearAllTables(): Promise<void> {
     await dbExecute('DELETE FROM research_records');
     await dbExecute('DELETE FROM research_upload_queue');
     await dbExecute('DELETE FROM research_metadata');
+    // ── Phase 2 frozen content-pool stores ─────────────────────────────────
+    await dbExecute('DELETE FROM content_pool_meta');
+    await dbExecute('DELETE FROM content_pool_topics');
+    await dbExecute('DELETE FROM content_pool_posts');
+    await dbExecute('DELETE FROM content_pool_concepts');
+    await dbExecute('DELETE FROM content_pool_claims');
+    await dbExecute('DELETE FROM content_pool_suggestions');
+    await dbExecute('DELETE FROM content_pool_assets');
   } catch {
     // DB may not be available (e.g. tables not yet created) — silently ignore
   }
