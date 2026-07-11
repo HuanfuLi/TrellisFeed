@@ -40,14 +40,16 @@ test('BS-OS-02: BottomSheet source contains WebkitOverflowScrolling: touch', () 
 });
 
 test('BS-OS-03: overscrollBehavior lives on the SAME element as overflowY (co-location)', () => {
-  // Both orderings tolerated — the key invariant is that both style keys
-  // appear within a 200-char window, proving they are properties of the
-  // same inline-style object literal.
-  const sameElementRegex = /overflowY:\s*['"]auto['"][\s\S]{0,200}overscrollBehavior:\s*['"]contain['"]|overscrollBehavior:\s*['"]contain['"][\s\S]{0,200}overflowY:\s*['"]auto['"]/;
+  const overflowIdx = src.search(/^\s*overflowY:\s*['"]auto['"],/m);
+  assert.ok(overflowIdx >= 0, "BottomSheet must declare overflowY: 'auto'");
+  const styleStart = src.lastIndexOf('style={{', overflowIdx);
+  const styleEnd = src.indexOf('}}', overflowIdx);
+  assert.ok(styleStart >= 0 && styleEnd > overflowIdx, 'overflowY must live inside an inline style object');
+  const scrollStyle = src.slice(styleStart, styleEnd);
   assert.match(
-    src,
-    sameElementRegex,
-    "overscrollBehavior must appear within 200 chars of overflowY:'auto' so they live on the same inline-style object",
+    scrollStyle,
+    /overscrollBehavior:\s*['"]contain['"]/,
+    "overscrollBehavior must live in the same inline-style object as overflowY:'auto'",
   );
 });
 

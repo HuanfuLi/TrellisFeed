@@ -27,6 +27,20 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const appRoot = path.resolve(__dirname, '..', '..');
 
+function extractFunctionBody(source, signature) {
+  const start = source.indexOf(signature);
+  assert.ok(start > 0, `${signature} must exist`);
+  const open = source.indexOf('{', start);
+  assert.ok(open > start, `${signature} must have a body`);
+  let depth = 0;
+  for (let index = open; index < source.length; index += 1) {
+    if (source[index] === '{') depth += 1;
+    if (source[index] === '}') depth -= 1;
+    if (depth === 0) return source.slice(start, index + 1);
+  }
+  assert.fail(`${signature} must have balanced braces`);
+}
+
 test('conceptFeedService.getPostById falls back to postHistoryService', () => {
   const src = readFileSync(
     path.join(appRoot, 'src/services/concept-feed.service.ts'),
@@ -60,11 +74,7 @@ test('patchPostEssayInCache patches the durable post stores', () => {
     'utf8',
   );
 
-  const startIdx = src.indexOf('export function patchPostEssayInCache');
-  assert.ok(startIdx > 0, 'patchPostEssayInCache must exist');
-  const endIdx = src.indexOf('\n}\n', startIdx);
-  assert.ok(endIdx > startIdx, 'function body must terminate with `}` on its own line');
-  const body = src.slice(startIdx, endIdx);
+  const body = extractFunctionBody(src, 'export function patchPostEssayInCache');
 
   // Post history is the only durable full-content store — without it, streamed
   // bodies never survive the midnight daily-cache rejection.
@@ -96,9 +106,7 @@ test('patchPostEssayInCache patches every store, not just the first hit', () => 
     'utf8',
   );
 
-  const startIdx = src.indexOf('export function patchPostEssayInCache');
-  const endIdx = src.indexOf('\n}\n', startIdx);
-  const body = src.slice(startIdx, endIdx);
+  const body = extractFunctionBody(src, 'export function patchPostEssayInCache');
 
   // The bug shape was "first store wins, history never gets patched". Both
   // patchPost calls must be unconditional siblings — neither guarded by the

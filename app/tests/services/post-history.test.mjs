@@ -14,7 +14,7 @@ globalThis.localStorage = {
 // We need to mock the module that post-history imports.
 // Since post-history imports settingsService from settings.service.ts,
 // we pre-seed localStorage with settings that have feed config.
-const SETTINGS_KEY = 'trellis_settings';
+const SETTINGS_KEY = 'questiontrace_settings';
 
 function setRetentionDays(days) {
   const settings = {

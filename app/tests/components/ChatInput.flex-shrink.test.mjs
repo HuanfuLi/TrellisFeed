@@ -24,7 +24,7 @@ const source = fs.readFileSync(
 describe('ChatInput flex-shrink guard', () => {
   it('text input declares minWidth: 0 so Send button cannot drift off-screen', () => {
     // Locate the <input type="text" …> block.
-    const inputIdx = source.indexOf('<input\n            type="text"');
+    const inputIdx = source.search(/<input\b[\s\S]*?type=["']text["']/);
     assert.ok(inputIdx !== -1, 'ChatInput.tsx should contain the text <input>');
 
     // Narrow to the input's JSX (up to the next '/>').

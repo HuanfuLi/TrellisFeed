@@ -23,9 +23,8 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import path from 'node:path';
-import { execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -33,20 +32,13 @@ const __dirname = path.dirname(__filename);
 const appRoot = path.resolve(__dirname, '..', '..');
 
 function findBottomSheetConsumers() {
-  // ripgrep first; fallback to grep -r if rg is not installed.
-  try {
-    const out = execSync(
-      `rg -l "from '.*BottomSheet'" --type ts --type tsx ${path.join(appRoot, 'src')}`,
-      { stdio: ['ignore', 'pipe', 'ignore'] },
-    );
-    return out.toString().split('\n').filter(Boolean);
-  } catch {
-    const out = execSync(
-      `grep -rln "from '.*BottomSheet'" ${path.join(appRoot, 'src')}`,
-      { stdio: ['ignore', 'pipe', 'ignore'] },
-    );
-    return out.toString().split('\n').filter(Boolean);
-  }
+  const walk = (directory) => readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const candidate = path.join(directory, entry.name);
+    if (entry.isDirectory()) return walk(candidate);
+    if (!/\.tsx?$/.test(entry.name)) return [];
+    return /from\s+['"][^'"]*BottomSheet['"]/.test(readFileSync(candidate, 'utf8')) ? [candidate] : [];
+  });
+  return walk(path.join(appRoot, 'src'));
 }
 
 test('G12: no BottomSheet consumer declares bare autoFocus on an input child', () => {

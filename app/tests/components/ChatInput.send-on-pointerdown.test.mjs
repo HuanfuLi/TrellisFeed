@@ -86,7 +86,7 @@ describe('ChatInput send-on-pointerdown guard (BUGFIX-04)', () => {
   });
 
   it('text input still declares minWidth: 0 (flex-shrink invariant not regressed)', () => {
-    const inputIdx = source.indexOf('<input\n            type="text"');
+    const inputIdx = source.search(/<input\b[\s\S]*?type=["']text["']/);
     assert.ok(inputIdx !== -1, 'ChatInput.tsx should contain the text <input>');
     const inputBlock = source.slice(inputIdx, source.indexOf('/>', inputIdx) + 2);
     assert.ok(
