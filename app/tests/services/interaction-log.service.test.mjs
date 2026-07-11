@@ -46,6 +46,25 @@ async function recordRows() {
   return dbQuery('SELECT * FROM research_records');
 }
 
+test('bound but unconsented installations cannot persist or enqueue research records', async () => {
+  await resetRecords();
+  localStorage.setItem('questiontrace_settings', JSON.stringify({
+    preferences: {
+      theme: 'system', locale: 'en', language: 'en',
+      onboardingCompleted: true, aiConsentGiven: false,
+    },
+  }));
+  const { enqueued, logger } = makeHarness();
+
+  await logger.record('app_open');
+  await logger.record('post_open', { postId: 'post-before-consent' });
+
+  assert.equal((await dbQuery('SELECT * FROM research_records')).length, 0);
+  assert.equal((await dbQuery('SELECT * FROM research_upload_queue')).length, 0);
+  assert.equal(enqueued.length, 0);
+  localStorage.removeItem('questiontrace_settings');
+});
+
 test('record snapshots immutable study identity rather than accepting caller identity', async () => {
   await resetRecords();
   const { enqueued, logger } = makeHarness();
