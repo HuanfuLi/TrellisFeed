@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 02
 current_phase_name: content-pool-feed-post-ui-on-frozen-data
 status: executing
-stopped_at: Completed 02-01-PLAN.md
-last_updated: "2026-07-11T20:21:31.091Z"
+stopped_at: Completed 02-02-PLAN.md
+last_updated: "2026-07-11T20:42:20.863Z"
 last_activity: 2026-07-11
 last_activity_desc: Phase 02 execution started
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 22
-  completed_plans: 11
+  completed_plans: 12
   percent: 0
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-10)
 ## Current Position
 
 Phase: 02 (content-pool-feed-post-ui-on-frozen-data) — EXECUTING
-Plan: 2 of 9
+Plan: 3 of 9
 Status: Ready to execute
 Last activity: 2026-07-11 — Phase 02 execution started
 
@@ -56,6 +56,7 @@ Progress: [██░░░░░░░░] 20% (1 of 5 phases; Phase 0 done)
 
 *Updated after each plan completion*
 | Phase 02 P01 | 9m | 3 tasks | 39 files |
+| Phase 02 P02 | 10min | 3 tasks | 16 files |
 
 ## Accumulated Context
 
@@ -69,6 +70,9 @@ Decisions are logged in PROJECT.md Key Decisions table. Six LOCKED decisions con
 - DEC-pruned-features-frozen: §15.3 features never resurrected; DEC-framing-rules: constrained user-facing vocabulary; DEC-scope-boundary: SCOPE.md is the fixed build surface.
 - [Phase 02]: Canonical RSD records keep source assets and manifest metadata at the transport boundary. — Prevents pipeline convenience fields from drifting into participant domain records.
 - [Phase 02]: Frozen artifacts use fixed filenames and exactly one owned source asset and feed-order entry per post. — Closes path injection and incomplete-bundle boundaries before import.
+- [Phase 02]: Collection is operator-authored URL-list only with public destination revalidation at every redirect. — Prevents search/discovery scope creep and closes the SSRF boundary.
+- [Phase 02]: Extraction emits full normalized inert text through configured article/transcript adapters. — Preserves later provenance and grounding while excluding active markup and implicit subprocess acquisition.
+- [Phase 02]: Dedupe and mechanical quality gates preserve evidence and never approve content. — Final acceptance remains an explicit human-review decision.
 
 ### Pending Todos
 
@@ -89,6 +93,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-11T20:21:31.069Z
-Stopped at: Completed 02-01-PLAN.md
+Last session: 2026-07-11T20:42:20.850Z
+Stopped at: Completed 02-02-PLAN.md
 Resume file: None
