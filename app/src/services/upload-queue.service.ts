@@ -66,6 +66,7 @@ type SendResult = 'progress' | 'stop';
 
 let flushPromise: Promise<void> | null = null;
 let quarantineCount = 0;
+let workGeneration = 0;
 
 function parseEnvelope(row: QueueRow): QueueEnvelope | null {
   try {
@@ -162,6 +163,7 @@ export async function enqueue(record: UploadRecord, options: EnqueueOptions = {}
     'INSERT OR REPLACE INTO research_upload_queue (id, data) VALUES (?, ?)',
     [envelope.id, JSON.stringify(envelope)],
   );
+  workGeneration += 1;
   await updatePendingStatus();
 
   if (options.triggerFlush !== false) {
@@ -234,7 +236,10 @@ async function sendBatch(
   const deleted = await deleteAcknowledged(batch, acknowledgedIds);
   await updatePendingStatus();
   await setLastSuccessfulUploadAt(new Date().toISOString(), getMetadataPendingCount());
-  return deleted > 0 ? 'progress' : 'stop';
+  // A newer revision may have replaced this exact queue key while the request
+  // was in flight. Its ACK still proves network progress even though exact-
+  // envelope deletion intentionally retained the replacement for the next pass.
+  return deleted > 0 || acknowledgedIds.size > 0 ? 'progress' : 'stop';
 }
 
 async function runFlush(options: FlushOptions): Promise<void> {
@@ -244,10 +249,14 @@ async function runFlush(options: FlushOptions): Promise<void> {
     const fetchImpl = options.fetch ?? globalThis.fetch;
     const installToken = studyContextService.getInstallToken();
     while (true) {
+      const generationAtRead = workGeneration;
       const pending = await prepareQueue();
       await updatePendingStatus();
       const batch = selectBoundedBatch(pending);
-      if (batch.length === 0) return;
+      if (batch.length === 0) {
+        if (generationAtRead !== workGeneration) continue;
+        return;
+      }
       const result = await sendBatch(batch, apiBaseUrl, fetchImpl, installToken);
       if (result === 'stop') return;
       await new Promise<void>((resolve) => setTimeout(resolve, 0));
