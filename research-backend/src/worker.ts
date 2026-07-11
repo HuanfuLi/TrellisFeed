@@ -1,4 +1,6 @@
 import { MAX_REQUEST_BYTES, ValidationError, parseIngest } from './validation.ts';
+import { renderStatusPage, requireAdminAuth } from './admin.ts';
+import { buildExportZip } from './export.ts';
 
 const JSON_HEADERS = {
   'content-type': 'application/json; charset=utf-8',
@@ -165,11 +167,80 @@ function methodNotAllowed() {
   return json({ error: 'Method not allowed.' }, 405, { allow: 'POST' });
 }
 
+function adminMethodNotAllowed() {
+  return json({ error: 'Method not allowed.' }, 405, { allow: 'GET' });
+}
+
+async function selectAdminRows(db, sql) {
+  const result = await db.prepare(sql).all();
+  return Array.isArray(result?.results) ? result.results : [];
+}
+
+async function handleAdminStatus(env) {
+  const [events, questionAnswers, lastReceived] = await Promise.all([
+    selectAdminRows(env.DB, 'SELECT COUNT(*) AS total FROM behavioral_events'),
+    selectAdminRows(env.DB, 'SELECT COUNT(*) AS total FROM question_answer_records'),
+    selectAdminRows(
+      env.DB,
+      `SELECT MAX(received_at) AS last_received_at FROM (
+        SELECT received_at FROM behavioral_events
+        UNION ALL
+        SELECT received_at FROM question_answer_records
+      )`,
+    ),
+  ]);
+
+  return new Response(renderStatusPage({
+    behavioralEventCount: events[0]?.total,
+    questionAnswerRecordCount: questionAnswers[0]?.total,
+    lastReceivedAt: lastReceived[0]?.last_received_at,
+  }), {
+    headers: {
+      'cache-control': 'no-store',
+      'content-type': 'text/html; charset=utf-8',
+    },
+  });
+}
+
+async function handleAdminExport(env) {
+  const [events, questionAnswers] = await Promise.all([
+    selectAdminRows(
+      env.DB,
+      `SELECT id, user_id, condition, topic_id, timestamp, event_type, post_id, question_id,
+        recommendation_id, duration_ms, received_at
+       FROM behavioral_events
+       ORDER BY received_at ASC, id ASC`,
+    ),
+    selectAdminRows(
+      env.DB,
+      `SELECT id, revision, user_id, condition, topic_id, post_id, question_id, question_text,
+        question_source, submitted_at, answer_text, answer_viewed_at, received_at
+       FROM question_answer_records
+       ORDER BY received_at ASC, id ASC`,
+    ),
+  ]);
+  const archive = buildExportZip(events, questionAnswers);
+  return new Response(archive, {
+    headers: {
+      'cache-control': 'no-store',
+      'content-disposition': 'attachment; filename="questiontrace-research-export.zip"',
+      'content-type': 'application/zip',
+    },
+  });
+}
+
 const worker = {
   async fetch(request, env) {
     const url = new URL(request.url);
 
     try {
+      if (url.pathname === '/admin' || url.pathname === '/admin/export.zip') {
+        if (request.method !== 'GET') return adminMethodNotAllowed();
+        const unauthorized = requireAdminAuth(request, env);
+        if (unauthorized) return unauthorized;
+        return url.pathname === '/admin' ? await handleAdminStatus(env) : await handleAdminExport(env);
+      }
+
       if (url.pathname === '/v1/install/resolve') {
         if (request.method !== 'POST') return methodNotAllowed();
         return await handleInstallResolve(request, env);

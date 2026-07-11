@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { unzipSync } from 'fflate';
+
 import worker from '../src/worker.ts';
 
 function basicAuth(password) {
@@ -80,4 +82,21 @@ test('the health page never renders participant-authored question HTML', async (
   const html = await response.text();
 
   assert.doesNotMatch(html, /<script>alert\("participant text"\)<\/script>/);
+});
+
+test('correct Basic credentials can download the cache-controlled two-file export', async () => {
+  const db = fakeAdminD1();
+  const response = await worker.fetch(adminRequest('/admin/export.zip', 'correct-password'), {
+    DB: db,
+    RESEARCH_ADMIN_PASSWORD: 'correct-password',
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('content-type'), 'application/zip');
+  assert.equal(response.headers.get('cache-control'), 'no-store');
+  assert.match(response.headers.get('content-disposition') ?? '', /^attachment;/);
+  assert.deepEqual(Object.keys(unzipSync(new Uint8Array(await response.arrayBuffer()))).sort(), [
+    'behavioral-events.csv',
+    'question-answer-records.csv',
+  ]);
 });
