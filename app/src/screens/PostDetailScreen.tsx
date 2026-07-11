@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Loader2, MessageSquare, RefreshCw, Sparkles } from 'lucide-react';
@@ -437,6 +437,17 @@ export function PostDetailScreen() {
   const normalizedContextLabel = post ? normalizePlainText(post.contextLabel) : '';
   const normalizedTitle = post ? normalizePlainText(post.title) : '';
 
+  const handlePostContentClick = (event: ReactMouseEvent<HTMLElement>) => {
+    if (!post) return;
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const link = target.closest('a[href]');
+    const href = link?.getAttribute('href') ?? '';
+    if (!/^https?:\/\//i.test(href)) return;
+    void interactionLog.record('source_click', { postId: post.id })
+      .catch(() => { /* observer only; the link still opens */ });
+  };
+
   const handleAsk = async (content: string, questionSource: 'typed' | 'suggested_question') => {
     if (!content.trim() || !post || !session) return;
 
@@ -862,6 +873,7 @@ export function PostDetailScreen() {
       )}
 
       <article
+        onClickCapture={handlePostContentClick}
         style={{
           borderRadius: '22px',
           padding: '20px 16px',
