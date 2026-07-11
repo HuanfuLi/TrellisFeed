@@ -59,7 +59,16 @@
     "resolveFailed": "This account could not be prepared. Check the account ID and connection, then try again."
   },
   "researchDiagnostics": {
-    "placeholder": "Research diagnostics are loading."
+    "title": "Research diagnostics",
+    "pinLabel": "Researcher PIN",
+    "unlock": "Unlock",
+    "invalidPin": "Incorrect PIN.",
+    "notConfigured": "Diagnostics access is not configured for this build.",
+    "pendingUploads": "Pending uploads",
+    "lastUpload": "Last successful upload",
+    "neverUploaded": "No successful upload yet",
+    "downloadRecovery": "Download recovery copy",
+    "exportFailed": "The recovery copy could not be created."
   },
   "home": {
     "title": "Home",

@@ -59,7 +59,16 @@
     "resolveFailed": "无法准备此账号。请检查账号编号和网络连接后重试。"
   },
   "researchDiagnostics": {
-    "placeholder": "正在加载研究诊断信息。"
+    "title": "研究诊断",
+    "pinLabel": "研究人员 PIN",
+    "unlock": "解锁",
+    "invalidPin": "PIN 不正确。",
+    "notConfigured": "此构建未配置诊断访问。",
+    "pendingUploads": "待上传记录",
+    "lastUpload": "最近成功上传",
+    "neverUploaded": "尚无成功上传",
+    "downloadRecovery": "下载恢复副本",
+    "exportFailed": "无法创建恢复副本。"
   },
   "home": {
     "title": "首页",

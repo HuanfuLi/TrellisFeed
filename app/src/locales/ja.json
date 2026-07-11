@@ -59,7 +59,16 @@
     "resolveFailed": "このアカウントを準備できませんでした。アカウント ID と接続を確認して、もう一度お試しください。"
   },
   "researchDiagnostics": {
-    "placeholder": "研究診断を読み込んでいます。"
+    "title": "研究診断",
+    "pinLabel": "研究者 PIN",
+    "unlock": "ロック解除",
+    "invalidPin": "PIN が正しくありません。",
+    "notConfigured": "このビルドでは診断アクセスが設定されていません。",
+    "pendingUploads": "保留中のアップロード",
+    "lastUpload": "最後に成功したアップロード",
+    "neverUploaded": "成功したアップロードはまだありません",
+    "downloadRecovery": "復旧用コピーをダウンロード",
+    "exportFailed": "復旧用コピーを作成できませんでした。"
   },
   "home": {
     "title": "ホーム",

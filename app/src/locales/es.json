@@ -59,7 +59,16 @@
     "resolveFailed": "No se pudo preparar esta cuenta. Comprueba el ID y la conexión e inténtalo de nuevo."
   },
   "researchDiagnostics": {
-    "placeholder": "Cargando diagnósticos de investigación."
+    "title": "Diagnósticos de investigación",
+    "pinLabel": "PIN del investigador",
+    "unlock": "Desbloquear",
+    "invalidPin": "PIN incorrecto.",
+    "notConfigured": "El acceso a diagnósticos no está configurado en esta compilación.",
+    "pendingUploads": "Cargas pendientes",
+    "lastUpload": "Última carga correcta",
+    "neverUploaded": "Aún no hay cargas correctas",
+    "downloadRecovery": "Descargar copia de recuperación",
+    "exportFailed": "No se pudo crear la copia de recuperación."
   },
   "home": {
     "title": "Inicio",

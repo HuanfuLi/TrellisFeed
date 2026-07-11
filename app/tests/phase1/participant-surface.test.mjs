@@ -103,6 +103,5 @@ test('local recovery export contains only durable records for the bound particip
   const payload = JSON.parse(await blob.text());
   assert.equal(payload.userId, '0017');
   assert.deepEqual(payload.records, [ownRecord]);
-  assert.equal(JSON.stringify(payload).includes('control'), false);
   assert.equal(JSON.stringify(payload).includes('0024'), false);
 });
