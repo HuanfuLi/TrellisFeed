@@ -97,7 +97,7 @@ test('local recovery export contains only durable records for the bound particip
     condition: 'control',
     topicId: 'topic-1',
     boundAt: '2026-07-11T00:00:00.000Z',
-  });
+  }, 'test-install-token-00000000000000000017');
 
   const ownRecord = { id: 'event-own', userId: '0017', eventType: 'app_open' };
   const otherRecord = { id: 'event-other', userId: '0024', eventType: 'app_open' };

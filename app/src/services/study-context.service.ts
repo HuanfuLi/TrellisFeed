@@ -8,6 +8,12 @@ let identity: ResearchIdentity | null = null;
 let hydrated = false;
 let hydrationPromise: Promise<void> | null = null;
 let bindingPromise: Promise<void> | null = null;
+let installToken: string | null = null;
+
+interface InstallationBinding {
+  identity: ResearchIdentity;
+  installToken: string;
+}
 
 function freezeIdentity(value: ResearchIdentity): ResearchIdentity {
   return Object.freeze({
@@ -47,7 +53,7 @@ function sameIdentity(left: ResearchIdentity, right: ResearchIdentity): boolean 
     left.boundAt === right.boundAt;
 }
 
-async function loadIdentity(): Promise<ResearchIdentity | null> {
+async function loadBinding(): Promise<InstallationBinding | null> {
   const rows = await dbQuery<{ id: string; data: string }>(
     'SELECT * FROM research_metadata WHERE id = ?',
     [IDENTITY_METADATA_ID],
@@ -55,7 +61,11 @@ async function loadIdentity(): Promise<ResearchIdentity | null> {
   if (rows.length === 0) return null;
 
   try {
-    return parseIdentity(JSON.parse(rows[0].data));
+    const parsed = JSON.parse(rows[0].data) as Partial<InstallationBinding>;
+    if (typeof parsed.installToken !== 'string' || parsed.installToken.length < 32) {
+      throw new Error('Research identity metadata is invalid');
+    }
+    return { identity: parseIdentity(parsed.identity), installToken: parsed.installToken };
   } catch (error) {
     if (error instanceof Error && error.message === 'Research identity metadata is invalid') {
       throw error;
@@ -71,7 +81,9 @@ export const studyContextService = {
     if (hydrationPromise) return hydrationPromise;
 
     hydrationPromise = (async () => {
-      identity = await loadIdentity();
+      const binding = await loadBinding();
+      identity = binding?.identity ?? null;
+      installToken = binding?.installToken ?? null;
       hydrated = true;
     })();
 
@@ -93,7 +105,13 @@ export const studyContextService = {
   },
 
   isBound(): boolean {
-    return identity !== null;
+    return identity !== null && installToken !== null;
+  },
+
+  /** Internal upload credential; never display, export, or log this value. */
+  getInstallToken(): string {
+    if (!installToken) throw new Error('Research installation token is not bound');
+    return installToken;
   },
 
   /**
@@ -101,26 +119,30 @@ export const studyContextService = {
    * bind is harmless; any account, condition, topic, or timestamp change is
    * rejected so participant flows can never switch conditions.
    */
-  async bindOnce(nextIdentity: ResearchIdentity): Promise<void> {
+  async bindOnce(nextIdentity: ResearchIdentity, nextInstallToken: string): Promise<void> {
     const candidate = parseIdentity(nextIdentity);
+    if (typeof nextInstallToken !== 'string' || nextInstallToken.length < 32) {
+      throw new Error('Research installation token is invalid');
+    }
 
     if (bindingPromise) {
       await bindingPromise;
-      return studyContextService.bindOnce(candidate);
+      return studyContextService.bindOnce(candidate, nextInstallToken);
     }
 
     bindingPromise = (async () => {
       await studyContextService.hydrate();
       if (identity) {
-        if (sameIdentity(identity, candidate)) return;
+        if (sameIdentity(identity, candidate) && installToken === nextInstallToken) return;
         throw new Error('Research identity is already bound and cannot be changed');
       }
 
       await dbExecute(
         'INSERT OR REPLACE INTO research_metadata (id, data) VALUES (?, ?)',
-        [IDENTITY_METADATA_ID, JSON.stringify(candidate)],
+        [IDENTITY_METADATA_ID, JSON.stringify({ identity: candidate, installToken: nextInstallToken })],
       );
       identity = candidate;
+      installToken = nextInstallToken;
       eventBus.emit({
         type: 'RESEARCH_IDENTITY_BOUND',
         payload: {

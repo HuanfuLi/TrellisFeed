@@ -108,3 +108,49 @@ test('install resolve rejects a missing enrollment credential before account loo
   assert.equal(response.status, 401);
   assert.deepEqual(await response.json(), { error: 'Unauthorized.' });
 });
+
+test('install resolve rejects a wrong credential with the same generic response', async () => {
+  const db = accountDb(new Map());
+  const response = await worker.fetch(new Request('https://collector.invalid/v1/install/resolve', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', authorization: 'Bearer wrong-test-credential-0000' },
+    body: JSON.stringify({ userId: '1001' }),
+  }), { DB: db, RESEARCH_ENROLLMENT_CREDENTIAL: 'correct-test-credential-000000' });
+  assert.equal(response.status, 401);
+  assert.deepEqual(await response.json(), { error: 'Unauthorized.' });
+});
+
+test('authenticated enrollment rotates the prior install and stores only a token hash', async () => {
+  const writes = [];
+  const db = {
+    prepare(sql) {
+      return {
+        bind(...values) {
+          return {
+            async all() {
+              assert.match(sql, /FROM study_accounts/);
+              return { results: [{ condition: 'control', topic_id: 'topic-test' }] };
+            },
+            async run() { writes.push({ sql, values }); return { success: true }; },
+          };
+        },
+      };
+    },
+    async batch(statements) { return Promise.all(statements.map((statement) => statement.run())); },
+  };
+  const credential = 'correct-test-credential-000000';
+  const response = await worker.fetch(new Request('https://collector.invalid/v1/install/resolve', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${credential}` },
+    body: JSON.stringify({ userId: '1001' }),
+  }), { DB: db, RESEARCH_ENROLLMENT_CREDENTIAL: credential });
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.condition, 'control');
+  assert.equal(body.topicId, 'topic-test');
+  assert.match(body.installToken, /^[A-Za-z0-9_-]{40,}$/);
+  assert.equal(writes.length, 2);
+  assert.match(writes[0].sql, /revoked_at/);
+  assert.match(writes[1].values[0], /^[a-f0-9]{64}$/);
+  assert.equal(writes[1].values.includes(body.installToken), false);
+});

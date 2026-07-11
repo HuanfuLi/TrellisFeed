@@ -24,7 +24,7 @@ const identity = {
 
 await dbExecute('DELETE FROM research_metadata');
 await studyContextService.hydrate();
-await studyContextService.bindOnce(identity);
+await studyContextService.bindOnce(identity, 'test-install-token-00000000000000000001');
 
 let idSequence = 0;
 function makeHarness() {

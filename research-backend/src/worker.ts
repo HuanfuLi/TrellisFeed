@@ -45,6 +45,34 @@ function isNumericAccountId(userId) {
   return typeof userId === 'string' && /^\d{1,64}$/.test(userId);
 }
 
+function bearerToken(request) {
+  const value = request.headers.get('authorization');
+  const match = /^Bearer ([A-Za-z0-9_-]+)$/.exec(value ?? '');
+  return match?.[1] ?? null;
+}
+
+async function sha256Hex(value) {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+async function constantTimeCredentialMatches(provided, expected) {
+  if (typeof provided !== 'string' || typeof expected !== 'string' || expected.length < 16) return false;
+  const [left, right] = await Promise.all([sha256Hex(provided), sha256Hex(expected)]);
+  let difference = 0;
+  for (let index = 0; index < left.length; index += 1) {
+    difference |= left.charCodeAt(index) ^ right.charCodeAt(index);
+  }
+  return difference === 0;
+}
+
+function createInstallToken() {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return btoa(String.fromCharCode(...bytes))
+    .replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '');
+}
+
 /** Return only the authoritative assignment held by D1, never client fields. */
 export async function resolveAccount(userId, db) {
   if (!isNumericAccountId(userId)) return null;
@@ -64,6 +92,10 @@ export async function resolveAccount(userId, db) {
 }
 
 async function handleInstallResolve(request, env) {
+  const credential = bearerToken(request);
+  if (!await constantTimeCredentialMatches(credential, env.RESEARCH_ENROLLMENT_CREDENTIAL)) {
+    return json({ error: 'Unauthorized.' }, 401);
+  }
   const { body } = await readBoundedJson(request);
   if (!body || typeof body !== 'object' || Array.isArray(body) ||
       Object.keys(body).length !== 1 || typeof body.userId !== 'string') {
@@ -71,8 +103,36 @@ async function handleInstallResolve(request, env) {
   }
 
   const account = await resolveAccount(body.userId, env.DB);
-  if (!account) return json({ error: 'Unknown account.' }, 404);
-  return json(account);
+  if (!account) return json({ error: 'Account unavailable.' }, 404);
+  const installToken = createInstallToken();
+  const tokenHash = await sha256Hex(installToken);
+  const now = new Date().toISOString();
+  await env.DB.batch([
+    env.DB.prepare(
+      'UPDATE research_installations SET revoked_at = ?, rotated_at = ? WHERE user_id = ? AND revoked_at IS NULL',
+    ).bind(now, now, body.userId),
+    env.DB.prepare(
+      'INSERT INTO research_installations (token_hash, user_id, created_at) VALUES (?, ?, ?)',
+    ).bind(tokenHash, body.userId, now),
+  ]);
+  return json({ ...account, installToken });
+}
+
+async function requireInstallAuth(request, db) {
+  const token = bearerToken(request);
+  if (!token) return null;
+  const tokenHash = await sha256Hex(token);
+  const result = await db.prepare(
+    `SELECT i.user_id, a.condition, a.topic_id
+       FROM research_installations i
+       JOIN study_accounts a ON a.user_id = i.user_id
+      WHERE i.token_hash = ? AND i.revoked_at IS NULL`,
+  ).bind(tokenHash).all();
+  const row = result?.results?.[0];
+  if (!row || !isNumericAccountId(row.user_id) ||
+      (row.condition !== 'control' && row.condition !== 'experimental') ||
+      typeof row.topic_id !== 'string' || row.topic_id.length === 0) return null;
+  return { userId: row.user_id, condition: row.condition, topicId: row.topic_id };
 }
 
 function bindEventInsert(db, event, account, receivedAt) {
@@ -83,7 +143,7 @@ function bindEventInsert(db, event, account, receivedAt) {
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).bind(
     event.id,
-    event.userId,
+    account.userId,
     account.condition,
     account.topicId,
     event.timestamp,
@@ -119,7 +179,7 @@ function bindQuestionAnswerUpsert(db, record, account, receivedAt) {
   ).bind(
     record.id,
     record.revision,
-    record.userId,
+    account.userId,
     account.condition,
     account.topicId,
     record.postId,
@@ -134,25 +194,31 @@ function bindQuestionAnswerUpsert(db, record, account, receivedAt) {
 }
 
 async function handleIngest(request, env) {
+  const account = await requireInstallAuth(request, env.DB);
+  if (!account) return json({ error: 'Unauthorized.' }, 401);
   const { body, byteLength } = await readBoundedJson(request);
   const records = parseIngest(body, byteLength);
-
-  const assignments = new Map();
-  for (const userId of new Set(records.map((record) => record.userId))) {
-    const account = await resolveAccount(userId, env.DB);
-    if (!account) return json({ error: 'Unknown account.' }, 404);
-    assignments.set(userId, account);
-  }
 
   const receivedAt = new Date().toISOString();
   const eventStatements = [];
   const questionAnswerStatements = [];
 
   for (const record of records) {
-    const account = assignments.get(record.userId);
     if (record.kind === 'event') {
+      const existing = await env.DB.prepare('SELECT user_id FROM behavioral_events WHERE id = ?')
+        .bind(record.id).all();
+      if (existing?.results?.[0]?.user_id && existing.results[0].user_id !== account.userId) {
+        return json({ error: 'Record conflict.' }, 409);
+      }
       eventStatements.push(bindEventInsert(env.DB, record, account, receivedAt));
     } else {
+      const existing = await env.DB.prepare(
+        'SELECT user_id, question_id, revision FROM question_answer_records WHERE id = ? OR question_id = ?',
+      ).bind(record.id, record.questionId).all();
+      const row = existing?.results?.[0];
+      if (row && (row.user_id !== account.userId || row.question_id !== record.questionId)) {
+        return json({ error: 'Record conflict.' }, 409);
+      }
       questionAnswerStatements.push(bindQuestionAnswerUpsert(env.DB, record, account, receivedAt));
     }
   }

@@ -10,13 +10,15 @@ import type { StudyCondition } from '../types';
 interface InstallResolveResponse {
   condition: StudyCondition;
   topicId: string;
+  installToken: string;
 }
 
 function isInstallResolveResponse(value: unknown): value is InstallResolveResponse {
   if (!value || typeof value !== 'object') return false;
   const response = value as Partial<InstallResolveResponse>;
   return (response.condition === 'control' || response.condition === 'experimental') &&
-    typeof response.topicId === 'string' && response.topicId.trim().length > 0;
+    typeof response.topicId === 'string' && response.topicId.trim().length > 0 &&
+    typeof response.installToken === 'string' && response.installToken.length >= 32;
 }
 
 /** Researcher-led, one-time account binding for a fresh participant installation. */
@@ -40,7 +42,10 @@ export function ResearchSetupScreen() {
     try {
       const response = await fetch(`${researchConfig.apiBaseUrl}/v1/install/resolve`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: {
+          'content-type': 'application/json',
+          authorization: `Bearer ${researchConfig.enrollmentCredential}`,
+        },
         body: JSON.stringify({ userId: normalizedUserId }),
       });
       if (!response.ok) {
@@ -57,7 +62,7 @@ export function ResearchSetupScreen() {
         condition: assignment.condition,
         topicId: assignment.topicId,
         boundAt: new Date().toISOString(),
-      });
+      }, assignment.installToken);
       navigate('/onboarding', { replace: true });
     } catch {
       // Keep server assignment details and any network implementation details out

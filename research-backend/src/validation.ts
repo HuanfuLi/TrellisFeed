@@ -1,5 +1,7 @@
-export const MAX_INGEST_RECORDS = 100;
-export const MAX_REQUEST_BYTES = 256 * 1024;
+import contract from '../../shared/research-wire-contract.v1.json' with { type: 'json' };
+
+export const MAX_INGEST_RECORDS = contract.limits.maxRecords;
+export const MAX_REQUEST_BYTES = contract.limits.maxRequestBytes;
 
 export const EVENT_TYPES = new Set([
   'app_open',
@@ -22,9 +24,6 @@ export const EVENT_TYPES = new Set([
 
 const EVENT_FIELDS = new Set([
   'id',
-  'userId',
-  'condition',
-  'topicId',
   'timestamp',
   'eventType',
   'postId',
@@ -36,8 +35,6 @@ const EVENT_FIELDS = new Set([
 const QUESTION_ANSWER_FIELDS = new Set([
   'id',
   'revision',
-  'userId',
-  'topicId',
   'postId',
   'questionId',
   'questionText',
@@ -48,15 +45,12 @@ const QUESTION_ANSWER_FIELDS = new Set([
 ]);
 
 const OPTIONAL_EVENT_STRING_FIELDS = [
-  'condition',
-  'topicId',
   'postId',
   'questionId',
   'recommendationId',
 ];
 
 const OPTIONAL_QUESTION_ANSWER_STRING_FIELDS = [
-  'topicId',
   'answerText',
   'answerViewedAt',
 ];
@@ -116,8 +110,7 @@ function assertTimestamp(record, field, recordType, { optional = false } = {}) {
 function parseEvent(record) {
   const recordType = 'Event record';
   assertAllowedFields(record, EVENT_FIELDS, recordType);
-  assertString(record, 'id', recordType, { maxLength: 128 });
-  assertString(record, 'userId', recordType, { maxLength: 64 });
+  assertString(record, 'id', recordType, { maxLength: contract.limits.id });
   assertTimestamp(record, 'timestamp', recordType);
 
   if (typeof record.eventType !== 'string' || !EVENT_TYPES.has(record.eventType)) {
@@ -139,11 +132,10 @@ function parseEvent(record) {
 function parseQuestionAnswer(record) {
   const recordType = 'Question/answer record';
   assertAllowedFields(record, QUESTION_ANSWER_FIELDS, recordType);
-  assertString(record, 'id', recordType, { maxLength: 128 });
-  assertString(record, 'userId', recordType, { maxLength: 64 });
-  assertString(record, 'postId', recordType, { maxLength: 256 });
-  assertString(record, 'questionId', recordType, { maxLength: 256 });
-  assertString(record, 'questionText', recordType, { maxLength: 65536 });
+  assertString(record, 'id', recordType, { maxLength: contract.limits.id });
+  assertString(record, 'postId', recordType, { maxLength: contract.limits.postId });
+  assertString(record, 'questionId', recordType, { maxLength: contract.limits.questionId });
+  assertString(record, 'questionText', recordType, { maxLength: contract.limits.text });
   assertTimestamp(record, 'submittedAt', recordType);
 
   if (!Number.isSafeInteger(record.revision) || record.revision < 1) {

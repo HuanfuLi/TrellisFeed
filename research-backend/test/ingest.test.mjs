@@ -3,142 +3,105 @@ import test from 'node:test';
 
 import worker from '../src/worker.ts';
 
-function fakeD1(accounts) {
+async function hash(value) {
+  const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(bytes), (byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+async function fakeD1(bindings) {
   const events = new Map();
   const questionAnswers = new Map();
-
-  return {
-    events,
-    questionAnswers,
-    prepare(sql) {
-      return {
-        bind(...values) {
-          return {
-            async all() {
-              if (!sql.includes('FROM study_accounts')) throw new Error('Unexpected all() query.');
-              const account = accounts.get(values[0]);
-              return {
-                results: account
-                  ? [{ condition: account.condition, topic_id: account.topicId }]
-                  : [],
-              };
-            },
-            async run() {
-              if (sql.includes('INSERT OR IGNORE INTO behavioral_events')) {
-                const [id, userId, condition, topicId, timestamp, eventType, postId,
-                  questionId, recommendationId, durationMs, receivedAt] = values;
-                if (!events.has(id)) {
-                  events.set(id, { id, userId, condition, topicId, timestamp, eventType, postId,
-                    questionId, recommendationId, durationMs, receivedAt });
-                }
-                return { success: true };
-              }
-
-              if (sql.includes('INSERT INTO question_answer_records')) {
-                const [id, revision, userId, condition, topicId, postId, questionId, questionText,
-                  questionSource, submittedAt, answerText, answerViewedAt, receivedAt] = values;
-                const existing = questionAnswers.get(id);
-                if (!existing || revision > existing.revision) {
-                  questionAnswers.set(id, { id, revision, userId, condition, topicId, postId, questionId,
-                    questionText, questionSource, submittedAt, answerText, answerViewedAt, receivedAt });
-                }
-                return { success: true };
-              }
-
-              throw new Error('Unexpected D1 write.');
-            },
-          };
-        },
-      };
+  const tokens = new Map();
+  for (const [token, account] of bindings) tokens.set(await hash(token), account);
+  const statement = (sql, values = []) => ({
+    bind(...next) { return statement(sql, next); },
+    async all() {
+      if (sql.includes('FROM research_installations i')) {
+        const account = tokens.get(values[0]);
+        return { results: account ? [{ user_id: account.userId, condition: account.condition, topic_id: account.topicId }] : [] };
+      }
+      if (sql.includes('FROM behavioral_events')) {
+        const row = events.get(values[0]);
+        return { results: row ? [{ user_id: row.userId }] : [] };
+      }
+      if (sql.includes('FROM question_answer_records')) {
+        const row = questionAnswers.get(values[0]) ?? [...questionAnswers.values()].find((item) => item.questionId === values[1]);
+        return { results: row ? [{ user_id: row.userId, question_id: row.questionId, revision: row.revision }] : [] };
+      }
+      throw new Error(`Unexpected all query: ${sql}`);
     },
-    async batch(statements) {
-      return Promise.all(statements.map((statement) => statement.run()));
+    async run() {
+      if (sql.includes('INSERT OR IGNORE INTO behavioral_events')) {
+        const [id, userId, condition, topicId, timestamp, eventType, postId, questionId, recommendationId, durationMs, receivedAt] = values;
+        if (!events.has(id)) events.set(id, { id, userId, condition, topicId, timestamp, eventType, postId, questionId, recommendationId, durationMs, receivedAt });
+        return { success: true };
+      }
+      if (sql.includes('INSERT INTO question_answer_records')) {
+        const [id, revision, userId, condition, topicId, postId, questionId, questionText, questionSource, submittedAt, answerText, answerViewedAt, receivedAt] = values;
+        const existing = questionAnswers.get(id);
+        if (!existing || revision > existing.revision) questionAnswers.set(id, { id, revision, userId, condition, topicId, postId, questionId, questionText, questionSource, submittedAt, answerText, answerViewedAt, receivedAt });
+        return { success: true };
+      }
+      throw new Error(`Unexpected write: ${sql}`);
     },
-  };
-}
-
-function ingestRequest(records) {
-  return new Request('https://collector.invalid/v1/ingest', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ records }),
   });
-}
-
-function event(overrides = {}) {
   return {
-    id: 'event-1',
-    timestamp: '2026-07-11T12:00:00.000Z',
-    eventType: 'post_open',
-    postId: 'post-1',
-    ...overrides,
+    events, questionAnswers,
+    prepare(sql) { return statement(sql); },
+    async batch(statements) { return Promise.all(statements.map((item) => item.run())); },
   };
 }
 
-function questionAnswer(overrides = {}) {
-  return {
-    id: 'qa-1',
-    revision: 2,
-    postId: 'post-1',
-    questionId: 'question-1',
-    questionText: 'How does this work?',
-    questionSource: 'typed',
-    submittedAt: '2026-07-11T12:00:00.000Z',
-    answerText: 'A newer answer.',
-    ...overrides,
-  };
+function ingestRequest(records, token) {
+  const headers = { 'content-type': 'application/json' };
+  if (token) headers.authorization = `Bearer ${token}`;
+  return new Request('https://collector.invalid/v1/ingest', { method: 'POST', headers, body: JSON.stringify({ records }) });
 }
 
-test('ingest requires a bearer install token before database work', async () => {
-  const db = fakeD1(new Map());
-  const response = await worker.fetch(ingestRequest([event()]), { DB: db });
-  assert.equal(response.status, 401);
-  assert.deepEqual(await response.json(), { error: 'Unauthorized.' });
+const event = (overrides = {}) => ({ id: 'event-1', timestamp: '2026-07-11T12:00:00.000Z', eventType: 'post_open', postId: 'post-1', ...overrides });
+const questionAnswer = (overrides = {}) => ({ id: 'qa-1', revision: 2, postId: 'post-1', questionId: 'question-1', questionText: 'How does this work?', questionSource: 'typed', submittedAt: '2026-07-11T12:00:00.000Z', answerText: 'A newer answer.', ...overrides });
+const accountA = { userId: '1001', condition: 'control', topicId: 'server-topic-a' };
+const accountB = { userId: '1002', condition: 'experimental', topicId: 'server-topic-b' };
+
+test('ingest requires a valid bearer installation token', async () => {
+  const db = await fakeD1([['token-a-0000000000000000000000000000', accountA]]);
+  for (const token of [undefined, 'wrong-token-000000000000000000000000']) {
+    const response = await worker.fetch(ingestRequest([event()], token), { DB: db });
+    assert.equal(response.status, 401);
+  }
   assert.equal(db.events.size, 0);
 });
 
-test('re-ingesting an immutable event stores it once and acknowledges both deliveries', async () => {
-  const db = fakeD1(new Map([['1001', { condition: 'control', topicId: 'server-topic' }]]));
-
-  const first = await worker.fetch(ingestRequest([event()]), { DB: db });
-  const second = await worker.fetch(ingestRequest([event()]), { DB: db });
-
+test('token-owned immutable events are idempotent and server-derived', async () => {
+  const token = 'token-a-0000000000000000000000000000';
+  const db = await fakeD1([[token, accountA]]);
+  const first = await worker.fetch(ingestRequest([event()], token), { DB: db });
+  const second = await worker.fetch(ingestRequest([event()], token), { DB: db });
   assert.deepEqual(await first.json(), { acknowledgedIds: ['event-1'] });
   assert.deepEqual(await second.json(), { acknowledgedIds: ['event-1'] });
-  assert.equal(db.events.size, 1);
+  assert.deepEqual({ userId: db.events.get('event-1').userId, condition: db.events.get('event-1').condition, topicId: db.events.get('event-1').topicId }, accountA);
 });
 
-test('a stale question/answer revision is acknowledged but cannot overwrite a newer answer', async () => {
-  const db = fakeD1(new Map([['1001', { condition: 'experimental', topicId: 'server-topic' }]]));
-
-  const current = await worker.fetch(ingestRequest([questionAnswer({ revision: 2 })]), { DB: db });
-  const stale = await worker.fetch(ingestRequest([questionAnswer({ revision: 1, answerText: 'Old answer.' })]), { DB: db });
-
-  assert.deepEqual(await current.json(), { acknowledgedIds: ['qa-1'] });
-  assert.deepEqual(await stale.json(), { acknowledgedIds: ['qa-1'] });
+test('same-owner Q/A retries and higher revisions are idempotent', async () => {
+  const token = 'token-a-0000000000000000000000000000';
+  const db = await fakeD1([[token, accountA]]);
+  await worker.fetch(ingestRequest([questionAnswer({ revision: 1, answerText: undefined })], token), { DB: db });
+  await worker.fetch(ingestRequest([questionAnswer({ revision: 2 })], token), { DB: db });
+  const stale = await worker.fetch(ingestRequest([questionAnswer({ revision: 1, answerText: 'stale' })], token), { DB: db });
+  assert.equal(stale.status, 200);
   assert.equal(db.questionAnswers.get('qa-1').revision, 2);
   assert.equal(db.questionAnswers.get('qa-1').answerText, 'A newer answer.');
 });
 
-test('the ingest worker replaces client condition and topic with the server account mapping', async () => {
-  const db = fakeD1(new Map([['1001', { condition: 'control', topicId: 'server-topic' }]]));
-
-  const response = await worker.fetch(ingestRequest([event()]), { DB: db });
-
-  assert.equal(response.status, 200);
-  assert.equal(db.events.get('event-1').condition, 'control');
-  assert.equal(db.events.get('event-1').topicId, 'server-topic');
-});
-
-test('a batch containing an unknown account is rejected before any records are stored', async () => {
-  const db = fakeD1(new Map([['1001', { condition: 'control', topicId: 'server-topic' }]]));
-
-  const response = await worker.fetch(ingestRequest([
-    event({ id: 'known-event' }),
-    event({ id: 'unknown-event', userId: '9999' }),
-  ]), { DB: db });
-
-  assert.equal(response.status, 404);
-  assert.deepEqual(await response.json(), { error: 'Unknown account.' });
-  assert.equal(db.events.size, 0);
+test('cross-account event and Q/A identifiers are rejected without ACK or overwrite', async () => {
+  const tokenA = 'token-a-0000000000000000000000000000';
+  const tokenB = 'token-b-0000000000000000000000000000';
+  const db = await fakeD1([[tokenA, accountA], [tokenB, accountB]]);
+  await worker.fetch(ingestRequest([event(), questionAnswer()], tokenA), { DB: db });
+  const eventConflict = await worker.fetch(ingestRequest([event()], tokenB), { DB: db });
+  const qaConflict = await worker.fetch(ingestRequest([questionAnswer({ revision: 3 })], tokenB), { DB: db });
+  assert.equal(eventConflict.status, 409);
+  assert.equal(qaConflict.status, 409);
+  assert.equal(db.events.get('event-1').userId, accountA.userId);
+  assert.equal(db.questionAnswers.get('qa-1').userId, accountA.userId);
 });

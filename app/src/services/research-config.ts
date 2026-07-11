@@ -8,6 +8,7 @@
  */
 export interface ResearchConfig {
   apiBaseUrl: string;
+  enrollmentCredential: string;
   pinSha256?: string;
 }
 
@@ -36,13 +37,18 @@ function resolveBaseUrl(rawValue: string | undefined): string {
 /** Resolve and validate the non-secret values injected into a research build. */
 export function resolveResearchConfig(env = import.meta.env): ResearchConfig {
   const apiBaseUrl = resolveBaseUrl(env.VITE_RESEARCH_API_BASE_URL);
+  const enrollmentCredential = env.VITE_RESEARCH_ENROLLMENT_CREDENTIAL?.trim();
+  if (!enrollmentCredential || enrollmentCredential.length < 16) {
+    throw new Error('VITE_RESEARCH_ENROLLMENT_CREDENTIAL is required for a research build');
+  }
   const pinSha256 = env.VITE_RESEARCH_PIN_SHA256?.trim();
 
   if (pinSha256 && !SHA256_HEX.test(pinSha256)) {
     throw new Error('VITE_RESEARCH_PIN_SHA256 must be a SHA-256 hex digest');
   }
 
-  return pinSha256 ? { apiBaseUrl, pinSha256: pinSha256.toLowerCase() } : { apiBaseUrl };
+  const base = { apiBaseUrl, enrollmentCredential };
+  return pinSha256 ? { ...base, pinSha256: pinSha256.toLowerCase() } : base;
 }
 
 /** Validated public research configuration, resolved when the app bundle starts. */

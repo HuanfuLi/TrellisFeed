@@ -40,10 +40,11 @@ test('study context binds one durable identity and rejects a conflicting re-bind
 
   const emitted = [];
   const unsubscribe = eventBus.subscribe('RESEARCH_IDENTITY_BOUND', (event) => emitted.push(event.payload));
-  await unbound.bindOnce(original);
+  const token = 'test-install-token-00000000000000001042';
+  await unbound.bindOnce(original, token);
   unsubscribe();
   const rows = await dbQuery('SELECT * FROM research_metadata WHERE id = ?', ['identity']);
-  assert.deepEqual(rows, [{ id: 'identity', data: JSON.stringify(original) }]);
+  assert.deepEqual(rows, [{ id: 'identity', data: JSON.stringify({ identity: original, installToken: token }) }]);
   assert.deepEqual(emitted, [{ userId: '1042', condition: 'experimental', topicId: 'topic-opaque-1' }]);
 
   // A distinct service instance proves the identity is read through dbQuery,
@@ -53,13 +54,13 @@ test('study context binds one durable identity and rejects a conflicting re-bind
   assert.equal(rehydrated.getRequired().condition, 'experimental');
 
   await assert.rejects(
-    () => rehydrated.bindOnce({ ...original, condition: 'control' }),
+    () => rehydrated.bindOnce({ ...original, condition: 'control' }, token),
     /already bound/i,
   );
   assert.deepEqual(rehydrated.getRequired(), original);
 
   assert.deepEqual(Object.keys(rehydrated).sort(), [
-    'bindOnce', 'getOptional', 'getRequired', 'hydrate', 'isBound',
+    'bindOnce', 'getInstallToken', 'getOptional', 'getRequired', 'hydrate', 'isBound',
   ]);
   assert.equal('setCondition' in rehydrated, false);
   assert.equal('logout' in rehydrated, false);

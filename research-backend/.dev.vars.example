@@ -1,3 +1,5 @@
 # Local-only operator values. Copy to .dev.vars; never commit that file.
 RESEARCH_ADMIN_PASSWORD=change-me
+RESEARCH_ENROLLMENT_CREDENTIAL=replace-with-a-separate-long-random-credential
+RESEARCH_ALLOWED_ORIGINS=http://localhost:5173,capacitor://localhost,http://localhost
 RESEARCH_API_BASE_URL=https://example.invalid

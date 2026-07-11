@@ -1,0 +1,16 @@
+{
+  "version": "research-ingest-v1",
+  "routes": { "enroll": "/v1/install/resolve", "ingest": "/v1/ingest" },
+  "authorizationHeader": "Authorization",
+  "limits": {
+    "maxRequestBytes": 262144,
+    "maxRecords": 100,
+    "id": 128,
+    "accountId": 64,
+    "postId": 256,
+    "questionId": 256,
+    "text": 65536,
+    "timestamp": 64
+  },
+  "forbiddenIdentityFields": ["userId", "condition", "topicId"]
+}
