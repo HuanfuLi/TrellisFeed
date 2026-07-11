@@ -2,7 +2,6 @@ import { useTranslation } from 'react-i18next';
 import { Heart, Bookmark, EyeOff } from 'lucide-react';
 import { BottomSheet } from './ui/BottomSheet';
 import { engagementService } from '../services/engagement.service';
-import { conceptFeedService } from '../services/concept-feed.service';
 import { toast } from '../lib/toast';
 
 interface LongPressMenuProps {
@@ -31,14 +30,12 @@ export function LongPressMenu({
   const isSaved = engagementService.isSaved(postId);
   const isLiked = engagementService.isLiked(postId);
 
-  const persistSnapshot = () => conceptFeedService.getPostById(postId) ?? undefined;
-
   const handleSave = () => {
     if (isSaved) {
       engagementService.removeSavedPost(postId);
       toast(t('engagement.toast.unsaved'), 'info');
     } else {
-      engagementService.savePost(postId, persistSnapshot());
+      engagementService.savePost(postId);
       toast(t('engagement.toast.saved'), 'success');
     }
     onClose();
@@ -49,7 +46,7 @@ export function LongPressMenu({
       engagementService.unlikePost(postId);
       toast(t('engagement.toast.unliked'), 'info');
     } else {
-      engagementService.likePost(postId, persistSnapshot());
+      engagementService.likePost(postId);
       toast(t('engagement.toast.liked'), 'success');
     }
     onClose();

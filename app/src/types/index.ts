@@ -484,7 +484,7 @@ export type AppEvent =
   | { type: 'SESSION_UPDATED'; payload: { id: string } }
   | { type: 'CONCEPT_EXPLORED'; payload: { anchorId: string } }
   | { type: 'ANCHOR_DISMISSED'; payload: { anchorId: string } }
-  | { type: 'ENGAGEMENT_CHANGED'; payload: { kind: 'save' | 'unsave' | 'like' | 'unlike' | 'undismiss'; id: string } }
+  | { type: 'ENGAGEMENT_CHANGED'; payload: { kind: 'save' | 'unsave' | 'like' | 'unlike' | 'dismiss' | 'undismiss'; id: string } }
   | { type: 'RESEARCH_IDENTITY_BOUND'; payload: { userId: string; condition: StudyCondition; topicId: string } }
   | { type: 'UPLOAD_STATUS_CHANGED'; payload: { pending: number; lastSuccessAt: string | null } }
   // Unified graph-mutation signal. Fires after any classification commit, anchor

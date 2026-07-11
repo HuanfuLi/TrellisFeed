@@ -149,7 +149,5 @@ export class FrozenFeedService {
 
 export const frozenFeedService = new FrozenFeedService(
   contentPoolRepository,
-  // The engagement store is ID-only; Plan 02-06's engagement migration renames
-  // its legacy anchor-oriented accessor without changing this boundary.
-  () => new Set(engagementService.getDismissedAnchorIds()),
+  () => new Set(engagementService.getDismissedPostIds()),
 );

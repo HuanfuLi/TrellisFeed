@@ -7,9 +7,9 @@
 // Leaf-module discipline (Phase 37 D-01 / D-08):
 //   - No JSON imports, no `react-i18next`, no `lib/date.ts` (would re-introduce
 //     the i18next dependency chain and break `node --test` loadability).
-//   - Sync API; localStorage-backed.
-//   - ID-only storage with snapshot resolution via postHistoryService at read
-//     time (D-03 — avoid duplicating the post-history snapshot store).
+//   - Sync mirror API with DB-seam write-through and boot hydration.
+//   - ID-only storage. Immutable content resolves through frozenFeedService at
+//     the screen/facade boundary, never through an engagement snapshot.
 //
 // Event-emission rules (D-05 — one signal per semantic action; D-06 anti-wire):
 //   - savePost / removeSavedPost / likePost / unlikePost / undismissAnchor:
@@ -23,9 +23,7 @@
 //   - All mutators are idempotent: re-saving an already-saved post is a no-op
 //     AND does NOT re-emit (membership check before push+emit).
 
-import type { DailyPost } from '../types/index.ts';
 import { eventBus } from '../lib/event-bus.ts';
-import { postHistoryService } from './post-history.service.ts';
 import { dbExecute, dbQuery } from './db.service.ts';
 import { interactionLog } from './interaction-log.service.ts';
 
@@ -39,7 +37,7 @@ const SQLITE_ROW_ID = 'engagement_state';
 interface EngagementState {
   saved: string[];          // postIds
   liked: string[];          // postIds (recommendation signal — NOT displayed)
-  dismissed: string[];      // anchorIds
+  dismissed: string[];      // frozen postIds
 }
 
 function freshState(): EngagementState {
@@ -111,41 +109,15 @@ export async function hydrateEngagementFromSQLite(): Promise<void> {
   }
 }
 
-function resolvePostsByIds(ids: string[]): DailyPost[] {
-  // Resolve through postHistoryService at read time (D-03). Preserves the
-  // saved-/liked-id INSERTION order (the user-action sequence), NOT history
-  // order. Posts not found in history are silently dropped (D-04 edge case
-  // — graceful degradation when post-history was wiped via Clear-All-Data).
-  const all = postHistoryService.getPosts();
-  const byId = new Map<string, DailyPost>();
-  for (const p of all) byId.set(p.id, p);
-  const out: DailyPost[] = [];
-  for (const id of ids) {
-    const p = byId.get(id);
-    if (p) out.push(p);
-  }
-  return out;
-}
-
 export const engagementService = {
   // ─── Saved posts ─────────────────────────────────────────────────────────
 
-  /**
-   * Save a post (idempotent — no-op + no event if already saved).
-   *
-   * Phase 50 UAT G14: optional `snapshot` parameter. When provided, the post
-   * snapshot is persisted to postHistoryService BEFORE the event fires, so
-   * unopened stub posts (which only exist in the feed queue, not yet in
-   * history) still surface on /saved. Without the snapshot, resolvePostsByIds
-   * would silently drop the id at SavedScreen render time. Callers that have
-   * the post object should pass it; callers that don't are unchanged.
-   */
-  savePost(postId: string, snapshot?: DailyPost): void {
+  /** Save a frozen post ID (idempotent — no-op + no event if already saved). */
+  savePost(postId: string): void {
     const state = loadState();
     if (state.saved.includes(postId)) return;
     state.saved.push(postId);
     saveState(state);
-    if (snapshot) postHistoryService.addPost(snapshot);
     eventBus.emit({ type: 'ENGAGEMENT_CHANGED', payload: { kind: 'save', id: postId } });
     void interactionLog.record('save_post', { postId })
       .catch(() => { /* research logging observes but never blocks engagement */ });
@@ -168,26 +140,14 @@ export const engagementService = {
     return [...loadState().saved];
   },
 
-  /** Resolve saved IDs to full DailyPost objects via postHistoryService. */
-  getSavedPosts(): DailyPost[] {
-    return resolvePostsByIds(loadState().saved);
-  },
-
   // ─── Likes ───────────────────────────────────────────────────────────────
 
-  /**
-   * Like a post (idempotent — no-op + no event if already liked).
-   *
-   * Phase 50 UAT G14: optional `snapshot` parameter — same rationale as
-   * savePost. Persists the stub to postHistoryService so Liked tab surfaces
-   * the post even before its body has been generated.
-   */
-  likePost(postId: string, snapshot?: DailyPost): void {
+  /** Like a frozen post ID (idempotent — no-op + no event if already liked). */
+  likePost(postId: string): void {
     const state = loadState();
     if (state.liked.includes(postId)) return;
     state.liked.push(postId);
     saveState(state);
-    if (snapshot) postHistoryService.addPost(snapshot);
     eventBus.emit({ type: 'ENGAGEMENT_CHANGED', payload: { kind: 'like', id: postId } });
   },
 
@@ -208,13 +168,36 @@ export const engagementService = {
     return [...loadState().liked];
   },
 
-  /** Resolve liked IDs to full DailyPost objects via postHistoryService. */
-  getLikedPosts(): DailyPost[] {
-    return resolvePostsByIds(loadState().liked);
-  },
-
   // ─── Dismissed anchors ───────────────────────────────────────────────────
 
+  dismissPost(postId: string): void {
+    const state = loadState();
+    if (state.dismissed.includes(postId)) return;
+    state.dismissed.push(postId);
+    saveState(state);
+    eventBus.emit({ type: 'ENGAGEMENT_CHANGED', payload: { kind: 'dismiss', id: postId } });
+    void interactionLog.record('not_interested', { postId })
+      .catch(() => { /* research logging observes but never blocks engagement */ });
+  },
+
+  undismissPost(postId: string): void {
+    const state = loadState();
+    if (!state.dismissed.includes(postId)) return;
+    state.dismissed = state.dismissed.filter(id => id !== postId);
+    saveState(state);
+    eventBus.emit({ type: 'ENGAGEMENT_CHANGED', payload: { kind: 'undismiss', id: postId } });
+  },
+
+  isPostDismissed(postId: string): boolean {
+    return loadState().dismissed.includes(postId);
+  },
+
+  getDismissedPostIds(): string[] {
+    return [...loadState().dismissed];
+  },
+
+  // Transitional aliases for the generated-feed shell. Plan 02-07 removes
+  // those consumers; the frozen feed uses only the post-ID API above.
   /**
    * Dismiss an anchor (idempotent). Emits EXACTLY ONE anchor-dismiss event.
    * Does NOT emit any engagement-change event here — D-06 anti-wire invariant;

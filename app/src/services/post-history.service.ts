@@ -1,5 +1,6 @@
-// Post history service — 7-day rolling post history with day grouping (Phase 31, D-12/D-13).
-// Stores all displayed posts with dedup, supports configurable retention purge.
+// Post history stores observation metadata for immutable frozen posts.
+// Generated-post snapshot methods remain temporarily for the transitional
+// concept-feed shell and are removed with that shell in Plan 02-07.
 
 import type { DailyPost } from '../types/index.ts';
 import { eventBus } from '../lib/event-bus.ts';
@@ -7,133 +8,158 @@ import { settingsService } from './settings.service.ts';
 import { engagementService } from './engagement.service.ts';
 import { dbExecute, dbQuery } from './db.service.ts';
 
-// Phase 55-07: IndexedDB is the SOLE persistence for post history. The
-// module-level `_store` is the synchronous read+write mirror; it starts empty
-// and is populated from IndexedDB by hydratePostHistoryFromSQLite() at boot.
-// No localStorage write-through for `trellis_post_history` anymore.
-let _store: DailyPost[] = [];
-
-function loadPosts(): DailyPost[] {
-  // The mirror only ever holds valid DailyPost objects (added via addPost /
-  // hydrate, both shape-checked at their boundary). No re-validation needed —
-  // the prior filter guarded against corrupt localStorage JSON, which is gone.
-  return _store;
+export interface PostHistoryEntry {
+  postId: string;
+  viewedAt: string;
 }
 
-function savePosts(posts: DailyPost[]): void {
-  _store = posts;
-  // IndexedDB write-through (D-09/D-12) — the durable store. Fire-and-forget so
-  // a failed write does not block the sync mutator. Re-snapshot the whole table
-  // each save (post-history is small + purge mutates the set, so a full
-  // overwrite is the simplest correct shape).
-  void persistAllToSQLite(posts);
-}
+type StoredHistoryRecord = DailyPost | PostHistoryEntry;
 
-async function persistAllToSQLite(posts: DailyPost[]): Promise<void> {
-  try {
-    await dbExecute('BEGIN');
-    await dbExecute('DELETE FROM post_history');
-    for (const p of posts) {
-      await dbExecute('INSERT OR REPLACE INTO post_history (id, data) VALUES (?, ?)', [p.id, JSON.stringify(p)]);
-    }
-    await dbExecute('COMMIT');
-  } catch {
-    try { await dbExecute('ROLLBACK'); } catch { /* ignore */ }
-  }
-}
-
+let _store: StoredHistoryRecord[] = [];
 let hydrated = false;
 
-/**
- * Boot hydration (D-12). Populates the localStorage mirror from SQLite when the
- * mirror is empty (the D-11 clean-cutover state). Guarded so a populated mirror
- * is never overwritten. Emits GRAPH_UPDATED so always-mounted screens re-read
- * (no-refresh assumption; reuses the unified resync signal — no new event type).
- */
+function isHistoryEntry(value: unknown): value is PostHistoryEntry {
+  if (!value || typeof value !== 'object') return false;
+  const candidate = value as Partial<PostHistoryEntry>;
+  return typeof candidate.postId === 'string'
+    && typeof candidate.viewedAt === 'string'
+    && Number.isFinite(Date.parse(candidate.viewedAt));
+}
+
+function isLegacyPost(value: unknown): value is DailyPost {
+  if (!value || typeof value !== 'object') return false;
+  const candidate = value as Partial<DailyPost>;
+  return typeof candidate.id === 'string'
+    && typeof candidate.generatedAt === 'number'
+    && typeof candidate.title === 'string';
+}
+
+function recordId(record: StoredHistoryRecord): string {
+  return isHistoryEntry(record) ? record.postId : record.id;
+}
+
+function persistLegacySnapshot(): void {
+  const snapshot = [..._store];
+  void (async () => {
+    try {
+      await dbExecute('BEGIN');
+      await dbExecute('DELETE FROM post_history');
+      for (const record of snapshot) {
+        await dbExecute('INSERT OR REPLACE INTO post_history (id, data) VALUES (?, ?)', [
+          recordId(record),
+          JSON.stringify(record),
+        ]);
+      }
+      await dbExecute('COMMIT');
+    } catch {
+      try { await dbExecute('ROLLBACK'); } catch { /* ignore */ }
+    }
+  })();
+}
+
 export async function hydratePostHistoryFromSQLite(): Promise<void> {
   if (hydrated) return;
   hydrated = true;
   try {
-    if (loadPosts().length > 0) return; // mirror already has data — trust it
+    if (_store.length > 0) return;
     const rows = await dbQuery<{ id: string; data: string }>('SELECT * FROM post_history');
-    if (rows.length === 0) return;
-    const toAdd: DailyPost[] = [];
+    const restored: StoredHistoryRecord[] = [];
     for (const row of rows) {
       try {
-        const p = JSON.parse(row.data) as DailyPost;
-        if (p && typeof p.id === 'string' && typeof p.generatedAt === 'number' && typeof p.title === 'string') {
-          toAdd.push(p);
-        }
-      } catch { /* skip corrupt */ }
+        const parsed: unknown = JSON.parse(row.data);
+        if (isHistoryEntry(parsed) || isLegacyPost(parsed)) restored.push(parsed);
+      } catch { /* skip corrupt rows */ }
     }
-    if (toAdd.length > 0) {
-      _store = toAdd;
+    if (restored.length > 0) {
+      _store = restored;
       eventBus.emit({ type: 'GRAPH_UPDATED' });
     }
   } catch {
-    // IndexedDB unavailable — silently skip
+    // IndexedDB unavailable — keep the synchronous mirror empty.
   }
 }
 
 export const postHistoryService = {
-  /** Add a post to history (deduplicates by id). */
-  addPost(post: DailyPost): void {
-    const posts = loadPosts();
-    if (posts.some(p => p.id === post.id)) return; // dedup
-    posts.push(post);
-    savePosts(posts);
+  async recordPostViewed(postId: string, viewedAt = new Date().toISOString()): Promise<void> {
+    if (!postId || !Number.isFinite(Date.parse(viewedAt))) {
+      throw new Error('Invalid post history entry');
+    }
+    const entry: PostHistoryEntry = { postId, viewedAt };
+    _store = _store.filter((record) => recordId(record) !== postId);
+    _store.push(entry);
+    await dbExecute('INSERT OR REPLACE INTO post_history (id, data) VALUES (?, ?)', [
+      postId,
+      JSON.stringify(entry),
+    ]);
+    eventBus.emit({ type: 'GRAPH_UPDATED' });
   },
 
-  /** Get all posts, sorted by generatedAt descending. */
-  getPosts(): DailyPost[] {
-    return loadPosts().sort((a, b) => b.generatedAt - a.generatedAt);
+  getEntries(): PostHistoryEntry[] {
+    return _store
+      .filter(isHistoryEntry)
+      .map((entry) => ({ ...entry }))
+      .sort((a, b) => Date.parse(b.viewedAt) - Date.parse(a.viewedAt));
   },
 
-  /**
-   * Merge a partial patch onto a stored post, writing through to IndexedDB.
-   * Returns true if the post was present and patched.
-   *
-   * Post history is the only durable full-content store, so this is what keeps
-   * a streamed essay body openable from /post-history, /saved and /liked after
-   * the daily cache is rejected at midnight.
-   */
-  patchPost(postId: string, patch: Partial<DailyPost>): boolean {
-    const posts = loadPosts();
-    const idx = posts.findIndex((p) => p.id === postId);
-    if (idx === -1) return false;
-    posts[idx] = { ...posts[idx], ...patch };
-    savePosts(posts);
-    return true;
+  getViewedPostIds(): string[] {
+    return this.getEntries().map((entry) => entry.postId);
   },
 
-  /** Group posts by date string, each group sorted by generatedAt desc. */
-  getPostsByDay(): Map<string, DailyPost[]> {
-    const posts = this.getPosts();
-    const grouped = new Map<string, DailyPost[]>();
-    for (const post of posts) {
-      const day = post.date || new Date(post.generatedAt || Date.now()).toISOString().slice(0, 10);
-      const arr = grouped.get(day) || [];
-      arr.push(post);
-      grouped.set(day, arr);
+  getEntriesByDay(): Map<string, PostHistoryEntry[]> {
+    const grouped = new Map<string, PostHistoryEntry[]>();
+    for (const entry of this.getEntries()) {
+      const day = entry.viewedAt.slice(0, 10);
+      const entries = grouped.get(day) ?? [];
+      entries.push(entry);
+      grouped.set(day, entries);
     }
     return grouped;
   },
 
-  /** Purge posts older than the configured retention window. Respects keepAll (null). */
-  purgeExpired(): void {
-    const settings = settingsService.getSync();
-    const retentionDays = settings.feed?.postRetentionDays;
-    if (retentionDays == null || retentionDays <= 0) return; // keep all
-    const cutoff = Date.now() - retentionDays * 24 * 60 * 60 * 1000;
-    // Phase 39 D-04: pin saved/liked posts against retention purge so a post
-    // saved >retentionDays ago is not silently dropped from the snapshot store.
-    // engagementService.getPinnedIds() returns saved ∪ liked (NOT dismissed).
-    const pinned = engagementService.getPinnedIds();
-    const posts = loadPosts().filter(p => pinned.has(p.id) || p.generatedAt > cutoff);
-    savePosts(posts);
+  // Legacy generated-feed compatibility. Frozen content never enters these
+  // methods: Saved and PostDetail resolve immutable records from the facade.
+  addPost(post: DailyPost): void {
+    if (_store.some((record) => recordId(record) === post.id)) return;
+    _store.push(post);
+    persistLegacySnapshot();
   },
 
-  /** Clear all post history (mirror + IndexedDB). */
+  getPosts(): DailyPost[] {
+    return _store
+      .filter(isLegacyPost)
+      .sort((a, b) => b.generatedAt - a.generatedAt);
+  },
+
+  patchPost(postId: string, patch: Partial<DailyPost>): boolean {
+    const index = _store.findIndex((record) => isLegacyPost(record) && record.id === postId);
+    if (index === -1) return false;
+    _store[index] = { ...(_store[index] as DailyPost), ...patch };
+    persistLegacySnapshot();
+    return true;
+  },
+
+  getPostsByDay(): Map<string, DailyPost[]> {
+    const grouped = new Map<string, DailyPost[]>();
+    for (const post of this.getPosts()) {
+      const day = post.date || new Date(post.generatedAt).toISOString().slice(0, 10);
+      const posts = grouped.get(day) ?? [];
+      posts.push(post);
+      grouped.set(day, posts);
+    }
+    return grouped;
+  },
+
+  purgeExpired(): void {
+    const retentionDays = settingsService.getSync().feed?.postRetentionDays;
+    if (retentionDays == null || retentionDays <= 0) return;
+    const cutoff = Date.now() - retentionDays * 24 * 60 * 60 * 1000;
+    const pinned = engagementService.getPinnedIds();
+    _store = _store.filter((record) => isHistoryEntry(record)
+      || pinned.has(record.id)
+      || record.generatedAt > cutoff);
+    persistLegacySnapshot();
+  },
+
   clear(): void {
     _store = [];
     void dbExecute('DELETE FROM post_history').catch(() => { /* ignore */ });

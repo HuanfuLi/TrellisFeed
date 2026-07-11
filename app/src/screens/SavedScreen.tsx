@@ -1,12 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Bookmark, Clock } from 'lucide-react';
 import { Header, HEADER_HEIGHT } from '../components/ui/Header';
 import { engagementService } from '../services/engagement.service';
+import { frozenFeedService } from '../services/frozen-feed.service';
 import { postHistoryService } from '../services/post-history.service';
 import { eventBus } from '../lib/event-bus';
-import type { DailyPost } from '../types';
+import type { Post } from '../domain/content.types';
 
 type Tab = 'saved' | 'history';
 
@@ -20,9 +21,9 @@ function formatDayLabel(day: string, tt: (key: string) => string): string {
   return day;
 }
 
-function PostRow({ post, onOpen }: { post: DailyPost; onOpen: () => void }) {
+function PostRow({ post, onOpen }: { post: Readonly<Post>; onOpen: () => void }) {
   const [pressed, setPressed] = useState(false);
-  const emoji = post.presentationStyle === 'text-art' ? '✎' : '📄';
+  const emoji = post.sourcePlatform === 'youtube' ? '▶' : '📄';
 
   return (
     <button
@@ -72,13 +73,11 @@ function PostRow({ post, onOpen }: { post: DailyPost; onOpen: () => void }) {
             overflow: 'hidden',
           }}
         >
-          {post.title}
+          {post.displayTitle}
         </div>
-        {post.contextLabel && (
-          <div style={{ marginTop: '4px', fontSize: '12px', color: 'var(--muted-foreground)' }}>
-            {post.contextLabel}
-          </div>
-        )}
+        <div style={{ marginTop: '4px', fontSize: '12px', color: 'var(--muted-foreground)' }}>
+          {post.sourceName}
+        </div>
       </div>
     </button>
   );
@@ -115,7 +114,7 @@ export function SavedScreen() {
   const { t } = useTranslation();
   const tt = t as (key: string) => string;
   const [activeTab, setActiveTab] = useState<Tab>('saved');
-  const [version, setVersion] = useState(0);
+  const [, setVersion] = useState(0);
 
   useEffect(() => {
     const bump = () => setVersion((v) => v + 1);
@@ -127,11 +126,15 @@ export function SavedScreen() {
     };
   }, []);
 
-  const savedPosts = useMemo(() => engagementService.getSavedPosts(), [version]);
-  const historyGroups = useMemo(
-    () => Array.from(postHistoryService.getPostsByDay().entries()),
-    [version],
-  );
+  const savedPosts = engagementService.getSavedPostIds()
+    .map((postId) => frozenFeedService.getPostById(postId))
+    .filter((post): post is Readonly<Post> => post !== null);
+  const historyGroups = Array.from(postHistoryService.getEntriesByDay().entries()).map(([day, entries]) => [
+    day,
+    entries
+      .map((entry) => frozenFeedService.getPostById(entry.postId))
+      .filter((post): post is Readonly<Post> => post !== null),
+  ] as const);
   const hasHistory = historyGroups.some(([, posts]) => posts.length > 0);
 
   const tabButton = (tab: Tab, label: string, Icon: typeof Bookmark) => (
@@ -197,7 +200,7 @@ export function SavedScreen() {
               <PostRow
                 key={post.id}
                 post={post}
-                onOpen={() => navigate(`/posts/${post.id}`, { state: { post } })}
+                onOpen={() => navigate(`/posts/${post.id}`)}
               />
             ))}
           </div>
@@ -217,7 +220,7 @@ export function SavedScreen() {
                     <PostRow
                       key={post.id}
                       post={post}
-                      onOpen={() => navigate(`/posts/${post.id}`, { state: { post } })}
+                      onOpen={() => navigate(`/posts/${post.id}`)}
                     />
                   ))}
                 </div>
