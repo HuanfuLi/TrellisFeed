@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 02
 current_phase_name: content-pool-feed-post-ui-on-frozen-data
 status: executing
-stopped_at: Completed 02-03-PLAN.md
-last_updated: "2026-07-11T23:10:38.939Z"
+stopped_at: Completed 02-06-PLAN.md
+last_updated: "2026-07-11T23:32:52.038Z"
 last_activity: 2026-07-11
 last_activity_desc: Phase 02 execution started
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 22
-  completed_plans: 14
+  completed_plans: 17
   percent: 0
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-07-10)
 ## Current Position
 
 Phase: 02 (content-pool-feed-post-ui-on-frozen-data) — EXECUTING
-Plan: 4 of 9
+Plan: 5 of 9
 Status: Ready to execute
 Last activity: 2026-07-11 — Phase 02 execution started
 
@@ -59,6 +59,7 @@ Progress: [██░░░░░░░░] 20% (1 of 5 phases; Phase 0 done)
 | Phase 02 P02 | 10min | 3 tasks | 16 files |
 | Phase 02 P05 | 14min | 3 tasks | 5 files |
 | Phase 02 P03 | 2h 2m | 3 tasks | 22 files |
+| Phase 02 P06 | 16min | 2 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -79,6 +80,9 @@ Decisions are logged in PROJECT.md Key Decisions table. Six LOCKED decisions con
 - [Phase 02]: Permanent wrapper preprocessing retains strict local schema authority across provider projections. — Provider-native structured formats cannot weaken validation of frozen content.
 - [Phase 02]: Codex review remains content-hash-bound and advisory-only. — Only the later operator gate can approve content for freeze.
 - [Phase 02]: AI evaluation is fixture-only; tracing is opt-in, loopback-only, exporter-free, and metadata-allowlisted. — Prevents live-provider use and participant-data egress during CI or local observation.
+- [Phase 02]: Frozen feed ordering and selectors remain condition- and question-history-blind; dismissed post IDs filter without re-ranking. — Preserves the Phase 2 experimental-isolation boundary and Phase 3 insertion point.
+- [Phase 02]: Frozen saved and history state stores IDs and timestamps only; immutable records resolve from frozenFeedService. — Prevents mutable stores from duplicating canonical frozen content.
+- [Phase 02]: Generated-feed history compatibility remains isolated until Plan 02-07 removes transitional consumers. — Preserves load-bearing generated-body durability and a green build between execution waves.
 
 ### Pending Todos
 
@@ -99,6 +103,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-11T23:10:00.629Z
-Stopped at: Completed 02-03-PLAN.md
+Last session: 2026-07-11T23:32:35.639Z
+Stopped at: Completed 02-06-PLAN.md
 Resume file: None

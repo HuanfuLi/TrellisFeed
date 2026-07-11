@@ -20,8 +20,8 @@
 - [x] **CONT-01**: Domain schemas — Topic, Post, Concept, Claim, SuggestedQuestion (+ UserQuestion, AIAnswer, Recommendation, UserConceptState) match RSD §9 field-for-field.
 - [x] **CONT-02**: Content curation pipeline in `tools/content_pipeline/` — collectors, AI preprocessing (summary, concept tags, claims, stance, difficulty, suggested questions), dedupe, quality scoring, human-review gate, exporters. Ingests 400–800 raw candidates per topic → human-approved posts (RSD §8, §17.1).
 - [x] **CONT-03**: Frozen pool export to `data/content_pool_v1/` — one pilot topic (~50 approved posts) before scaling to 200–400; versioned (`contentPoolVersion`) and immutable once frozen (RSD §8.8).
-- [ ] **FEED-01**: Feed card + post detail rendering the frozen pool, replacing the temporary AI-generated feed shell entirely — feed card (§7.2), post detail with AI wrapper (hook, summary, concept tags) + original source embed/link (§7.3, §7.4). No live fetch in the participant app.
-- [ ] **FEED-02**: Pre-generated suggested questions on post detail carrying type, target concepts/claims, and generic flag per the SuggestedQuestion schema (§7.5, §9.5).
+- [x] **FEED-01**: Feed card + post detail rendering the frozen pool, replacing the temporary AI-generated feed shell entirely — feed card (§7.2), post detail with AI wrapper (hook, summary, concept tags) + original source embed/link (§7.3, §7.4). No live fetch in the participant app.
+- [x] **FEED-02**: Pre-generated suggested questions on post detail carrying type, target concepts/claims, and generic flag per the SuggestedQuestion schema (§7.5, §9.5).
 - [ ] **ASK-01**: Post-scoped Ask (both conditions) — contextual AI Q&A scoped to the current post (no global chat), identical quality for control and experimental; UserQuestion + AIAnswer persisted (§6.6, §7.6).
 
 ### Graph-Memory & Recommendation Engine (Phase 3)
@@ -78,8 +78,8 @@ Explicitly excluded (design doc §15.3 / SCOPE.md). Documented to prevent scope 
 | CONT-01 | Phase 2 | Complete |
 | CONT-02 | Phase 2 | Complete |
 | CONT-03 | Phase 2 | Complete |
-| FEED-01 | Phase 2 | Pending |
-| FEED-02 | Phase 2 | Pending |
+| FEED-01 | Phase 2 | Complete |
+| FEED-02 | Phase 2 | Complete |
 | ASK-01 | Phase 2 | Pending |
 | GRAPH-01 | Phase 3 | Pending |
 | GRAPH-02 | Phase 3 | Pending |
