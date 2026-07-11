@@ -99,3 +99,28 @@ test('active persistence owners remain in the questiontrace namespace', () => {
     );
   }
 });
+
+test('IndexedDB creates, round-trips, and clears the quarantine store', async () => {
+  const { indexedDB: fakeIndexedDB } = await import('fake-indexeddb');
+  const savedIndexedDB = globalThis.indexedDB;
+  globalThis.indexedDB = fakeIndexedDB;
+  try {
+    const indexedDbModule = await import('../../src/services/db.service.ts?quarantine-indexeddb');
+    await indexedDbModule.dbExecute(
+      'INSERT OR REPLACE INTO research_upload_quarantine (id, data) VALUES (?, ?)',
+      ['quarantine-idb', '{"reason":"invalid_record"}'],
+    );
+    assert.equal(
+      (await indexedDbModule.dbQuery('SELECT * FROM research_upload_quarantine')).length,
+      1,
+    );
+    await indexedDbModule.clearAllTables();
+    assert.equal(
+      (await indexedDbModule.dbQuery('SELECT * FROM research_upload_quarantine')).length,
+      0,
+    );
+  } finally {
+    if (savedIndexedDB === undefined) delete globalThis.indexedDB;
+    else globalThis.indexedDB = savedIndexedDB;
+  }
+});

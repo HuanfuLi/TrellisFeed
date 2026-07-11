@@ -58,6 +58,7 @@ const SHARED_DDL: string[] = [
   `CREATE TABLE IF NOT EXISTS engagement (id TEXT PRIMARY KEY, data TEXT NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS research_records (id TEXT PRIMARY KEY, kind TEXT NOT NULL, revision INTEGER NOT NULL, data TEXT NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS research_upload_queue (id TEXT PRIMARY KEY, data TEXT NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS research_upload_quarantine (id TEXT PRIMARY KEY, data TEXT NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS research_metadata (id TEXT PRIMARY KEY, data TEXT NOT NULL)`,
   // ── Phase 2 frozen content-pool stores ────────────────────────────────────
   // Rows are version-qualified. `storage_id` is `${version}:${recordId}` so a
@@ -193,7 +194,7 @@ class LocalStorageBackend implements DBBackend {
 // IDB transaction and stores are created at open()).
 
 const IDB_NAME = 'questiontrace';
-const IDB_VERSION = 3;
+const IDB_VERSION = 4;
 
 class IndexedDBBackend implements DBBackend {
   private db: IDBDatabase | null = null;
@@ -393,6 +394,7 @@ export async function clearAllTables(): Promise<void> {
     await dbExecute('DELETE FROM engagement');
     await dbExecute('DELETE FROM research_records');
     await dbExecute('DELETE FROM research_upload_queue');
+    await dbExecute('DELETE FROM research_upload_quarantine');
     await dbExecute('DELETE FROM research_metadata');
     // ── Phase 2 frozen content-pool stores ─────────────────────────────────
     await dbExecute('DELETE FROM content_pool_meta');

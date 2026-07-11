@@ -5,12 +5,20 @@ import {
   setLastSuccessfulUploadAt,
   setPendingCount,
 } from './research-metadata.service.ts';
+import { studyContextService } from './study-context.service.ts';
+import {
+  RESEARCH_AUTHORIZATION_HEADER,
+  RESEARCH_INGEST_ROUTE,
+  RESEARCH_WIRE_LIMITS,
+  ResearchWireValidationError,
+  researchWireByteLength,
+  toResearchWireRecord,
+  type ResearchWireRecord,
+} from './research-wire-contract.ts';
 import type { QuestionAnswerRecord, UserInteractionEvent } from '../types/index.ts';
 
-const MAX_BATCH_RECORDS = 100;
-const MAX_BATCH_BYTES = 256 * 1024;
-
 type UploadRecord = UserInteractionEvent | QuestionAnswerRecord;
+type QuarantineReason = 'malformed_envelope' | 'invalid_record' | 'oversized_record' | 'server_rejected';
 
 interface QueueEnvelope {
   id: string;
@@ -49,22 +57,15 @@ interface RetryTriggerOptions {
   flush?: () => Promise<unknown>;
 }
 
+interface PreparedEnvelope {
+  envelope: QueueEnvelope;
+  wireRecord: ResearchWireRecord;
+}
+
+type SendResult = 'progress' | 'stop';
+
 let flushPromise: Promise<void> | null = null;
-
-function byteLength(value: string): number {
-  return new TextEncoder().encode(value).byteLength;
-}
-
-function toIngestRecord(record: UploadRecord): UploadRecord | Omit<QuestionAnswerRecord, 'condition'> {
-  if ('revision' in record) {
-    // The durable research record retains its fixed condition. The deployed
-    // ingest contract deliberately derives Q/A condition from study_accounts
-    // and rejects that client field, so omit it only from the wire payload.
-    const { condition: _condition, ...serverOwnedCondition } = record;
-    return serverOwnedCondition;
-  }
-  return record;
-}
+let quarantineCount = 0;
 
 function parseEnvelope(row: QueueRow): QueueEnvelope | null {
   try {
@@ -77,21 +78,68 @@ function parseEnvelope(row: QueueRow): QueueEnvelope | null {
   }
 }
 
-async function readQueue(): Promise<QueueEnvelope[]> {
-  const rows = await dbQuery<QueueRow>('SELECT * FROM research_upload_queue');
-  return rows
-    .map(parseEnvelope)
-    .filter((value): value is QueueEnvelope => value !== null)
-    .sort((left, right) => left.queuedAt.localeCompare(right.queuedAt) || left.id.localeCompare(right.id));
+async function readQueueRows(): Promise<QueueRow[]> {
+  return dbQuery<QueueRow>('SELECT * FROM research_upload_queue');
 }
 
-function selectBoundedBatch(envelopes: QueueEnvelope[]): QueueEnvelope[] {
-  const selected: QueueEnvelope[] = [];
+async function countQuarantine(): Promise<number> {
+  quarantineCount = (await dbQuery<QueueRow>('SELECT * FROM research_upload_quarantine')).length;
+  return quarantineCount;
+}
+
+async function updatePendingStatus(): Promise<void> {
+  await setPendingCount((await readQueueRows()).length + await countQuarantine());
+}
+
+/** Preserve an undeliverable row locally using only a bounded reason code. */
+export async function quarantineEnvelope(
+  id: string,
+  reason: QuarantineReason,
+  recoverable: { envelope?: QueueEnvelope; raw?: string },
+): Promise<void> {
+  const entry = {
+    id,
+    reason,
+    quarantinedAt: new Date().toISOString(),
+    ...(recoverable.envelope ? { envelope: recoverable.envelope } : {}),
+    ...(recoverable.raw ? { raw: recoverable.raw } : {}),
+  };
+  await dbExecute(
+    'INSERT OR REPLACE INTO research_upload_quarantine (id, data) VALUES (?, ?)',
+    [id, JSON.stringify(entry)],
+  );
+  await dbExecute('DELETE FROM research_upload_queue WHERE id = ?', [id]);
+  await updatePendingStatus();
+}
+
+async function prepareQueue(): Promise<PreparedEnvelope[]> {
+  const prepared: PreparedEnvelope[] = [];
+  const rows = await readQueueRows();
+  for (const row of rows) {
+    const envelope = parseEnvelope(row);
+    if (!envelope) {
+      await quarantineEnvelope(row.id, 'malformed_envelope', { raw: row.data });
+      continue;
+    }
+    try {
+      prepared.push({ envelope, wireRecord: toResearchWireRecord(envelope.record) });
+    } catch (error) {
+      const reason = error instanceof ResearchWireValidationError ? error.reason : 'invalid_record';
+      await quarantineEnvelope(envelope.id, reason, { envelope });
+    }
+  }
+  return prepared.sort((left, right) =>
+    left.envelope.queuedAt.localeCompare(right.envelope.queuedAt) ||
+    left.envelope.id.localeCompare(right.envelope.id));
+}
+
+function selectBoundedBatch(envelopes: PreparedEnvelope[]): PreparedEnvelope[] {
+  const selected: PreparedEnvelope[] = [];
   for (const envelope of envelopes) {
-    if (selected.length >= MAX_BATCH_RECORDS) break;
+    if (selected.length >= RESEARCH_WIRE_LIMITS.maxRecords) break;
     const candidate = [...selected, envelope];
-    const body = JSON.stringify({ records: candidate.map((item) => toIngestRecord(item.record)) });
-    if (byteLength(body) > MAX_BATCH_BYTES) break;
+    const body = JSON.stringify({ records: candidate.map((item) => item.wireRecord) });
+    if (researchWireByteLength(body) > RESEARCH_WIRE_LIMITS.maxRequestBytes) break;
     selected.push(envelope);
   }
   return selected;
@@ -114,8 +162,7 @@ export async function enqueue(record: UploadRecord, options: EnqueueOptions = {}
     'INSERT OR REPLACE INTO research_upload_queue (id, data) VALUES (?, ?)',
     [envelope.id, JSON.stringify(envelope)],
   );
-  const pending = (await readQueue()).length;
-  await setPendingCount(pending);
+  await updatePendingStatus();
 
   if (options.triggerFlush !== false) {
     void flushPendingUploads(options).catch(() => {
@@ -124,52 +171,94 @@ export async function enqueue(record: UploadRecord, options: EnqueueOptions = {}
   }
 }
 
+async function deleteAcknowledged(sent: PreparedEnvelope[], acknowledgedIds: Set<string>): Promise<number> {
+  let deleted = 0;
+  for (const id of acknowledgedIds) {
+    const sentEnvelope = sent.find((item) => item.envelope.id === id)?.envelope;
+    const currentRows = await dbQuery<QueueRow>(
+      'SELECT * FROM research_upload_queue WHERE id = ?',
+      [id],
+    );
+    const current = currentRows[0] ? parseEnvelope(currentRows[0]) : null;
+    if (sentEnvelope && current && JSON.stringify(current) === JSON.stringify(sentEnvelope)) {
+      await dbExecute('DELETE FROM research_upload_queue WHERE id = ?', [id]);
+      deleted += 1;
+    }
+  }
+  return deleted;
+}
+
+async function sendBatch(
+  batch: PreparedEnvelope[],
+  apiBaseUrl: string,
+  fetchImpl: typeof globalThis.fetch,
+  installToken: string,
+): Promise<SendResult> {
+  const response = await fetchImpl(`${apiBaseUrl}${RESEARCH_INGEST_ROUTE}`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      [RESEARCH_AUTHORIZATION_HEADER]: `Bearer ${installToken}`,
+    },
+    body: JSON.stringify({ records: batch.map((item) => item.wireRecord) }),
+  });
+
+  if (!response.ok) {
+    if (![400, 409, 413, 422].includes(response.status)) return 'stop';
+    if (batch.length === 1) {
+      await quarantineEnvelope(batch[0].envelope.id, 'server_rejected', {
+        envelope: batch[0].envelope,
+      });
+      return 'progress';
+    }
+    const midpoint = Math.floor(batch.length / 2);
+    const left = await sendBatch(batch.slice(0, midpoint), apiBaseUrl, fetchImpl, installToken);
+    if (left === 'stop') return 'stop';
+    return sendBatch(batch.slice(midpoint), apiBaseUrl, fetchImpl, installToken);
+  }
+
+  let payload: { acknowledgedIds?: unknown };
+  try {
+    payload = await response.json() as { acknowledgedIds?: unknown };
+  } catch {
+    return 'stop';
+  }
+  if (!Array.isArray(payload.acknowledgedIds)) return 'stop';
+  const batchIds = new Set(batch.map((item) => item.envelope.id));
+  const acknowledgedIds = new Set(
+    payload.acknowledgedIds.filter(
+      (id): id is string => typeof id === 'string' && batchIds.has(id),
+    ),
+  );
+  if (acknowledgedIds.size === 0) return 'stop';
+  const deleted = await deleteAcknowledged(batch, acknowledgedIds);
+  await updatePendingStatus();
+  await setLastSuccessfulUploadAt(new Date().toISOString(), getMetadataPendingCount());
+  return deleted > 0 ? 'progress' : 'stop';
+}
+
 async function runFlush(options: FlushOptions): Promise<void> {
   await hydrateResearchMetadata();
-  const pending = await readQueue();
-  await setPendingCount(pending.length);
-  const batch = selectBoundedBatch(pending);
-  if (batch.length === 0) return;
-
   try {
     const apiBaseUrl = await resolveApiBaseUrl(options.apiBaseUrl);
     const fetchImpl = options.fetch ?? globalThis.fetch;
-    const response = await fetchImpl(`${apiBaseUrl}/v1/ingest`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ records: batch.map((item) => toIngestRecord(item.record)) }),
-    });
-    if (!response.ok) return;
-
-    const payload = await response.json() as { acknowledgedIds?: unknown };
-    if (!Array.isArray(payload.acknowledgedIds)) return;
-    const batchIds = new Set(batch.map((item) => item.id));
-    const acknowledgedIds = new Set(
-      payload.acknowledgedIds.filter((id): id is string => typeof id === 'string' && batchIds.has(id)),
-    );
-    for (const id of acknowledgedIds) {
-      // A Q/A revision may replace the same queue key while this request is in
-      // flight. Only remove the exact envelope that was sent; a later revision
-      // must remain queued for its own ACK.
-      const sent = batch.find((item) => item.id === id);
-      const currentRows = await dbQuery<QueueRow>(
-        'SELECT * FROM research_upload_queue WHERE id = ?',
-        [id],
-      );
-      const current = currentRows[0] ? parseEnvelope(currentRows[0]) : null;
-      if (sent && current && JSON.stringify(current) === JSON.stringify(sent)) {
-        await dbExecute('DELETE FROM research_upload_queue WHERE id = ?', [id]);
-      }
+    const installToken = studyContextService.getInstallToken();
+    while (true) {
+      const pending = await prepareQueue();
+      await updatePendingStatus();
+      const batch = selectBoundedBatch(pending);
+      if (batch.length === 0) return;
+      const result = await sendBatch(batch, apiBaseUrl, fetchImpl, installToken);
+      if (result === 'stop') return;
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
     }
-
-    const remaining = (await readQueue()).length;
-    await setLastSuccessfulUploadAt(new Date().toISOString(), remaining);
   } catch {
-    // At-least-once contract: network/abort/parse/config failures retain all rows.
+    await updatePendingStatus();
+    // Network/abort/config/token failures retain all active rows.
   }
 }
 
-/** Serialize bounded upload attempts so concurrent triggers share one POST. */
+/** Serialize upload attempts so concurrent triggers share one drain. */
 export function flushPendingUploads(options: FlushOptions = {}): Promise<void> {
   if (flushPromise) return flushPromise;
   flushPromise = runFlush(options).finally(() => {
@@ -180,6 +269,10 @@ export function flushPendingUploads(options: FlushOptions = {}): Promise<void> {
 
 export function getPendingCount(): number {
   return getMetadataPendingCount();
+}
+
+export function getQuarantineCount(): number {
+  return quarantineCount;
 }
 
 /** Register connectivity and native-resume retry signals. Returns an idempotent cleanup. */

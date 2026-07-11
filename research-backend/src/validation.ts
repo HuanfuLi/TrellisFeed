@@ -44,12 +44,6 @@ const QUESTION_ANSWER_FIELDS = new Set([
   'answerViewedAt',
 ]);
 
-const OPTIONAL_EVENT_STRING_FIELDS = [
-  'postId',
-  'questionId',
-  'recommendationId',
-];
-
 const OPTIONAL_QUESTION_ANSWER_STRING_FIELDS = [
   'answerText',
   'answerViewedAt',
@@ -90,7 +84,7 @@ function assertAllowedFields(record, allowedFields, recordType) {
   }
 }
 
-function assertString(record, field, recordType, { optional = false, maxLength = 65536 } = {}) {
+function assertString(record, field, recordType, { optional = false, maxLength = contract.limits.text } = {}) {
   const value = record[field];
   if (optional && value === undefined) return;
 
@@ -101,7 +95,7 @@ function assertString(record, field, recordType, { optional = false, maxLength =
 
 function assertTimestamp(record, field, recordType, { optional = false } = {}) {
   if (optional && record[field] === undefined) return;
-  assertString(record, field, recordType, { optional, maxLength: 64 });
+  assertString(record, field, recordType, { optional, maxLength: contract.limits.timestamp });
   if (Number.isNaN(Date.parse(record[field]))) {
     throw new ValidationError(`${recordType}.${field} must be an ISO-parseable timestamp.`);
   }
@@ -117,9 +111,9 @@ function parseEvent(record) {
     throw new ValidationError('Event record.eventType is not allowed.');
   }
 
-  for (const field of OPTIONAL_EVENT_STRING_FIELDS) {
-    assertString(record, field, recordType, { optional: true, maxLength: 65536 });
-  }
+  assertString(record, 'postId', recordType, { optional: true, maxLength: contract.limits.postId });
+  assertString(record, 'questionId', recordType, { optional: true, maxLength: contract.limits.questionId });
+  assertString(record, 'recommendationId', recordType, { optional: true, maxLength: contract.limits.id });
 
   if (record.durationMs !== undefined &&
       (!Number.isSafeInteger(record.durationMs) || record.durationMs < 0)) {
@@ -150,7 +144,7 @@ function parseQuestionAnswer(record) {
     if (field === 'answerViewedAt') {
       assertTimestamp(record, field, recordType, { optional: true });
     } else {
-      assertString(record, field, recordType, { optional: true, maxLength: 65536 });
+      assertString(record, field, recordType, { optional: true, maxLength: contract.limits.text });
     }
   }
 

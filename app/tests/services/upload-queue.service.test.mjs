@@ -24,6 +24,14 @@ const { studyContextService } = await import('../../src/services/study-context.s
 const {
   getLastSuccessfulUploadAt,
 } = await import('../../src/services/research-metadata.service.ts');
+const {
+  RESEARCH_WIRE_CONTRACT_VERSION,
+  RESEARCH_WIRE_LIMITS,
+} = await import('../../src/services/research-wire-contract.ts');
+const {
+  MAX_INGEST_RECORDS,
+  MAX_REQUEST_BYTES,
+} = await import('../../../research-backend/src/validation.ts');
 
 const apiBaseUrl = 'https://collector.invalid';
 const installToken = 'test-install-token-00000000000000001001';
@@ -67,6 +75,12 @@ function jsonResponse(body, status = 200) {
     headers: { 'content-type': 'application/json' },
   });
 }
+
+test('client and Worker consume the same committed v1 wire limits', () => {
+  assert.equal(RESEARCH_WIRE_CONTRACT_VERSION, 'research-ingest-v1');
+  assert.equal(RESEARCH_WIRE_LIMITS.maxRecords, MAX_INGEST_RECORDS);
+  assert.equal(RESEARCH_WIRE_LIMITS.maxRequestBytes, MAX_REQUEST_BYTES);
+});
 
 test('enqueue persists an envelope before attempting upload and retains it on rejection', async () => {
   await resetQueue();

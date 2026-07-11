@@ -10,16 +10,20 @@ interface ResearchRecordRow extends Row {
 }
 
 interface LocalRecoveryExport {
-  format: 'questiontrace-local-recovery-v1';
+  format: 'questiontrace-local-recovery-v2';
   exportedAt: string;
   userId: string;
   records: unknown[];
+  quarantine: unknown[];
 }
 
 /** Build a recovery copy from this installation's bound participant records. */
 export async function exportLocalRecoveryBlob(): Promise<Blob> {
   const { userId } = studyContextService.getRequired();
   const rows = await dbQuery<ResearchRecordRow>('SELECT * FROM research_records');
+  const quarantineRows = await dbQuery<{ id: string; data: string }>(
+    'SELECT * FROM research_upload_quarantine',
+  );
   const records = rows.flatMap((row) => {
     try {
       const record = JSON.parse(row.data) as { userId?: unknown };
@@ -28,12 +32,21 @@ export async function exportLocalRecoveryBlob(): Promise<Blob> {
       return [];
     }
   });
+  const quarantine = quarantineRows.flatMap((row) => {
+    try {
+      const value = JSON.parse(row.data) as Record<string, unknown>;
+      return [value];
+    } catch {
+      return [];
+    }
+  });
 
   const recovery: LocalRecoveryExport = {
-    format: 'questiontrace-local-recovery-v1',
+    format: 'questiontrace-local-recovery-v2',
     exportedAt: new Date().toISOString(),
     userId,
     records,
+    quarantine,
   };
 
   return new Blob([JSON.stringify(recovery, null, 2)], {
