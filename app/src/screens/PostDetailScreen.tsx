@@ -10,7 +10,9 @@ import { useQuestions } from '../state/useQuestions';
 import { conceptFeedService } from '../services/concept-feed.service';
 import { imageGenerationService } from '../services/imageGeneration.service';
 import { sessionService } from '../services/session.service';
-import { postContextQaService } from '../services/post-context-qa.service';
+import { postQaService } from '../services/post-qa.service';
+import { studyContextService } from '../services/study-context.service';
+import { frozenFeedService } from '../services/frozen-feed.service';
 import { dailyReadService, getAnchorIdForPost } from '../services/daily-read.service';
 import { questionService } from '../services/question.service';
 import { Markdown } from '../components/Markdown';
@@ -36,11 +38,6 @@ interface DiscoverMeta {
   concept: string;
   /** LLM-generated essay title (from chunk.goal). */
   title: string;
-}
-
-let msgIdCounter = 0;
-function newMsgId(prefix: string): string {
-  return `${prefix}-${Date.now()}-${++msgIdCounter}`;
 }
 
 export function PostDetailScreen() {
@@ -450,45 +447,51 @@ export function PostDetailScreen() {
 
   const handleAsk = async (content: string, questionSource: 'typed' | 'suggested_question') => {
     if (!content.trim() || !post || !session) return;
-
-    // Detector C: Follow-up question marks concept as explored (D-06)
-    if (resolvedAnchorId) emitExplored(resolvedAnchorId);
-
-    const userMsg: SessionMessage = { id: newMsgId('u'), type: 'user', content: content.trim() };
-    const nextSession: ChatSession = { ...session, messages: [...session.messages, userMsg] };
-    setSession(nextSession);
-    sessionService.save(nextSession);
-    sessionService.setActiveId(nextSession.id);
     setInput('');
     setQaStreaming('');
 
-    const questionLogPromise = interactionLog.recordQuestionSubmit({
-        postId: post.id,
-        questionId: userMsg.id,
-        questionText: userMsg.content,
-        questionSource,
-      }).catch(() => {
-      // Logging is an observer. A local logging failure must not suppress post Q&A.
-      });
-
     try {
-      let accumulated = '';
-      for await (const token of postContextQaService.askStreaming(nextSession.origin!.context, userMsg.content)) {
-        accumulated += token;
-        setQaStreaming(accumulated);
-      }
+      const identity = studyContextService.getRequired();
+      const suggestedQuestionId = questionSource === 'suggested_question'
+        ? frozenFeedService.getSuggestedQuestions(post.id).find((suggestion) => suggestion.text === content)?.id
+        : undefined;
+      let visibleAnswer = '';
+      const result = await postQaService.askPostQuestion({
+        userId: identity.userId,
+        studyCondition: identity.condition,
+        topicId: identity.topicId,
+        postId: post.id,
+        text: content,
+        source: questionSource,
+        suggestedQuestionId,
+        onDelta: (delta) => {
+          visibleAnswer += delta;
+          setQaStreaming(visibleAnswer);
+        },
+      });
+      if (!result.success) throw new Error(result.error.message);
+
+      // Detector C: only a successfully completed follow-up marks exploration.
+      if (resolvedAnchorId) emitExplored(resolvedAnchorId);
+      const userMsg: SessionMessage = { id: result.data.question.id, type: 'user', content: result.data.question.text };
 
       const aiMsg: SessionMessage = {
-        id: newMsgId('ai'),
+        id: result.data.answer.id,
         type: 'ai',
-        content: accumulated || t('posts.qa.genericError'),
+        content: result.data.answer.answerText,
       };
-      const updated: ChatSession = { ...nextSession, messages: [...nextSession.messages, aiMsg] };
+      const updated: ChatSession = { ...session, messages: [...session.messages, userMsg, aiMsg] };
       setSession(updated);
       sessionService.save(updated);
+      sessionService.setActiveId(updated.id);
       setQaStreaming('');
       try {
-        await questionLogPromise;
+        await interactionLog.recordQuestionSubmit({
+          postId: post.id,
+          questionId: userMsg.id,
+          questionText: userMsg.content,
+          questionSource,
+        });
         await interactionLog.recordAnswerViewed({
           questionId: userMsg.id,
           answerText: aiMsg.content,

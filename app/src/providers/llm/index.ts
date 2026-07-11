@@ -154,7 +154,7 @@ async function* openAIStream(messages: ChatMessage[], config: LLMConfig, options
   // CapacitorHttp (used for local/lmstudio) does not support SSE — fall back on native.
   // Cloud OpenAI uses window.fetch which supports streaming in the Android WebView.
   if (Capacitor.isNativePlatform() && isLocal) {
-    const text = await openAICompletion(messages, config, 4096, options);
+    const text = await openAICompletion(messages, config, options?.maxTokens ?? 4096, options);
     yield text;
     return;
   }
@@ -171,7 +171,7 @@ async function* openAIStream(messages: ChatMessage[], config: LLMConfig, options
     body: JSON.stringify({
       model: config.model,
       messages,
-      max_tokens: 4096,
+      max_tokens: options?.maxTokens ?? 4096,
       stream: true,
       ...(options?.disableThinking && config.provider === 'openai' ? { reasoning_effort: 'minimal' } : {}),
     }),
@@ -236,7 +236,7 @@ async function* claudeStream(messages: ChatMessage[], config: LLMConfig, options
     // thinking is OPT-IN (a `thinking: { type: 'enabled', ... }` block), and we never
     // send one. So Claude already streams without extended thinking by default; the
     // `disableThinking` flag is intentionally a no-op here. Do NOT add a `thinking` block.
-    body: JSON.stringify({ model: config.model, max_tokens: 4096, stream: true, system, messages: userMessages }),
+    body: JSON.stringify({ model: config.model, max_tokens: options?.maxTokens ?? 4096, stream: true, system, messages: userMessages }),
     signal: composeSignal(options?.signal, STREAM_TIMEOUT_MS),
   });
   if (!response.ok) {
