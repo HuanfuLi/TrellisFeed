@@ -181,6 +181,18 @@ describe('bundled content pool import', () => {
     assert.deepEqual(writes, []);
   });
 
+  it('refuses replacement of an immutable ready version', async () => {
+    const repository = new repositoryModule.ContentPoolRepository({ reader: fixtureReader() });
+    await repository.hydrate();
+    const changed = await bundleModule.loadBundledContentPool(fixtureReader());
+    changed.manifest.artifactHashes['posts.json'] = '9'.repeat(64);
+
+    const snapshot = await repository.importBundledVersion(changed);
+    assert.equal(snapshot.status, 'error');
+    assert.equal(snapshot.errorCode, 'POOL_READY_IMMUTABLE');
+    assert.equal((await indexedDbModule.dbQuery('SELECT * FROM content_pool_posts')).length, 2);
+  });
+
   it('keeps interrupted imports hidden and cleans them before retry', async () => {
     let failOnce = true;
     const database = {
