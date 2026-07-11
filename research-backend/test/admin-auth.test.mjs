@@ -9,9 +9,9 @@ function basicAuth(password) {
   return `Basic ${Buffer.from(`researcher:${password}`).toString('base64')}`;
 }
 
-function adminRequest(path, password) {
+function adminRequest(path, password, method = 'GET') {
   const headers = password === undefined ? {} : { authorization: basicAuth(password) };
-  return new Request(`https://collector.invalid${path}`, { headers });
+  return new Request(`https://collector.invalid${path}`, { method, headers });
 }
 
 function fakeAdminD1() {
@@ -53,6 +53,20 @@ test('missing or incorrect Basic credentials cannot query an admin route', async
       assert.equal(response.headers.get('www-authenticate'), 'Basic realm="QuestionTrace Research"');
       assert.equal(db.queries.length, 0);
     }
+  }
+});
+
+test('admin routes reject non-GET methods without querying or mutating data', async () => {
+  for (const path of ['/admin', '/admin/export.zip']) {
+    const db = fakeAdminD1();
+    const response = await worker.fetch(adminRequest(path, 'correct-password', 'POST'), {
+      DB: db,
+      RESEARCH_ADMIN_PASSWORD: 'correct-password',
+    });
+
+    assert.equal(response.status, 405);
+    assert.equal(response.headers.get('allow'), 'GET');
+    assert.equal(db.queries.length, 0);
   }
 });
 
