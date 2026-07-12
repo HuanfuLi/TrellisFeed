@@ -2,8 +2,10 @@ import { createHash } from 'node:crypto';
 import { appendFile, mkdir, readFile, readdir, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { CodexGateResult } from '../codex-gate/run.ts';
+import type { DedupeGroup } from '../dedupe/index.ts';
 import type { NormalizedCandidate } from '../normalize/candidate.ts';
 import type { PreprocessSuccess } from '../preprocess/run.ts';
+import type { QualityVerdict } from '../quality/index.ts';
 
 export type ReviewDisposition = 'approved' | 'rejected' | 'needs-edit';
 export type RightsReview = { status: 'cleared' | 'rejected' | 'missing'; reviewer: string; basis: string; notes: string };
@@ -18,6 +20,7 @@ export type ReviewDecision = ReviewDecisionInput & {
 export type ReviewCandidate = {
   id: string; source: NormalizedCandidate; preprocess: PreprocessSuccess; draft: any; codex: CodexGateResult;
   contentHash: string; codexCurrent: boolean; latestDecision?: ReviewDecision;
+  mechanicalQuality?: QualityVerdict; duplicateEvidence?: DedupeGroup;
   reviewTemplate: Record<string, null>;
 };
 
@@ -59,6 +62,16 @@ export async function loadReviewQueue(runDir: string): Promise<ReviewCandidate[]
     sources.set(source.id, source);
   }
   const decisions = await readDecisions(runDir);
+  const quality = new Map<string, QualityVerdict>();
+  try {
+    for (const verdict of await readJson(join(runDir, 'quality', 'verdicts.json'))) quality.set(verdict.candidateId, verdict);
+  } catch { /* mechanical evidence is optional for legacy runs */ }
+  const duplicates = new Map<string, DedupeGroup>();
+  try {
+    for (const group of await readJson(join(runDir, 'dedupe', 'groups.json'))) {
+      for (const candidateId of group.candidateIds) duplicates.set(candidateId, group);
+    }
+  } catch { /* mechanical evidence is optional for legacy runs */ }
   const output: ReviewCandidate[] = [];
   for (const name of await jsonFiles(join(runDir, 'preprocessed'))) {
     const preprocess: PreprocessSuccess = await readJson(join(runDir, 'preprocessed', name));
@@ -79,6 +92,7 @@ export async function loadReviewQueue(runDir: string): Promise<ReviewCandidate[]
     output.push({
       id: preprocess.candidateId, source, preprocess, draft, codex, contentHash,
       codexCurrent: codex.status === 'advisory-ready' && codex.canAdvanceToHuman && advisoryHash === contentHash,
+      mechanicalQuality: quality.get(preprocess.candidateId), duplicateEvidence: duplicates.get(preprocess.candidateId),
       latestDecision: candidateDecisions.at(-1), reviewTemplate: Object.fromEntries(REVIEW_FIELDS.map((field) => [field, null])),
     });
   }

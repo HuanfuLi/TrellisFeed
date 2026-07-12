@@ -12,7 +12,7 @@ const hash = 'a'.repeat(64);
 
 async function fixtureRun() {
   const runDir = await mkdtemp(join(tmpdir(), 'questiontrace-review-'));
-  for (const dir of ['normalized', 'preprocessed', 'codex-review']) await mkdir(join(runDir, dir));
+  for (const dir of ['normalized', 'preprocessed', 'codex-review', 'quality', 'dedupe']) await mkdir(join(runDir, dir));
   const normalized = {
     id: 'post-1', kind: 'article', canonicalUrl: 'https://example.com/article', sourceName: 'Example', author: 'Researcher',
     title: '<img src=x onerror=alert(1)>', language: 'en', fullText: 'Complete inert article text.', contentHash: hash,
@@ -34,6 +34,8 @@ async function fixtureRun() {
   await writeFile(join(runDir, 'normalized', '0001.json'), JSON.stringify(normalized));
   await writeFile(join(runDir, 'preprocessed', 'cache-1.json'), JSON.stringify(preprocessed));
   await writeFile(join(runDir, 'codex-review', 'cache-1.json'), JSON.stringify(codex));
+  await writeFile(join(runDir, 'quality', 'verdicts.json'), JSON.stringify([{ candidateId: 'post-1', disposition: 'review-priority', score: 92, signals: [{ code: 'evergreen', level: 'pass', detail: 'Evergreen.' }], requiresHumanReview: true }]));
+  await writeFile(join(runDir, 'dedupe', 'groups.json'), JSON.stringify([{ representativeId: 'post-1', candidateIds: ['post-1'], reasons: [], maximumSimilarity: 0, requiresHumanReview: true }]));
   return runDir;
 }
 
@@ -50,6 +52,8 @@ test('review queue exposes all source, wrapper, advisory, and review dimensions'
   assert.equal(queue[0].source.fullText, 'Complete inert article text.');
   assert.equal(queue[0].draft.suggestedQuestions[0].targetClaimIndexes[0], 0);
   assert.equal(queue[0].codex.advisory.fidelityNotes, 'faithful');
+  assert.equal(queue[0].mechanicalQuality.disposition, 'review-priority');
+  assert.deepEqual(queue[0].duplicateEvidence.candidateIds, ['post-1']);
   for (const field of ['sourceQuality', 'factualReliability', 'contentRelevance', 'hookAccuracy', 'summaryFaithfulness', 'suggestedQuestionUsefulness', 'participantAppropriateness', 'duplicateRisk', 'biasRisk', 'misinformationRisk', 'rightsReview']) assert.ok(field in queue[0].reviewTemplate, field);
 });
 
