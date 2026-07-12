@@ -10,6 +10,7 @@ import type { StructuredProvider } from './ai/provider.ts';
 import type { NormalizedCandidate } from './normalize/candidate.ts';
 import { runStructuredPreprocess } from './preprocess/run.ts';
 import { runCodexGate } from './codex-gate/run.ts';
+import { startReviewServer } from './review/server.ts';
 
 const PILOT_TOPIC = 'ai-agents-future-work';
 
@@ -29,10 +30,15 @@ export interface CodexReviewCliOptions {
   command: 'codex-review'; runDir: string; codexCommand: string; timeoutMs: number;
 }
 
+export interface ReviewCliOptions {
+  command: 'review'; runDir: string; host: string; port: number; open: boolean;
+}
+
 export interface CliHandlers {
   collect?: (options: CollectOptions) => Promise<unknown>;
   preprocess?: (options: PreprocessOptions) => Promise<unknown>;
   codexReview?: (options: CodexReviewCliOptions) => Promise<unknown>;
+  review?: (options: ReviewCliOptions) => Promise<unknown>;
 }
 
 type Seed = { url: string; evergreen?: boolean; publicationDate?: string };
@@ -235,12 +241,32 @@ async function codexReviewRunDirectory(options: CodexReviewCliOptions): Promise<
   return { reviewed: filenames.length, advancedToHumanReview: advanced, blocked, operatorApprovalRequired: true };
 }
 
+export function parseReviewArgs(argv: string[]): ReviewCliOptions {
+  const { values, flags } = parseValues(argv, ['--open']);
+  const allowed = new Set(['--run-dir', '--host', '--port']);
+  for (const key of values.keys()) if (!allowed.has(key)) throw new Error(`unsupported review option ${key}`);
+  const runDir = values.get('--run-dir');
+  if (!runDir) throw new Error('review requires --run-dir');
+  const port = Number(values.get('--port') ?? '0');
+  if (!Number.isInteger(port) || port < 0 || port > 65535) throw new Error('--port must be 0..65535');
+  return { command: 'review', runDir, host: values.get('--host') ?? '127.0.0.1', port, open: flags.has('--open') };
+}
+
+async function reviewRunDirectory(options: ReviewCliOptions): Promise<unknown> {
+  const server = await startReviewServer(options);
+  process.stdout.write(`Review URL: ${server.url}\n`);
+  await new Promise<void>((resolve) => { process.once('SIGINT', resolve); process.once('SIGTERM', resolve); });
+  await server.close();
+  return { stopped: true };
+}
+
 export async function dispatchCli(argv: string[], handlers: CliHandlers = {}): Promise<unknown> {
   if (argv[0] === 'collect') return (handlers.collect ?? ((options) => collectSeeds(options)))(parseCollectArgs(argv));
   if (argv[0] === 'preprocess') return (handlers.preprocess ?? preprocessRunDirectory)(parsePreprocessArgs(argv));
   if (argv[0] === 'codex-review') {
     return (handlers.codexReview ?? codexReviewRunDirectory)(parseCodexReviewArgs(argv));
   }
+  if (argv[0] === 'review') return (handlers.review ?? reviewRunDirectory)(parseReviewArgs(argv));
   throw new Error(`unsupported command ${argv[0] ?? ''}`);
 }
 
