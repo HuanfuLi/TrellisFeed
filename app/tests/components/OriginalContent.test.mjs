@@ -33,6 +33,38 @@ test('hostile stored article markup executes through the renderer as escaped tex
   }
 });
 
+test('online video and offline transcript fallback execute from the same stored asset', async () => {
+  const server = await createServer({ server: { middlewareMode: true }, appType: 'custom', logLevel: 'silent' });
+  const priorNavigator = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+  try {
+    const { OriginalContent } = await server.ssrLoadModule('/src/components/OriginalContent.tsx');
+    const post = {
+      id: 'video-1', topicId: 'topic-1', sourceUrl: 'https://www.youtube.com/watch?v=abc123', sourcePlatform: 'youtube',
+      sourceName: 'Example channel', originalTitle: 'Original', displayTitle: 'Display', hook: 'Hook', shortSummary: 'Summary',
+      longSummary: 'Stored summary', language: 'en', durationSeconds: 600, collectedAt: '2026-07-01T00:00:00.000Z',
+      qualityScore: 1, interestingnessScore: 1, educationalValueScore: 1, difficulty: 1,
+      conceptIds: [], claimIds: [], suggestedQuestionIds: [], status: 'frozen',
+    };
+    const asset = { postId: post.id, kind: 'video', sourceUrl: post.sourceUrl, transcript: 'Stored transcript', sha256: 'b'.repeat(64) };
+    const props = { post, asset, onSourceClick() {}, onVideoPlay() {}, onVideoProgress() {} };
+
+    Object.defineProperty(globalThis, 'navigator', { value: { onLine: true }, configurable: true });
+    const online = renderToStaticMarkup(React.createElement(OriginalContent, props));
+    assert.match(online, /youtube\.com\/embed\/abc123\?enablejsapi=1&amp;playsinline=1/);
+
+    Object.defineProperty(globalThis, 'navigator', { value: { onLine: false }, configurable: true });
+    const offline = renderToStaticMarkup(React.createElement(OriginalContent, props));
+    assert.match(offline, /Video unavailable - showing transcript/);
+    assert.match(offline, /Stored transcript/);
+    assert.match(offline, /Stored summary/);
+    assert.doesNotMatch(offline, /<iframe/);
+  } finally {
+    if (priorNavigator) Object.defineProperty(globalThis, 'navigator', priorNavigator);
+    else delete globalThis.navigator;
+    await server.close();
+  }
+});
+
 test('stored article text renders only as inert React text blocks', () => {
   assert.match(source, /asset\.body/);
   assert.match(source, /blocks\.map/);
