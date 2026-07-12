@@ -153,19 +153,28 @@ async function digest(text: string): Promise<string> {
 
 function requireValidShape(bundle: FrozenPoolBundle): void {
   const manifest = bundle.manifest as unknown;
-  const required = ['contentPoolVersion', 'generatedAt', 'preprocessingModelVersions', 'rawCandidateCount', 'approvedCount', 'rejectedCount', 'reviewProcedureSummary', 'counts', 'artifactHashes', 'feedOrderPostIds'];
-  if (!isObject(manifest) || !hasExactKeys(manifest, required)
+  const base = ['contentPoolVersion', 'generatedAt', 'preprocessingModelVersions', 'rawCandidateCount', 'approvedCount', 'rejectedCount', 'reviewProcedureSummary', 'counts', 'artifactHashes', 'feedOrderPostIds'];
+  const extended = [...base, 'collectorVersions', 'promptVersions', 'schemaVersions', 'sourceFormatDistribution', 'stanceDistribution', 'fixedFilenames', 'bundleFileHashes'];
+  const hasExtended = isObject(manifest) && hasExactKeys(manifest, extended);
+  if (!isObject(manifest) || (!hasExactKeys(manifest, base) && !hasExtended)
     || !isText(manifest.contentPoolVersion, 64) || !isDateTime(manifest.generatedAt)
     || !isStringArray(manifest.preprocessingModelVersions, 50, 200)
+    || (hasExtended && (!isStringArray(manifest.collectorVersions, 50, 200)
+    || !isStringArray(manifest.promptVersions, 50, 200)
+    || !isStringArray(manifest.schemaVersions, 50, 200)))
     || !Number.isInteger(manifest.rawCandidateCount) || (manifest.rawCandidateCount as number) < 0
     || !Number.isInteger(manifest.approvedCount) || (manifest.approvedCount as number) < 0
     || !Number.isInteger(manifest.rejectedCount) || (manifest.rejectedCount as number) < 0
+    || (hasExtended && (!isObject(manifest.sourceFormatDistribution) || !hasExactKeys(manifest.sourceFormatDistribution, ['article', 'video']) || !Object.values(manifest.sourceFormatDistribution).every((count) => Number.isInteger(count) && (count as number) >= 0)
+    || !isObject(manifest.stanceDistribution) || !hasExactKeys(manifest.stanceDistribution, ['supportive', 'critical', 'neutral', 'mixed']) || !Object.values(manifest.stanceDistribution).every((count) => Number.isInteger(count) && (count as number) >= 0)))
     || !isText(manifest.reviewProcedureSummary, 4000)
     || !isObject(manifest.counts) || !hasExactKeys(manifest.counts, ['topics', 'posts', 'concepts', 'claims', 'suggestedQuestions', 'sourceAssets'])
     || !Object.values(manifest.counts).every((count) => Number.isInteger(count) && (count as number) >= 0)
     || !isObject(manifest.artifactHashes) || !hasExactKeys(manifest.artifactHashes, Object.keys(artifactCollections))
     || !Object.values(manifest.artifactHashes).every((hash) => typeof hash === 'string' && /^[a-f0-9]{64}$/.test(hash))
-    || !isStringArray(manifest.feedOrderPostIds, Number.MAX_SAFE_INTEGER)) throw new ContentPoolBundleError('POOL_INVALID');
+    || !isStringArray(manifest.feedOrderPostIds, Number.MAX_SAFE_INTEGER)
+    || (hasExtended && (!isStringArray(manifest.fixedFilenames, Number.MAX_SAFE_INTEGER, 300)
+    || !isObject(manifest.bundleFileHashes) || !Object.values(manifest.bundleFileHashes).every((hash) => typeof hash === 'string' && /^[a-f0-9]{64}$/.test(hash))))) throw new ContentPoolBundleError('POOL_INVALID');
   if (!Array.isArray(bundle.topics) || !bundle.topics.every(validTopic)
     || !Array.isArray(bundle.posts) || !bundle.posts.every(validPost)
     || !Array.isArray(bundle.concepts) || !bundle.concepts.every(validConcept)

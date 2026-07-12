@@ -147,13 +147,20 @@ export interface FrozenPoolManifest {
   contentPoolVersion: string;
   generatedAt: string;
   preprocessingModelVersions: string[];
+  collectorVersions?: string[];
+  promptVersions?: string[];
+  schemaVersions?: string[];
   rawCandidateCount: number;
   approvedCount: number;
   rejectedCount: number;
+  sourceFormatDistribution?: Record<'article' | 'video', number>;
+  stanceDistribution?: Record<'supportive' | 'critical' | 'neutral' | 'mixed', number>;
   reviewProcedureSummary: string;
   counts: Record<'topics' | 'posts' | 'concepts' | 'claims' | 'suggestedQuestions' | 'sourceAssets', number>;
   artifactHashes: Record<'topics.json' | 'posts.json' | 'concepts.json' | 'claims.json' | 'suggested_questions.json' | 'source_assets.json', string>;
   feedOrderPostIds: string[];
+  fixedFilenames?: string[];
+  bundleFileHashes?: Record<string, string>;
 }
 
 export interface FrozenPoolBundle {

@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { spawn } from 'node:child_process';
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -11,6 +12,8 @@ import type { NormalizedCandidate } from './normalize/candidate.ts';
 import { runStructuredPreprocess } from './preprocess/run.ts';
 import { runCodexGate } from './codex-gate/run.ts';
 import { startReviewServer } from './review/server.ts';
+import { buildFrozenPool } from './freeze/build.ts';
+import { verifyFrozenPool } from './freeze/verify.ts';
 
 const PILOT_TOPIC = 'ai-agents-future-work';
 
@@ -34,11 +37,16 @@ export interface ReviewCliOptions {
   command: 'review'; runDir: string; host: string; port: number; open: boolean;
 }
 
+export interface FreezeCliOptions {
+  command: 'freeze'; runDir: string; output: string; version: string; verifyOnly: boolean;
+}
+
 export interface CliHandlers {
   collect?: (options: CollectOptions) => Promise<unknown>;
   preprocess?: (options: PreprocessOptions) => Promise<unknown>;
   codexReview?: (options: CodexReviewCliOptions) => Promise<unknown>;
   review?: (options: ReviewCliOptions) => Promise<unknown>;
+  freeze?: (options: FreezeCliOptions) => Promise<unknown>;
 }
 
 type Seed = { url: string; evergreen?: boolean; publicationDate?: string };
@@ -232,7 +240,11 @@ async function codexReviewRunDirectory(options: CodexReviewCliOptions): Promise<
   let advanced = 0;
   let blocked = 0;
   for (const filename of filenames) {
-    const candidate = JSON.parse(await readFile(resolveOutputPath(options.runDir, `preprocessed/${filename}`), 'utf8'));
+    let candidate = JSON.parse(await readFile(resolveOutputPath(options.runDir, `preprocessed/${filename}`), 'utf8'));
+    try {
+      const edit = JSON.parse(await readFile(resolveOutputPath(options.runDir, `review/edits/${candidate.candidateId}.json`), 'utf8'));
+      candidate = { ...candidate, draft: edit.draft, candidateContentHash: edit.contentHash };
+    } catch { /* review has no operator-authored revision */ }
     const source = normalized.get(candidate.candidateId);
     const result = source ? await runCodexGate({ candidate, sourceText: source.fullText, codexCommand: options.codexCommand, timeoutMs: options.timeoutMs, maxOutputBytes: 64 * 1024, cwd: resolve(options.runDir) }) : { status: 'blocked', reasonCode: 'missing_source', canAdvanceToHuman: false, requiresHumanApproval: true };
     await writeFile(resolveOutputPath(options.runDir, `codex-review/${candidate.cacheKey}.json`), `${JSON.stringify(result, null, 2)}\n`);
@@ -255,9 +267,37 @@ export function parseReviewArgs(argv: string[]): ReviewCliOptions {
 async function reviewRunDirectory(options: ReviewCliOptions): Promise<unknown> {
   const server = await startReviewServer(options);
   process.stdout.write(`Review URL: ${server.url}\n`);
+  if (options.open) {
+    const executable: string = process.platform === 'win32' ? 'rundll32' : process.platform === 'darwin' ? 'open' : 'xdg-open';
+    const args: string[] = process.platform === 'win32' ? ['url.dll,FileProtocolHandler', server.url] : [server.url];
+    const child = spawn(executable, args, { shell: false, detached: true, windowsHide: true, stdio: 'ignore' });
+    child.unref();
+  }
   await new Promise<void>((resolve) => { process.once('SIGINT', resolve); process.once('SIGTERM', resolve); });
   await server.close();
   return { stopped: true };
+}
+
+export function parseFreezeArgs(argv: string[]): FreezeCliOptions {
+  const { values, flags } = parseValues(argv, ['--verify-only']);
+  const allowed = new Set(['--run-dir', '--output', '--version']);
+  for (const key of values.keys()) if (!allowed.has(key)) throw new Error(`unsupported freeze option ${key}`);
+  const output = values.get('--output');
+  if (!output) throw new Error('freeze requires --output');
+  const verifyOnly = flags.has('--verify-only');
+  const runDir = values.get('--run-dir') ?? '';
+  const version = values.get('--version') ?? '';
+  if (!verifyOnly && (!runDir || !version)) throw new Error('freeze requires --run-dir and --version');
+  return { command: 'freeze', runDir, output, version, verifyOnly };
+}
+
+async function freezeRunDirectory(options: FreezeCliOptions): Promise<unknown> {
+  if (options.verifyOnly) {
+    const result = await verifyFrozenPool(options.output);
+    if (!result.valid) throw new Error(`frozen pool verification failed: ${result.errors.join('; ')}`);
+    return result;
+  }
+  return buildFrozenPool(options);
 }
 
 export async function dispatchCli(argv: string[], handlers: CliHandlers = {}): Promise<unknown> {
@@ -267,6 +307,7 @@ export async function dispatchCli(argv: string[], handlers: CliHandlers = {}): P
     return (handlers.codexReview ?? codexReviewRunDirectory)(parseCodexReviewArgs(argv));
   }
   if (argv[0] === 'review') return (handlers.review ?? reviewRunDirectory)(parseReviewArgs(argv));
+  if (argv[0] === 'freeze') return (handlers.freeze ?? freezeRunDirectory)(parseFreezeArgs(argv));
   throw new Error(`unsupported command ${argv[0] ?? ''}`);
 }
 

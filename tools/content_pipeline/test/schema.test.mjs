@@ -79,7 +79,7 @@ test('manifest hash consistency hook rejects mismatched computed hashes', () => 
 test('validation dependencies are pinned and have no install scripts or binary downloads', () => {
   const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url)));
   const lock = JSON.parse(readFileSync(new URL('../package-lock.json', import.meta.url)));
-  assert.equal(pkg.dependencies.ajv, '8.17.1');
+  assert.equal(pkg.dependencies.ajv, '8.20.0');
   assert.equal(pkg.dependencies['ajv-formats'], '3.0.1');
   for (const entry of Object.values(lock.packages)) assert.equal(entry.hasInstallScript, undefined);
 });

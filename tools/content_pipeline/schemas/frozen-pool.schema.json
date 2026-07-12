@@ -13,9 +13,14 @@
         "contentPoolVersion": {"type": "string", "minLength": 1, "maxLength": 64},
         "generatedAt": {"type": "string", "format": "date-time"},
         "preprocessingModelVersions": {"type": "array", "items": {"type": "string", "minLength": 1, "maxLength": 200}, "uniqueItems": true, "maxItems": 50},
+        "collectorVersions": {"type": "array", "items": {"type": "string", "minLength": 1, "maxLength": 200}, "uniqueItems": true, "maxItems": 50},
+        "promptVersions": {"type": "array", "items": {"type": "string", "minLength": 1, "maxLength": 200}, "uniqueItems": true, "maxItems": 50},
+        "schemaVersions": {"type": "array", "items": {"type": "string", "minLength": 1, "maxLength": 200}, "uniqueItems": true, "maxItems": 50},
         "rawCandidateCount": {"type": "integer", "minimum": 0},
         "approvedCount": {"type": "integer", "minimum": 0},
         "rejectedCount": {"type": "integer", "minimum": 0},
+        "sourceFormatDistribution": {"type":"object","additionalProperties":false,"required":["article","video"],"properties":{"article":{"type":"integer","minimum":0},"video":{"type":"integer","minimum":0}}},
+        "stanceDistribution": {"type":"object","additionalProperties":false,"required":["supportive","critical","neutral","mixed"],"properties":{"supportive":{"type":"integer","minimum":0},"critical":{"type":"integer","minimum":0},"neutral":{"type":"integer","minimum":0},"mixed":{"type":"integer","minimum":0}}},
         "reviewProcedureSummary": {"type": "string", "minLength": 1, "maxLength": 4000},
         "counts": {
           "type": "object", "additionalProperties": false,
@@ -27,7 +32,9 @@
           "required": ["topics.json", "posts.json", "concepts.json", "claims.json", "suggested_questions.json", "source_assets.json"],
           "properties": {"topics.json":{"$ref":"#/$defs/sha256"},"posts.json":{"$ref":"#/$defs/sha256"},"concepts.json":{"$ref":"#/$defs/sha256"},"claims.json":{"$ref":"#/$defs/sha256"},"suggested_questions.json":{"$ref":"#/$defs/sha256"},"source_assets.json":{"$ref":"#/$defs/sha256"}}
         },
-        "feedOrderPostIds": {"type": "array", "items": {"type": "string", "minLength": 1, "maxLength": 128}, "uniqueItems": true}
+        "feedOrderPostIds": {"type": "array", "items": {"type": "string", "minLength": 1, "maxLength": 128}, "uniqueItems": true},
+        "fixedFilenames": {"type":"array","items":{"type":"string","pattern":"^(?!.*(?:^|/)\\.\\.(?:/|$))[A-Za-z0-9._/-]+$","maxLength":300},"uniqueItems":true},
+        "bundleFileHashes": {"type":"object","propertyNames":{"pattern":"^(?!.*(?:^|/)\\.\\.(?:/|$))[A-Za-z0-9._/-]+$","maxLength":300},"additionalProperties":{"$ref":"#/$defs/sha256"}}
       }
     },
     "topics": {"type": "array", "items": {"$ref": "topic.schema.json"}},
