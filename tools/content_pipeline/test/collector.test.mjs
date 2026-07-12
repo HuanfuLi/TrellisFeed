@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 
-import { collectSeeds, parseCollectArgs, resolveOutputPath } from '../src/cli.ts';
+import { collectSeeds, normalizeRunDirectory, parseCollectArgs, parseNormalizeArgs, resolveOutputPath } from '../src/cli.ts';
 import { fetchCandidate } from '../src/collect/fetch-candidate.ts';
 import { assertPublicHttpUrl } from '../src/collect/url-policy.ts';
 import { extractArticle } from '../src/extract/article.ts';
@@ -169,4 +169,65 @@ test('YouTube transcript failure is explicit/resumable and operator transcript t
   const extracted = await extractYouTubeTranscript('https://youtu.be/dQw4w9WgXcQ', { transcriptText: 'Operator supplied transcript.' });
   assert.equal(extracted.fullText, 'Operator supplied transcript.');
   assert.equal(extracted.extractionMethod, 'operator-transcript-file');
+});
+
+test('normalize CLI turns collected articles into stable candidates and keeps videos resumable until an operator transcript exists', async () => {
+  const runDir = await mkdtemp(join(tmpdir(), 'qt-normalize-'));
+  const seeds = join(runDir, 'seeds.json');
+  const transcripts = join(runDir, 'operator-transcripts');
+  await mkdir(join(runDir, 'raw'), { recursive: true });
+  await mkdir(transcripts, { recursive: true });
+  await writeFile(seeds, JSON.stringify([
+    { url: 'https://example.com/article' },
+    { url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' },
+  ]));
+  await writeFile(join(runDir, 'raw', '0000.json'), JSON.stringify({
+    sourceUrl: 'https://example.com/article', canonicalUrl: 'https://example.com/article',
+    collectedAt: '2026-07-11T00:00:00Z', collectorVersion: '0.1.0', sourceHash: 'a'.repeat(64),
+    status: 'collected', mimeType: 'text/html', rawBody: '<html lang="en"><head><title>Agents at Work</title></head><body><article><h1>Agents at Work</h1><p>AI agents can support bounded workplace tasks while people retain oversight and accountability.</p></article></body></html>',
+  }));
+  await writeFile(join(runDir, 'raw', '0001.json'), JSON.stringify({
+    sourceUrl: 'https://www.youtube.com/watch?v=%5BREDACTED%5D', canonicalUrl: 'https://www.youtube.com/watch?v=%5BREDACTED%5D',
+    collectedAt: '2026-07-11T00:00:00Z', collectorVersion: '0.1.0', sourceHash: 'b'.repeat(64),
+    status: 'collected', mimeType: 'text/html', rawBody: '<html><title>Video</title></html>',
+  }));
+
+  const parsed = parseNormalizeArgs(['normalize', '--run-dir', runDir, '--seeds', seeds, '--transcripts-dir', transcripts, '--resume']);
+  assert.equal(parsed.runDir, runDir);
+  assert.equal(parsed.resume, true);
+  const first = await normalizeRunDirectory(parsed);
+  assert.deepEqual(first, { candidates: 2, normalized: 1, failed: 1, operatorTranscriptsUsed: 0 });
+  const article = JSON.parse(await readFile(join(runDir, 'normalized', '0000.json'), 'utf8'));
+  assert.equal(article.kind, 'article');
+  assert.equal(article.title, 'Agents at Work');
+  assert.ok(article.fullText.includes('retain oversight'));
+  const videoFailure = JSON.parse(await readFile(join(runDir, 'normalize-failures', '0001.json'), 'utf8'));
+  assert.equal(videoFailure.reasonCode, 'operator_transcript_required');
+  assert.equal(JSON.stringify(videoFailure).includes('rawBody'), false);
+
+  await writeFile(join(transcripts, 'dQw4w9WgXcQ.txt'), 'Verified operator transcript about agents and the future of work.');
+  const resumed = await normalizeRunDirectory(parsed);
+  assert.deepEqual(resumed, { candidates: 2, normalized: 2, failed: 0, operatorTranscriptsUsed: 1 });
+  const video = JSON.parse(await readFile(join(runDir, 'normalized', '0001.json'), 'utf8'));
+  assert.equal(video.kind, 'video');
+  assert.equal(video.videoId, 'dQw4w9WgXcQ');
+  assert.equal(video.extractionMethod, 'operator-transcript-file');
+  await assert.rejects(readFile(join(runDir, 'normalize-failures', '0001.json')), /ENOENT/);
+});
+
+test('normalize rejects secret-bearing source URLs instead of persisting query credentials', async () => {
+  const runDir = await mkdtemp(join(tmpdir(), 'qt-normalize-secret-'));
+  const seeds = join(runDir, 'seeds.json');
+  await mkdir(join(runDir, 'raw'), { recursive: true });
+  await writeFile(seeds, JSON.stringify([{ url: 'https://example.com/article?api_key=do-not-store' }]));
+  await writeFile(join(runDir, 'raw', '0000.json'), JSON.stringify({
+    sourceUrl: 'https://example.com/article?api_key=%5BREDACTED%5D', canonicalUrl: 'https://example.com/article?api_key=%5BREDACTED%5D',
+    collectedAt: '2026-07-11T00:00:00Z', collectorVersion: '0.1.0', sourceHash: 'c'.repeat(64),
+    status: 'collected', mimeType: 'text/html', rawBody: '<article><p>Enough safe article text for deterministic normalization.</p></article>',
+  }));
+  const report = await normalizeRunDirectory(parseNormalizeArgs(['normalize', '--run-dir', runDir, '--seeds', seeds]));
+  assert.deepEqual(report, { candidates: 1, normalized: 0, failed: 1, operatorTranscriptsUsed: 0 });
+  const failure = await readFile(join(runDir, 'normalize-failures', '0000.json'), 'utf8');
+  assert.match(failure, /sensitive_query_parameter/);
+  assert.equal(failure.includes('do-not-store'), false);
 });
