@@ -8,7 +8,7 @@ import { dispatchCli } from '../src/cli.ts';
 import { deriveProviderSchema } from '../src/ai/provider.ts';
 import { toAnthropicRequest } from '../src/ai/anthropic.ts';
 import { toOpenAiRequest } from '../src/ai/openai.ts';
-import { toGeminiRequest } from '../src/ai/gemini.ts';
+import { createGeminiProvider, toGeminiRequest } from '../src/ai/gemini.ts';
 import { validateCompletedResult } from '../src/ai/validate.ts';
 import { buildPreprocessPrompt } from '../src/preprocess/prompt.ts';
 import { runStructuredPreprocess } from '../src/preprocess/run.ts';
@@ -122,6 +122,22 @@ test('Gemini official YouTube URL input is attached only for a validated video c
   assert.match(payload.contents[0].parts[1].text, /^digest this video\n\nSTRICT OUTPUT JSON SCHEMA:/);
   assert.equal(payload.generationConfig.responseJsonSchema, undefined);
   assert.throws(() => toGeminiRequest({ ...request, media: { ...request.media, url: 'https://evil.test/video' } }), /canonical public YouTube URL/);
+});
+
+test('Gemini provider bounds each request with an abortable timeout', async () => {
+  let receivedSignal;
+  const fetch = (_url, init) => {
+    receivedSignal = init.signal;
+    return new Promise((_resolve, reject) => {
+      init.signal.addEventListener('abort', () => reject(init.signal.reason), { once: true });
+    });
+  };
+  const provider = createGeminiProvider({ model: 'gemini-fixed', apiKey: 'fixture-key', fetch, timeoutMs: 5 });
+  await assert.rejects(
+    provider.call({ model: 'gemini-fixed', prompt: { system: 'policy', user: 'data' }, schema: {}, maxTokens: 4096 }),
+    /timed out/i,
+  );
+  assert.equal(receivedSignal.aborted, true);
 });
 
 test('fresh source delimiter makes stored instructions inert and cannot select control fields', () => {
