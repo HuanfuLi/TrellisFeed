@@ -1,14 +1,16 @@
 import { createHash } from 'node:crypto';
 import { spawn } from 'node:child_process';
-import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { fetchCandidate as collectOne, redactUrl, type FetchCandidateOptions, type RawCandidate } from './collect/fetch-candidate.ts';
+import { extractArticle } from './extract/article.ts';
+import { extractYouTubeTranscript, parseYouTubeVideoId } from './extract/youtube.ts';
 import { createAnthropicProvider } from './ai/anthropic.ts';
 import { createGeminiProvider } from './ai/gemini.ts';
 import { createOpenAiProvider } from './ai/openai.ts';
 import type { StructuredProvider } from './ai/provider.ts';
-import type { NormalizedCandidate } from './normalize/candidate.ts';
+import { normalizeCandidate, type NormalizedCandidate } from './normalize/candidate.ts';
 import { runStructuredPreprocess } from './preprocess/run.ts';
 import { runCodexGate } from './codex-gate/run.ts';
 import { startReviewServer } from './review/server.ts';
@@ -29,6 +31,10 @@ export interface PreprocessOptions {
   maxConcurrency: number; spendLimit: number; resume: boolean;
 }
 
+export interface NormalizeOptions {
+  command: 'normalize'; runDir: string; seeds: string; transcriptsDir?: string; resume: boolean;
+}
+
 export interface CodexReviewCliOptions {
   command: 'codex-review'; runDir: string; codexCommand: string; timeoutMs: number;
 }
@@ -43,6 +49,7 @@ export interface FreezeCliOptions {
 
 export interface CliHandlers {
   collect?: (options: CollectOptions) => Promise<unknown>;
+  normalize?: (options: NormalizeOptions) => Promise<unknown>;
   preprocess?: (options: PreprocessOptions) => Promise<unknown>;
   codexReview?: (options: CodexReviewCliOptions) => Promise<unknown>;
   review?: (options: ReviewCliOptions) => Promise<unknown>;
@@ -110,6 +117,17 @@ export function parsePreprocessArgs(argv: string[]): PreprocessOptions {
   return { command: 'preprocess', runDir, provider: provider as PreprocessOptions['provider'], model, promptVersion, schemaVersion, maxConcurrency, spendLimit, resume: flags.has('--resume') };
 }
 
+export function parseNormalizeArgs(argv: string[]): NormalizeOptions {
+  if (argv[0] !== 'normalize') throw new Error('expected normalize command');
+  const { values, flags } = parseValues(argv, ['--resume']);
+  const allowed = new Set(['--run-dir', '--seeds', '--transcripts-dir']);
+  for (const key of values.keys()) if (!allowed.has(key)) throw new Error(`unsupported normalize option ${key}`);
+  const runDir = values.get('--run-dir');
+  const seeds = values.get('--seeds');
+  if (!runDir || !seeds) throw new Error('normalize requires --run-dir and --seeds');
+  return { command: 'normalize', runDir, seeds, transcriptsDir: values.get('--transcripts-dir'), resume: flags.has('--resume') };
+}
+
 export function resolveOutputPath(runDir: string, child: string): string {
   const root = resolve(runDir);
   const output = resolve(root, child);
@@ -134,6 +152,94 @@ async function readSeeds(path: string): Promise<Seed[]> {
   const parsed = path.toLowerCase().endsWith('.json') ? JSON.parse(source) : parseCsv(source);
   if (!Array.isArray(parsed) || parsed.some((seed) => typeof seed?.url !== 'string')) throw new Error('seed file must be a JSON/CSV URL list');
   return parsed;
+}
+
+const SENSITIVE_QUERY_KEY = /^(?:access_?token|api_?key|auth|authorization|key|password|secret|signature|sig|token)$/i;
+
+function assertSourceUrlSafeToPersist(input: string): void {
+  const url = new URL(input);
+  for (const key of url.searchParams.keys()) if (SENSITIVE_QUERY_KEY.test(key)) throw new Error('sensitive_query_parameter');
+}
+
+async function fileExists(path: string): Promise<boolean> {
+  try { await readFile(path); return true; } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return false;
+    throw error;
+  }
+}
+
+function normalizationFailureCode(error: unknown): string {
+  const message = error instanceof Error ? error.message : 'normalization_failed';
+  if (message === 'sensitive_query_parameter') return message;
+  if (/operator transcript/i.test(message)) return 'operator_transcript_required';
+  if (/not collected/i.test(message)) return 'collection_failed';
+  if (/raw body/i.test(message)) return 'raw_body_missing';
+  if (/MIME/i.test(message)) return 'unsupported_mime';
+  return 'extraction_failed';
+}
+
+export async function normalizeRunDirectory(options: NormalizeOptions): Promise<{ candidates: number; normalized: number; failed: number; operatorTranscriptsUsed: number }> {
+  const seeds = (await readSeeds(options.seeds)).sort((a, b) => a.url.localeCompare(b.url));
+  const normalizedDir = resolveOutputPath(options.runDir, 'normalized');
+  const failuresDir = resolveOutputPath(options.runDir, 'normalize-failures');
+  await mkdir(normalizedDir, { recursive: true });
+  await mkdir(failuresDir, { recursive: true });
+  let normalized = 0;
+  let failed = 0;
+  let operatorTranscriptsUsed = 0;
+  for (let index = 0; index < seeds.length; index += 1) {
+    const stem = String(index).padStart(4, '0');
+    const candidateId = `candidate-${stem}`;
+    const output = resolveOutputPath(options.runDir, `normalized/${stem}.json`);
+    const failureOutput = resolveOutputPath(options.runDir, `normalize-failures/${stem}.json`);
+    if (await fileExists(output)) {
+      if (!options.resume) throw new Error(`normalized candidate already exists: ${stem}`);
+      normalized += 1;
+      continue;
+    }
+    try {
+      const seed = seeds[index];
+      assertSourceUrlSafeToPersist(seed.url);
+      const raw: RawCandidate = JSON.parse(await readFile(resolveOutputPath(options.runDir, `raw/${stem}.json`), 'utf8'));
+      if (raw.status !== 'collected') throw new Error('source was not collected');
+      if (typeof raw.rawBody !== 'string' || !raw.rawBody) throw new Error('raw body is missing');
+      let candidate: NormalizedCandidate;
+      if (isVideo(seed.url)) {
+        const videoId = parseYouTubeVideoId(seed.url);
+        if (!options.transcriptsDir) throw new Error('operator transcript required');
+        const transcriptPath = resolve(options.transcriptsDir, `${videoId}.txt`);
+        const relativeTranscript = relative(resolve(options.transcriptsDir), transcriptPath);
+        if (relativeTranscript.startsWith('..') || isAbsolute(relativeTranscript)) throw new Error('operator transcript path is outside transcript directory');
+        let transcriptText: string;
+        try { transcriptText = await readFile(transcriptPath, 'utf8'); }
+        catch (error) {
+          if ((error as NodeJS.ErrnoException).code === 'ENOENT') throw new Error('operator transcript required');
+          throw error;
+        }
+        const extracted = await extractYouTubeTranscript(seed.url, { transcriptText });
+        candidate = normalizeCandidate({
+          id: candidateId, kind: 'video', sourceUrl: seed.url, collectedAt: raw.collectedAt,
+          collectorVersion: raw.collectorVersion, ...extracted,
+        });
+        operatorTranscriptsUsed += 1;
+      } else {
+        if (raw.mimeType !== 'text/html') throw new Error('source MIME is not supported for article extraction');
+        const extracted = extractArticle(raw.rawBody, seed.url);
+        candidate = normalizeCandidate({
+          id: candidateId, kind: 'article', sourceUrl: seed.url, sourceName: raw.sourceName,
+          collectedAt: raw.collectedAt, collectorVersion: raw.collectorVersion, ...extracted,
+        });
+      }
+      await writeFile(output, `${JSON.stringify(candidate, null, 2)}\n`, { flag: 'wx' });
+      await rm(failureOutput, { force: true });
+      normalized += 1;
+    } catch (error) {
+      const reasonCode = normalizationFailureCode(error);
+      await writeFile(failureOutput, `${JSON.stringify({ status: 'failed', candidateId, sourceUrl: redactUrl(seeds[index].url), reasonCode }, null, 2)}\n`);
+      failed += 1;
+    }
+  }
+  return { candidates: seeds.length, normalized, failed, operatorTranscriptsUsed };
 }
 
 function isVideo(url: string): boolean {
@@ -302,6 +408,7 @@ async function freezeRunDirectory(options: FreezeCliOptions): Promise<unknown> {
 
 export async function dispatchCli(argv: string[], handlers: CliHandlers = {}): Promise<unknown> {
   if (argv[0] === 'collect') return (handlers.collect ?? ((options) => collectSeeds(options)))(parseCollectArgs(argv));
+  if (argv[0] === 'normalize') return (handlers.normalize ?? normalizeRunDirectory)(parseNormalizeArgs(argv));
   if (argv[0] === 'preprocess') return (handlers.preprocess ?? preprocessRunDirectory)(parsePreprocessArgs(argv));
   if (argv[0] === 'codex-review') {
     return (handlers.codexReview ?? codexReviewRunDirectory)(parseCodexReviewArgs(argv));

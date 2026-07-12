@@ -7,11 +7,14 @@ The locked pilot input is an operator-authored JSON or CSV list for **AI agents 
 ```powershell
 node src/cli.ts collect --seeds seeds.json --run-dir runs/pilot --dry-run
 node src/cli.ts collect --seeds seeds.json --run-dir runs/pilot --resume
+node src/cli.ts normalize --seeds seeds.json --run-dir runs/pilot --transcripts-dir operator/transcripts --resume
 ```
 
 `collect` supports `--topic`, `--seeds`, `--run-dir`, `--max-candidates`, `--max-bytes`, `--timeout-ms`, `--resume`, and `--dry-run`. The default pilot topic is capped at 150. An explicitly named later topic may raise the safety cap to at most 800 without changing stage contracts. Dry-run validates and reports source mix/date signals while making zero network or subprocess calls.
 
 Every request and redirect destination is DNS-resolved and checked against the public HTTP(S)-only policy. Credentials in URLs, local/private/link-local/multicast/unspecified destinations, excessive redirects, unexpected MIME, oversized bodies, and timeouts fail closed. Run artifacts stay below the resolved run directory; query values and failed response bodies are not written to logs or failure artifacts.
+
+`normalize` deterministically pairs the sorted operator seed list with the numbered raw collection artifacts. HTML articles pass through the inert Readability extractor. YouTube candidates advance only when `--transcripts-dir` contains a matching `<video-id>.txt` operator transcript; otherwise a reason-coded, body-free artifact is written under `normalize-failures/` and the candidate remains resumable. URLs containing credential-like query keys are rejected before normalized provenance is persisted.
 
 ## Preprocessing credentials
 

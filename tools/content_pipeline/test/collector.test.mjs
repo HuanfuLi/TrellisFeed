@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 
-import { collectSeeds, normalizeRunDirectory, parseCollectArgs, parseNormalizeArgs, resolveOutputPath } from '../src/cli.ts';
+import { collectSeeds, dispatchCli, normalizeRunDirectory, parseCollectArgs, parseNormalizeArgs, resolveOutputPath } from '../src/cli.ts';
 import { fetchCandidate } from '../src/collect/fetch-candidate.ts';
 import { assertPublicHttpUrl } from '../src/collect/url-policy.ts';
 import { extractArticle } from '../src/extract/article.ts';
@@ -213,6 +213,20 @@ test('normalize CLI turns collected articles into stable candidates and keeps vi
   assert.equal(video.videoId, 'dQw4w9WgXcQ');
   assert.equal(video.extractionMethod, 'operator-transcript-file');
   await assert.rejects(readFile(join(runDir, 'normalize-failures', '0001.json')), /ENOENT/);
+});
+
+test('normalize CLI dispatcher forwards only the parsed run, seed, transcript, and resume options', async () => {
+  let captured;
+  const result = await dispatchCli([
+    'normalize', '--run-dir', 'runs/pilot', '--seeds', 'seeds/pilot.json',
+    '--transcripts-dir', 'operator/transcripts', '--resume',
+  ], { normalize: async (options) => { captured = options; return { ok: true }; } });
+  assert.deepEqual(result, { ok: true });
+  assert.deepEqual(captured, {
+    command: 'normalize', runDir: 'runs/pilot', seeds: 'seeds/pilot.json',
+    transcriptsDir: 'operator/transcripts', resume: true,
+  });
+  await assert.rejects(() => dispatchCli(['normalize', '--run-dir', 'runs/pilot', '--seeds', 'seeds/pilot.json', '--unexpected', 'x']), /unsupported normalize option/);
 });
 
 test('normalize rejects secret-bearing source URLs instead of persisting query credentials', async () => {
