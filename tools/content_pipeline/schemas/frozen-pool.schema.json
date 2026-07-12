@@ -47,8 +47,8 @@
       "items": {
         "type": "object", "additionalProperties": false,
         "required": ["postId", "kind", "sourceUrl", "sha256"],
-        "properties": {"postId":{"type":"string","minLength":1,"maxLength":128},"kind":{"enum":["article","video"]},"sourceUrl":{"type":"string","format":"uri","pattern":"^https://","maxLength":2048},"body":{"type":"string","minLength":1,"maxLength":2000000},"transcript":{"type":"string","minLength":1,"maxLength":2000000},"sha256":{"$ref":"#/$defs/sha256"}},
-        "allOf": [{"if":{"properties":{"kind":{"const":"article"}}},"then":{"properties":{"body":{}},"required":["body"]}},{"if":{"properties":{"kind":{"const":"video"}}},"then":{"properties":{"transcript":{}},"required":["transcript"]}}]
+        "properties": {"postId":{"type":"string","minLength":1,"maxLength":128},"kind":{"enum":["article","video"]},"sourceUrl":{"type":"string","format":"uri","pattern":"^https://","maxLength":2048},"body":{"type":"string","minLength":1,"maxLength":2000000},"videoId":{"type":"string","pattern":"^[A-Za-z0-9_-]{6,20}$"},"digest":{"type":"string","minLength":1,"maxLength":20000},"sha256":{"$ref":"#/$defs/sha256"}},
+        "allOf": [{"if":{"properties":{"kind":{"const":"article"}}},"then":{"properties":{"body":{}},"required":["body"]}},{"if":{"properties":{"kind":{"const":"video"}}},"then":{"properties":{"videoId":{},"digest":{}},"required":["videoId","digest"]}}]
       }
     }
   },

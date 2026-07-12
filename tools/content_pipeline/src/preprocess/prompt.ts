@@ -20,16 +20,25 @@ export function buildPreprocessPrompt(candidate: NormalizedCandidate, topic: str
     'Do not invent facts. Keep the hook accurate rather than sensational. Recommend rejection when the source is too vague, unsafe, or unreliable.',
     'Return exactly one JSON object matching the supplied schema. AI output is a draft only and can never approve or freeze content.',
   ].join(' ');
+  const sourceSection = candidate.kind === 'video'
+    ? [
+      'VIDEO INPUT: The provider request contains exactly the fixed public YouTube URL below as an official video media part.',
+      'Watch its audio and visual streams. Do not claim access to a transcript and do not reproduce extended verbatim speech.',
+      `For every claim, use this evidence sourceBlockId exactly: video:${candidate.videoId}`,
+    ]
+    : [
+      'FULL SOURCE TEXT:',
+      candidate.fullText,
+      'SOURCE BLOCKS FOR EVIDENCE IDS:',
+      blockMap,
+    ];
   const user = [
     `TOPIC: ${topic}`,
     `SOURCE URL (metadata only): ${candidate.canonicalUrl}`,
     `ORIGINAL TITLE (metadata only): ${candidate.title}`,
     'Create a cleaned display title, faithful one-sentence hook, 2-3 sentence short summary, longer summary, 5-8 concepts, 1-3 central claims with source block IDs and stance, difficulty/quality/interestingness/educational/topic scores, exactly five varied post-anchored questions, counterpoints, related/prerequisite concepts, and reliability/safety/content-warning fields.',
     `${delimiter}_START`,
-    'FULL SOURCE TEXT:',
-    candidate.fullText,
-    'SOURCE BLOCKS FOR EVIDENCE IDS:',
-    blockMap,
+    ...sourceSection,
     `${delimiter}_END`,
   ].join('\n');
   return { system, user, delimiter, maxTokens: 4096, tools: [] };

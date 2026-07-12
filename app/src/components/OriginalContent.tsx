@@ -42,7 +42,7 @@ export function handleVideoStateChange(state: number): 'play' | 'other' {
 export function OriginalContent({
   post,
   asset,
-  fallbackNotice = 'Video unavailable - showing transcript',
+  fallbackNotice = 'Video unavailable - showing reviewed summary',
   sourceLinkLabel = 'Open original source',
   onSourceClick,
   onVideoPlay,
@@ -156,7 +156,7 @@ export function OriginalContent({
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <p role="status" style={{ margin: 0, padding: '8px 16px', borderRadius: 'var(--radius-xl)', background: 'var(--surface-variant)', fontSize: '14px', lineHeight: 1.5 }}>{fallbackNotice}</p>
-          <p style={{ margin: 0, fontSize: '16px', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{asset.transcript}</p>
+          <p style={{ margin: 0, fontSize: '16px', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{asset.digest}</p>
           <p style={{ margin: 0, fontSize: '16px', lineHeight: 1.5, color: 'var(--muted-foreground)' }}>{post.longSummary ?? post.shortSummary}</p>
         </div>
       )}

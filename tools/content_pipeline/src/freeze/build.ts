@@ -89,7 +89,19 @@ function project(candidates: ReviewCandidate[], version: string) {
       viewpoint: candidate.draft.viewpoint, conceptIds: postConceptIds, claimIds: postClaims.map((claim: any) => claim.id),
       suggestedQuestionIds: postQuestions.map((question: any) => question.id), status: 'frozen',
     });
-    sourceAssets.push({ postId, kind: candidate.source.kind, sourceUrl: candidate.source.canonicalUrl, ...(candidate.source.kind === 'video' ? { transcript: candidate.source.fullText } : { body: candidate.source.fullText }), sha256: sha256(candidate.source.fullText) });
+    const videoDigest = candidate.source.kind === 'video' ? [
+      candidate.draft.longSummary,
+      'Central claims:', ...candidate.draft.claims.map((claim: any) => `- ${claim.text}`),
+      'Concepts:', ...candidate.draft.concepts.map((concept: any) => `- ${concept.label}: ${concept.description}`),
+      ...(candidate.draft.potentialCounterpoints.length ? ['Counterpoints:', ...candidate.draft.potentialCounterpoints.map((item: string) => `- ${item}`)] : []),
+      ...(candidate.draft.reliabilityConcerns.length ? ['Reliability notes:', ...candidate.draft.reliabilityConcerns.map((item: string) => `- ${item}`)] : []),
+    ].join('\n') : undefined;
+    const assetText = candidate.source.kind === 'video' ? videoDigest! : candidate.source.fullText;
+    sourceAssets.push({
+      postId, kind: candidate.source.kind, sourceUrl: candidate.source.canonicalUrl,
+      ...(candidate.source.kind === 'video' ? { videoId: candidate.source.videoId, digest: videoDigest } : { body: candidate.source.fullText }),
+      sha256: sha256(assetText),
+    });
   }
   const topics = [{ id: topicId, name: 'AI agents & future work', shortDescription: 'How AI agents may reshape work, organizations, and human roles.', hooks: posts.map((post) => post.hook).slice(0, 50), coreConceptIds: concepts.map((concept) => concept.id), testRubricId: 'ai-agents-future-work-v1', contentPoolVersion: version }];
   return { topics, posts, concepts, claims, suggestedQuestions, sourceAssets };
@@ -144,7 +156,7 @@ export async function buildFrozenPool(input: FreezeInput) {
     await writeFile(ensureInside(staging, 'post_concept_edges.json'), jsonText(projected.posts.flatMap((post) => post.conceptIds.map((conceptId: string) => ({ postId: post.id, conceptId })))), { flag: 'wx' });
     await writeFile(ensureInside(staging, 'post_claim_edges.json'), jsonText(projected.posts.flatMap((post) => post.claimIds.map((claimId: string) => ({ postId: post.id, claimId })))), { flag: 'wx' });
     await mkdir(ensureInside(staging, 'source_files'));
-    for (const asset of projected.sourceAssets) await writeFile(ensureInside(staging, `source_files/${safeSegment(asset.postId, 'post id')}.txt`), asset.body ?? asset.transcript, { flag: 'wx' });
+    for (const asset of projected.sourceAssets) await writeFile(ensureInside(staging, `source_files/${safeSegment(asset.postId, 'post id')}.txt`), asset.body ?? asset.digest, { flag: 'wx' });
     await mkdir(ensureInside(staging, 'review_logs'));
     const audits: FreezeAudit[] = candidates.map((candidate, index) => ({ candidateId: candidate.id, contentHash: candidate.contentHash, codexVerdictHash: candidate.codex.status === 'advisory-ready' ? candidate.codex.advisory.candidateContentHash : '', operatorDecisionSequence: approvalFor(candidate).sequence, frozenPostSha256: sha256(jsonText(projected.posts[index])) }));
     await writeFile(ensureInside(staging, 'review_logs/approval-audit.json'), jsonText(audits), { flag: 'wx' });

@@ -138,11 +138,12 @@ function validSuggestion(value: unknown): value is SuggestedQuestion {
 }
 
 function validAsset(value: unknown): value is OriginalContentAsset {
-  if (!isObject(value) || !hasExactKeys(value, ['postId', 'kind', 'sourceUrl', 'sha256'], ['body', 'transcript'])) return false;
+  if (!isObject(value) || !hasExactKeys(value, ['postId', 'kind', 'sourceUrl', 'sha256'], ['body', 'videoId', 'digest'])) return false;
   if (!isId(value.postId) || !oneOf(value.kind, ['article', 'video']) || !isHttpsUrl(value.sourceUrl)
     || typeof value.sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(value.sha256)) return false;
-  if (value.kind === 'article') return isText(value.body, 2_000_000) && value.transcript === undefined;
-  return isText(value.transcript, 2_000_000) && value.body === undefined;
+  if (value.kind === 'article') return isText(value.body, 2_000_000) && value.videoId === undefined && value.digest === undefined;
+  return typeof value.videoId === 'string' && /^[A-Za-z0-9_-]{6,20}$/.test(value.videoId)
+    && isText(value.digest, 20_000) && value.body === undefined;
 }
 
 async function digest(text: string): Promise<string> {
@@ -239,7 +240,7 @@ export async function validateBundledContentPool(
     }
   }
   for (const asset of bundle.sourceAssets) {
-    const text = asset.kind === 'article' ? asset.body! : asset.transcript!;
+    const text = asset.kind === 'article' ? asset.body! : asset.digest!;
     if (await digest(text) !== asset.sha256) throw new ContentPoolBundleError('POOL_CHECKSUM_MISMATCH');
   }
 }

@@ -29,7 +29,7 @@ export async function verifyFrozenPool(root: string): Promise<{ valid: boolean; 
     if (JSON.stringify(sourceNames) !== JSON.stringify(expectedNames)) errors.push('source file ownership mismatch');
     for (const asset of bundle.sourceAssets) {
       const text = await readFile(join(root, 'source_files', `${asset.postId}.txt`), 'utf8');
-      if (sha256(text) !== asset.sha256 || text !== (asset.body ?? asset.transcript)) errors.push(`source asset checksum mismatch for ${asset.postId}`);
+      if (sha256(text) !== asset.sha256 || text !== (asset.body ?? asset.digest)) errors.push(`source asset checksum mismatch for ${asset.postId}`);
     }
     const conceptEdges = JSON.parse(await readFile(join(root, 'post_concept_edges.json'), 'utf8'));
     const claimEdges = JSON.parse(await readFile(join(root, 'post_claim_edges.json'), 'utf8'));

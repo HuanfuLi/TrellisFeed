@@ -37,7 +37,7 @@ async function render() {
       article.append(show('Stance, difficulty, and scores', { viewpoint: candidate.draft.viewpoint, difficulty: candidate.draft.difficulty, quality: candidate.draft.qualityScore, interestingness: candidate.draft.interestingnessScore, educationalValue: candidate.draft.educationalValueScore, topicRelevance: candidate.draft.topicRelevance }));
       article.append(show('Suggested questions and targets', candidate.draft.suggestedQuestions));
       article.append(show('Reliability, bias, misinformation, safety, and warnings', { reliabilityConcerns: candidate.draft.reliabilityConcerns, counterpoints: candidate.draft.potentialCounterpoints, safetyConcerns: candidate.draft.safetyConcerns, contentWarnings: candidate.draft.contentWarnings }));
-      article.append(show('Full stored text / transcript', candidate.source.fullText), show('Current Codex advisory verdict', { current: candidate.codexCurrent, result: candidate.codex }));
+      article.append(show(candidate.source.kind === 'video' ? 'Fixed video URL / ID and derived digest' : 'Full stored article text', candidate.source.kind === 'video' ? { sourceUrl: candidate.source.canonicalUrl, videoId: candidate.source.videoId, digest: candidate.draft.longSummary, claims: candidate.draft.claims } : candidate.source.fullText), show('Current Codex advisory verdict', { current: candidate.codexCurrent, result: candidate.codex }));
       article.append(show('Required operator rubric', candidate.reviewTemplate), show('Latest operator decision', candidate.latestDecision || 'None'));
       const textarea = element('textarea'); textarea.placeholder = 'Paste complete edited draft JSON to create a new revision';
       const edit = element('button', 'Save edit (invalidates Codex verdict)');

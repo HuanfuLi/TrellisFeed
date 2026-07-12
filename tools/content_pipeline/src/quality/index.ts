@@ -13,7 +13,7 @@ export interface QualityCandidate {
   language?: string;
   publicationDate?: string;
   evergreen?: boolean;
-  transcriptAvailable?: boolean;
+  videoUrlReady?: boolean;
   sourceShare?: number;
   stanceShare?: number;
 }
@@ -58,16 +58,18 @@ export function scoreMechanicalQuality(candidate: QualityCandidate, options: Qua
   const matchedKeywords = keywords.filter((keyword) => fullText.includes(keyword));
   const signals: QualitySignal[] = [];
 
-  if (!fullText) signals.push(signal('extraction-missing', 'fail', 'No extracted text is available.'));
+  if (options.isVideo && candidate.videoUrlReady === true) signals.push(signal('video-url-ready', 'pass', 'Canonical public YouTube URL is ready for Gemini preprocessing.'));
+  else if (!fullText) signals.push(signal('extraction-missing', 'fail', 'No extracted text is available.'));
   else if (fullText.length < minimumCharacters) signals.push(signal('extraction-too-short', 'fail', `Extracted text has ${fullText.length} characters; minimum is ${minimumCharacters}.`));
   else signals.push(signal('extraction-length-ok', 'pass', `Extracted text has ${fullText.length} characters.`));
 
   if (unstableUrl(candidate.canonicalUrl)) signals.push(signal('unstable-url', 'fail', 'URL appears to require login, session, or redirect state.'));
   if (candidateLanguage && candidateLanguage !== expectedLanguage) signals.push(signal('language-mismatch', 'fail', `Expected ${expectedLanguage}; found ${candidateLanguage}.`));
 
-  if (options.isVideo && candidate.transcriptAvailable !== true) signals.push(signal('transcript-missing', 'fail', 'Video has no operator-verified transcript.'));
+  if (options.isVideo && candidate.videoUrlReady !== true) signals.push(signal('video-url-missing', 'fail', 'Video has no validated canonical public YouTube URL.'));
 
-  if (!keywords.length || matchedKeywords.length) signals.push(signal('topic-relevant', 'pass', matchedKeywords.length ? `Matched: ${matchedKeywords.join(', ')}.` : 'No topic keywords configured.'));
+  if (options.isVideo && candidate.videoUrlReady === true) signals.push(signal('topic-review-after-video-understanding', 'warn', 'Topic relevance is evaluated from the generated video digest.'));
+  else if (!keywords.length || matchedKeywords.length) signals.push(signal('topic-relevant', 'pass', matchedKeywords.length ? `Matched: ${matchedKeywords.join(', ')}.` : 'No topic keywords configured.'));
   else signals.push(signal('topic-irrelevant', 'fail', 'No configured topic keyword appears in extracted text.'));
 
   if (candidate.evergreen) signals.push(signal('evergreen', 'pass', 'Operator seed marks this source as evergreen.'));

@@ -14,7 +14,7 @@ function records() {
       conceptIds: ['concept-1'], claimIds: ['claim-1'], suggestedQuestionIds: ['sq-a'], status: 'frozen',
     },
     {
-      id: 'post-b', topicId: 'topic-1', sourceUrl: 'https://example.com/b',
+      id: 'post-b', topicId: 'topic-1', sourceUrl: 'https://www.youtube.com/watch?v=example',
       sourcePlatform: 'youtube', sourceName: 'Example', originalTitle: 'B',
       displayTitle: 'Post B', hook: 'Hook B', shortSummary: 'Summary B', language: 'en',
       collectedAt: '2026-07-01T00:00:00.000Z', qualityScore: 1,
@@ -30,7 +30,7 @@ function records() {
   };
   const assets = {
     'post-a': { postId: 'post-a', kind: 'article', sourceUrl: 'https://example.com/a', body: 'Stored article', sha256: 'a'.repeat(64) },
-    'post-b': { postId: 'post-b', kind: 'video', sourceUrl: 'https://example.com/b', transcript: 'Stored transcript', sha256: 'b'.repeat(64) },
+    'post-b': { postId: 'post-b', kind: 'video', sourceUrl: 'https://www.youtube.com/watch?v=example', videoId: 'example', digest: 'Reviewed digest', sha256: 'b'.repeat(64) },
   };
   return { posts, concept, claim, suggestions, assets };
 }

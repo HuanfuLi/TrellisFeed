@@ -139,7 +139,8 @@ export interface OriginalContentAsset {
   kind: 'article' | 'video';
   sourceUrl: string;
   body?: string;
-  transcript?: string;
+  videoId?: string;
+  digest?: string;
   sha256: string;
 }
 

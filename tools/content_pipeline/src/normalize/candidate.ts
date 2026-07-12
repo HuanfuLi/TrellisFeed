@@ -67,3 +67,29 @@ export function normalizeCandidate(input: CandidateInput): NormalizedCandidate {
     fullText, blocks, contentHash: hash(fullText), rawMetadata: input.rawMetadata ?? {},
   };
 }
+
+export function normalizeYouTubeCandidate(input: Omit<CandidateInput, 'kind' | 'fullText' | 'blocks'> & { videoId: string }): NormalizedCandidate {
+  const url = canonicalUrl(input.sourceUrl);
+  if (!/^[A-Za-z0-9_-]{6,20}$/.test(input.videoId)) throw new Error('invalid YouTube video id');
+  const parsed = new URL(url);
+  if (parsed.protocol !== 'https:' || parsed.hostname !== 'www.youtube.com' || parsed.pathname !== '/watch' || parsed.searchParams.get('v') !== input.videoId) {
+    throw new Error('video source must be a canonical public YouTube URL');
+  }
+  return {
+    ...input,
+    kind: 'video',
+    title: text(input.title) || `YouTube video ${input.videoId}`,
+    sourceName: text(input.sourceName) || 'YouTube',
+    author: text(input.author) || undefined,
+    excerpt: text(input.excerpt) || undefined,
+    canonicalUrl: url,
+    publicationDate: normalizeDate(input.publicationDate),
+    language: text(input.language).toLowerCase() || undefined,
+    durationSeconds: input.durationSeconds === undefined ? undefined : Math.max(0, Math.round(input.durationSeconds)),
+    fullText: '',
+    blocks: [{ id: `video:${input.videoId}`, kind: 'paragraph', text: `Official Gemini YouTube URL input for video ${input.videoId}.` }],
+    contentHash: hash(`youtube-url-v1\0${url}\0${input.videoId}`),
+    rawMetadata: input.rawMetadata ?? {},
+    extractionMethod: 'gemini-youtube-url',
+  };
+}

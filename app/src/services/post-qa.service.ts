@@ -103,7 +103,7 @@ function terms(text: string): Set<string> {
 
 function sourceBlocks(asset: Readonly<OriginalContentAsset>, question: string): GroundingBlock[] {
   const queryTerms = terms(question);
-  const raw = asset.kind === 'article' ? asset.body ?? '' : asset.transcript ?? '';
+  const raw = asset.kind === 'article' ? asset.body ?? '' : asset.digest ?? '';
   return raw.split(/\n\s*\n/g).map((text, index) => ({
     id: `source:${index}`,
     kind: 'source' as const,
@@ -336,21 +336,30 @@ export class PostQaService {
       let blocks = selectApprovedGrounding({ post, concepts, claims, asset, thread, question: questionText });
       let answerText = '';
       let attempts = 0;
+      let liveVideo = asset.kind === 'video' && config.provider === 'gemini';
       while (attempts < 2) {
         const messages = buildMessages(blocks, questionText, requestId);
         answerText = '';
+        const bufferedDeltas: string[] = [];
         try {
           for await (const delta of this.dependencies.stream(messages, config, {
             maxTokens: 800,
             serviceName: 'ask',
             signal: input.signal,
+            ...(liveVideo ? { media: { kind: 'youtube' as const, url: asset.sourceUrl, videoId: asset.videoId! } } : {}),
           } as CompletionOptions)) {
             if (input.signal?.aborted) throw new DOMException('Request aborted', 'AbortError');
             answerText += delta;
-            input.onDelta?.(delta);
+            bufferedDeltas.push(delta);
           }
+          for (const delta of bufferedDeltas) input.onDelta?.(delta);
           break;
         } catch (error) {
+          if (liveVideo) {
+            liveVideo = false;
+            attempts += 1;
+            continue;
+          }
           if (attempts === 0 && contextLengthError(error)) {
             blocks = selectApprovedGrounding({
               post, concepts, claims, asset, thread, question: questionText,

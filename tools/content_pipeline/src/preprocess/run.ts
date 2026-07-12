@@ -150,6 +150,7 @@ export async function runStructuredPreprocess(options: RunStructuredPreprocessOp
           const result = await options.provider.call({
             model: options.provider.model, prompt, schema: deriveProviderSchema('preprocessed-post-v1'),
             maxTokens: 4096, attempt, validationPaths: lastFailure.paths,
+            ...(candidate.kind === 'video' ? { media: { kind: 'youtube' as const, url: candidate.canonicalUrl, videoId: candidate.videoId } } : {}),
           });
           actualCost += Math.max(0, result.costUsd ?? 0);
           tracer.record('preprocess.response', {

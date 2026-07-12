@@ -1,9 +1,19 @@
 import { parseRetryAfter, type StructuredProvider, type StructuredRequest, type StructuredResult } from './provider.ts';
 
 export function toGeminiRequest(request: StructuredRequest) {
+  const parts: Array<Record<string, unknown>> = [{ text: request.prompt.user }];
+  if (request.media) {
+    const parsed = new URL(request.media.url);
+    const id = parsed.searchParams.get('v');
+    if (request.media.kind !== 'youtube' || parsed.protocol !== 'https:' || parsed.hostname !== 'www.youtube.com'
+      || parsed.pathname !== '/watch' || !id || (request.media.videoId !== undefined && request.media.videoId !== id)) {
+      throw new Error('media must be a canonical public YouTube URL');
+    }
+    parts.unshift({ fileData: { fileUri: parsed.href } });
+  }
   return {
     systemInstruction: { parts: [{ text: request.prompt.system }] },
-    contents: [{ role: 'user', parts: [{ text: request.prompt.user }] }],
+    contents: [{ role: 'user', parts }],
     generationConfig: { maxOutputTokens: request.maxTokens, responseMimeType: 'application/json', responseJsonSchema: request.schema },
   };
 }

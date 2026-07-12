@@ -5,12 +5,12 @@ import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { fetchCandidate as collectOne, redactUrl, type FetchCandidateOptions, type RawCandidate } from './collect/fetch-candidate.ts';
 import { extractArticle } from './extract/article.ts';
-import { extractYouTubeTranscript, parseYouTubeVideoId } from './extract/youtube.ts';
+import { parseYouTubeVideoId } from './extract/youtube.ts';
 import { createAnthropicProvider } from './ai/anthropic.ts';
 import { createGeminiProvider } from './ai/gemini.ts';
 import { createOpenAiProvider } from './ai/openai.ts';
 import type { StructuredProvider } from './ai/provider.ts';
-import { normalizeCandidate, type NormalizedCandidate } from './normalize/candidate.ts';
+import { normalizeCandidate, normalizeYouTubeCandidate, type NormalizedCandidate } from './normalize/candidate.ts';
 import { runStructuredPreprocess } from './preprocess/run.ts';
 import { runCodexGate } from './codex-gate/run.ts';
 import { startReviewServer } from './review/server.ts';
@@ -202,27 +202,17 @@ export async function normalizeRunDirectory(options: NormalizeOptions): Promise<
       assertSourceUrlSafeToPersist(seed.url);
       const raw: RawCandidate = JSON.parse(await readFile(resolveOutputPath(options.runDir, `raw/${stem}.json`), 'utf8'));
       if (raw.status !== 'collected') throw new Error('source was not collected');
-      if (typeof raw.rawBody !== 'string' || !raw.rawBody) throw new Error('raw body is missing');
       let candidate: NormalizedCandidate;
       if (isVideo(seed.url)) {
         const videoId = parseYouTubeVideoId(seed.url);
-        if (!options.transcriptsDir) throw new Error('operator transcript required');
-        const transcriptPath = resolve(options.transcriptsDir, `${videoId}.txt`);
-        const relativeTranscript = relative(resolve(options.transcriptsDir), transcriptPath);
-        if (relativeTranscript.startsWith('..') || isAbsolute(relativeTranscript)) throw new Error('operator transcript path is outside transcript directory');
-        let transcriptText: string;
-        try { transcriptText = await readFile(transcriptPath, 'utf8'); }
-        catch (error) {
-          if ((error as NodeJS.ErrnoException).code === 'ENOENT') throw new Error('operator transcript required');
-          throw error;
-        }
-        const extracted = await extractYouTubeTranscript(seed.url, { transcriptText });
-        candidate = normalizeCandidate({
-          id: candidateId, kind: 'video', sourceUrl: seed.url, collectedAt: raw.collectedAt,
-          collectorVersion: raw.collectorVersion, ...extracted,
+        const canonicalVideoUrl = `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}`;
+        candidate = normalizeYouTubeCandidate({
+          id: candidateId, sourceUrl: canonicalVideoUrl, videoId, title: raw.sourceName ?? `YouTube video ${videoId}`,
+          sourceName: raw.sourceName ?? 'YouTube', collectedAt: raw.collectedAt, collectorVersion: raw.collectorVersion,
+          rawMetadata: { sourceHash: raw.sourceHash },
         });
-        operatorTranscriptsUsed += 1;
       } else {
+        if (typeof raw.rawBody !== 'string' || !raw.rawBody) throw new Error('raw body is missing');
         if (raw.mimeType !== 'text/html') throw new Error('source MIME is not supported for article extraction');
         const extracted = extractArticle(raw.rawBody, seed.url);
         candidate = normalizeCandidate({
@@ -312,6 +302,9 @@ async function preprocessRunDirectory(options: PreprocessOptions): Promise<unkno
   const filenames = (await readdir(normalizedDir)).filter((name) => /^\d+.*\.json$/i.test(name)).sort();
   const candidates: NormalizedCandidate[] = [];
   for (const filename of filenames) candidates.push(JSON.parse(await readFile(resolveOutputPath(options.runDir, `normalized/${filename}`), 'utf8')));
+  if (candidates.some((candidate) => candidate.kind === 'video') && options.provider !== 'gemini') {
+    throw new Error('video preprocessing requires the official Gemini YouTube URL provider');
+  }
   const results = await runStructuredPreprocess({
     candidates, topic: PILOT_TOPIC, provider: configuredProvider(options), promptVersion: options.promptVersion,
     schemaVersion: options.schemaVersion, runDir: options.runDir, maxConcurrency: options.maxConcurrency,

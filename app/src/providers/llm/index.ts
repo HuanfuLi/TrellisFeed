@@ -66,9 +66,12 @@ export interface CompletionOptions {
    * No-op for non-Gemini providers.
    */
   disableThinking?: boolean;
+  /** Fixed frozen YouTube source selected by the post service; Gemini-only. */
+  media?: { kind: 'youtube'; url: string; videoId: string };
 }
 
 export async function chatCompletion(messages: ChatMessage[], config: LLMConfig, options?: CompletionOptions): Promise<string> {
+  if (options?.media && config.provider !== 'gemini') throw new Error('YouTube media grounding requires Gemini');
   const msgs = applyLocaleDirective(messages); // D-12 — central locale injection
   const bracketed = applyUserContentBracketing(msgs); // D-13 — structural injection bracketing
   const maxTokens = options?.maxTokens ?? 4096;
@@ -80,6 +83,7 @@ export async function chatCompletion(messages: ChatMessage[], config: LLMConfig,
 }
 
 export async function* chatStream(messages: ChatMessage[], config: LLMConfig, options?: CompletionOptions): AsyncGenerator<string> {
+  if (options?.media && config.provider !== 'gemini') throw new Error('YouTube media grounding requires Gemini');
   const msgs = applyLocaleDirective(messages); // D-12 — central locale injection
   const bracketed = applyUserContentBracketing(msgs); // D-13 — structural injection bracketing
   switch (config.provider) {
@@ -253,13 +257,24 @@ async function* claudeStream(messages: ChatMessage[], config: LLMConfig, options
 
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta';
 
-function toGeminiPayload(messages: ChatMessage[], maxTokens = 4096, jsonMode = false, disableThinking = false) {
+function canonicalYouTubePart(media: CompletionOptions['media']): { fileData: { fileUri: string } } | undefined {
+  if (!media) return undefined;
+  const parsed = new URL(media.url);
+  const id = parsed.searchParams.get('v');
+  if (media.kind !== 'youtube' || parsed.protocol !== 'https:' || parsed.hostname !== 'www.youtube.com'
+    || parsed.pathname !== '/watch' || id !== media.videoId || !/^[A-Za-z0-9_-]{6,20}$/.test(media.videoId)) {
+    throw new Error('Media URL must be the canonical frozen YouTube source');
+  }
+  return { fileData: { fileUri: parsed.href } };
+}
+
+function toGeminiPayload(messages: ChatMessage[], maxTokens = 4096, jsonMode = false, disableThinking = false, media?: CompletionOptions['media']) {
   const system = messages.find((m) => m.role === 'system')?.content;
   const contents = messages
     .filter((m) => m.role !== 'system')
     .map((m) => ({
       role: m.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: m.content }],
+      parts: [...(m.role === 'user' && media ? [canonicalYouTubePart(media)!] : []), { text: m.content }],
     }));
   return {
     contents,
@@ -283,7 +298,7 @@ async function geminiCompletion(messages: ChatMessage[], config: LLMConfig, maxT
   const response = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': config.apiKey ?? '' },
-    body: JSON.stringify(toGeminiPayload(messages, maxTokens, options?.jsonMode ?? false, options?.disableThinking ?? false)),
+    body: JSON.stringify(toGeminiPayload(messages, maxTokens, options?.jsonMode ?? false, options?.disableThinking ?? false, options?.media)),
     signal: composeSignal(options?.signal, COMPLETION_TIMEOUT_MS),
   });
   if (!response.ok) {
@@ -310,6 +325,7 @@ async function* geminiStream(messages: ChatMessage[], config: LLMConfig, options
       options?.maxTokens ?? 4096,
       options?.jsonMode ?? false,
       options?.disableThinking ?? false,
+      options?.media,
     )),
     signal: composeSignal(options?.signal, STREAM_TIMEOUT_MS),
   });

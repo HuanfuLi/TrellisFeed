@@ -161,7 +161,7 @@ test('video Ask sends only the frozen current YouTube URL to Gemini and falls ba
     yield 'Frozen digest answer.';
   }, {
     post: { sourceUrl: videoUrl, sourcePlatform: 'youtube', longSummary: 'Approved detailed video digest.' },
-    asset: { postId: 'post-1', kind: 'video', sourceUrl: videoUrl, videoId: 'dQw4w9WgXcQ', sha256: 'b'.repeat(64) },
+    asset: { postId: 'post-1', kind: 'video', sourceUrl: videoUrl, videoId: 'dQw4w9WgXcQ', digest: 'Approved detailed video digest.', sha256: 'b'.repeat(64) },
     config: { provider: 'gemini', model: 'gemini-2.5-flash-lite', apiKey: 'not-observed', isConfigured: true },
   });
   const result = await service.askPostQuestion(input);

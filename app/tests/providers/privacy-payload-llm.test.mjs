@@ -142,4 +142,16 @@ describe('PRIVACY-01: LLM outbound body excludes private user data', () => {
     await chatCompletion(messages, providerConfigs.gemini);
     assertNoLeak('gemini');
   });
+
+  test('gemini: fixed YouTube media uses the official fileData envelope and rejects arbitrary URLs', async () => {
+    captured = undefined;
+    const media = { kind: 'youtube', url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', videoId: 'dQw4w9WgXcQ' };
+    await chatCompletion(messages, providerConfigs.gemini, { media });
+    assert.deepEqual(captured.contents[0].parts[0], { fileData: { fileUri: media.url } });
+    await assert.rejects(
+      chatCompletion(messages, providerConfigs.gemini, { media: { ...media, url: 'https://evil.test/watch?v=dQw4w9WgXcQ' } }),
+      /canonical frozen YouTube source/,
+    );
+    await assert.rejects(chatCompletion(messages, providerConfigs.openAI, { media }), /requires Gemini/);
+  });
 });

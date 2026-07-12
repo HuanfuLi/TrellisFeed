@@ -17,7 +17,8 @@ async function approvedRun(overrides = {}) {
   const fullText = overrides.fullText || 'Complete approved source text for the research instrument.';
   const contentHash = sha(fullText);
   const id = overrides.id || 'post-1';
-  const normalized = { id, kind: overrides.kind || 'article', canonicalUrl: 'https://example.com/source', sourceName: 'Example Source', author: 'Author', title: 'Original title', publicationDate: '2026-01-02', language: 'en', fullText, contentHash, blocks: [{ id: 'b-1', kind: 'paragraph', text: fullText }], collectedAt: '2026-01-03T00:00:00.000Z', collectorVersion: 'collector-1', rawMetadata: {} };
+  const kind = overrides.kind || 'article';
+  const normalized = { id, kind, canonicalUrl: kind === 'video' ? 'https://www.youtube.com/watch?v=example' : 'https://example.com/source', sourceName: 'Example Source', author: 'Author', title: 'Original title', publicationDate: '2026-01-02', language: 'en', fullText: kind === 'video' ? '' : fullText, contentHash, blocks: [{ id: kind === 'video' ? 'video:example' : 'b-1', kind: 'paragraph', text: fullText }], ...(kind === 'video' ? { videoId: 'example', extractionMethod: 'gemini-youtube-url' } : {}), collectedAt: '2026-01-03T00:00:00.000Z', collectorVersion: 'collector-1', rawMetadata: {} };
   const draft = { displayTitle: 'Display title', hook: 'Accurate hook', shortSummary: 'Short summary', longSummary: 'Long summary', difficulty: 0.4, qualityScore: 0.8, interestingnessScore: 0.7, educationalValueScore: 0.9, viewpoint: 'mixed', topicRelevance: 0.95, concepts: [{ label: 'AI agents', description: 'Systems that pursue goals.', aliases: ['agents'], relatedConceptLabels: [], prerequisiteConceptLabels: [] }], claims: [{ text: 'Agents may change how work is organized.', stance: 'neutral', conceptLabels: ['AI agents'], sourceBlockIds: ['b-1'] }], suggestedQuestions: [{ text: 'What evidence supports this claim?', type: 'evidence', targetConceptLabels: ['AI agents'], targetClaimIndexes: [0], generic: false }], potentialCounterpoints: [], reliabilityConcerns: [], safetyConcerns: [], contentWarnings: [], rejectRecommended: false, rejectionReasons: [] };
   const preprocess = { status: 'preprocessed', candidateId: id, candidateContentHash: contentHash, cacheKey: 'cache-1', attempts: 1, draft, provenance: { provider: 'fixture', model: 'top-model', promptVersion: 'prompt-1', schemaVersion: 'schema-1' }, providerRequestId: 'req-1', stopReason: 'end_turn', usage: { inputTokens: 1, outputTokens: 1, costUsd: 0 } };
   const codex = overrides.missingCodex ? { status: 'blocked', reasonCode: 'missing_verdict', canAdvanceToHuman: false, requiresHumanApproval: true } : { status: 'advisory-ready', advisory: { verdict: 'advance_to_human', reasonCodes: [], fidelityNotes: 'faithful', reliabilityNotes: 'reviewed', candidateContentHash: contentHash, preprocessingVersion: 'fixture:top-model:prompt-1:schema-1' }, canAdvanceToHuman: true, requiresHumanApproval: true };
@@ -54,6 +55,18 @@ test('approved current two-gate input freezes deterministically and verifies', a
   assert.deepEqual(manifest.feedOrderPostIds, ['post-1']);
   assert.equal(manifest.approvedCount, 1);
   assert.equal((await readdir(join(first, 'source_files'))).length, 1);
+});
+
+test('video freeze stores fixed URL, video ID, and reviewed digest without transcript media', async () => {
+  const output = await outputPath('video-pool');
+  await buildFrozenPool({ runDir: await approvedRun({ kind: 'video' }), output, version: 'v1' });
+  const [asset] = JSON.parse(await readFile(join(output, 'source_assets.json'), 'utf8'));
+  assert.equal(asset.videoId, 'example');
+  assert.match(asset.digest, /Long summary/);
+  assert.equal('transcript' in asset, false);
+  assert.equal('body' in asset, false);
+  assert.equal(await readFile(join(output, 'source_files', 'post-1.txt'), 'utf8'), asset.digest);
+  assert.equal((await verifyFrozenPool(output)).valid, true);
 });
 
 test('freeze blocks missing/stale operator approval, Codex gate, rights review, and secrets', async () => {

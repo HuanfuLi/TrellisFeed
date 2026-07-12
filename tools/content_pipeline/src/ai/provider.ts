@@ -12,6 +12,7 @@ export interface StructuredRequest {
   maxTokens: 4096;
   attempt?: number;
   validationPaths?: string[];
+  media?: { kind: 'youtube'; url: string; videoId?: string };
 }
 
 export interface StructuredResult {

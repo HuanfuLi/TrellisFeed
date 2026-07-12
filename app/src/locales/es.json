@@ -464,7 +464,7 @@
       "connectionLabel": "Conexión",
       "discoverContextLabel": "Descubrir concepto",
       "discoverHookPreview": "Explorando {{concept}}…",
-      "videoUnavailable": "Video no disponible - mostrando la transcripción",
+      "videoUnavailable": "Video no disponible — mostrando el resumen revisado",
       "originalSource": "Abrir fuente original",
       "seenEnough": "Ya he visto suficiente",
       "suggestedQuestions": "Preguntas sugeridas",

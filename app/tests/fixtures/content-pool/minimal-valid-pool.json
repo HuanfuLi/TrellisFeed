@@ -31,6 +31,6 @@
   ],
   "sourceAssets": [
     {"postId":"post-article","kind":"article","sourceUrl":"https://example.com/article","body":"<script>alert('inert')</script> Article text.","sha256":"1111111111111111111111111111111111111111111111111111111111111111"},
-    {"postId":"post-video","kind":"video","sourceUrl":"https://www.youtube.com/watch?v=example","transcript":"Stored transcript text.","sha256":"2222222222222222222222222222222222222222222222222222222222222222"}
+    {"postId":"post-video","kind":"video","sourceUrl":"https://www.youtube.com/watch?v=example","videoId":"example","digest":"Reviewed frozen video digest.","sha256":"2222222222222222222222222222222222222222222222222222222222222222"}
   ]
 }

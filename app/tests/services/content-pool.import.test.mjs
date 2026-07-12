@@ -42,7 +42,7 @@ const clone = (value) => JSON.parse(JSON.stringify(value));
 function fixtureReader(mutator = () => {}) {
   const bundle = clone(fixture);
   for (const asset of bundle.sourceAssets) {
-    asset.sha256 = sha256(asset.kind === 'article' ? asset.body : asset.transcript);
+    asset.sha256 = sha256(asset.kind === 'article' ? asset.body : asset.digest);
   }
   mutator(bundle);
   const artifacts = {
