@@ -104,8 +104,8 @@ test('canonical schema is projected into provider-native structured output witho
   assert.equal('tools' in anthropic, false);
   assert.deepEqual(openai.response_format.json_schema.schema, schema);
   assert.equal('tools' in openai, false);
-  assert.equal('$schema' in gemini.generationConfig.responseJsonSchema, false);
-  assert.equal(JSON.stringify(gemini.generationConfig.responseJsonSchema).includes('uniqueItems'), false);
+  assert.equal(gemini.generationConfig.responseJsonSchema, undefined);
+  assert.match(gemini.contents[0].parts[0].text, /STRICT OUTPUT JSON SCHEMA/);
   assert.equal('tools' in gemini, false);
 });
 

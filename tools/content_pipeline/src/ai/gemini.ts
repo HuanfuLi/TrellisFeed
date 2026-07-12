@@ -1,16 +1,11 @@
 import { parseRetryAfter, type StructuredProvider, type StructuredRequest, type StructuredResult } from './provider.ts';
 
-function toGeminiJsonSchema(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(toGeminiJsonSchema);
-  if (!value || typeof value !== 'object') return value;
-  const unsupported = new Set(['$schema', 'uniqueItems', 'additionalProperties', 'minLength', 'maxLength', 'minimum', 'maximum']);
-  return Object.fromEntries(Object.entries(value as Record<string, unknown>)
-    .filter(([key]) => !unsupported.has(key))
-    .map(([key, nested]) => [key, toGeminiJsonSchema(nested)]));
-}
-
 export function toGeminiRequest(request: StructuredRequest) {
-  const parts: Array<Record<string, unknown>> = [{ text: request.prompt.user }];
+  const repair = request.validationPaths?.length
+    ? `\n\nREPAIR REQUIRED: the prior JSON failed local validation at ${request.validationPaths.join(', ')}. Return a complete corrected object. All related/prerequisite concept labels must exactly match labels in concepts; all claim sourceBlockIds must use the supplied evidence IDs.`
+    : '';
+  const schemaPrompt = `${request.prompt.user}\n\nSTRICT OUTPUT JSON SCHEMA:\n${JSON.stringify(request.schema)}${repair}`;
+  const parts: Array<Record<string, unknown>> = [{ text: schemaPrompt }];
   if (request.media) {
     const parsed = new URL(request.media.url);
     const id = parsed.searchParams.get('v');
@@ -19,7 +14,7 @@ export function toGeminiRequest(request: StructuredRequest) {
       throw new Error('media must be a canonical public YouTube URL');
     }
     parts.unshift({ fileData: { fileUri: parsed.href } });
-    parts[1] = { text: `${request.prompt.user}\n\nSTRICT OUTPUT JSON SCHEMA:\n${JSON.stringify(request.schema)}` };
+    parts[1] = { text: schemaPrompt };
   }
   return {
     systemInstruction: { parts: [{ text: request.prompt.system }] },
@@ -27,7 +22,6 @@ export function toGeminiRequest(request: StructuredRequest) {
     generationConfig: {
       maxOutputTokens: request.maxTokens,
       responseMimeType: 'application/json',
-      ...(!request.media ? { responseJsonSchema: toGeminiJsonSchema(request.schema) } : {}),
     },
   };
 }
