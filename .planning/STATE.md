@@ -60,6 +60,7 @@ Progress: [██░░░░░░░░] 20% (1 of 5 phases; Phase 0 done)
 | Phase 02 P05 | 14min | 3 tasks | 5 files |
 | Phase 02 P03 | 2h 2m | 3 tasks | 22 files |
 | Phase 02 P06 | 16min | 2 tasks | 10 files |
+| Phase 02 P08 | 19min | 3 tasks | 20 files |
 
 ## Accumulated Context
 
@@ -83,6 +84,8 @@ Decisions are logged in PROJECT.md Key Decisions table. Six LOCKED decisions con
 - [Phase 02]: Frozen feed ordering and selectors remain condition- and question-history-blind; dismissed post IDs filter without re-ranking. — Preserves the Phase 2 experimental-isolation boundary and Phase 3 insertion point.
 - [Phase 02]: Frozen saved and history state stores IDs and timestamps only; immutable records resolve from frozenFeedService. — Prevents mutable stores from duplicating canonical frozen content.
 - [Phase 02]: Generated-feed history compatibility remains isolated until Plan 02-07 removes transitional consumers. — Preserves load-bearing generated-body durability and a green build between execution waves.
+- [Phase 02]: Study condition is recorded only at canonical persistence boundaries; Ask behavior is condition-neutral. — Preserves the single-variable study design.
+- [Phase 02]: Canonical Q&A rows are the durable UI source and uploads are derived only afterward. — Prevents transport and session caches from replacing exact RSD records.
 
 ### Pending Todos
 
