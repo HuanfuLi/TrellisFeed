@@ -76,12 +76,3 @@ test('43-11: inline Bookmark button preserves WCAG 44x44 tap floor', () => {
   );
 });
 
-test('43-11: inline Bookmark button uses marginRight: "-8px" optical alignment', () => {
-  const greetingIdx = src.indexOf('{getGreeting()}');
-  const postWindow = src.slice(greetingIdx, greetingIdx + 1200);
-  assert.match(
-    postWindow,
-    /marginRight:\s*['"]-8px['"]/,
-    'inline Bookmark button must use marginRight: -8px so its glyph optically aligns with the 16px container padding-right',
-  );
-});

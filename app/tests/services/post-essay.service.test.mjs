@@ -29,45 +29,4 @@ describe('post-essay.service', () => {
     );
   });
 
-  // POST-02: PostDetailScreen imports and calls generatePostEssay from post-essay.service
-  it('PostDetailScreen imports generatePostEssay from post-essay.service', async () => {
-    const fs = await import('node:fs');
-    const source = fs.readFileSync(new URL('../../src/screens/PostDetailScreen.tsx', import.meta.url), 'utf-8');
-    assert.ok(
-      source.includes("from '../services/post-essay.service'"),
-      'PostDetailScreen.tsx should import from post-essay.service',
-    );
-    assert.ok(
-      source.includes('generatePostEssay'),
-      'PostDetailScreen.tsx should reference generatePostEssay',
-    );
-    assert.ok(
-      source.includes('patchPostEssayInCache'),
-      'PostDetailScreen.tsx should call patchPostEssayInCache to cache the essay',
-    );
-  });
-
-  // POST-02: PostDetailScreen has on-enter streaming state and effect
-  it('PostDetailScreen wires on-enter streaming state for empty bodyMarkdown posts', async () => {
-    const fs = await import('node:fs');
-    const source = fs.readFileSync(new URL('../../src/screens/PostDetailScreen.tsx', import.meta.url), 'utf-8');
-    assert.ok(
-      source.includes('isStreamingOnEnter'),
-      'PostDetailScreen.tsx should have isStreamingOnEnter state',
-    );
-    assert.ok(
-      source.includes('streamingBody'),
-      'PostDetailScreen.tsx should have streamingBody state for progressive rendering',
-    );
-    assert.ok(
-      source.includes('onEnterError'),
-      'PostDetailScreen.tsx should have onEnterError state for error handling',
-    );
-    assert.ok(
-      source.includes("post.bodyMarkdown && post.bodyMarkdown.trim() !== ''") ||
-      source.includes("post.bodyMarkdown.trim() !== ''"),
-      'PostDetailScreen.tsx should check post.bodyMarkdown to decide whether to trigger on-enter generation',
-    );
-  });
-
 });

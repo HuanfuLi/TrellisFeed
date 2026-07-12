@@ -127,6 +127,6 @@ test('live participant call sites are connected to the privacy-bounded logger', 
   assert.match(detail, /recordQuestionSubmit/);
   assert.match(detail, /recordAnswerViewed/);
   assert.match(engagement, /['"]save_post['"]/);
-  assert.match(home, /['"]not_interested['"]/);
+  assert.match(engagement, /['"]not_interested['"]/);
   assert.doesNotMatch(`${app}\n${home}\n${detail}\n${engagement}`, /interactionLog\.record\([^\n]*(sourceUrl|route|device|position|payload|keystroke)/);
 });
