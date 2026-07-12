@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "tsc --noEmit",
-    "cli": "node src/cli.ts",
+    "cli": "node --env-file-if-exists=.env.local src/cli.ts",
     "test": "node --test test/*.test.mjs"
   },
   "dependencies": {

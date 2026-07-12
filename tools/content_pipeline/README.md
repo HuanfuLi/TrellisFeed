@@ -18,11 +18,19 @@ Every request and redirect destination is DNS-resolved and checked against the p
 
 ## Preprocessing credentials
 
-The CLI reads provider credentials from the current process environment; it does not load a repository `.env` file. Set exactly one of `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or `GEMINI_API_KEY` for the matching `--provider`. A local OpenAI-compatible endpoint instead uses `QUESTIONTRACE_LOCAL_OPENAI_ENDPOINT` and, when required, `QUESTIONTRACE_LOCAL_OPENAI_KEY`.
+`npm run cli` automatically loads local credentials from `tools/content_pipeline/.env.local` when that file exists. The repository `.gitignore` excludes `.env*`, so this file is never committed. Set exactly one of `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or `GEMINI_API_KEY` for the matching `--provider`. A local OpenAI-compatible endpoint instead uses `QUESTIONTRACE_LOCAL_OPENAI_ENDPOINT` and, when required, `QUESTIONTRACE_LOCAL_OPENAI_KEY`.
+
+Local credential contract:
+
+```dotenv
+GEMINI_API_KEY=replace-with-a-newly-rotated-key
+```
+
+Environment variables already present in the launching process take precedence over values in `.env.local`. Never put credentials in seeds, run artifacts, source control, command arguments, or chat.
 
 The credential authorizes only the live preprocessing request that converts normalized source text into the permanent hook, summaries, concepts, claims, stance, difficulty, and suggested questions. It is not used for URL collection, Codex CLI authentication, human approval, or freeze. The key is read from memory and must never be placed in seeds, run artifacts, source control, command arguments, or chat.
 
-For a one-session PowerShell environment without echoing the key:
+Alternatively, for a one-session PowerShell environment without writing a file or echoing the key:
 
 ```powershell
 $secure = Read-Host 'OpenAI API key' -AsSecureString
