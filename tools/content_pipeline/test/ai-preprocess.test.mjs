@@ -104,7 +104,8 @@ test('canonical schema is projected into provider-native structured output witho
   assert.equal('tools' in anthropic, false);
   assert.deepEqual(openai.response_format.json_schema.schema, schema);
   assert.equal('tools' in openai, false);
-  assert.deepEqual(gemini.generationConfig.responseJsonSchema, schema);
+  assert.equal('$schema' in gemini.generationConfig.responseJsonSchema, false);
+  assert.equal(JSON.stringify(gemini.generationConfig.responseJsonSchema).includes('uniqueItems'), false);
   assert.equal('tools' in gemini, false);
 });
 
@@ -118,7 +119,8 @@ test('Gemini official YouTube URL input is attached only for a validated video c
   assert.deepEqual(payload.contents[0].parts[0], {
     fileData: { fileUri: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' },
   });
-  assert.equal(payload.contents[0].parts[1].text, 'digest this video');
+  assert.match(payload.contents[0].parts[1].text, /^digest this video\n\nSTRICT OUTPUT JSON SCHEMA:/);
+  assert.equal(payload.generationConfig.responseJsonSchema, undefined);
   assert.throws(() => toGeminiRequest({ ...request, media: { ...request.media, url: 'https://evil.test/video' } }), /canonical public YouTube URL/);
 });
 

@@ -16,7 +16,7 @@ const paths = (errors: ErrorObject[] | null | undefined) => (errors ?? []).map((
 export function validateCompletedResult(result: StructuredResult): CompletionCheck {
   if (result.schemaError) return { ok: false, error: { code: 'schema_compilation', retryable: false } };
   if (result.httpStatus === 401 || result.httpStatus === 403) return { ok: false, error: { code: 'authentication', retryable: false } };
-  if (result.httpStatus < 200 || result.httpStatus >= 300) return { ok: false, error: { code: 'provider_http', retryable: false } };
+  if (result.httpStatus < 200 || result.httpStatus >= 300) return { ok: false, error: { code: `provider_http_${result.httpStatus}`, retryable: result.httpStatus === 429 || result.httpStatus >= 500 } };
   if (result.refusal) return { ok: false, error: { code: 'provider_refusal', retryable: false } };
   if (!result.text.trim()) return { ok: false, error: { code: 'empty_output', retryable: false } };
   if (!normalStops.has(result.stopReason)) return { ok: false, error: { code: result.stopReason === 'max_tokens' || result.stopReason === 'MAX_TOKENS' ? 'truncated' : 'abnormal_stop', retryable: result.stopReason === 'max_tokens' || result.stopReason === 'MAX_TOKENS' } };

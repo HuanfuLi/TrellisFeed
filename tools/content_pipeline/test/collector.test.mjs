@@ -209,16 +209,14 @@ test('normalize CLI turns articles into text candidates and videos into fixed UR
   assert.deepEqual(video.blocks.map((block) => block.id), ['video:dQw4w9WgXcQ']);
 });
 
-test('normalize CLI dispatcher forwards only the parsed run, seed, transcript, and resume options', async () => {
+test('normalize CLI dispatcher forwards only the parsed run, seed, and resume options', async () => {
   let captured;
   const result = await dispatchCli([
-    'normalize', '--run-dir', 'runs/pilot', '--seeds', 'seeds/pilot.json',
-    '--transcripts-dir', 'operator/transcripts', '--resume',
+    'normalize', '--run-dir', 'runs/pilot', '--seeds', 'seeds/pilot.json', '--resume',
   ], { normalize: async (options) => { captured = options; return { ok: true }; } });
   assert.deepEqual(result, { ok: true });
   assert.deepEqual(captured, {
-    command: 'normalize', runDir: 'runs/pilot', seeds: 'seeds/pilot.json',
-    transcriptsDir: 'operator/transcripts', resume: true,
+    command: 'normalize', runDir: 'runs/pilot', seeds: 'seeds/pilot.json', resume: true,
   });
   await assert.rejects(() => dispatchCli(['normalize', '--run-dir', 'runs/pilot', '--seeds', 'seeds/pilot.json', '--unexpected', 'x']), /unsupported normalize option/);
 });

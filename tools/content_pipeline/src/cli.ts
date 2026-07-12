@@ -32,7 +32,7 @@ export interface PreprocessOptions {
 }
 
 export interface NormalizeOptions {
-  command: 'normalize'; runDir: string; seeds: string; transcriptsDir?: string; resume: boolean;
+  command: 'normalize'; runDir: string; seeds: string; resume: boolean;
 }
 
 export interface CodexReviewCliOptions {
@@ -120,12 +120,12 @@ export function parsePreprocessArgs(argv: string[]): PreprocessOptions {
 export function parseNormalizeArgs(argv: string[]): NormalizeOptions {
   if (argv[0] !== 'normalize') throw new Error('expected normalize command');
   const { values, flags } = parseValues(argv, ['--resume']);
-  const allowed = new Set(['--run-dir', '--seeds', '--transcripts-dir']);
+  const allowed = new Set(['--run-dir', '--seeds']);
   for (const key of values.keys()) if (!allowed.has(key)) throw new Error(`unsupported normalize option ${key}`);
   const runDir = values.get('--run-dir');
   const seeds = values.get('--seeds');
   if (!runDir || !seeds) throw new Error('normalize requires --run-dir and --seeds');
-  return { command: 'normalize', runDir, seeds, transcriptsDir: values.get('--transcripts-dir'), resume: flags.has('--resume') };
+  return { command: 'normalize', runDir, seeds, resume: flags.has('--resume') };
 }
 
 export function resolveOutputPath(runDir: string, child: string): string {

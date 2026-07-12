@@ -1,5 +1,14 @@
 import { parseRetryAfter, type StructuredProvider, type StructuredRequest, type StructuredResult } from './provider.ts';
 
+function toGeminiJsonSchema(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(toGeminiJsonSchema);
+  if (!value || typeof value !== 'object') return value;
+  const unsupported = new Set(['$schema', 'uniqueItems', 'additionalProperties', 'minLength', 'maxLength', 'minimum', 'maximum']);
+  return Object.fromEntries(Object.entries(value as Record<string, unknown>)
+    .filter(([key]) => !unsupported.has(key))
+    .map(([key, nested]) => [key, toGeminiJsonSchema(nested)]));
+}
+
 export function toGeminiRequest(request: StructuredRequest) {
   const parts: Array<Record<string, unknown>> = [{ text: request.prompt.user }];
   if (request.media) {
@@ -10,11 +19,16 @@ export function toGeminiRequest(request: StructuredRequest) {
       throw new Error('media must be a canonical public YouTube URL');
     }
     parts.unshift({ fileData: { fileUri: parsed.href } });
+    parts[1] = { text: `${request.prompt.user}\n\nSTRICT OUTPUT JSON SCHEMA:\n${JSON.stringify(request.schema)}` };
   }
   return {
     systemInstruction: { parts: [{ text: request.prompt.system }] },
     contents: [{ role: 'user', parts }],
-    generationConfig: { maxOutputTokens: request.maxTokens, responseMimeType: 'application/json', responseJsonSchema: request.schema },
+    generationConfig: {
+      maxOutputTokens: request.maxTokens,
+      responseMimeType: 'application/json',
+      ...(!request.media ? { responseJsonSchema: toGeminiJsonSchema(request.schema) } : {}),
+    },
   };
 }
 
@@ -36,6 +50,7 @@ export function createGeminiProvider(options: { model: string; apiKey: string; f
         inputTokens: body.usageMetadata?.promptTokenCount ?? 0, outputTokens: body.usageMetadata?.candidatesTokenCount ?? 0,
         requestId: response.headers.get('x-request-id') ?? '', httpStatus: response.status,
         refusal: candidate?.finishReason === 'SAFETY' || body.promptFeedback?.blockReason ? 'provider refusal' : undefined,
+        schemaError: response.status === 400 ? 'provider rejected structured schema' : undefined,
         retryAfterMs: parseRetryAfter(response.headers.get('retry-after')),
       };
     },

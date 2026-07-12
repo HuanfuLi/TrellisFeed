@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { NormalizedCandidate } from '../normalize/candidate.ts';
 import { deriveProviderSchema, type StructuredProvider } from '../ai/provider.ts';
@@ -88,6 +88,13 @@ async function readCached(path: string): Promise<PreprocessSuccess | undefined> 
   } catch { return undefined; }
 }
 
+async function readCachedFailure(path: string): Promise<PreprocessFailure | undefined> {
+  try {
+    const value = JSON.parse(await readFile(path, 'utf8'));
+    return value?.status === 'failed' ? value : undefined;
+  } catch { return undefined; }
+}
+
 async function writeAtomic(path: string, value: unknown): Promise<void> {
   const temporary = `${path}.${process.pid}.${Date.now()}.tmp`;
   await writeFile(temporary, `${JSON.stringify(value, null, 2)}\n`, { flag: 'wx' });
@@ -98,7 +105,9 @@ export async function runStructuredPreprocess(options: RunStructuredPreprocessOp
   if (!Number.isInteger(options.maxConcurrency) || options.maxConcurrency < 1 || options.maxConcurrency > 32) throw new Error('maxConcurrency must be an integer from 1 to 32');
   if (!Number.isFinite(options.spendLimit) || options.spendLimit < 0) throw new Error('spendLimit must be a non-negative number');
   const outputDir = join(options.runDir, 'preprocessed');
+  const failureDir = join(options.runDir, 'preprocess-failures');
   await mkdir(outputDir, { recursive: true });
+  await mkdir(failureDir, { recursive: true });
   const outcomes = new Array<PreprocessOutcome>(options.candidates.length);
   // Reserve a conservative per-candidate envelope (including possible repairs)
   // when the operator has not supplied provider-specific pricing.
@@ -123,6 +132,12 @@ export async function runStructuredPreprocess(options: RunStructuredPreprocessOp
         if (cached) {
           outcomes[index] = cached;
           options.logger?.({ stage: 'preprocess', candidateHash: candidate.contentHash, provider: options.provider.name, model: options.provider.model, promptVersion: options.promptVersion, schemaVersion: options.schemaVersion, attempt: cached.attempts, outcome: 'cached' });
+          continue;
+        }
+        const cachedFailure = await readCachedFailure(join(failureDir, `${cacheKey}.json`));
+        if (cachedFailure) {
+          outcomes[index] = cachedFailure;
+          options.logger?.({ stage: 'preprocess', candidateHash: candidate.contentHash, provider: options.provider.name, model: options.provider.model, promptVersion: options.promptVersion, schemaVersion: options.schemaVersion, attempt: cachedFailure.attempts, outcome: 'cached' });
           continue;
         }
       }
@@ -178,6 +193,7 @@ export async function runStructuredPreprocess(options: RunStructuredPreprocessOp
                   usage: { inputTokens: result.inputTokens, outputTokens: result.outputTokens, costUsd: actualCost },
                 };
                 await writeAtomic(cachePath, success);
+                await rm(join(failureDir, `${cacheKey}.json`), { force: true });
                 tracer.record('preprocess.persist', {
                   requestId: result.requestId, candidateHash: candidate.contentHash,
                   promptVersion: options.promptVersion, schemaVersion: options.schemaVersion,
@@ -203,6 +219,7 @@ export async function runStructuredPreprocess(options: RunStructuredPreprocessOp
         committedSpend += actualCost;
       }
       outcomes[index] ??= { status: 'failed', candidateId: candidate.id, candidateContentHash: candidate.contentHash, cacheKey, attempts, failure: lastFailure };
+      if (outcomes[index].status === 'failed') await writeFile(join(failureDir, `${cacheKey}.json`), `${JSON.stringify(outcomes[index], null, 2)}\n`);
     }
   };
 
