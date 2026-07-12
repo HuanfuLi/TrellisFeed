@@ -1,8 +1,21 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 import { dispatchCli } from '../src/cli.ts';
 import { buildCodexInvocation, createFixtureCodexExecutor, runCodexGate } from '../src/codex-gate/run.ts';
+
+test('Codex output schema stays within the provider-supported structured-output subset', async () => {
+  const schema = JSON.parse(await readFile(new URL('../src/codex-gate/schema.json', import.meta.url), 'utf8'));
+  const unsupportedPaths = [];
+  const visit = (value, path = '/') => {
+    if (!value || typeof value !== 'object') return;
+    if (Object.hasOwn(value, 'uniqueItems')) unsupportedPaths.push(`${path}uniqueItems`);
+    for (const [key, child] of Object.entries(value)) visit(child, `${path}${key}/`);
+  };
+  visit(schema);
+  assert.deepEqual(unsupportedPaths, []);
+});
 
 const candidate = (overrides = {}) => ({
   status: 'preprocessed', candidateId: 'candidate-1', candidateContentHash: 'a'.repeat(64),
