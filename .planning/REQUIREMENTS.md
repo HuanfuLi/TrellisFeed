@@ -22,7 +22,7 @@
 - [x] **CONT-03**: Frozen pool export to `data/content_pool_v1/` — one pilot topic (~50 approved posts) before scaling to 200–400; versioned (`contentPoolVersion`) and immutable once frozen (RSD §8.8).
 - [x] **FEED-01**: Feed card + post detail rendering the frozen pool, replacing the temporary AI-generated feed shell entirely — feed card (§7.2), post detail with AI wrapper (hook, summary, concept tags) + original source embed/link (§7.3, §7.4). No live fetch in the participant app.
 - [x] **FEED-02**: Pre-generated suggested questions on post detail carrying type, target concepts/claims, and generic flag per the SuggestedQuestion schema (§7.5, §9.5).
-- [ ] **ASK-01**: Post-scoped Ask (both conditions) — contextual AI Q&A scoped to the current post (no global chat), identical quality for control and experimental; UserQuestion + AIAnswer persisted (§6.6, §7.6).
+- [x] **ASK-01**: Post-scoped Ask (both conditions) — contextual AI Q&A scoped to the current post (no global chat), identical quality for control and experimental; UserQuestion + AIAnswer persisted (§6.6, §7.6).
 
 ### Graph-Memory & Recommendation Engine (Phase 3)
 
@@ -80,7 +80,7 @@ Explicitly excluded (design doc §15.3 / SCOPE.md). Documented to prevent scope 
 | CONT-03 | Phase 2 | Complete |
 | FEED-01 | Phase 2 | Complete |
 | FEED-02 | Phase 2 | Complete |
-| ASK-01 | Phase 2 | Pending |
+| ASK-01 | Phase 2 | Complete |
 | GRAPH-01 | Phase 3 | Pending |
 | GRAPH-02 | Phase 3 | Pending |
 | GRAPH-03 | Phase 3 | Pending |
