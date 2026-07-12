@@ -488,7 +488,7 @@ test('successful ACK durably updates upload health and broadcasts the new status
   assert.deepEqual(statuses.at(-1), { pending: 1, lastSuccessAt: metadata.lastSuccessfulUploadAt });
 });
 
-test('online and active app-state triggers retry without treating online state as delivery', async () => {
+test('online, active app-state, and interval triggers retry without treating signals as delivery', async () => {
   await resetQueue();
   await enqueue(event('triggered'), { triggerFlush: false });
   const listeners = new Map();
@@ -497,6 +497,9 @@ test('online and active app-state triggers retry without treating online state a
     removeEventListener(type) { listeners.delete(type); },
   };
   let appStateListener;
+  let intervalListener;
+  let intervalDelay;
+  let clearedInterval;
   let flushes = 0;
   const unregister = registerRetryTriggers({
     windowTarget,
@@ -505,15 +508,24 @@ test('online and active app-state triggers retry without treating online state a
       return Promise.resolve({ remove() {} });
     },
     flush: async () => { flushes += 1; },
+    setInterval(listener, delay) {
+      intervalListener = listener;
+      intervalDelay = delay;
+      return 47;
+    },
+    clearInterval(handle) { clearedInterval = handle; },
   });
 
   listeners.get('online')();
   appStateListener({ isActive: false });
   appStateListener({ isActive: true });
+  intervalListener();
   await new Promise((resolve) => setTimeout(resolve, 0));
 
-  assert.equal(flushes, 2);
+  assert.equal(intervalDelay, 15_000);
+  assert.equal(flushes, 3);
   assert.equal((await queueRows()).length, 1);
   unregister();
   assert.equal(listeners.has('online'), false);
+  assert.equal(clearedInterval, 47);
 });

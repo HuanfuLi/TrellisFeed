@@ -56,7 +56,12 @@ interface RetryTriggerOptions {
     listener: (state: { isActive: boolean }) => void,
   ) => Promise<AppStateListenerHandle>;
   flush?: () => Promise<unknown>;
+  setInterval?: typeof globalThis.setInterval;
+  clearInterval?: typeof globalThis.clearInterval;
+  retryIntervalMs?: number;
 }
+
+const DEFAULT_RETRY_INTERVAL_MS = 15_000;
 
 interface PreparedEnvelope {
   envelope: QueueEnvelope;
@@ -429,6 +434,15 @@ export function registerRetryTriggers(options: RetryTriggerOptions = {}): () => 
       .catch(() => { /* durable rows remain recoverable for the next trigger */ });
   };
   target?.addEventListener('online', retry);
+  // Android WebView can keep navigator.onLine=true when a cellular interface is
+  // enabled but has no usable route. In that state restoring Wi-Fi emits no
+  // `online` event, so a low-frequency timer is the final automatic retry signal.
+  // Empty queues return locally without a network request, and flushes are
+  // serialized, so the fallback is cheap and cannot create parallel uploads.
+  const intervalHandle = (options.setInterval ?? globalThis.setInterval)(
+    retry,
+    options.retryIntervalMs ?? DEFAULT_RETRY_INTERVAL_MS,
+  );
 
   let disposed = false;
   let appHandle: AppStateListenerHandle | null = null;
@@ -450,6 +464,7 @@ export function registerRetryTriggers(options: RetryTriggerOptions = {}): () => 
     if (disposed) return;
     disposed = true;
     target?.removeEventListener('online', retry);
+    (options.clearInterval ?? globalThis.clearInterval)(intervalHandle);
     if (appHandle) void appHandle.remove();
   };
 }
