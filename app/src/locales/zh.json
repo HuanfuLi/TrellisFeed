@@ -29,10 +29,6 @@
       "moreOptions": "更多选项"
     },
     "toast": {
-      "micPermissionDenied": "麦克风权限被拒绝。请检查应用设置。",
-      "micInUse": "麦克风正被其他应用使用。",
-      "micUnsupported": "此设备不支持录音。",
-      "micGenericError": "无法访问麦克风。请重试。",
       "restoredToTrellis": "已恢复到 QuestionTrace",
       "permanentlyDeleted": "已永久删除",
       "transcriptionMissingKey": "请在「语音合成与识别」设置中添加 API 密钥。",

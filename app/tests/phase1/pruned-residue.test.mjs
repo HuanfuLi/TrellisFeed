@@ -106,3 +106,24 @@ test('retired participant settings and feedback locale families stay deleted', (
     assert.equal(bundle.home.feed.feedbackPrompt, undefined);
   }
 });
+
+test('retired voice and notification capabilities stay absent from native shells', () => {
+  const manifest = readFileSync(resolve(appRoot, 'android/app/src/main/AndroidManifest.xml'), 'utf8');
+  const mainActivity = readFileSync(
+    resolve(appRoot, 'android/app/src/main/java/com/trellis/app/MainActivity.java'),
+    'utf8',
+  );
+  const podfileLock = readFileSync(resolve(appRoot, 'ios/App/Podfile.lock'), 'utf8');
+
+  assert.doesNotMatch(manifest, /RECORD_AUDIO|POST_NOTIFICATIONS|SCHEDULE_EXACT_ALARM/);
+  assert.doesNotMatch(mainActivity, /MIC_PERMISSION_REQUEST|RECORD_AUDIO|requestPermissions/);
+  assert.doesNotMatch(podfileLock, /CapacitorDevice|CapacitorLocalNotifications|CapacitorVoiceRecorder/);
+
+  for (const locale of ['en', 'zh', 'es', 'ja']) {
+    const bundle = JSON.parse(readFileSync(resolve(srcRoot, `locales/${locale}.json`), 'utf8'));
+    assert.equal(bundle.common.toast.micPermissionDenied, undefined);
+    assert.equal(bundle.common.toast.micInUse, undefined);
+    assert.equal(bundle.common.toast.micUnsupported, undefined);
+    assert.equal(bundle.common.toast.micGenericError, undefined);
+  }
+});

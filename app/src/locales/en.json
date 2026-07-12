@@ -29,10 +29,6 @@
       "moreOptions": "More options"
     },
     "toast": {
-      "micPermissionDenied": "Microphone permission denied. Check app settings.",
-      "micInUse": "Microphone is in use by another app.",
-      "micUnsupported": "Recording not supported on this device.",
-      "micGenericError": "Could not access microphone. Try again.",
       "restoredToTrellis": "Restored to QuestionTrace",
       "permanentlyDeleted": "Permanently deleted",
       "transcriptionMissingKey": "Add your API key in Text-to-Speech & Speech Recognition settings.",

@@ -29,10 +29,6 @@
       "moreOptions": "その他のオプション"
     },
     "toast": {
-      "micPermissionDenied": "マイクの権限が拒否されました。アプリ設定を確認してください。",
-      "micInUse": "マイクは他のアプリで使用中です。",
-      "micUnsupported": "このデバイスでは録音に対応していません。",
-      "micGenericError": "マイクにアクセスできませんでした。もう一度お試しください。",
       "restoredToTrellis": "QuestionTrace に復元しました",
       "permanentlyDeleted": "完全に削除しました",
       "transcriptionMissingKey": "「音声合成・認識」設定で API キーを追加してください。",

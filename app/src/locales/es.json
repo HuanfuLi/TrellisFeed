@@ -29,10 +29,6 @@
       "moreOptions": "Más opciones"
     },
     "toast": {
-      "micPermissionDenied": "Permiso del micrófono denegado. Revisa los ajustes de la app.",
-      "micInUse": "El micrófono está siendo usado por otra app.",
-      "micUnsupported": "La grabación no es compatible con este dispositivo.",
-      "micGenericError": "No se pudo acceder al micrófono. Inténtalo de nuevo.",
       "restoredToTrellis": "Restaurado en QuestionTrace",
       "permanentlyDeleted": "Eliminado permanentemente",
       "transcriptionMissingKey": "Agrega tu clave de API en los ajustes de Voz y Reconocimiento.",

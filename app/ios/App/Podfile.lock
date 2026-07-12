@@ -8,13 +8,7 @@ PODS:
     - SQLCipher
     - ZIPFoundation
   - CapacitorCordova (8.3.3)
-  - CapacitorDevice (8.0.2):
-    - Capacitor
   - CapacitorHaptics (8.0.1):
-    - Capacitor
-  - CapacitorLocalNotifications (8.0.2):
-    - Capacitor
-  - CapacitorVoiceRecorder (7.0.6):
     - Capacitor
   - SQLCipher (4.10.0):
     - SQLCipher/standard (= 4.10.0)
@@ -28,10 +22,7 @@ DEPENDENCIES:
   - "CapacitorApp (from `../../node_modules/@capacitor/app`)"
   - "CapacitorCommunitySqlite (from `../../node_modules/@capacitor-community/sqlite`)"
   - "CapacitorCordova (from `../../node_modules/@capacitor/ios`)"
-  - "CapacitorDevice (from `../../node_modules/@capacitor/device`)"
   - "CapacitorHaptics (from `../../node_modules/@capacitor/haptics`)"
-  - "CapacitorLocalNotifications (from `../../node_modules/@capacitor/local-notifications`)"
-  - CapacitorVoiceRecorder (from `../../node_modules/capacitor-voice-recorder`)
 
 SPEC REPOS:
   trunk:
@@ -47,27 +38,18 @@ EXTERNAL SOURCES:
     :path: "../../node_modules/@capacitor-community/sqlite"
   CapacitorCordova:
     :path: "../../node_modules/@capacitor/ios"
-  CapacitorDevice:
-    :path: "../../node_modules/@capacitor/device"
   CapacitorHaptics:
     :path: "../../node_modules/@capacitor/haptics"
-  CapacitorLocalNotifications:
-    :path: "../../node_modules/@capacitor/local-notifications"
-  CapacitorVoiceRecorder:
-    :path: "../../node_modules/capacitor-voice-recorder"
 
 SPEC CHECKSUMS:
   Capacitor: e6868a40e11989d2ba7c00f29ce6bdb3a01f29c1
   CapacitorApp: 942306cd1acf7774a00e89a3986af3a67c8cad7a
   CapacitorCommunitySqlite: b6bcd768fdd12ef1572aff962c4f128945494ebb
   CapacitorCordova: 71cde252d2c3c3e73a9586e85d2354fc8bbf0209
-  CapacitorDevice: 14cba6f88d1c3074cbf825fea977c8c526453ff8
   CapacitorHaptics: 4df2c625445cef39b67ea635a21802bc92df3b82
-  CapacitorLocalNotifications: 4db83a7f6bdd2f30dcedf5c6f92c415065467a24
-  CapacitorVoiceRecorder: 9158861be982f32d411769723a4d813d6ce46135
   SQLCipher: eb79c64049cb002b4e9fcb30edb7979bf4706dfc
   ZIPFoundation: dfd3d681c4053ff7e2f7350bc4e53b5dba3f5351
 
-PODFILE CHECKSUM: fce5deffa8d1f83b49dafccbe4ad4700f3674e38
+PODFILE CHECKSUM: 830d89fdc71a30e91280368ad68135feb3494ceb
 
 COCOAPODS: 1.16.2
