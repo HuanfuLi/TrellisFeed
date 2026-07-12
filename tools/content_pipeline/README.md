@@ -7,14 +7,15 @@ The locked pilot input is an operator-authored JSON or CSV list for **AI agents 
 ```powershell
 node src/cli.ts collect --seeds seeds.json --run-dir runs/pilot --dry-run
 node src/cli.ts collect --seeds seeds.json --run-dir runs/pilot --resume
-node src/cli.ts normalize --seeds seeds.json --run-dir runs/pilot --transcripts-dir operator/transcripts --resume
+npm run cli -- normalize --seeds seeds.json --run-dir runs/pilot --resume
+npm run cli -- preprocess --run-dir runs/pilot --provider gemini --model gemini-3.1-flash-lite --prompt-version phase-2-video-url-v1 --schema-version preprocessed-post-v1 --max-concurrency 1 --spend-limit 25 --resume
 ```
 
 `collect` supports `--topic`, `--seeds`, `--run-dir`, `--max-candidates`, `--max-bytes`, `--timeout-ms`, `--resume`, and `--dry-run`. The default pilot topic is capped at 150. An explicitly named later topic may raise the safety cap to at most 800 without changing stage contracts. Dry-run validates and reports source mix/date signals while making zero network or subprocess calls.
 
 Every request and redirect destination is DNS-resolved and checked against the public HTTP(S)-only policy. Credentials in URLs, local/private/link-local/multicast/unspecified destinations, excessive redirects, unexpected MIME, oversized bodies, and timeouts fail closed. Run artifacts stay below the resolved run directory; query values and failed response bodies are not written to logs or failure artifacts.
 
-`normalize` deterministically pairs the sorted operator seed list with the numbered raw collection artifacts. HTML articles pass through the inert Readability extractor. YouTube candidates advance only when `--transcripts-dir` contains a matching `<video-id>.txt` operator transcript; otherwise a reason-coded, body-free artifact is written under `normalize-failures/` and the candidate remains resumable. URLs containing credential-like query keys are rejected before normalized provenance is persisted.
+`normalize` deterministically pairs the sorted operator seed list with the numbered raw collection artifacts. HTML articles pass through the inert Readability extractor. YouTube candidates retain only a canonical public `youtube.com/watch` URL, video ID, and safe metadata; they do not require or store a transcript. The Gemini preprocessing request attaches that exact URL with the official `fileData.fileUri` shape and produces the strict wrapper/digest. URLs containing credential-like query keys are rejected before normalized provenance is persisted.
 
 ## Preprocessing credentials
 
@@ -28,7 +29,7 @@ GEMINI_API_KEY=replace-with-a-newly-rotated-key
 
 Environment variables already present in the launching process take precedence over values in `.env.local`. Never put credentials in seeds, run artifacts, source control, command arguments, or chat.
 
-The credential authorizes only the live preprocessing request that converts normalized source text into the permanent hook, summaries, concepts, claims, stance, difficulty, and suggested questions. It is not used for URL collection, Codex CLI authentication, human approval, or freeze. The key is read from memory and must never be placed in seeds, run artifacts, source control, command arguments, or chat.
+The credential authorizes the live preprocessing request that converts article text or the fixed public YouTube URL into the permanent hook, summaries, concepts, claims, stance, difficulty, and suggested questions. It is not used for URL collection, Codex CLI authentication, human approval, or freeze. The key is read from memory and must never be placed in seeds, run artifacts, source control, command arguments, or chat.
 
 Alternatively, for a one-session PowerShell environment without writing a file or echoing the key:
 
@@ -42,6 +43,8 @@ Remove-Item Env:OPENAI_API_KEY
 
 Use the provider's current documented model identifier and set a deliberate spend limit. The run directory must already contain normalized candidates.
 
-## YouTube transcript boundary
+## YouTube URL boundary
 
-The pipeline accepts only an explicitly configured transcript adapter or an operator transcript file with a documented rights basis. YouTube's public **Show transcript** feature permits viewing caption text, but the official Data API caption-download method requires authorization to edit the video. Do not use unofficial endpoints, access-control bypasses, or implicit downloader binaries. A visible transcript does not by itself authorize bundling and redisplaying the complete transcript; unresolved candidates stay resumable and are rejected at the rights gate.
+The pipeline never downloads or stores a YouTube transcript, audio, or video. It sends one validated public URL per request through Gemini's official video-understanding input, pins `gemini-3.1-flash-lite` (the API rejected 2.5 Flash-Lite as unavailable to new users on 2026-07-12), starts at concurrency 1, and writes one atomic resumable result per candidate. Free-tier preparation may be spread across days; rerun the same command with `--resume`. Runtime Ask uses only the open frozen post's exact URL and falls back to its approved digest if live video understanding fails. The participant cannot supply or substitute a URL.
+
+`.env.local` is operator-only and is never packaged into the mobile app. The current research-prototype runtime uses the existing configured Gemini provider credential in Settings; if it is absent or a non-Gemini provider is selected, video Ask fails over to the frozen digest without sending the URL. A deployment-controlled proxy may replace this provider seam later without changing the frozen content or condition-neutral Ask contract.

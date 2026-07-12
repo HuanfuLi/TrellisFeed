@@ -402,6 +402,8 @@ If the user asks unrelated questions, the system should gently redirect:
 
 > This research version focuses on the current post and topic. You can ask about the post's concepts, examples, evidence, or related viewpoints.
 
+For an approved video post, preprocessing uses Gemini's official public-YouTube-URL video input to create the frozen wrapper/digest. During a participant's on-topic Ask, the shared condition-neutral Q&A path may send only that post's already-frozen canonical YouTube URL to Gemini for live video understanding. If live understanding fails, the same request falls back to the frozen approved digest. The participant cannot supply, search for, or substitute a URL, and no transcript, audio, or video copy is stored.
+
 ### 7.7 Knowledge graph visibility
 
 Do **not** expose the full knowledge graph in the first main study.
@@ -434,7 +436,7 @@ Avoid full editable mind maps.
 
 ### 8.1 Why a fixed content pool
 
-The study should not rely on live web search or live YouTube API during participant usage.
+The study should not rely on live web search, YouTube discovery, or mutable remote content selection during participant usage. The bounded exception is live Gemini understanding of the already-frozen post's fixed public YouTube URL when the participant asks about that video; it is identical in both conditions and falls back to the frozen digest.
 
 Reasons:
 
@@ -511,8 +513,8 @@ Pipeline:
 2. Source list creation
 3. Raw content collection
 4. Metadata extraction
-5. Transcript/text extraction
-6. AI preprocessing
+5. Article text extraction or fixed YouTube URL/ID validation
+6. AI preprocessing (including official Gemini YouTube URL understanding)
 7. Deduplication
 8. Quality scoring
 9. Human review
@@ -530,7 +532,7 @@ For each raw item, collect:
 - title;
 - publication date;
 - thumbnail if allowed;
-- transcript or article text;
+- full article text, or for video the fixed public YouTube URL/video ID (no stored transcript/audio/video);
 - excerpt;
 - language;
 - estimated duration/length;
@@ -559,6 +561,8 @@ AI should produce:
 - topic relevance;
 - safety concerns;
 - content warnings if necessary.
+
+For video candidates, use pinned `gemini-3.1-flash-lite` with the official YouTube URL media part (`gemini-2.5-flash-lite` was unavailable to this new API project during the 2026-07-12 pilot run). Persist only the validated structured wrapper/digest, URL/ID, and model/prompt/schema provenance. Runs use bounded concurrency and resumable artifacts so preparation can be spread across daily free-tier quotas. Article preprocessing continues to use the extracted article text path.
 
 ### 8.7 Human review
 
