@@ -33,7 +33,7 @@ test('hostile stored article markup executes through the renderer as escaped tex
   }
 });
 
-test('online video and offline transcript fallback execute from the same stored asset', async () => {
+test('online video and offline reviewed digest fallback execute from the same stored asset', async () => {
   const server = await createServer({ server: { middlewareMode: true }, appType: 'custom', logLevel: 'silent' });
   const priorNavigator = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
   try {
@@ -45,7 +45,7 @@ test('online video and offline transcript fallback execute from the same stored 
       qualityScore: 1, interestingnessScore: 1, educationalValueScore: 1, difficulty: 1,
       conceptIds: [], claimIds: [], suggestedQuestionIds: [], status: 'frozen',
     };
-    const asset = { postId: post.id, kind: 'video', sourceUrl: post.sourceUrl, transcript: 'Stored transcript', sha256: 'b'.repeat(64) };
+    const asset = { postId: post.id, kind: 'video', sourceUrl: post.sourceUrl, videoId: 'abc123', digest: 'Reviewed frozen digest', sha256: 'b'.repeat(64) };
     const props = { post, asset, onSourceClick() {}, onVideoPlay() {}, onVideoProgress() {} };
 
     Object.defineProperty(globalThis, 'navigator', { value: { onLine: true }, configurable: true });
@@ -54,8 +54,8 @@ test('online video and offline transcript fallback execute from the same stored 
 
     Object.defineProperty(globalThis, 'navigator', { value: { onLine: false }, configurable: true });
     const offline = renderToStaticMarkup(React.createElement(OriginalContent, props));
-    assert.match(offline, /Video unavailable - showing transcript/);
-    assert.match(offline, /Stored transcript/);
+    assert.match(offline, /Video unavailable - showing reviewed summary/);
+    assert.match(offline, /Reviewed frozen digest/);
     assert.match(offline, /Stored summary/);
     assert.doesNotMatch(offline, /<iframe/);
   } finally {
@@ -79,10 +79,10 @@ test('YouTube is the only embedded remote content and uses selected parameters',
   assert.match(source, /onError/);
 });
 
-test('offline and player errors expose canonical transcript fallback', () => {
+test('offline and player errors expose canonical reviewed digest fallback', () => {
   assert.match(source, /navigator\.onLine/);
-  assert.match(source, /asset\.transcript/);
-  assert.match(source, /Video unavailable - showing transcript/);
+  assert.match(source, /asset\.digest/);
+  assert.match(source, /Video unavailable - showing reviewed summary/);
   assert.match(source, /100|101|150|153/);
 });
 

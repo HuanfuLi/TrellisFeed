@@ -171,12 +171,10 @@ test('YouTube transcript failure is explicit/resumable and operator transcript t
   assert.equal(extracted.extractionMethod, 'operator-transcript-file');
 });
 
-test('normalize CLI turns collected articles into stable candidates and keeps videos resumable until an operator transcript exists', async () => {
+test('normalize CLI turns articles into text candidates and videos into fixed URL candidates without transcripts', async () => {
   const runDir = await mkdtemp(join(tmpdir(), 'qt-normalize-'));
   const seeds = join(runDir, 'seeds.json');
-  const transcripts = join(runDir, 'operator-transcripts');
   await mkdir(join(runDir, 'raw'), { recursive: true });
-  await mkdir(transcripts, { recursive: true });
   await writeFile(seeds, JSON.stringify([
     { url: 'https://example.com/article' },
     { url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' },
@@ -192,27 +190,23 @@ test('normalize CLI turns collected articles into stable candidates and keeps vi
     status: 'collected', mimeType: 'text/html', rawBody: '<html><title>Video</title></html>',
   }));
 
-  const parsed = parseNormalizeArgs(['normalize', '--run-dir', runDir, '--seeds', seeds, '--transcripts-dir', transcripts, '--resume']);
+  const parsed = parseNormalizeArgs(['normalize', '--run-dir', runDir, '--seeds', seeds, '--resume']);
   assert.equal(parsed.runDir, runDir);
   assert.equal(parsed.resume, true);
   const first = await normalizeRunDirectory(parsed);
-  assert.deepEqual(first, { candidates: 2, normalized: 1, failed: 1, operatorTranscriptsUsed: 0 });
+  assert.deepEqual(first, { candidates: 2, normalized: 2, failed: 0, operatorTranscriptsUsed: 0 });
   const article = JSON.parse(await readFile(join(runDir, 'normalized', '0000.json'), 'utf8'));
   assert.equal(article.kind, 'article');
   assert.equal(article.title, 'Agents at Work');
   assert.ok(article.fullText.includes('retain oversight'));
-  const videoFailure = JSON.parse(await readFile(join(runDir, 'normalize-failures', '0001.json'), 'utf8'));
-  assert.equal(videoFailure.reasonCode, 'operator_transcript_required');
-  assert.equal(JSON.stringify(videoFailure).includes('rawBody'), false);
-
-  await writeFile(join(transcripts, 'dQw4w9WgXcQ.txt'), 'Verified operator transcript about agents and the future of work.');
-  const resumed = await normalizeRunDirectory(parsed);
-  assert.deepEqual(resumed, { candidates: 2, normalized: 2, failed: 0, operatorTranscriptsUsed: 1 });
   const video = JSON.parse(await readFile(join(runDir, 'normalized', '0001.json'), 'utf8'));
   assert.equal(video.kind, 'video');
   assert.equal(video.videoId, 'dQw4w9WgXcQ');
-  assert.equal(video.extractionMethod, 'operator-transcript-file');
-  await assert.rejects(readFile(join(runDir, 'normalize-failures', '0001.json')), /ENOENT/);
+  assert.equal(video.canonicalUrl, 'https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+  assert.equal(video.extractionMethod, 'gemini-youtube-url');
+  assert.equal(video.fullText, '');
+  assert.equal(JSON.stringify(video).toLowerCase().includes('transcript'), false);
+  assert.deepEqual(video.blocks.map((block) => block.id), ['video:dQw4w9WgXcQ']);
 });
 
 test('normalize CLI dispatcher forwards only the parsed run, seed, transcript, and resume options', async () => {
