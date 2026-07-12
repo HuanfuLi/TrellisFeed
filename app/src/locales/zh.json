@@ -102,8 +102,8 @@
     },
     "feed": {
       "creditToast": "+1 积分已获得!",
-      "emptyTitle": "今天没有新内容",
-      "emptyBody": "稍后再来看看有没有新概念可以探索。",
+      "emptyTitle": "未找到帖子",
+      "emptyBody": "当前信息流中没有可用的帖子。",
       "suggestionTitle": "你可能还感兴趣",
       "loadingTitle": "正在生成你的动态...",
       "generationErrorTitle": "无法生成内容",
@@ -468,6 +468,10 @@
       "connectionLabel": "关联",
       "discoverContextLabel": "概念发现",
       "discoverHookPreview": "探索 {{concept}}…",
+      "videoUnavailable": "视频不可用 - 正在显示文字稿",
+      "originalSource": "打开原始来源",
+      "seenEnough": "已看够",
+      "suggestedQuestions": "建议问题",
       "deepDive": {
         "cta": "深入了解这个概念",
         "restoreStandard": "恢复标准版",

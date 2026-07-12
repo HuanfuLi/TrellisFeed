@@ -102,8 +102,8 @@
     },
     "feed": {
       "creditToast": "+1 クレジット獲得!",
-      "emptyTitle": "今日は新しいものはありません",
-      "emptyBody": "後で新しいコンセプトを探しに来てください。",
+      "emptyTitle": "投稿が見つかりません",
+      "emptyBody": "現在のフィードには利用できる投稿がありません。",
       "suggestionTitle": "こちらもおすすめ",
       "loadingTitle": "フィードを生成中...",
       "generationErrorTitle": "投稿を生成できませんでした",
@@ -468,6 +468,10 @@
       "connectionLabel": "つながり",
       "discoverContextLabel": "概念の発見",
       "discoverHookPreview": "{{concept}} を探索中…",
+      "videoUnavailable": "動画を利用できません - 文字起こしを表示しています",
+      "originalSource": "元のソースを開く",
+      "seenEnough": "十分に見た",
+      "suggestedQuestions": "おすすめの質問",
       "deepDive": {
         "cta": "この概念を深く掘り下げる",
         "restoreStandard": "標準に戻す",

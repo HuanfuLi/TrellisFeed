@@ -102,8 +102,8 @@
     },
     "feed": {
       "creditToast": "+1 credit earned!",
-      "emptyTitle": "Nothing new today",
-      "emptyBody": "Check back later for fresh concepts to explore.",
+      "emptyTitle": "No posts found",
+      "emptyBody": "There are no posts available in the current feed.",
       "suggestionTitle": "You may also like",
       "loadingTitle": "Growing your feed...",
       "generationErrorTitle": "Couldn't generate posts",
@@ -468,6 +468,10 @@
       "connectionLabel": "Connection",
       "discoverContextLabel": "Concept Discovery",
       "discoverHookPreview": "Exploring {{concept}}...",
+      "videoUnavailable": "Video unavailable - showing transcript",
+      "originalSource": "Open original source",
+      "seenEnough": "Seen enough",
+      "suggestedQuestions": "Suggested questions",
       "deepDive": {
         "cta": "Deep dive into this concept",
         "restoreStandard": "Restore standard",

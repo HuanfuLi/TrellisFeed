@@ -102,8 +102,8 @@
     },
     "feed": {
       "creditToast": "+1 credito ganado!",
-      "emptyTitle": "Nada nuevo hoy",
-      "emptyBody": "Vuelve mas tarde para explorar nuevos conceptos.",
+      "emptyTitle": "No se encontraron publicaciones",
+      "emptyBody": "No hay publicaciones disponibles en el feed actual.",
       "suggestionTitle": "Quizas te interese",
       "loadingTitle": "Generando tu feed...",
       "generationErrorTitle": "No se pudieron generar publicaciones",
@@ -468,6 +468,10 @@
       "connectionLabel": "Conexión",
       "discoverContextLabel": "Descubrir concepto",
       "discoverHookPreview": "Explorando {{concept}}…",
+      "videoUnavailable": "Video no disponible - mostrando la transcripción",
+      "originalSource": "Abrir fuente original",
+      "seenEnough": "Ya he visto suficiente",
+      "suggestedQuestions": "Preguntas sugeridas",
       "deepDive": {
         "cta": "Profundiza en este concepto",
         "restoreStandard": "Restaurar estándar",

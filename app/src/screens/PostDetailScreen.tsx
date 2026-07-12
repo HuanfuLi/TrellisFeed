@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { ChatInput } from '../components/ChatInput';
 import { ChatMessage } from '../components/ChatMessage';
 import { OriginalContent } from '../components/OriginalContent';
+import { SuggestedQuestionList } from '../components/SuggestedQuestionList';
 import { Header, HEADER_HEIGHT } from '../components/ui/Header';
 import type { Concept, OriginalContentAsset, Post, SuggestedQuestion } from '../domain/content.types';
 import type { SessionMessage } from '../types';
@@ -218,6 +219,8 @@ export function PostDetailScreen() {
         <OriginalContent
           post={post}
           asset={detail.asset}
+          fallbackNotice={t('posts.detail.videoUnavailable')}
+          sourceLinkLabel={t('posts.detail.originalSource')}
           onSourceClick={(postId) => { void interactionLog.record('source_click', { postId }).catch(() => { /* observational */ }); }}
           onVideoPlay={(postId) => { void interactionLog.record('video_play', { postId }).catch(() => { /* observational */ }); }}
           onVideoProgress={(postId, durationMs) => { void interactionLog.record('video_progress', { postId, durationMs }).catch(() => { /* observational */ }); }}
@@ -228,12 +231,21 @@ export function PostDetailScreen() {
         <section style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '8px' }}>
           <button type="button" onClick={toggleSaved} style={{ minHeight: '44px', border: '1px solid var(--border)', borderRadius: 'var(--radius-xl)', background: 'var(--secondary)', color: 'var(--foreground)', cursor: 'pointer' }}><Bookmark aria-hidden="true" size={16} /> {isSaved ? t('engagement.menu.unsave') : t('engagement.menu.save')}</button>
           <button type="button" onClick={() => { engagementService.dismissPost(post.id); navigate(-1); }} style={{ minHeight: '44px', border: '1px solid var(--border)', borderRadius: 'var(--radius-xl)', background: 'var(--secondary)', color: 'var(--foreground)', cursor: 'pointer' }}><MessageSquareOff aria-hidden="true" size={16} /> {t('engagement.menu.dismiss')}</button>
-          <button type="button" onClick={() => { if (primaryConceptId) emitExplored(primaryConceptId); }} style={{ minHeight: '44px', border: '1px solid var(--border)', borderRadius: 'var(--radius-xl)', background: 'var(--secondary)', color: 'var(--foreground)', cursor: 'pointer' }}><Check aria-hidden="true" size={16} /> Seen enough</button>
+          <button type="button" onClick={() => { if (primaryConceptId) emitExplored(primaryConceptId); }} style={{ minHeight: '44px', border: '1px solid var(--border)', borderRadius: 'var(--radius-xl)', background: 'var(--secondary)', color: 'var(--foreground)', cursor: 'pointer' }}><Check aria-hidden="true" size={16} /> {t('posts.detail.seenEnough')}</button>
         </section>
 
         <section style={{ borderRadius: 'var(--radius-xl)', border: '1px solid var(--border)', background: 'var(--secondary)', overflow: 'hidden' }}>
           <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <h2 style={{ margin: 0, fontSize: '20px', lineHeight: 1.2, fontWeight: 600 }}>{t('posts.qa.heading')}</h2>
+            <SuggestedQuestionList
+              suggestions={detail.suggestions}
+              heading={t('posts.detail.suggestedQuestions')}
+              disabled={Boolean(qaStreaming)}
+              onSelect={(suggestion) => {
+                void interactionLog.record('question_suggestion_click', { postId: post.id, questionId: suggestion.id }).catch(() => { /* observational */ });
+                void handleAsk(suggestion.text, 'suggested_question', suggestion.id);
+              }}
+            />
           </div>
           <div style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {messages.map((message) => <ChatMessage key={message.id} messageId={message.id} type={message.type} content={message.content} relatedKnowledge={message.relatedKnowledge} />)}
