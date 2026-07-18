@@ -4,21 +4,24 @@ import test from 'node:test';
 
 const source = readFileSync(new URL('../../src/screens/HomeScreen.tsx', import.meta.url), 'utf8');
 
-test('Home reads only the condition-neutral frozen feed and concept labels', () => {
-  assert.match(source, /frozenFeedService\.getFeed\(\)/);
-  assert.match(source, /frozenFeedService\.getConcepts\(post\.id\)/);
+test('Home orders from recommendations while resolving immutable frozen posts and concept labels', () => {
+  assert.match(source, /recommendationService/);
+  assert.match(source, /feed\.getPostById\(recommendation\.postId\)/);
+  assert.match(source, /feed\.getConcepts\(post\.id\)/);
+  assert.doesNotMatch(source, /frozenFeedService\.getFeed\(\)/);
   assert.doesNotMatch(source, /conceptFeedService|postQueueService|infiniteScrollService|useQuestions|studyCondition/);
 });
 
 test('always-mounted Home rereads on each return to /home', () => {
   assert.match(source, /if \(location\.pathname !== '\/home'\) return/);
-  assert.match(source, /\[location\.pathname, readFrozenFeed\]/);
+  assert.match(source, /\[location\.pathname, readRecommendationFeed\]/);
 });
 
-test('Home logs each visible frozen batch once per semantic exposure', () => {
-  assert.match(source, /visibleBatchRef/);
-  assert.match(source, /interactionLog\.record\('feed_impression'\)/);
-  assert.match(source, /visibleBatchRef\.current = null/);
+test('Home logs each recommendation impression once per retained session', () => {
+  assert.match(source, /seenRecommendationIdsRef/);
+  assert.match(source, /recordRecommendationImpressions/);
+  assert.match(source, /postId: recommendation\.postId/);
+  assert.match(source, /recommendationId: recommendation\.id/);
 });
 
 test('Home keeps direction slop before claiming the pull gesture', () => {

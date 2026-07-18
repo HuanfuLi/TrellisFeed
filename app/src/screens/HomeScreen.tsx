@@ -4,71 +4,164 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { MasonryFeed } from '../components/MasonryFeed';
 import { ScrollToTopFAB } from '../components/ScrollToTopFAB';
-import type { Post } from '../domain/content.types';
+import type { Post, Recommendation } from '../domain/content.types';
+import type { RecommendationBatch } from '../domain/graph.types';
 import { getGreeting } from '../lib/date';
 import { eventBus } from '../lib/event-bus';
 import { frozenFeedService } from '../services/frozen-feed.service';
 import { interactionLog } from '../services/interaction-log.service';
+import { recommendationService } from '../services/recommendation.service';
+import type { ServiceResult } from '../types';
 
 /** Resolve vertical intent before claiming a WKWebView touch sequence. */
 const DIRECTION_SLOP = 4;
 const PULL_THRESHOLD = 72;
 
-interface FrozenFeedView {
-  posts: Readonly<Post>[];
-  conceptLabelsByPostId: Map<string, readonly string[]>;
+export interface RecommendationFeedItem {
+  recommendation: Readonly<Recommendation>;
+  post: Readonly<Post>;
+  conceptLabels: readonly string[];
 }
 
-const emptyFeed = (): FrozenFeedView => ({ posts: [], conceptLabelsByPostId: new Map() });
+interface RecommendationFeedServiceReader {
+  beginSession(sessionId?: string): Promise<ServiceResult<RecommendationBatch>>;
+  nextBatch(sessionId: string): Promise<ServiceResult<RecommendationBatch>>;
+  currentSessionItems(sessionId: string): Promise<ServiceResult<Recommendation[]>>;
+}
+
+interface FrozenPostReader {
+  getPostById(postId: string): Readonly<Post> | null;
+  getConcepts(postId: string): ReadonlyArray<{ label: string }>;
+}
+
+interface LoadRecommendationFeedInput {
+  sessionId: string | null;
+  append: boolean;
+  recommendationService: RecommendationFeedServiceReader;
+  frozenFeedService: FrozenPostReader;
+}
+
+interface LoadedRecommendationFeed {
+  sessionId: string;
+  items: RecommendationFeedItem[];
+}
+
+type ImpressionRecorder = (
+  eventType: 'feed_impression',
+  fields: Pick<Recommendation, 'postId'> & { recommendationId: string },
+) => Promise<unknown>;
+
+interface RecommendationFeedView {
+  status: 'loading' | 'ready';
+  items: RecommendationFeedItem[];
+}
+
+const emptyFeed = (status: RecommendationFeedView['status'] = 'loading'): RecommendationFeedView => ({
+  status,
+  items: [],
+});
+
+export async function loadRecommendationFeed({
+  sessionId,
+  append,
+  recommendationService: service,
+  frozenFeedService: feed,
+}: LoadRecommendationFeedInput): Promise<LoadedRecommendationFeed> {
+  const batchResult = append && sessionId
+    ? await service.nextBatch(sessionId)
+    : await service.beginSession(sessionId ?? undefined);
+  if (!batchResult.success || !batchResult.data) {
+    throw new Error(batchResult.error?.message ?? 'Recommendation batch is unavailable.');
+  }
+
+  const activeSessionId = batchResult.data.sessionId;
+  const itemsResult = await service.currentSessionItems(activeSessionId);
+  if (!itemsResult.success || !itemsResult.data) {
+    throw new Error(itemsResult.error?.message ?? 'Recommendation items are unavailable.');
+  }
+
+  const items = itemsResult.data.map((recommendation) => {
+    const post = feed.getPostById(recommendation.postId);
+    if (!post) throw new Error(`Recommended post is unavailable: ${recommendation.postId}`);
+    return {
+      recommendation,
+      post,
+      conceptLabels: feed.getConcepts(post.id).map((concept) => concept.label),
+    };
+  });
+  return { sessionId: activeSessionId, items };
+}
+
+export async function recordRecommendationImpressions(
+  items: readonly Pick<RecommendationFeedItem, 'recommendation'>[],
+  seenRecommendationIds: Set<string>,
+  record: ImpressionRecorder,
+): Promise<void> {
+  const pending = items.filter(({ recommendation }) => {
+    if (seenRecommendationIds.has(recommendation.id)) return false;
+    seenRecommendationIds.add(recommendation.id);
+    return true;
+  });
+  await Promise.all(pending.map(({ recommendation }) => record('feed_impression', {
+    postId: recommendation.postId,
+    recommendationId: recommendation.id,
+  })));
+}
 
 export function HomeScreen() {
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
-  const visibleBatchRef = useRef<string | null>(null);
-  const [feed, setFeed] = useState<FrozenFeedView>(emptyFeed);
+  const sessionIdRef = useRef<string | null>(null);
+  const loadInFlightRef = useRef(false);
+  const seenRecommendationIdsRef = useRef(new Set<string>());
+  const [feed, setFeed] = useState<RecommendationFeedView>(emptyFeed);
 
-  const readFrozenFeed = useCallback(() => {
+  const readRecommendationFeed = useCallback(async (append = false) => {
+    if (loadInFlightRef.current) return;
+    loadInFlightRef.current = true;
     try {
-      const posts = frozenFeedService.getFeed();
-      const conceptLabelsByPostId = new Map<string, readonly string[]>();
-      for (const post of posts) {
-        conceptLabelsByPostId.set(post.id, frozenFeedService.getConcepts(post.id).map((concept) => concept.label));
-      }
-      setFeed({ posts, conceptLabelsByPostId });
+      const loaded = await loadRecommendationFeed({
+        sessionId: sessionIdRef.current,
+        append,
+        recommendationService,
+        frozenFeedService,
+      });
+      sessionIdRef.current = loaded.sessionId;
+      setFeed({ status: 'ready', items: loaded.items });
     } catch {
-      setFeed(emptyFeed());
+      setFeed(emptyFeed('ready'));
+    } finally {
+      loadInFlightRef.current = false;
     }
   }, []);
 
   // Home is an always-mounted swipe slot: explicitly re-read on every return.
   useEffect(() => {
     if (location.pathname !== '/home') return;
-    readFrozenFeed();
-  }, [location.pathname, readFrozenFeed]);
+    if (!sessionIdRef.current) setFeed(emptyFeed('loading'));
+    void readRecommendationFeed();
+  }, [location.pathname, readRecommendationFeed]);
 
   useEffect(() => {
-    if (location.pathname !== '/home') {
-      visibleBatchRef.current = null;
-      return;
-    }
-    if (feed.posts.length === 0) return;
-    const batchId = feed.posts.map((post) => post.id).join('\u001f');
-    if (visibleBatchRef.current === batchId) return;
-    visibleBatchRef.current = batchId;
-    void interactionLog.record('feed_impression').catch(() => { /* observational */ });
-  }, [feed.posts, location.pathname]);
+    if (location.pathname !== '/home' || feed.status !== 'ready') return;
+    void recordRecommendationImpressions(
+      feed.items,
+      seenRecommendationIdsRef.current,
+      interactionLog.record,
+    ).catch(() => { /* observational */ });
+  }, [feed.items, feed.status, location.pathname]);
 
   useEffect(() => {
     const unsubscribe = eventBus.subscribe('ENGAGEMENT_CHANGED', () => {
-      if (location.pathname === '/home') readFrozenFeed();
+      if (location.pathname === '/home') void readRecommendationFeed();
     });
     return unsubscribe;
-  }, [location.pathname, readFrozenFeed]);
+  }, [location.pathname, readRecommendationFeed]);
 
   // Retain the proven direction-slop shape. Pulling at the bottom only re-reads
-  // the immutable local pool; it never starts generation or network acquisition.
+  // the next persisted recommendation batch; it never starts remote acquisition.
   useEffect(() => {
     const element = containerRef.current;
     if (!element) return;
@@ -99,7 +192,7 @@ export function HomeScreen() {
       currentPull = Math.max(0, dy);
     };
     const onTouchEnd = () => {
-      if (tracking && claimed && currentPull >= PULL_THRESHOLD) readFrozenFeed();
+      if (tracking && claimed && currentPull >= PULL_THRESHOLD) void readRecommendationFeed(true);
       tracking = false;
       claimed = false;
       currentPull = 0;
@@ -115,7 +208,12 @@ export function HomeScreen() {
       element.removeEventListener('touchend', onTouchEnd);
       element.removeEventListener('touchcancel', onTouchEnd);
     };
-  }, [readFrozenFeed]);
+  }, [readRecommendationFeed]);
+
+  const posts = feed.items.map((item) => item.post);
+  const conceptLabelsByPostId = new Map(
+    feed.items.map((item) => [item.post.id, item.conceptLabels] as const),
+  );
 
   return (
     <>
@@ -128,14 +226,16 @@ export function HomeScreen() {
             </button>
           </div>
 
-          {feed.posts.length === 0 ? (
+          {feed.status === 'loading' ? (
+            <section aria-busy="true" style={{ minHeight: '240px' }} />
+          ) : feed.items.length === 0 ? (
             <section style={{ minHeight: '240px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '24px', textAlign: 'center', borderRadius: 'var(--radius-xl)', background: 'var(--secondary)' }}>
               <FileQuestion aria-hidden="true" size={32} color="var(--muted-foreground)" />
               <h2 style={{ margin: 0, fontSize: '20px', lineHeight: 1.2, fontWeight: 600 }}>{t('home.feed.emptyTitle')}</h2>
               <p style={{ margin: 0, fontSize: '16px', lineHeight: 1.5, color: 'var(--muted-foreground)' }}>{t('home.feed.emptyBody')}</p>
             </section>
           ) : (
-            <MasonryFeed posts={feed.posts} conceptLabelsByPostId={feed.conceptLabelsByPostId} onOpenPost={(postId) => navigate(`/posts/${postId}`)} />
+            <MasonryFeed posts={posts} conceptLabelsByPostId={conceptLabelsByPostId} onOpenPost={(postId) => navigate(`/posts/${postId}`)} />
           )}
         </main>
       </div>

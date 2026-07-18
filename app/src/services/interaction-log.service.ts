@@ -34,7 +34,7 @@ interface InteractionLogDependencies {
 
 const EVENT_FIELDS: Record<InteractionEventType, readonly EventField[]> = {
   app_open: [],
-  feed_impression: [],
+  feed_impression: ['postId', 'recommendationId'],
   post_open: ['postId'],
   post_close: ['postId', 'durationMs'],
   source_click: ['postId'],
