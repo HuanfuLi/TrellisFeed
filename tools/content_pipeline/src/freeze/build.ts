@@ -1,11 +1,12 @@
 import { createHash } from 'node:crypto';
 import { access, mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
+import { compileGlobalGraph, type ConceptRelationInput, type EmbeddingBuildConfig } from '../graph/build.ts';
 import { validateFrozenPoolBundle } from '../schema/validate.ts';
 import { loadReviewQueue, type ReviewCandidate, type ReviewDecision } from '../review/store.ts';
 import { verifyFrozenPool } from './verify.ts';
 
-export type FreezeInput = { runDir: string; output: string; version: string };
+export type FreezeInput = { runDir: string; output: string; version: string; embedding?: EmbeddingBuildConfig };
 export type FreezeAudit = { candidateId: string; contentHash: string; codexVerdictHash: string; operatorDecisionSequence: number; frozenPostSha256: string };
 
 const RUNTIME_FILES = ['topics.json', 'posts.json', 'concepts.json', 'claims.json', 'suggested_questions.json', 'source_assets.json'] as const;
@@ -76,6 +77,19 @@ function project(candidates: ReviewCandidate[], version: string) {
     if (!result) throw new Error(`unknown concept label ${label}`); return result.id;
   };
   const concepts = [...conceptsByLabel.values()].sort((a, b) => a.id.localeCompare(b.id));
+  const relationLabels = new Map<string, { related: Set<string>; prerequisite: Set<string> }>();
+  for (const candidate of candidates) for (const concept of candidate.draft.concepts) {
+    const id = conceptId(concept.label);
+    const collected = relationLabels.get(id) ?? { related: new Set<string>(), prerequisite: new Set<string>() };
+    for (const label of concept.relatedConceptLabels) collected.related.add(label);
+    for (const label of concept.prerequisiteConceptLabels) collected.prerequisite.add(label);
+    relationLabels.set(id, collected);
+  }
+  const conceptRelations: ConceptRelationInput[] = [...relationLabels].sort(([left], [right]) => left.localeCompare(right)).map(([id, labels]) => ({
+    conceptId: id,
+    relatedConceptLabels: [...labels.related].sort(),
+    prerequisiteConceptLabels: [...labels.prerequisite].sort(),
+  }));
   const posts: any[] = []; const claims: any[] = []; const suggestedQuestions: any[] = []; const sourceAssets: any[] = [];
   for (const candidate of candidates.sort((a, b) => a.id.localeCompare(b.id))) {
     const postId = safeSegment(candidate.id, 'candidate id'); const decision = approvalFor(candidate);
@@ -113,7 +127,7 @@ function project(candidates: ReviewCandidate[], version: string) {
     });
   }
   const topics = [{ id: topicId, name: 'AI agents & future work', shortDescription: 'How AI agents may reshape work, organizations, and human roles.', hooks: posts.map((post) => post.hook).slice(0, 50), coreConceptIds: concepts.map((concept) => concept.id), testRubricId: 'ai-agents-future-work-v1', contentPoolVersion: version }];
-  return { topics, posts, concepts, claims, suggestedQuestions, sourceAssets };
+  return { topics, posts, concepts, conceptRelations, claims, suggestedQuestions, sourceAssets };
 }
 
 export async function atomicPromotePool(staging: string, destination: string): Promise<void> {
@@ -139,9 +153,17 @@ export async function buildFrozenPool(input: FreezeInput) {
     for (const candidate of candidates) approvalFor(candidate);
     assertNoSecrets(candidates);
     const projected = project(candidates, input.version);
+    const graph = await compileGlobalGraph({
+      posts: projected.posts,
+      concepts: projected.concepts,
+      conceptRelations: projected.conceptRelations,
+      claims: projected.claims,
+      suggestedQuestions: projected.suggestedQuestions,
+    }, input.embedding);
     const texts: Record<string, string> = {
       'topics.json': jsonText(projected.topics), 'posts.json': jsonText(projected.posts), 'concepts.json': jsonText(projected.concepts),
       'claims.json': jsonText(projected.claims), 'suggested_questions.json': jsonText(projected.suggestedQuestions), 'source_assets.json': jsonText(projected.sourceAssets),
+      'sources.json': jsonText(graph.sources), 'global_edges.json': jsonText(graph.globalEdges), 'ranking_features.json': jsonText(graph.rankingFeatures),
     };
     const hashes = Object.fromEntries(RUNTIME_FILES.map((filename) => [filename, sha256(texts[filename])]));
     const decisions = candidates.map(approvalFor);
@@ -159,11 +181,17 @@ export async function buildFrozenPool(input: FreezeInput) {
       counts: { topics: projected.topics.length, posts: projected.posts.length, concepts: projected.concepts.length, claims: projected.claims.length, suggestedQuestions: projected.suggestedQuestions.length, sourceAssets: projected.sourceAssets.length },
       artifactHashes: hashes, feedOrderPostIds: projected.posts.map((post) => post.id), fixedFilenames: [], bundleFileHashes: {},
     };
-    const validation = validateFrozenPoolBundle({ manifest, ...projected });
+    const validation = validateFrozenPoolBundle({
+      manifest,
+      topics: projected.topics,
+      posts: projected.posts,
+      concepts: projected.concepts,
+      claims: projected.claims,
+      suggestedQuestions: projected.suggestedQuestions,
+      sourceAssets: projected.sourceAssets,
+    });
     if (!validation.valid) throw new Error(`frozen pool projection invalid: ${validation.errors.map((error) => `${error.path} ${error.message}`).join('; ')}`);
     for (const [filename, text] of Object.entries(texts)) await writeFile(ensureInside(staging, filename), text, { flag: 'wx' });
-    await writeFile(ensureInside(staging, 'post_concept_edges.json'), jsonText(projected.posts.flatMap((post) => post.conceptIds.map((conceptId: string) => ({ postId: post.id, conceptId })))), { flag: 'wx' });
-    await writeFile(ensureInside(staging, 'post_claim_edges.json'), jsonText(projected.posts.flatMap((post) => post.claimIds.map((claimId: string) => ({ postId: post.id, claimId })))), { flag: 'wx' });
     await mkdir(ensureInside(staging, 'source_files'));
     for (const asset of projected.sourceAssets) await writeFile(ensureInside(staging, `source_files/${safeSegment(asset.postId, 'post id')}.txt`), asset.body ?? asset.digest, { flag: 'wx' });
     await mkdir(ensureInside(staging, 'review_logs'));
@@ -176,7 +204,7 @@ export async function buildFrozenPool(input: FreezeInput) {
     const verification = await verifyFrozenPool(staging);
     if (!verification.valid) throw new Error(`staged frozen pool verification failed: ${verification.errors.join('; ')}`);
     await atomicPromotePool(staging, destination);
-    return { output: destination, version: input.version, approvedCount: projected.posts.length, verified: true };
+    return { output: destination, version: input.version, approvedCount: projected.posts.length, verified: true, graphWarnings: graph.warnings };
   } catch (error) {
     if (dirname(staging) === parent && basename(staging).startsWith(`.${basename(destination)}.staging-`)) await rm(staging, { recursive: true, force: true });
     throw error;

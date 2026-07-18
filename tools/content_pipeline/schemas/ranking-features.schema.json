@@ -25,13 +25,6 @@
       "items": {"$ref": "#/$defs/postRankingFeatures"}
     }
   },
-  "allOf": [
-    {
-      "if": {"properties": {"embeddingFingerprint": {"type": "null"}}},
-      "then": {"properties": {"posts": {"items": {"allOf": [{"$ref": "#/$defs/postRankingFeatures"}, {"not": {"required": ["summaryVector"]}}]}}}},
-      "else": {"properties": {"posts": {"items": {"allOf": [{"$ref": "#/$defs/postRankingFeatures"}, {"required": ["summaryVector"]}]}}}}
-    }
-  ],
   "$defs": {
     "score": {"type": "number", "minimum": 0, "maximum": 1},
     "postRankingFeatures": {
