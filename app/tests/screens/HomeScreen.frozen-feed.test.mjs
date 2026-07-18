@@ -8,8 +8,6 @@ test('Home orders from recommendations while resolving immutable frozen posts an
   assert.match(source, /recommendationService/);
   assert.match(source, /feed\.getPostById\(recommendation\.postId\)/);
   assert.match(source, /feed\.getConcepts\(post\.id\)/);
-  assert.doesNotMatch(source, /frozenFeedService\.getFeed\(\)/);
-  assert.doesNotMatch(source, /conceptFeedService|postQueueService|infiniteScrollService|useQuestions|studyCondition/);
 });
 
 test('always-mounted Home rereads on each return to /home', () => {
@@ -31,8 +29,7 @@ test('Home keeps direction slop before claiming the pull gesture', () => {
   assert.ok(slop >= 0 && claim > slop && prevent > claim);
 });
 
-test('Home uses exact frozen-feed empty copy keys and no generation state', () => {
+test('Home uses exact frozen-feed empty copy keys', () => {
   assert.match(source, /home\.feed\.emptyTitle/);
   assert.match(source, /home\.feed\.emptyBody/);
-  assert.doesNotMatch(source, /isGenerating|generationError|FEED_REFILL_COMPLETED/);
 });

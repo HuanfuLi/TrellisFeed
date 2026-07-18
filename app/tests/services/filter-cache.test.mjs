@@ -18,8 +18,8 @@
 //   3. Dynamic-import the service-under-test AFTER the loader is registered.
 //   4. Behavioral assertions — invocation count tracks cache hit/miss.
 //
-// Mirrors `app/tests/services/refill-mutex.test.mjs` scaffold (leaf-module
-// discipline test analog) per 47-PATTERNS.md §"app/tests/services/filter-cache.test.mjs".
+// Uses the leaf-module loader scaffold documented in 47-PATTERNS.md under
+// `app/tests/services/filter-cache.test.mjs`.
 
 import assert from 'node:assert/strict';
 import { describe, it, beforeEach } from 'node:test';

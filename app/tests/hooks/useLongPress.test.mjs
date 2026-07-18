@@ -2,8 +2,8 @@
  * useLongPress.test.mjs — Phase 43-01 Task 1
  *
  * Source-reading structural test for the 480ms long-press hook extracted from
- * ChatMessage.tsx:119-140. Project convention is structural / source-reading tests
- * over React render testing (see canonical-knowledge.test.mjs + InfoFlow.video-tap-emit.test.mjs).
+ * ChatMessage.tsx:119-140. The assertions stay focused on the current hook's
+ * pointer-event contract without importing the React component tree.
  *
  * Asserts:
  * - File exists at app/src/hooks/useLongPress.ts

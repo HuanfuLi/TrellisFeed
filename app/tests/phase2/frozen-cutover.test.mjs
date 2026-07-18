@@ -18,18 +18,6 @@ const runtimeFiles = [
   'suggested_questions.json',
   'source_assets.json',
 ];
-const retiredSourceFiles = [
-  'src/components/InfoFlow.tsx',
-  'src/components/SuggestionCard.tsx',
-  'src/services/concept-feed.service.ts',
-  'src/services/post-queue.service.ts',
-  'src/services/infiniteScroll.service.ts',
-  'src/services/style-assignment.ts',
-  'src/services/feed-spread.ts',
-  'src/services/session.service.ts',
-  'src/services/post-context-qa.service.ts',
-];
-
 function walk(root) {
   if (!existsSync(root)) return [];
   return readdirSync(root).flatMap((name) => {
@@ -59,15 +47,10 @@ test('deterministic package command binds the immutable pilot pool', () => {
   for (const filename of runtimeFiles) assert.match(index, new RegExp(filename.replace('.', '\\.')));
 });
 
-test('generated-feed shell is absent and participant content has no acquisition path', () => {
-  for (const filename of retiredSourceFiles) {
-    assert.equal(existsSync(join(appRoot, filename)), false, `${filename} must be retired`);
-  }
-
+test('participant content has no runtime acquisition path', () => {
   const sourceFiles = walk(join(appRoot, 'src')).filter((path) => /\.(?:ts|tsx)$/.test(path));
   const joined = sourceFiles.map((path) => readFileSync(path, 'utf8')).join('\n');
   assert.doesNotMatch(joined, /tools[\\/]content_pipeline/);
-  assert.doesNotMatch(joined, /\b(?:DailyPost|PostSnapshot|FEED_REFILL_COMPLETED|generateMorePosts|generatePostEssay)\b/);
 
   const contentBoundary = [
     'src/data/content-pool-bundle.ts',

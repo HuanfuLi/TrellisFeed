@@ -4,8 +4,8 @@ import test from 'node:test';
 
 // Pure hysteresis helper lives in a React-free module so it can be imported
 // directly under `node --test` (importing useKeyboard.ts pulls in `react` and
-// fails ERR_MODULE_NOT_FOUND). Mirrors the feed-spread.ts / trellis-perf-mask.ts
-// pure-helper-in-its-own-module pattern.
+// fails ERR_MODULE_NOT_FOUND). This keeps the state transitions executable
+// without importing the React component tree.
 import {
   resolveKeyboardOpen,
   nextKeyboardState,

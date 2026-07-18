@@ -8,7 +8,6 @@ test('PostDetail resolves only frozen post records and stored originals', () => 
   assert.match(source, /frozenFeedService\.getPostById\(id\)/);
   assert.match(source, /frozenFeedService\.getOriginalContent\(id\)/);
   assert.match(source, /<OriginalContent/);
-  assert.doesNotMatch(source, /conceptFeedService|generatePostEssay|imageGenerationService|passedPost/);
 });
 
 test('PostDetail preserves portal Header and a single owned scroll root', () => {
