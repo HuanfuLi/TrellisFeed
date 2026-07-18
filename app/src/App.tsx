@@ -34,6 +34,8 @@ import { eventBus } from './lib/event-bus';
 import { hasAffirmativeResearchConsent, resolveParticipantRoute } from './services/research-consent.service';
 import { contentPoolRepository, type ContentPoolRepositorySnapshot } from './services/content-pool.repository';
 import { hydratePostQa } from './services/post-qa.service';
+import { questionExtractionService } from './services/question-extraction.service';
+import { graphMemoryService } from './services/graph-memory.service';
 import {
   flushPendingUploads,
   reconcileResearchOutbox,
@@ -328,6 +330,8 @@ export default function App() {
         }
       }
       if (contentPool.status === 'ready') {
+        void questionExtractionService.resumeOnBoot().catch(() => { /* durable job retries remain pending */ });
+        void graphMemoryService.repairOnBoot().catch(() => { /* repair retries on the next boot */ });
         setHydrated(true);
         startResearchSession();
         prewarmFilterCorpusIfAuthorized();

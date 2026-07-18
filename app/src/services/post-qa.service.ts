@@ -8,6 +8,7 @@ import { frozenFeedService } from './frozen-feed.service.ts';
 import { contentPoolRepository } from './content-pool.repository.ts';
 import { settingsService } from './settings.service.ts';
 import { recordAiOperationMetadata, type AiOperationMetadata } from './ai-observability.service.ts';
+import { questionExtractionService } from './question-extraction.service.ts';
 
 interface QaDatabase {
   execute(sql: string, values?: (string | number | null)[]): Promise<void>;
@@ -73,6 +74,8 @@ interface PostQaCoordinatorDependencies {
   getConfig: () => LLMConfig;
   stream: typeof chatStream;
   observe: (metadata: AiOperationMetadata) => Promise<void>;
+  enqueueExtraction: (questionId: string) => Promise<void>;
+  reportExtractionError: (error: unknown) => void;
   now: () => string;
   createId: (prefix: string) => string;
 }
@@ -272,6 +275,8 @@ const productionDependencies: PostQaCoordinatorDependencies = {
   getConfig: defaultConfig,
   stream: chatStream,
   observe: (metadata) => recordAiOperationMetadata(metadata),
+  enqueueExtraction: (questionId) => questionExtractionService.enqueue(questionId),
+  reportExtractionError: (error) => console.warn('Question extraction enqueue failed.', error),
   now: () => new Date().toISOString(),
   createId: (prefix) => `${prefix}-${crypto.randomUUID()}`,
 };
@@ -279,8 +284,13 @@ const productionDependencies: PostQaCoordinatorDependencies = {
 export class PostQaService {
   private readonly dependencies: PostQaCoordinatorDependencies;
 
-  constructor(dependencies: PostQaCoordinatorDependencies = productionDependencies) {
-    this.dependencies = dependencies;
+  constructor(dependencies?: Partial<PostQaCoordinatorDependencies>) {
+    this.dependencies = {
+      ...productionDependencies,
+      ...dependencies,
+      enqueueExtraction: dependencies?.enqueueExtraction
+        ?? (dependencies ? async () => {} : productionDependencies.enqueueExtraction),
+    };
   }
 
   async askPostQuestion(input: AskPostQuestionInput): Promise<PostQaResult> {
@@ -312,6 +322,7 @@ export class PostQaService {
       if (filter.label === 'off-topic') {
         const completed = this.makeCanonicalRecords(input, post, OFF_TOPIC_REDIRECT, 'questiontrace-gentle-redirect', [], []);
         await this.dependencies.repository.persistCompletedAnswer(completed.question, completed.answer);
+        this.enqueueExtraction(completed.question.id);
         await this.dependencies.observe({
           requestId, postId: post.id, poolVersion: manifest.contentPoolVersion, promptVersion: PROMPT_VERSION,
           schemaVersion: SCHEMA_VERSION, modelVersion: completed.answer.modelName, filterOutcome: 'off-topic',
@@ -381,6 +392,7 @@ export class PostQaService {
         concepts.map((concept) => concept.id), claims.map((claim) => claim.id),
       );
       await this.dependencies.repository.persistCompletedAnswer(completed.question, completed.answer);
+      this.enqueueExtraction(completed.question.id);
       await this.dependencies.observe({
         requestId, postId: post.id, poolVersion: manifest.contentPoolVersion, promptVersion: PROMPT_VERSION,
         schemaVersion: SCHEMA_VERSION, modelVersion: config.model, filterOutcome: 'on-topic',
@@ -415,8 +427,7 @@ export class PostQaService {
       source: input.source,
       ...(input.source === 'suggested_question' && input.suggestedQuestionId ? { suggestedQuestionId: input.suggestedQuestionId } : {}),
       createdAt: this.dependencies.now(),
-      extractedConceptIds: conceptIds,
-      ...(claimIds.length > 0 ? { extractedClaimIds: claimIds } : {}),
+      extractedConceptIds: [],
       aiAnswerId: answerId,
     };
     const answer: AIAnswer = {
@@ -432,6 +443,14 @@ export class PostQaService {
       modelName,
     };
     return { question, answer };
+  }
+
+  private enqueueExtraction(questionId: string): void {
+    try {
+      void this.dependencies.enqueueExtraction(questionId).catch(this.dependencies.reportExtractionError);
+    } catch (error) {
+      this.dependencies.reportExtractionError(error);
+    }
   }
 
   private failure(error: unknown, signal?: AbortSignal): PostQaResult {

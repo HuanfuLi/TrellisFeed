@@ -16,6 +16,7 @@ const {
   ExtractionValidationError,
   QuestionExtractionService,
 } = await import('../../src/services/question-extraction.service.ts');
+const { PostQaService } = await import('../../src/services/post-qa.service.ts');
 
 const NOW = '2026-07-18T12:00:00.000Z';
 const config = { provider: 'openai', model: 'mock-model', apiKey: 'unused', isConfigured: true };
@@ -117,7 +118,7 @@ async function readJob(id = 'question-1') {
 beforeEach(async () => {
   for (const table of [
     'content_pool_meta', 'content_pool_posts', 'content_pool_concepts', 'content_pool_claims',
-    'user_questions', 'extraction_jobs', 'personal_graph_edges', 'graph_contributions',
+    'user_questions', 'ai_answers', 'extraction_jobs', 'personal_graph_edges', 'graph_contributions',
   ]) {
     await dbExecute(`DELETE FROM ${table}`);
   }
@@ -242,4 +243,65 @@ test('resumeOnBoot processes a pending row with a fresh service instance', async
 
 test('validation errors are distinguishable from provider failures', () => {
   assert.equal(new ExtractionValidationError('invalid').name, 'ExtractionValidationError');
+});
+
+test('Ask persists empty extraction state and resolves even when enqueue throws', async () => {
+  await dbExecute('DELETE FROM user_questions');
+  const order = [];
+  const reported = [];
+  const service = new PostQaService({
+    repository: {
+      async loadSamePostThread() { return []; },
+      async persistCompletedAnswer(persistedQuestion, answer) {
+        order.push('persist');
+        await dbExecute(
+          'INSERT OR REPLACE INTO user_questions (id, user_id, post_id, created_at, data) VALUES (?, ?, ?, ?, ?)',
+          [persistedQuestion.id, persistedQuestion.userId, persistedQuestion.postId, persistedQuestion.createdAt, JSON.stringify(persistedQuestion)],
+        );
+        await dbExecute(
+          'INSERT OR REPLACE INTO ai_answers (id, user_question_id, post_id, created_at, data) VALUES (?, ?, ?, ?, ?)',
+          [answer.id, answer.userQuestionId, answer.postId, answer.createdAt, JSON.stringify(answer)],
+        );
+      },
+    },
+    evaluateQuestion: async () => ({ label: 'on-topic' }),
+    feed: {
+      getPostById: () => ({
+        id: 'post-1', topicId: 'topic-1', sourceUrl: 'https://example.test', sourcePlatform: 'article',
+        sourceName: 'Example', originalTitle: 'Post', displayTitle: 'Post', hook: 'Hook', shortSummary: 'Summary',
+        language: 'en', collectedAt: NOW, qualityScore: 1, interestingnessScore: 1, educationalValueScore: 1,
+        difficulty: 1, conceptIds: ['concept-alpha'], claimIds: ['claim-main'], suggestedQuestionIds: [], status: 'frozen',
+      }),
+      getConcepts: () => [{ id: 'concept-alpha', topicId: 'topic-1', label: 'Alpha', description: 'Description', aliases: [] }],
+      getClaims: () => [{ id: 'claim-main', topicId: 'topic-1', text: 'Claim', conceptIds: ['concept-alpha'] }],
+      getOriginalContent: () => ({
+        postId: 'post-1', kind: 'article', sourceUrl: 'https://example.test', body: 'Approved evidence.', sha256: 'b'.repeat(64),
+      }),
+      getManifest: () => ({ contentPoolVersion: 'pool-v1' }),
+    },
+    getConfig: () => config,
+    stream: async function* () { yield 'Bounded answer.'; },
+    observe: async () => {},
+    enqueueExtraction: () => {
+      order.push('enqueue');
+      throw new Error('injected enqueue failure');
+    },
+    reportExtractionError: (error) => reported.push(error),
+    now: () => NOW,
+    createId: (prefix) => `${prefix}-isolation`,
+  });
+
+  const result = await service.askPostQuestion({
+    userId: 'user-1', studyCondition: 'control', topicId: 'topic-1', postId: 'post-1',
+    text: 'How is the claim supported?', source: 'typed',
+  });
+
+  assert.equal(result.success, true);
+  assert.deepEqual(order, ['persist', 'enqueue']);
+  assert.equal(reported.length, 1);
+  const persisted = await readQuestion('question-isolation');
+  assert.deepEqual(persisted.extractedConceptIds, []);
+  assert.equal(Object.hasOwn(persisted, 'extractedClaimIds'), false);
+  assert.deepEqual(result.data.answer.conceptIds, ['concept-alpha']);
+  assert.deepEqual(result.data.answer.claimIds, ['claim-main']);
 });
