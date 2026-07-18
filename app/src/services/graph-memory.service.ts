@@ -235,13 +235,48 @@ class GraphMemoryService {
     });
   }
 
+  repairOnBoot(): Promise<ServiceResult<number>> {
+    return this.enqueue(async () => {
+      try {
+        const [recordRows, contributionRows] = await Promise.all([
+          dbQuery<ResearchRecordRow>('SELECT * FROM research_records'),
+          dbQuery<ContributionRow>('SELECT * FROM graph_contributions'),
+        ]);
+        const knownIds = new Set(contributionRows.map((row) => row.id));
+        const events = recordRows
+          .filter((row) => row.kind === 'event')
+          .map((row) => parseData<EventWithPayload>(row))
+          .sort((left, right) => left.timestamp.localeCompare(right.timestamp) || left.id.localeCompare(right.id));
+        let repaired = 0;
+        for (const event of events) {
+          const rule = contributionRule(event);
+          if (!rule) continue;
+          const expectedIds = this.resolveConceptIds(event)
+            .map((conceptId) => `${event.id}:${conceptId}:${rule}`);
+          const missingIds = expectedIds.filter((id) => !knownIds.has(id));
+          if (missingIds.length === 0) continue;
+          const result = await this.applyEventNow(event, false);
+          if (!result.success) return failure('Graph-memory boot repair could not apply a missing event.');
+          repaired += missingIds.length;
+          for (const id of expectedIds) knownIds.add(id);
+        }
+        return success(repaired);
+      } catch {
+        return failure('Graph memory could not be repaired from the canonical event log.');
+      }
+    });
+  }
+
   private enqueue<T>(operation: () => Promise<ServiceResult<T>>): Promise<ServiceResult<T>> {
     const pending = this.mutationQueue.then(operation, operation);
     this.mutationQueue = pending.then(() => undefined, () => undefined);
     return pending;
   }
 
-  private async applyEventNow(event: EventWithPayload): Promise<ServiceResult<string[]>> {
+  private async applyEventNow(
+    event: EventWithPayload,
+    writePersonalEdge = true,
+  ): Promise<ServiceResult<string[]>> {
     try {
       const conceptIds = this.resolveConceptIds(event);
       const rule = contributionRule(event);
@@ -255,7 +290,9 @@ class GraphMemoryService {
       if (rule) {
         for (const conceptId of conceptIds) {
           const prior = existing.filter(
-            (item) => item.conceptId === conceptId && item.eventId !== event.id,
+            (item) => item.conceptId === conceptId && item.eventId !== event.id &&
+              (item.createdAt < event.timestamp ||
+                (item.createdAt === event.timestamp && item.eventId.localeCompare(event.id) < 0)),
           );
           await this.writeContribution({
             id: `${event.id}:${conceptId}:${rule}`,
@@ -281,7 +318,9 @@ class GraphMemoryService {
         for (const conceptId of conceptIds) await this.rebuildConceptState(event.userId, conceptId);
       }
 
-      const edgeChanged = await this.writeInteractionEdge(event, duplicateEvent);
+      const edgeChanged = writePersonalEdge
+        ? await this.writeInteractionEdge(event, duplicateEvent)
+        : false;
       if ((rule && conceptIds.length > 0) || edgeChanged) {
         eventBus.emit({
           type: 'GRAPH_UPDATED',
@@ -320,7 +359,9 @@ class GraphMemoryService {
       const existing = existingRows.map(parseData<GraphContribution>);
       for (const conceptId of conceptIds) {
         const prior = existing.filter(
-          (item) => item.conceptId === conceptId && item.eventId !== question.id,
+          (item) => item.conceptId === conceptId && item.eventId !== question.id &&
+            (item.createdAt < question.createdAt ||
+              (item.createdAt === question.createdAt && item.eventId.localeCompare(question.id) < 0)),
         );
         await this.writeContribution({
           id: `${question.id}:${conceptId}:question_submit`,

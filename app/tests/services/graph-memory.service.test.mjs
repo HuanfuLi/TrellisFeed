@@ -13,10 +13,20 @@ globalThis.localStorage = {
 
 const { dbExecute, dbQuery } = await import('../../src/services/db.service.ts');
 const { eventBus } = await import('../../src/lib/event-bus.ts');
+const { studyContextService } = await import('../../src/services/study-context.service.ts');
+const { createInteractionLog } = await import('../../src/services/interaction-log.service.ts');
 const {
   GRAPH_MEMORY_RULES,
   graphMemoryService,
 } = await import('../../src/services/graph-memory.service.ts');
+
+await studyContextService.hydrate();
+await studyContextService.bindOnce({
+  userId: '1001',
+  condition: 'experimental',
+  topicId: 'topic-1',
+  boundAt: '2026-07-18T00:00:00.000Z',
+}, 'graph-memory-test-install-token-000000000001');
 
 function event(id, eventType, conceptIds = ['concept-1'], fields = {}) {
   return {
@@ -198,3 +208,60 @@ test('question extraction writes contributions, asks_about edges, and serializab
   assert.equal(snapshot.data.personalEdges.length, 2);
 });
 
+test('interaction logging resolves when the fire-and-forget graph hook throws', async () => {
+  localStorage.setItem('questiontrace_settings', JSON.stringify({
+    preferences: { onboardingCompleted: true, aiConsentGiven: true },
+  }));
+  let hookCalled;
+  const called = new Promise((resolve) => { hookCalled = resolve; });
+  const reported = [];
+  const logger = createInteractionLog({
+    enqueue: async () => {},
+    now: () => '2026-07-18T12:02:00.000Z',
+    createId: () => 'hook-event-1',
+    loadGraphMemory: async () => ({
+      applyEvent: async () => {
+        hookCalled();
+        throw new Error('injected graph failure');
+      },
+    }),
+    reportGraphMemoryError: (error) => reported.push(error),
+  });
+
+  const logged = await logger.record('post_open', { postId: 'post-hook' });
+  assert.equal(logged.id, 'hook-event-1');
+  assert.equal(
+    await Promise.race([called.then(() => true), new Promise((resolve) => setTimeout(() => resolve(false), 50))]),
+    true,
+  );
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.equal(reported.length, 1);
+  assert.equal((await dbQuery('SELECT * FROM research_records WHERE id = ?', ['hook-event-1'])).length, 1);
+});
+
+test('repairOnBoot restores a missing contribution and converges to replay output', async () => {
+  const logged = [
+    event('repair-1', 'post_open'),
+    event('repair-2', 'save_post'),
+    event('repair-3', 'not_interested'),
+  ];
+  for (const item of logged) {
+    await dbExecute(
+      'INSERT OR REPLACE INTO research_records (id, kind, revision, data) VALUES (?, ?, ?, ?)',
+      [item.id, 'event', 1, JSON.stringify(item)],
+    );
+  }
+  await graphMemoryService.replayFromLog('user-1');
+  const expected = await dbQuery('SELECT * FROM user_concept_states WHERE user_id = ?', ['user-1']);
+
+  await dbExecute('DELETE FROM graph_contributions WHERE id = ?', ['repair-2:concept-1:save_post']);
+  await dbExecute('DELETE FROM user_concept_states WHERE user_id = ?', ['user-1']);
+  const repaired = await graphMemoryService.repairOnBoot();
+
+  assert.equal(repaired.success, true);
+  assert.equal(repaired.data, 1);
+  assert.deepEqual(
+    await dbQuery('SELECT * FROM user_concept_states WHERE user_id = ?', ['user-1']),
+    expected,
+  );
+});

@@ -26,6 +26,10 @@ interface InteractionLogDependencies {
   enqueue(record: UserInteractionEvent | QuestionAnswerRecord): Promise<void>;
   now(): string;
   createId(): string;
+  loadGraphMemory?: () => Promise<{
+    applyEvent(event: UserInteractionEvent): Promise<{ success: boolean; error?: { message: string } }>;
+  }>;
+  reportGraphMemoryError?: (error: unknown) => void;
 }
 
 const EVENT_FIELDS: Record<InteractionEventType, readonly EventField[]> = {
@@ -118,13 +122,31 @@ async function findQuestionAnswer(questionId: string): Promise<QuestionAnswerRec
 }
 
 export function createInteractionLog(dependencies: InteractionLogDependencies) {
+  const loadGraphMemory = dependencies.loadGraphMemory ?? (async () => {
+    const module = await import('./graph-memory.service.ts');
+    return module.graphMemoryService;
+  });
+  const reportGraphMemoryError = dependencies.reportGraphMemoryError ?? ((error: unknown) => {
+    console.warn('[QuestionTrace] Graph-memory update failed; boot repair will retry.', error);
+  });
+
+  function updateGraphMemory(event: UserInteractionEvent): void {
+    void loadGraphMemory()
+      .then((service) => service.applyEvent(event))
+      .then((result) => {
+        if (!result.success) reportGraphMemoryError(new Error(result.error?.message ?? 'Unknown graph-memory error'));
+      })
+      .catch(reportGraphMemoryError);
+  }
+
   async function storeAndEnqueue(
     record: UserInteractionEvent | QuestionAnswerRecord,
     kind: 'event' | 'qa',
-  ): Promise<void> {
-    if (!hasAffirmativeResearchConsent()) return;
+  ): Promise<boolean> {
+    if (!hasAffirmativeResearchConsent()) return false;
     await persistRecord(record, kind);
     await dependencies.enqueue(record);
+    return true;
   }
 
   async function record(
@@ -148,7 +170,8 @@ export function createInteractionLog(dependencies: InteractionLogDependencies) {
       eventType,
       ...fields,
     };
-    await storeAndEnqueue(event, 'event');
+    const persisted = await storeAndEnqueue(event, 'event');
+    if (persisted) updateGraphMemory(event);
     return event;
   }
 
@@ -165,7 +188,8 @@ export function createInteractionLog(dependencies: InteractionLogDependencies) {
       timestamp: dependencies.now(), eventType, ...fields,
     };
     assertTimestamp(event.timestamp);
-    await storeAndEnqueue(event, 'event');
+    const persisted = await storeAndEnqueue(event, 'event');
+    if (persisted) updateGraphMemory(event);
     return event;
   }
 
