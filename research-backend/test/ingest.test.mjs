@@ -37,9 +37,9 @@ async function fakeD1(bindings) {
         return { success: true };
       }
       if (sql.includes('INSERT INTO question_answer_records')) {
-        const [id, revision, userId, condition, topicId, postId, questionId, questionText, questionSource, submittedAt, answerText, answerViewedAt, receivedAt, answerId, suggestedQuestionId, questionCreatedAt, answerCreatedAt, modelName, citedPostIds, citedSourceUrls, conceptIds, claimIds] = values;
+        const [id, revision, userId, condition, topicId, postId, questionId, questionText, questionSource, submittedAt, answerText, answerViewedAt, receivedAt, answerId, suggestedQuestionId, questionCreatedAt, answerCreatedAt, modelName, citedPostIds, citedSourceUrls, conceptIds, claimIds, extractedConceptIds, extractedClaimIds, questionType, unresolved] = values;
         const existing = questionAnswers.get(id);
-        if (!existing || revision > existing.revision) questionAnswers.set(id, { id, revision, userId, condition, topicId, postId, questionId, questionText, questionSource, submittedAt, answerText, answerViewedAt, receivedAt, answerId, suggestedQuestionId, questionCreatedAt, answerCreatedAt, modelName, citedPostIds, citedSourceUrls, conceptIds, claimIds });
+        if (!existing || revision > existing.revision) questionAnswers.set(id, { id, revision, userId, condition, topicId, postId, questionId, questionText, questionSource, submittedAt, answerText, answerViewedAt, receivedAt, answerId, suggestedQuestionId, questionCreatedAt, answerCreatedAt, modelName, citedPostIds, citedSourceUrls, conceptIds, claimIds, extractedConceptIds, extractedClaimIds, questionType, unresolved });
         return { success: true };
       }
       throw new Error(`Unexpected write: ${sql}`);
@@ -59,7 +59,7 @@ function ingestRequest(records, token) {
 }
 
 const event = (overrides = {}) => ({ id: 'event-1', timestamp: '2026-07-11T12:00:00.000Z', eventType: 'post_open', postId: 'post-1', ...overrides });
-const questionAnswer = (overrides = {}) => ({ id: 'qa-1', revision: 2, postId: 'post-1', questionId: 'question-1', answerId: 'answer-1', questionText: 'How does this work?', questionSource: 'typed', questionCreatedAt: '2026-07-11T12:00:00.000Z', answerText: 'A newer answer.', answerCreatedAt: '2026-07-11T12:00:01.000Z', modelName: 'fake-main', citedPostIds: ['post-1'], citedSourceUrls: ['https://example.test'], conceptIds: ['concept-1'], claimIds: ['claim-1'], ...overrides });
+const questionAnswer = (overrides = {}) => ({ id: 'qa-1', revision: 2, postId: 'post-1', questionId: 'question-1', answerId: 'answer-1', questionText: 'How does this work?', questionSource: 'typed', questionCreatedAt: '2026-07-11T12:00:00.000Z', answerText: 'A newer answer.', answerCreatedAt: '2026-07-11T12:00:01.000Z', modelName: 'fake-main', citedPostIds: ['post-1'], citedSourceUrls: ['https://example.test'], conceptIds: ['concept-1'], claimIds: ['claim-1'], extractedConceptIds: ['concept-1'], extractedClaimIds: ['claim-1'], questionType: 'evidence', unresolved: true, ...overrides });
 const accountA = { userId: '1001', condition: 'control', topicId: 'server-topic-a' };
 const accountB = { userId: '1002', condition: 'experimental', topicId: 'server-topic-b' };
 
@@ -91,6 +91,10 @@ test('same-owner Q/A retries and higher revisions are idempotent', async () => {
   assert.equal(stale.status, 200);
   assert.equal(db.questionAnswers.get('qa-1').revision, 2);
   assert.equal(db.questionAnswers.get('qa-1').answerText, 'A newer answer.');
+  assert.equal(db.questionAnswers.get('qa-1').extractedConceptIds, '["concept-1"]');
+  assert.equal(db.questionAnswers.get('qa-1').extractedClaimIds, '["claim-1"]');
+  assert.equal(db.questionAnswers.get('qa-1').questionType, 'evidence');
+  assert.equal(db.questionAnswers.get('qa-1').unresolved, 1);
 });
 
 test('cross-account event and Q/A identifiers are rejected without ACK or overwrite', async () => {

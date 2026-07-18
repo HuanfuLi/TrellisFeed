@@ -80,8 +80,20 @@ async function seedQuestion(value = question()) {
   return value;
 }
 
-function createHarness(output) {
-  const calls = { graph: [], events: [], prompts: [], completions: 0 };
+async function seedAnswer(value = {
+  id: 'answer-1', userQuestionId: 'question-1', postId: 'post-1', answerText: 'Bounded answer.',
+  citedPostIds: ['post-1'], conceptIds: ['concept-alpha'], claimIds: ['claim-main'],
+  createdAt: NOW, modelName: 'mock-model',
+}) {
+  await dbExecute(
+    'INSERT OR REPLACE INTO ai_answers (id, user_question_id, post_id, created_at, data) VALUES (?, ?, ?, ?, ?)',
+    [value.id, value.userQuestionId, value.postId, value.createdAt, JSON.stringify(value)],
+  );
+  return value;
+}
+
+function createHarness(output, overrides = {}) {
+  const calls = { graph: [], events: [], prompts: [], records: [], completions: 0 };
   const service = new QuestionExtractionService({
     database: { execute: dbExecute, query: dbQuery },
     complete: async (messages, receivedConfig, options) => {
@@ -92,13 +104,14 @@ function createHarness(output) {
       return typeof output === 'function' ? output(calls.completions) : output;
     },
     getConfig: () => config,
-    applyQuestionExtraction: async (...args) => {
+    applyQuestionExtraction: overrides.applyQuestionExtraction ?? (async (...args) => {
       calls.graph.push(args);
       return { success: true, data: args[1] };
-    },
+    }),
     emit: (event) => calls.events.push(event),
     schedule: () => {},
     now: () => NOW,
+    recordQuestionAnswer: async (...args) => { calls.records.push(args); },
   });
   return { service, calls };
 }
@@ -124,6 +137,7 @@ beforeEach(async () => {
   }
   await seedFrozenPool();
   await seedQuestion();
+  await seedAnswer();
 });
 
 test('enqueue persists a pending job and valid processing patches the canonical question', async () => {
@@ -146,6 +160,7 @@ test('enqueue persists a pending job and valid processing patches the canonical 
   });
   assert.equal((await readJob()).status, 'succeeded');
   assert.equal(calls.graph.length, 1);
+  assert.equal(calls.records.length, 1);
   assert.deepEqual(calls.events, [{
     type: 'GRAPH_UPDATED', payload: { kind: 'extraction', affectedIds: ['concept-alpha'] },
   }]);
@@ -239,6 +254,32 @@ test('resumeOnBoot processes a pending row with a fresh service instance', async
 
   assert.equal((await readJob()).status, 'succeeded');
   assert.deepEqual((await readQuestion()).extractedConceptIds, ['concept-alpha']);
+});
+
+test('retry after a post-patch failure reuses the persisted extraction without another LLM call', async () => {
+  let graphAttempts = 0;
+  const { service, calls } = createHarness((completion) => JSON.stringify({
+    conceptIds: [completion === 1 ? 'concept-alpha' : 'concept-beta'],
+    claimIds: [], questionType: 'clarification', unresolved: true,
+  }), {
+    applyQuestionExtraction: async () => {
+      graphAttempts += 1;
+      return graphAttempts === 1
+        ? { success: false, error: { message: 'injected graph failure' } }
+        : { success: true, data: ['concept-alpha'] };
+    },
+  });
+  await service.enqueue('question-1');
+  await service.processPending();
+  assert.equal((await readJob()).attempts, 1);
+  assert.deepEqual((await readQuestion()).extractedConceptIds, ['concept-alpha']);
+
+  await service.processPending();
+  assert.equal((await readJob()).status, 'succeeded');
+  assert.equal(calls.completions, 1);
+  assert.deepEqual((await readQuestion()).extractedConceptIds, ['concept-alpha']);
+  assert.equal(calls.records.length, 1);
+  assert.equal(calls.events.length, 1);
 });
 
 test('validation errors are distinguishable from provider failures', () => {

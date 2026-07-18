@@ -63,6 +63,10 @@ test('buildExportZip produces exactly the two aggregate CSV files', () => {
       cited_source_urls: '[]',
       concept_ids: '[]',
       claim_ids: '[]',
+      extracted_concept_ids: '["concept-1"]',
+      extracted_claim_ids: '["claim-1"]',
+      question_type: 'evidence',
+      unresolved: 1,
       received_at: '2026-07-11T12:00:01.000Z',
     }],
   );
@@ -73,5 +77,5 @@ test('buildExportZip produces exactly the two aggregate CSV files', () => {
     'question-answer-records.csv',
   ]);
   assert.match(strFromU8(files['behavioral-events.csv']), /^id,user_id,condition,topic_id,timestamp,event_type,post_id,question_id,recommendation_id,duration_ms,received_at\r?\n/);
-  assert.match(strFromU8(files['question-answer-records.csv']), /^id,revision,user_id,condition,topic_id,post_id,question_id,answer_id,question_text,question_source,suggested_question_id,question_created_at,answer_text,answer_created_at,model_name,cited_post_ids,cited_source_urls,concept_ids,claim_ids,received_at\r?\n/);
+  assert.match(strFromU8(files['question-answer-records.csv']), /^id,revision,user_id,condition,topic_id,post_id,question_id,answer_id,question_text,question_source,suggested_question_id,question_created_at,answer_text,answer_created_at,model_name,cited_post_ids,cited_source_urls,concept_ids,claim_ids,extracted_concept_ids,extracted_claim_ids,question_type,unresolved,received_at\r?\n/);
 });

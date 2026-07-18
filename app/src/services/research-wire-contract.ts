@@ -41,6 +41,7 @@ const QA_FIELDS = new Set([
   'id', 'revision', 'postId', 'questionId', 'answerId', 'questionText', 'questionSource',
   'suggestedQuestionId', 'questionCreatedAt', 'answerText', 'answerCreatedAt', 'modelName',
   'citedPostIds', 'citedSourceUrls', 'conceptIds', 'claimIds',
+  'extractedConceptIds', 'extractedClaimIds', 'questionType', 'unresolved',
 ]);
 
 export class ResearchWireValidationError extends Error {
@@ -125,6 +126,12 @@ export function toResearchWireRecord(record: LocalRecord): ResearchWireRecord {
     assertStringArray(candidate.citedSourceUrls, true);
     assertStringArray(candidate.conceptIds);
     assertStringArray(candidate.claimIds, true);
+    assertStringArray(candidate.extractedConceptIds, true);
+    assertStringArray(candidate.extractedClaimIds, true);
+    assertString(candidate.questionType, RESEARCH_WIRE_LIMITS.id, true);
+    if (candidate.unresolved !== undefined && typeof candidate.unresolved !== 'boolean') {
+      throw new ResearchWireValidationError('invalid_record');
+    }
     if (candidate.questionSource !== 'typed' && candidate.questionSource !== 'suggested_question') {
       throw new ResearchWireValidationError('invalid_record');
     }

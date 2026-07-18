@@ -71,6 +71,7 @@ test('parseIngest accepts canonical Q&A fields and rejects unknown or identity f
     questionText: 'How?', questionSource: 'typed', questionCreatedAt: '2026-07-11T00:00:00.000Z',
     answerText: 'Like this.', answerCreatedAt: '2026-07-11T00:00:01.000Z', modelName: 'fake-main',
     citedPostIds: ['post-1'], citedSourceUrls: ['https://example.test'], conceptIds: ['concept-1'], claimIds: ['claim-1'],
+    extractedConceptIds: ['concept-1'], extractedClaimIds: ['claim-1'], questionType: 'evidence', unresolved: true,
   };
   assert.equal(parseIngest({ records: [canonical] })[0].kind, 'question_answer');
   for (const extra of [{ payload: {} }, { reasoning: 'hidden' }, { condition: 'control' }, { arbitrary: 'x' }]) {

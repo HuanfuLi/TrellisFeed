@@ -34,6 +34,10 @@ export const QUESTION_ANSWER_COLUMNS = [
   'cited_source_urls',
   'concept_ids',
   'claim_ids',
+  'extracted_concept_ids',
+  'extracted_claim_ids',
+  'question_type',
+  'unresolved',
   'received_at',
 ];
 

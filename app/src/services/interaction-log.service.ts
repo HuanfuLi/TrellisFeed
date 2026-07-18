@@ -234,6 +234,18 @@ export function createInteractionLog(dependencies: InteractionLogDependencies) {
       ...(answer.citedSourceUrls ? { citedSourceUrls: [...answer.citedSourceUrls] } : {}),
       conceptIds: [...answer.conceptIds],
       ...(answer.claimIds ? { claimIds: [...answer.claimIds] } : {}),
+      extractedConceptIds: question.extractedConceptIds.length > 0
+        ? [...question.extractedConceptIds]
+        : [...(current?.extractedConceptIds ?? [])],
+      ...(question.extractedClaimIds || current?.extractedClaimIds
+        ? { extractedClaimIds: [...(question.extractedClaimIds ?? current?.extractedClaimIds ?? [])] }
+        : {}),
+      ...((question.questionType ?? current?.questionType)
+        ? { questionType: question.questionType ?? current?.questionType }
+        : {}),
+      ...(typeof question.unresolved === 'boolean' || typeof current?.unresolved === 'boolean'
+        ? { unresolved: typeof question.unresolved === 'boolean' ? question.unresolved : current?.unresolved }
+        : {}),
     };
     if (current) {
       const { revision: _currentRevision, ...currentValue } = current;
@@ -256,7 +268,8 @@ export function createInteractionLog(dependencies: InteractionLogDependencies) {
     return recordOnce(`event:ai_answer_view:${input.questionId}`, 'ai_answer_view', input);
   }
 
-  return { record, recordQuestionSubmit, recordAnswerViewed };
+  const recordQuestionAnswer = recordQuestionSubmit;
+  return { record, recordQuestionSubmit, recordQuestionAnswer, recordAnswerViewed };
 }
 
 export const interactionLog = createInteractionLog({

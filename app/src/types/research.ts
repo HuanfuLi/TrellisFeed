@@ -72,4 +72,8 @@ export interface QuestionAnswerRecord {
   citedSourceUrls?: string[];
   conceptIds: string[];
   claimIds?: string[];
+  extractedConceptIds?: string[];
+  extractedClaimIds?: string[];
+  questionType?: string;
+  unresolved?: boolean;
 }

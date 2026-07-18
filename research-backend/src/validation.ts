@@ -49,6 +49,10 @@ const QUESTION_ANSWER_FIELDS = new Set([
   'citedSourceUrls',
   'conceptIds',
   'claimIds',
+  'extractedConceptIds',
+  'extractedClaimIds',
+  'questionType',
+  'unresolved',
 ]);
 
 export class ValidationError extends Error {
@@ -150,6 +154,12 @@ function parseQuestionAnswer(record) {
   assertStringArray(record, 'citedSourceUrls', recordType, { optional: true });
   assertStringArray(record, 'conceptIds', recordType);
   assertStringArray(record, 'claimIds', recordType, { optional: true });
+  assertStringArray(record, 'extractedConceptIds', recordType, { optional: true });
+  assertStringArray(record, 'extractedClaimIds', recordType, { optional: true });
+  assertString(record, 'questionType', recordType, { optional: true, maxLength: contract.limits.id });
+  if (record.unresolved !== undefined && typeof record.unresolved !== 'boolean') {
+    throw new ValidationError('Question/answer record.unresolved must be a boolean.');
+  }
 
   if (!Number.isSafeInteger(record.revision) || record.revision < 1) {
     throw new ValidationError('Question/answer record.revision must be a positive safe integer.');

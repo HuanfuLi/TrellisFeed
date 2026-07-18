@@ -168,8 +168,9 @@ function bindQuestionAnswerUpsert(db, record, account, receivedAt) {
       (id, revision, user_id, condition, topic_id, post_id, question_id, question_text,
        question_source, submitted_at, answer_text, answer_viewed_at, received_at,
        answer_id, suggested_question_id, question_created_at, answer_created_at, model_name,
-       cited_post_ids, cited_source_urls, concept_ids, claim_ids)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       cited_post_ids, cited_source_urls, concept_ids, claim_ids,
+       extracted_concept_ids, extracted_claim_ids, question_type, unresolved)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(id) DO UPDATE SET
        revision = excluded.revision,
        user_id = excluded.user_id,
@@ -191,6 +192,10 @@ function bindQuestionAnswerUpsert(db, record, account, receivedAt) {
        cited_source_urls = excluded.cited_source_urls,
        concept_ids = excluded.concept_ids,
        claim_ids = excluded.claim_ids,
+       extracted_concept_ids = excluded.extracted_concept_ids,
+       extracted_claim_ids = excluded.extracted_claim_ids,
+       question_type = excluded.question_type,
+       unresolved = excluded.unresolved,
        received_at = excluded.received_at
      WHERE excluded.revision > question_answer_records.revision`,
   ).bind(
@@ -216,6 +221,10 @@ function bindQuestionAnswerUpsert(db, record, account, receivedAt) {
     JSON.stringify(record.citedSourceUrls ?? []),
     JSON.stringify(record.conceptIds),
     JSON.stringify(record.claimIds ?? []),
+    JSON.stringify(record.extractedConceptIds ?? []),
+    JSON.stringify(record.extractedClaimIds ?? []),
+    record.questionType ?? null,
+    record.unresolved === undefined ? null : (record.unresolved ? 1 : 0),
   );
 }
 
@@ -335,6 +344,7 @@ async function handleAdminExport(env) {
       `SELECT id, revision, user_id, condition, topic_id, post_id, question_id, question_text,
         answer_id, question_source, suggested_question_id, question_created_at, answer_text,
         answer_created_at, model_name, cited_post_ids, cited_source_urls, concept_ids, claim_ids,
+        extracted_concept_ids, extracted_claim_ids, question_type, unresolved,
         received_at
        FROM question_answer_records
        ORDER BY received_at ASC, id ASC`,

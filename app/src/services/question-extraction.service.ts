@@ -1,4 +1,4 @@
-import type { Claim, Concept, Post, UserQuestion } from '../domain/content.types.ts';
+import type { AIAnswer, Claim, Concept, Post, UserQuestion } from '../domain/content.types.ts';
 import type { ExtractionJob } from '../domain/graph.types.ts';
 import { eventBus } from '../lib/event-bus.ts';
 import {
@@ -9,6 +9,7 @@ import {
 import type { AppEvent, LLMConfig, ServiceResult } from '../types/index.ts';
 import { dbExecute, dbQuery, type Row } from './db.service.ts';
 import { graphMemoryService } from './graph-memory.service.ts';
+import { interactionLog } from './interaction-log.service.ts';
 import { settingsService } from './settings.service.ts';
 
 const MAX_ATTEMPTS = 3;
@@ -75,6 +76,7 @@ export interface QuestionExtractionDependencies {
   schedule: (work: () => void) => void;
   now: () => string;
   reportError: (error: unknown) => void;
+  recordQuestionAnswer: (question: UserQuestion, answer: AIAnswer) => Promise<unknown>;
 }
 
 export class ExtractionValidationError extends Error {
@@ -101,6 +103,7 @@ const productionDependencies: QuestionExtractionDependencies = {
   schedule: (work) => queueMicrotask(work),
   now: () => new Date().toISOString(),
   reportError: (error) => console.warn('Question extraction failed; the durable job will retry.', error),
+  recordQuestionAnswer: (question, answer) => interactionLog.recordQuestionAnswer({ question, answer }),
 };
 
 function parseStored<T>(row: StoredRow | PoolRow): T {
@@ -276,41 +279,57 @@ export class QuestionExtractionService {
     );
     if (questionRows.length !== 1) throw new ExtractionValidationError('Canonical question is missing');
     const question = parseStored<UserQuestion>(questionRows[0]);
+    const answerRows = await this.dependencies.database.query<StoredRow>(
+      'SELECT * FROM ai_answers WHERE id = ?',
+      [question.aiAnswerId ?? ''],
+    );
+    if (answerRows.length !== 1) throw new ExtractionValidationError('Canonical answer is missing');
+    const answer = parseStored<AIAnswer>(answerRows[0]);
     const { post, topicName, concepts, claims } = await this.loadFrozenCandidates(question);
-    const raw = await this.dependencies.complete(
-      extractionMessages(topicName, post, concepts, claims, question.text),
-      this.dependencies.getConfig(),
-      { jsonMode: true, serviceName: 'question-extraction' },
-    );
-    const output = parseOutput(raw);
-    const conceptIds = resolveCandidates(
-      output.conceptIds,
-      concepts.map((concept) => ({ id: concept.id, labels: [concept.label, ...concept.aliases] })),
-      'concept',
-    );
-    const claimIds = resolveCandidates(
-      output.claimIds,
-      claims.map((claim) => ({
+    const conceptCandidates = concepts.map((concept) => ({
+      id: concept.id,
+      labels: [concept.label, ...concept.aliases],
+    }));
+    const claimCandidates = claims.map((claim) => ({
         id: claim.id,
         labels: [claim.text, ...(('aliases' in claim && Array.isArray(claim.aliases)) ? claim.aliases as string[] : [])],
-      })),
-      'claim',
-    );
-    const patched: UserQuestion = {
-      ...question,
-      extractedConceptIds: conceptIds,
-      ...(claimIds.length > 0 ? { extractedClaimIds: claimIds } : {}),
-      questionType: output.questionType,
-      unresolved: typeof question.unresolved === 'boolean' ? question.unresolved : output.unresolved,
-    };
-    await this.dependencies.database.execute(
-      'INSERT OR REPLACE INTO user_questions (id, user_id, post_id, created_at, data) VALUES (?, ?, ?, ?, ?)',
-      [patched.id, patched.userId, patched.postId, patched.createdAt, JSON.stringify(patched)],
-    );
+    }));
+    let patched: UserQuestion;
+    let conceptIds: string[];
+    let claimIds: string[];
+    if (typeof question.questionType === 'string' && typeof question.unresolved === 'boolean') {
+      if (!QUESTION_TYPES.has(question.questionType)) {
+        throw new ExtractionValidationError('Persisted questionType is not in the extraction vocabulary');
+      }
+      conceptIds = resolveCandidates(question.extractedConceptIds, conceptCandidates, 'concept');
+      claimIds = resolveCandidates(question.extractedClaimIds ?? [], claimCandidates, 'claim');
+      patched = question;
+    } else {
+      const raw = await this.dependencies.complete(
+        extractionMessages(topicName, post, concepts, claims, question.text),
+        this.dependencies.getConfig(),
+        { jsonMode: true, serviceName: 'question-extraction' },
+      );
+      const output = parseOutput(raw);
+      conceptIds = resolveCandidates(output.conceptIds, conceptCandidates, 'concept');
+      claimIds = resolveCandidates(output.claimIds, claimCandidates, 'claim');
+      patched = {
+        ...question,
+        extractedConceptIds: conceptIds,
+        ...(claimIds.length > 0 ? { extractedClaimIds: claimIds } : {}),
+        questionType: output.questionType,
+        unresolved: output.unresolved,
+      };
+      await this.dependencies.database.execute(
+        'INSERT OR REPLACE INTO user_questions (id, user_id, post_id, created_at, data) VALUES (?, ?, ?, ?, ?)',
+        [patched.id, patched.userId, patched.postId, patched.createdAt, JSON.stringify(patched)],
+      );
+    }
     const graphResult = await this.dependencies.applyQuestionExtraction(patched, conceptIds, claimIds);
     if (!graphResult.success) {
       throw new Error(graphResult.error?.message ?? 'Question extraction could not update graph memory');
     }
+    await this.dependencies.recordQuestionAnswer(patched, answer);
     this.dependencies.emit({
       type: 'GRAPH_UPDATED',
       payload: { kind: 'extraction', affectedIds: conceptIds },

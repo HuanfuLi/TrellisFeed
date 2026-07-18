@@ -14,6 +14,7 @@ globalThis.localStorage = {
 const { dbExecute, dbQuery } = await import('../../src/services/db.service.ts');
 const { studyContextService } = await import('../../src/services/study-context.service.ts');
 const { createInteractionLog } = await import('../../src/services/interaction-log.service.ts');
+const { toResearchWireRecord } = await import('../../src/services/research-wire-contract.ts');
 
 const identity = {
   userId: '1042',
@@ -232,4 +233,65 @@ test('canonical projection rejects identity conflicts and arbitrary extra contex
     /disallowed field: payload/i,
   );
   assert.equal((await recordRows()).length, 0);
+});
+
+test('extraction re-projection persists revision 2 with the exact RQ-02 wire fields', async () => {
+  await resetRecords();
+  setConsent(true);
+  const { logger } = makeHarness();
+  const answer = {
+    id: 'answer-rq2', userQuestionId: 'question-rq2', postId: 'post-rq2', answerText: 'Bounded answer.',
+    citedPostIds: ['post-rq2'], conceptIds: ['answer-concept'], createdAt: '2026-07-11T12:00:00.000Z',
+    modelName: 'fake-main',
+  };
+  const initialQuestion = {
+    id: 'question-rq2', userId: '1042', condition: 'experimental', topicId: 'topic-opaque-1', postId: 'post-rq2',
+    text: 'What evidence supports this?', source: 'typed', createdAt: '2026-07-11T11:59:00.000Z',
+    extractedConceptIds: [], aiAnswerId: 'answer-rq2',
+  };
+  await dbExecute(
+    'INSERT OR REPLACE INTO user_questions (id, user_id, post_id, created_at, data) VALUES (?, ?, ?, ?, ?)',
+    [initialQuestion.id, initialQuestion.userId, initialQuestion.postId, initialQuestion.createdAt, JSON.stringify(initialQuestion)],
+  );
+  await dbExecute(
+    'INSERT OR REPLACE INTO ai_answers (id, user_question_id, post_id, created_at, data) VALUES (?, ?, ?, ?, ?)',
+    [answer.id, answer.userQuestionId, answer.postId, answer.createdAt, JSON.stringify(answer)],
+  );
+
+  const first = await logger.recordQuestionSubmit({ question: initialQuestion, answer });
+  assert.equal(first.revision, 1);
+
+  const extractedQuestion = {
+    ...initialQuestion,
+    extractedConceptIds: ['concept-alpha'],
+    extractedClaimIds: ['claim-main'],
+    questionType: 'evidence',
+    unresolved: true,
+  };
+  await dbExecute(
+    'INSERT OR REPLACE INTO user_questions (id, user_id, post_id, created_at, data) VALUES (?, ?, ?, ?, ?)',
+    [extractedQuestion.id, extractedQuestion.userId, extractedQuestion.postId, extractedQuestion.createdAt, JSON.stringify(extractedQuestion)],
+  );
+  const revised = await logger.recordQuestionAnswer({ question: extractedQuestion, answer });
+
+  assert.equal(revised.revision, 2);
+  assert.deepEqual(
+    {
+      extractedConceptIds: revised.extractedConceptIds,
+      extractedClaimIds: revised.extractedClaimIds,
+      questionType: revised.questionType,
+      unresolved: revised.unresolved,
+    },
+    {
+      extractedConceptIds: ['concept-alpha'],
+      extractedClaimIds: ['claim-main'],
+      questionType: 'evidence',
+      unresolved: true,
+    },
+  );
+  assert.doesNotThrow(() => toResearchWireRecord(revised));
+  const rows = await dbQuery('SELECT * FROM research_records WHERE id = ?', ['qa:question-rq2']);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].revision, 2);
+  assert.deepEqual(JSON.parse(rows[0].data), revised);
 });
