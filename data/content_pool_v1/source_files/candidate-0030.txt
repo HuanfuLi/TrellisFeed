@@ -1,0 +1,16 @@
+The presentation distinguishes three tiers of AI systems: RAG-based chatbots (reactive question-answering), tool-augmented chatbots (limited access to external tools), and Agentic AI. The latter is defined by autonomous, multi-step planning and decision-making capabilities. Through real-world use cases—such as HR automation, AI coding, and travel planning—the speaker demonstrates how agentic systems leverage LLMs alongside external APIs, memory, and reasoning frameworks to achieve outcomes without requiring step-by-step human intervention at every stage.
+Central claims:
+- True agentic AI distinguishes itself from simpler chatbots through autonomous planning, multi-step reasoning, and proactive execution.
+- The distinction between GenAI and Agentic AI is one of scope, where GenAI acts as a sub-component within a broader agentic system.
+Concepts:
+- Agentic AI: An AI system capable of autonomous decision-making and action to achieve a goal.
+- RAG Chatbot: A system using Retrieval-Augmented Generation to answer questions based on specific documentation.
+- Tool-Augmented Chatbot: An AI chatbot integrated with external APIs or tools to perform specific tasks.
+- Multi-step Reasoning: The ability of an LLM to decompose a goal into smaller, manageable sub-tasks.
+- Goal-Oriented Planning: A framework where an AI identifies necessary actions to complete a user-defined objective.
+Counterpoints:
+- Autonomous agents may introduce non-deterministic outcomes that are difficult for enterprise compliance systems to monitor.
+- The line between 'tool-augmented' and 'agentic' remains subjective, leading to potential confusion for developers regarding system limitations.
+Reliability notes:
+- The source video uses proprietary frameworks to illustrate concepts, which may not be broadly applicable.
+- The demonstration relies on mock environments that do not fully capture the complexities of real-world integration errors.

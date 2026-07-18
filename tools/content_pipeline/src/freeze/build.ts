@@ -43,7 +43,6 @@ function approvalFor(candidate: ReviewCandidate): ReviewDecision {
   if (decision.editedContentHash !== candidate.contentHash) throw new Error(`operator approval is stale for ${candidate.id}`);
   if (!candidate.codexCurrent || candidate.codex.status !== 'advisory-ready') throw new Error(`current advancing Codex verdict is missing for ${candidate.id}`);
   if (decision.codexVerdictHash !== candidate.contentHash) throw new Error(`operator approval has a stale Codex verdict for ${candidate.id}`);
-  if (decision.rightsReview?.status !== 'cleared' || !decision.rightsReview.reviewer || !decision.rightsReview.basis) throw new Error(`cleared rights review is missing for ${candidate.id}`);
   return decision;
 }
 
@@ -53,6 +52,16 @@ function assertNoSecrets(candidates: ReviewCandidate[]): void {
     const material = `${candidate.source.fullText}\n${JSON.stringify(candidate.draft)}`;
     if (patterns.some((pattern) => pattern.test(material))) throw new Error(`secret-like material detected in ${candidate.id}`);
   }
+}
+
+function sourcePlatform(candidate: ReviewCandidate): 'youtube' | 'x' | 'reddit' | 'article' {
+  if (candidate.source.kind === 'video') return 'youtube';
+  const declared = candidate.source.rawMetadata?.platform;
+  if (declared === 'x' || declared === 'reddit') return declared;
+  const hostname = new URL(candidate.source.canonicalUrl).hostname.toLowerCase();
+  if (['x.com', 'www.x.com', 'twitter.com', 'www.twitter.com'].includes(hostname)) return 'x';
+  if (['reddit.com', 'www.reddit.com'].includes(hostname)) return 'reddit';
+  return 'article';
 }
 
 function project(candidates: ReviewCandidate[], version: string) {
@@ -74,7 +83,7 @@ function project(candidates: ReviewCandidate[], version: string) {
     const postQuestions = candidate.draft.suggestedQuestions.map((question: any, index: number) => ({ id: `question-${postId}-${String(index + 1).padStart(2, '0')}`, postId, topicId, text: question.text, type: question.type, targetConceptIds: question.targetConceptLabels.map(conceptId), targetClaimIds: question.targetClaimIndexes.map((target: number) => postClaims[target]?.id).filter(Boolean), generic: question.generic }));
     claims.push(...postClaims); suggestedQuestions.push(...postQuestions);
     const postConceptIds = [...new Set(candidate.draft.concepts.map((concept: any) => conceptId(concept.label)))].sort();
-    const platform = candidate.source.kind === 'video' ? 'youtube' : 'article';
+    const platform = sourcePlatform(candidate);
     posts.push({
       id: postId, topicId, sourceUrl: candidate.source.canonicalUrl, sourcePlatform: platform,
       sourceName: candidate.source.sourceName || new URL(candidate.source.canonicalUrl).hostname,
@@ -84,8 +93,8 @@ function project(candidates: ReviewCandidate[], version: string) {
       ...(candidate.source.durationSeconds !== undefined ? { durationSeconds: candidate.source.durationSeconds } : { readingTimeMinutes: Math.max(1, Math.ceil(candidate.source.fullText.split(/\s+/).length / 220)) }),
       ...(candidate.source.publicationDate ? { originalPublishedAt: new Date(`${candidate.source.publicationDate}T00:00:00.000Z`).toISOString() } : {}),
       collectedAt: candidate.source.collectedAt, approvedAt: decision.decidedAt,
-      qualityScore: decision.scores!.quality, interestingnessScore: decision.scores!.interestingness,
-      educationalValueScore: decision.scores!.educationalValue, difficulty: decision.scores!.difficulty,
+      qualityScore: candidate.draft.qualityScore, interestingnessScore: candidate.draft.interestingnessScore,
+      educationalValueScore: candidate.draft.educationalValueScore, difficulty: candidate.draft.difficulty,
       viewpoint: candidate.draft.viewpoint, conceptIds: postConceptIds, claimIds: postClaims.map((claim: any) => claim.id),
       suggestedQuestionIds: postQuestions.map((question: any) => question.id), status: 'frozen',
     });
@@ -146,7 +155,7 @@ export async function buildFrozenPool(input: FreezeInput) {
       rawCandidateCount, approvedCount: projected.posts.length, rejectedCount: rawCandidateCount - projected.posts.length,
       sourceFormatDistribution: Object.fromEntries(['article', 'video'].map((kind) => [kind, candidates.filter((candidate) => candidate.source.kind === kind).length])),
       stanceDistribution: Object.fromEntries(['supportive', 'critical', 'neutral', 'mixed'].map((stance) => [stance, projected.posts.filter((post) => post.viewpoint === stance).length])),
-      reviewProcedureSummary: 'Codex advisory fidelity/reliability gate followed by explicit operator RSD 8.7 review and separate cleared rights/provenance review. Operator decisions are the gate of record.',
+      reviewProcedureSummary: 'Codex advisory fidelity/reliability gate followed by an explicit operator decision: approve, needs edit, or reject. Operator decisions are the gate of record.',
       counts: { topics: projected.topics.length, posts: projected.posts.length, concepts: projected.concepts.length, claims: projected.claims.length, suggestedQuestions: projected.suggestedQuestions.length, sourceAssets: projected.sourceAssets.length },
       artifactHashes: hashes, feedOrderPostIds: projected.posts.map((post) => post.id), fixedFilenames: [], bundleFileHashes: {},
     };

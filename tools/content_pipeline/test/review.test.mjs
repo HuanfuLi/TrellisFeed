@@ -46,7 +46,7 @@ test('CLI routes review arguments without losing existing dispatch behavior', as
   assert.deepEqual(seen, { command: 'review', runDir: 'run', host: '127.0.0.1', port: 4567, open: true });
 });
 
-test('review queue exposes all source, wrapper, advisory, and review dimensions', async () => {
+test('review queue exposes source, wrapper, advisory, and supporting evidence', async () => {
   const queue = await loadReviewQueue(await fixtureRun());
   assert.equal(queue.length, 1);
   assert.equal(queue[0].source.fullText, 'Complete inert article text.');
@@ -54,15 +54,16 @@ test('review queue exposes all source, wrapper, advisory, and review dimensions'
   assert.equal(queue[0].codex.advisory.fidelityNotes, 'faithful');
   assert.equal(queue[0].mechanicalQuality.disposition, 'review-priority');
   assert.deepEqual(queue[0].duplicateEvidence.candidateIds, ['post-1']);
-  for (const field of ['sourceQuality', 'factualReliability', 'contentRelevance', 'hookAccuracy', 'summaryFaithfulness', 'suggestedQuestionUsefulness', 'participantAppropriateness', 'duplicateRisk', 'biasRisk', 'misinformationRisk', 'rightsReview']) assert.ok(field in queue[0].reviewTemplate, field);
+  assert.equal('reviewTemplate' in queue[0], false);
 });
 
-test('append-only decisions require current Codex verdict, content hash, rights review, and operator identity', async () => {
+test('append-only decisions require only a disposition, current content hash, and current Codex verdict for approval', async () => {
   const runDir = await fixtureRun();
   const candidate = (await loadReviewQueue(runDir))[0];
-  await assert.rejects(writeReviewDecision(runDir, candidate, { disposition: 'approved', reviewer: 'operator', notes: 'ok', rubricVersion: 'rsd-8.7-v1', editedContentHash: hash, rightsReview: { status: 'missing', reviewer: 'rights', basis: 'none', notes: '' } }), /rights review/i);
-  const decision = await writeReviewDecision(runDir, candidate, { disposition: 'approved', reviewer: 'operator', notes: 'reviewed', rubricVersion: 'rsd-8.7-v1', editedContentHash: hash, rightsReview: { status: 'cleared', reviewer: 'rights', basis: 'permission', notes: 'documented' }, scores: { quality: 0.8, interestingness: 0.7, educationalValue: 0.9, difficulty: 0.4 }, finalTopicTags: ['agents'], review: Object.fromEntries(Object.keys(candidate.reviewTemplate).filter((x) => x !== 'rightsReview').map((x) => [x, 'pass'])) });
+  await assert.rejects(writeReviewDecision(runDir, candidate, { disposition: 'approved', notes: 'stale', editedContentHash: '0'.repeat(64) }), /stale/i);
+  const decision = await writeReviewDecision(runDir, candidate, { disposition: 'approved', notes: ' reviewed ', editedContentHash: hash });
   assert.equal(decision.disposition, 'approved');
+  assert.equal(decision.notes, 'reviewed');
   const log = await readFile(join(runDir, 'review', 'decisions.jsonl'), 'utf8');
   assert.equal(log.trim().split('\n').length, 1);
   assert.match(log, /"operatorIsGateOfRecord":true/);
@@ -75,7 +76,7 @@ test('editing content invalidates prior Codex advice and blocks approval until g
   const edited = (await loadReviewQueue(runDir))[0];
   assert.notEqual(edited.contentHash, hash);
   assert.equal(edited.codexCurrent, false);
-  await assert.rejects(writeReviewDecision(runDir, edited, { disposition: 'approved', reviewer: 'operator', notes: '', rubricVersion: 'v1', editedContentHash: edited.contentHash, rightsReview: { status: 'cleared', reviewer: 'r', basis: 'permission', notes: '' } }), /Codex verdict/i);
+  await assert.rejects(writeReviewDecision(runDir, edited, { disposition: 'approved', notes: '', editedContentHash: edited.contentHash }), /Codex verdict/i);
 });
 
 test('server refuses non-loopback binds and enforces token, origin, CSRF, body cap, and expiration', async () => {
@@ -99,4 +100,8 @@ test('review UI uses inert DOM rendering and a strict no-network CSP', async () 
   assert.match(source, /textContent|createTextNode/);
   assert.match(html, /default-src 'none'/);
   assert.doesNotMatch(html, /<script[^>]+src=["']https?:/i);
+  assert.doesNotMatch(source, /Rights|Rubric|审核维度|编辑完整 Draft JSON/);
+  assert.match(source, /批准并进入下一条/);
+  assert.match(source, /标记为需要修改/);
+  assert.match(source, /拒绝/);
 });

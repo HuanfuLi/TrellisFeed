@@ -38,7 +38,7 @@ export async function startReviewServer(options: ReviewServerOptions) {
   if (!loopback(host)) throw new Error('review server may bind only to an OS loopback address');
   const token = randomBytes(32).toString('base64url');
   const csrfToken = randomBytes(32).toString('base64url');
-  const expiresAt = Date.now() + (options.sessionTtlMs ?? 30 * 60_000);
+  const expiresAt = Date.now() + (options.sessionTtlMs ?? 8 * 60 * 60_000);
   const maxBodyBytes = options.maxBodyBytes ?? 64 * 1024;
   let origin = '';
   const server = createServer(async (req, res) => {

@@ -1,0 +1,187 @@
+2026 Work Trend Index Annual Report
+
+Agents, human agency, and the opportunity for every organization
+
+May 5, 2026
+
+The opportunity for human potential at work has never been greater. People are using AI and agents to expand what they can do and who gets to do it, and new research shows that’s only accelerating. Call it the new agency equation: as agents take on more of the execution, humans increasingly have more agency—more room to direct the work, make the calls, and own the outcomes. For every firm, the imperative now is to turn that agency into unprecedented value.
+
+We analyzed trillions of anonymized Microsoft 365 productivity signals and surveyed 20,000 workers using AI1 across 10 countries. We also spoke with leading experts in AI, work, and organizational psychology to help us unpack the insights from the data and understand where all this is going. The anxiety around AI at work is real—from fears of job loss to the pressure to keep up with rapidly evolving technology. But our research shows something else: that a growing share of workers are using AI in advanced, resourceful ways. The problem? Most organizations aren’t keeping up.
+
+In many cases, people are ready. The systems around them are not.
+
+The constraint for most firms is the gap between what their employees can now do and what their organizations are built to support. Our data shows that organizational factors—culture, manager support, talent practices—account for twice the reported AI impact2 of individual effort alone.
+
+Bridging that gap means redesigning the operating model across employees, leaders, and the organization. The ones already doing it—Frontier Firms—are pulling ahead fast. Employees are using AI to lift the ceiling on what they can do. Leaders are rearchitecting work itself, deciding what humans and AI do. And organizations are turning into Learning Systems—because the companies that learn fastest from their own work will be the ones that win.
+
+Here’s what Frontier Firms do differently—and how we can all take control of what comes next.
+
+AI is expanding what we can do—and putting a premium on judgment, clarity of intent, and the design of work itself.
+
+A privacy-preserving analysis of more than 100,000 chats in Microsoft 365 Copilot shows that 49% of all conversations support cognitive work—helping workers analyze information, solve problems, evaluate, and think creatively. The remainder splits among working with people (19%), finding information (15%), and producing work (17%).3
+
+Employees at every level now have a partner that helps them analyze, synthesize, and deepen their own expertise, while also building expertise in other areas. AI is not just helping us do things faster. It’s expanding who can do high-value work.
+
+The data backs this up: 66% of AI users we surveyed4 say AI has allowed them to spend more time on high-value work and 58% say they’re producing work they couldn’t have a year ago.
+
+That rises to 80% among Frontier Professionals, the most advanced AI users in our research. Frontier Professionals use agents for multi-step workflows and building multi-agent systems. They routinely rethink workflows and identify where agents can augment or automate. And they participate in practices like creating shared AI standards for their team or organization. They represent a small but disproportionately valuable group: 16% of the AI users we surveyed.
+
+Frontier Professionals refuse to outsource their thinking—they know long-term success means continuing to build human skills and not letting them atrophy.
+
+But as AI expands what people can do, it also raises the premium on good judgment. Most AI users we surveyed recognize this. Asked which human skills are more important as AI takes on more work, they said two topped the list: quality control of AI output (50%) and critical thinking—analyzing information objectively and making a reasoned judgment (46%). And 86% say they treat AI output as a starting point, not a final answer, and that they “stay responsible for the thinking.” They see their role is shifting from generating answers to evaluating, refining, and owning them.
+
+Frontier Professionals are even more aware of the importance of human judgment when working with AI. They rank higher across every measure in the survey related to critical thinking and quality control—and that shows up in how they work. They are more likely than non-Frontier professionals to say they intentionally do some work without AI to keep their skills sharp (43% vs. 30%) and to say they intentionally pause before starting work to decide what should be done by AI versus a human (53% vs. 33%). Frontier Professionals refuse to outsource their thinking—they know long-term success means continuing to build human skills and not letting them atrophy.
+
+As AI use matures across all employees, the most effective AI users won’t be the ones who do more things faster. They’ll be the ones who redefine their value around what only humans can do: setting clear intent—defining the desired outcome and quality bar—and designing how the work gets done across humans and AI. They apply judgment and taste, build trust, and shape systems that produce better outcomes. The question stops being “What tasks define my job?” and starts being “What outcomes am I now positioned to drive?”
+
+Most organizations are not yet built to capture the value of this expanded human agency. The challenge is not isolated to tools or individuals—it’s a breakdown across the system that connects leadership, culture, management practices, and how work is measured.
+
+To understand where this breakdown occurs, we mapped survey respondents across two dimensions: their capability with AI and their organization’s readiness to absorb it.
+
+In many cases, employees are moving faster than the organizations around them.
+
+Individual capability reflects how broadly respondents report using AI and how confidently they direct it, judge its output, and learn from it. It also includes how actively they experiment and share learnings, and whether they report creating new value with AI—from improving work quality and processes to enabling work they couldn’t do before.
+
+Organizational readiness reflects the environment around them, including: culture and management practices that support AI use, clear rules and guidelines for how people and AI work together, and whether AI use is encouraged and recognized.
+
+The results reveal five groups of AI users. And in many cases, employees are moving faster than the organizations around them.
+
+Only 19% of AI users are Frontier, the sweet spot where organizational capability and individual readiness are both high and reinforcing each other. At the other end, 16% are stalled, with low capability and limited organizational support. The rest are misaligned: 10% fall into blocked agency, where individuals have built strong skills but lack the systems to apply them. 5% sit in unclaimed capacity, where organizations are ready but employees have yet to catch up. The largest share sits in the messy middle, or emergent zone, where both individual practice and organizational conditions are still taking shape.
+
+This misalignment is reinforced at the top. Only one in four AI users surveyed (26%) say their leadership is clearly and consistently aligned on AI. Leaders surveyed are also more likely than employees to say AI-driven reinvention feels safe and rewarded.5
+
+1 in 4
+
+What emerges is a pressure point within the organization where the pull to perform collides with the push to transform. 65% of AI users fear falling behind if they don’t use AI to adapt quickly, yet 45% say it feels safer to focus on current goals than to redesign work with AI. And only 13% of AI users say they’re rewarded for reinvention of work with AI even if results aren’t met.
+
+We call this the Transformation Paradox: Employees are ready to reinvent how they work, but the system around them—metrics, incentives, and norms—continues to reinforce the old way. The same forces accelerating AI adoption are holding it back.
+
+Leadership must redesign the system to match the work
+
+The job of every leader right now is to make change stick. That means setting strategy at the top and ensuring the metrics, incentives, and expectations reward people for changing the way they work.
+
+Once that strategy is set, it’s managers who operationalize it, and the data shows the impact of their ability to do so.
+
+A separate Microsoft-led study6 of 1,800 workers globally found when managers actively modeled AI use, employees reported a 17-point lift in reported AI value7, a 22-point lift in critical thinking about their AI use, and a 30-point lift in trust in agentic AI. When managers created psychological safety around experimentation, employees reported up to 20 points higher AI readiness and value—and were 1.4x more likely to be high-frequency users of agentic AI.
+
+The Transformation Paradox is, at its core, a systems problem. And systems don’t fix themselves—they have to be redesigned.
+
+Frontier Professionals in our survey consistently work in this kind of environment. Compared to non–Frontier Professionals, they are significantly more likely to say their manager openly uses AI (85% vs. 64%), sets quality standards for AI work (83% vs. 57%), creates space for experimentation (84% vs. 61%), and encourages more ambitious work redesign (87% vs. 61%). They are also 2X more likely to say they are rewarded for the reinvention of work with AI regardless of outcome (26% vs. 11%).
+
+Individual potential can compound when leadership sets direction, culture supports experimentation and learning, and management practices reinforce new ways of working.
+
+The firms pulling ahead are focused on AI absorption rather than just AI adoption, redesigning how work gets done and turning output into insight. When that insight gets captured, shared, and built into how the organization operates, it creates a self-reinforcing Learning System.
+
+Many leaders focus on hiring the right people and assume results will follow. But our data shows that it’s something else: the conditions leaders create for that talent to thrive.
+
+We analyzed responses from our global survey and tested a broad set of organizational, individual, and demographic factors against self-reported AI impact8—whether employees say AI helps them produce higher quality work, collaborate more effectively, expand the type of work they do, and more.
+
+The results show that organizational factors9 like culture, manager support, and talent practices account for more than 2x the reported AI impact of individual factors like mindset and behavior (67% vs. 32%).
+
+The findings underscore the importance of an AI-ready environment: a culture that treats AI as a strategic advantage and encourages experimentation, managers who model and incentivize AI use, and talent practices that build skills and create space to apply them.
+
+The real question isn’t whether people have the right skills. It’s whether the organization is built to unlock them.
+
+15x
+
+Redesigning systems and processes
+
+The number of active agents in the Microsoft 365 ecosystem has grown 15x year over year, rising to 18x in large enterprises.10
+
+As agents take on more, they also generate valuable signals: what worked, what failed, where outcomes drifted. In many organizations surveyed, those signals stay local or spread slowly. Frontier Firms treat them differently. They capture these signals and encode them into shared routines, improving future work while preserving accountability and control.
+
+For example, Frontier Professionals are more likely than non–Frontier Professionals to say their teams brainstorm and refine business processes together to identify AI opportunities (63% vs. 32%), share AI tips, new agents, learnings, and mistakes (61% vs. 36%), and discuss quality standards for AI-assisted work (54% vs. 29%).
+
+They are also more likely to report that agent workflows, human handoffs, and quality standards are documented and repeatable at the team (26% vs. 19%), function (29% vs. 17%), and organization level (25% vs. 14%).
+
+Building an evaluation infrastructure
+
+Creating those systems requires a disciplined approach to holding humans accountable for the work that agents execute. Many functions that deploy agents at scale will start to see a pattern: the more agents execute, the higher the stakes around human evaluation. Approving one bad output is manageable, but when bad outputs make it through at scale, the risk compounds. The key is to build an evaluation infrastructure that can keep up with agents.
+
+It starts with three questions that every Frontier Firm will need to answer: Who reviews agent performance? Who has the authority to update the workflows that agents run? How does a local win get captured and scaled across the organization? Organizations that can answer these questions are building Owned Intelligence—institutional know-how that compounds over time, is unique to the firm, and is hard to replicate.
+
+Every Frontier Firm needs to build Owned Intelligence—institutional know-how that compounds over time, is unique to the firm, and is hard to replicate.
+
+Building that infrastructure also requires coordinated reinvention across four roles: employees, who rearchitect their work around intent and review; leaders, who redesign processes around outcomes and agent autonomy; IT, who builds the infrastructure for agent operations at scale; and security, who ensures that trust is woven into the system itself.
+
+For IT leaders, this means treating agents as managed entities with identities, permissions, policy enforcement, and lifecycle management. IT becomes the control plane for agent operations, extending the same rigor already applied to people and applications so that scale does not come at the cost of visibility.
+
+For security leaders, this means accounting for the new risk that agents introduce: data exfiltration, unintended system actions, and unauthorized access. Securing agents requires embedding monitoring, policy enforcement, and auditability directly into the platform, so that trust operates as a structural property of the system.
+
+When these four roles work in concert, the organization becomes a Learning System: one in which work continuously produces insight, and insight continuously reshapes how work gets done.
+
+A new operating model
+
+The firms that build a new operating model today won’t just move faster in the short term. They’ll build something more durable, setting themselves up to create value in ways that we can’t yet conceive of: an organization that learns faster than its competitors, compounds its own intelligence, and gets harder to catch with every cycle.
+
+This shift won’t happen easily. Some jobs will change. Some will go away. And many that don’t exist yet will emerge. According to LinkedIn’s 2026 Labor Market Report, in the past two years, employers have created at least 1.3 million AI-related job opportunities, which include data annotators, AI engineers, and forward-deployed engineers. These roles didn’t exist five years ago, but they have quickly become essential to digital economies. This kind of dynamism isn’t new to work, but the pace and scale of it are—and the uncertainty people feel is real.
+
+What’s also real: The potential for employees to make impact has never been higher. Leaders are starting to redesign the systems around them. The organizations capturing what their work is teaching them are learning faster than the ones that aren’t. None of that happens by accident.
+
+The opportunity in front of every leader and organization is to take control: to build a place where agents amplify what people can do, where human judgment stays at the center of the work that matters, and where we all have the agency to decide what comes next. This is what AI can mean for all of us—if we choose to do the work to get there.
+
+Endnotes
+
+1 AI users: Survey respondents who reported using generative AI for work at least occasionally (from less than once a month to more than once per day). Respondents who selected “never” (or “don’t know”) were screened out of the survey.
+
+2 AI impact: A combination of outcome variables about how AI users report that AI is making an impact, including being more creative, doing new kinds of work, giving higher-quality first drafts, improving work ability, collaboration, feeling in control, improving career prospects, doing high-value work, and being more likely to stay at my company because of AI. See section 3, “Every firmis a learning system” or “AI Impact Analysis” in methodology for more details.
+
+3 See “Share of User Goals by O*NET Generalized Work Activities” in the methodology for more details.
+
+4 See “Work Trend Index Survey” in methodology for more details.
+
+5Leaders in our survey were more likely than employees to report feeling safe suggesting new ways of working with AI (81% vs. 67%) and that their managers create space for AI experimentation (78% vs. 59%). They were also 2X more likely to report that reinvention of work with AI is rewarded regardless of outcome (21% vs. 10%).
+
+6 Survey responses from 1,800 employees globally as part of the Microsoft People Science Agentic Teaming & Trust Survey (July 2025), including 819 leaders (C-suite, VP, Director), 520 managers, and 461 individual contributors external to Microsoft.
+
+7 AI value was measured using a composite of self‐reported survey items assessing realized individual and team value from agentic AI use. Individual value (Agent RIVA) includes whether respondents report that agentic AI reduces work‐related stress; improves productivity; improves the quality of work or output; enables faster task completion; supports better decision‐making; and simplifies complex work tasks. Team value (Agent RTVA) includes whether respondents report that agentic AI improves team efficiency and the quality of their team’s output. Items are combined to reflect overall perceptions of AI value.
+
+8 AI impact: A combination of outcome variables about how AI users report that AI is making an impact, including being more creative, doing new kinds of work, giving higher-quality first drafts, improving work ability, collaboration, feeling in control, improving career prospects, doing high-value work, and being more likely to stay at my company because of AI. See “AI Impact Analysis” in methodology for more details.
+
+9 Organizational & individual factors: Based on composite indices capturing respondents’ perceptions of AI culture, manager support, and talent practices, as well as their own AI mindset, each derived from multiple survey items assessing behaviors, attitudes, and workplace conditions related to AI use. See “AI Impact Analysis” in methodology for more details.
+
+10 Year over year change in the count of unique active agents in the Microsoft 365 Copilot Agents platform and SharePoint in a rolling 28-day period. See methodology for more details.
+
+Methodology
+
+Microsoft 365 Telemetry
+
+All data is based on aggregated and anonymized Microsoft 365 productivity signals.
+
+Prompts per User: Number of prompts per user in a rolling 28-day period. Includes all countries and customer segments (including EU). Excludes government industry. Data spans March 2025 through March 2026. Agent creation platforms included are Agent Builder and Microsoft 365 Agents Toolkit.
+
+Share of User Goals by O*NET Generalized Work Activities: The percentage of total Intermediate Work Activities (IWAs) detected in Microsoft 365 Copilot conversations that are mapped to Generalized Work Activities (GWA). This is calculated using a fractional share method: if a conversation contains multiple IWAs, each is counted fractionally (e.g., two IWAs in a conversation means each gets a count of 0.5). Commercial segments (excluding EDU). Includes North American countries only. 105,000 samples from 1 week of February 2026 data.
+
+Monthly Active Agents Growth: Year over year change in the count of unique active agents observed through telemetry across the Microsoft 365 Copilot Agents platform and SharePoint agents in a rolling 28-day period. An agent counts as active if it has at least one day of user-initiated usage in the 28-day period or completes at least one autonomous run in that period. Includes all countries and customer segments (including EU). Data spans March 25 through March 26. Agent creation platforms included are AgentBuilder and Microsoft 365 Agents Toolkit.
+
+Monthly Active Firms: Count of unique firms who had at least one user who made at least one intentional usage with an agent in a rolling 28-day period. Includes all countries and customer segments (including EU). Data spans March 2025 through March 2026. Agent creation platforms included are Agent Builder and Microsoft 365 Agents Toolkit.
+
+STUDY: EMPOWERING MANAGERS FOR AN AI-FIRST FUTURE
+
+This analysis examines the evolving role of managers in AI-first organizations. The Microsoft People Science team analyzed survey responses from 1,800 employees globally as part of the Microsoft People Science Agentic Teaming & Trust Survey (July 2025), including 819 leaders (C-suite, VP, Director), 520 managers, and 461 individual contributors.
+
+Work Trend Index Survey
+
+The Work Trend Index survey was conducted by an independent research firm, Edelman Data x Intelligence, among 20,000 full-time employed or self-employed knowledge workers who use AI at work across 10 markets between February 18, 2026, and April 7, 2026. This survey was 20 minutes in length and conducted online, in either the English language or translated into a local language across markets. 2,000 full-time workers were surveyed in each market, and global results have been aggregated across all responses to provide an average. Global markets surveyed include: Australia, Brazil, France, Germany, India, Italy, Japan, Netherlands, United Kingdom, and United States. Audiences mentioned in the report are defined as follows:
+
+AI Users: AI users are knowledge workers who reported using generative AI for work at least occasionally (less than once a month, up to more than once per day). Respondents who selected “never” (or “don’t know”) were screened out of the survey.
+
+Leaders: Knowledge workers in middle to upper job levels (i.e., Senior Director, Vice President (VP), Senior Vice President (SVP), Executive Vice President (EVP), General Manager (GM), President, C-Suite (e.g., CEO, CFO, COO), and have at least some decision-making influence related to hiring, budgeting, employee benefits, internal communications, operations, etc.
+
+Employees: Knowledge workers who are not in middle to upper job levels or have no influence on decision-making related to hiring, budgeting, employee benefits, internal communications, operations, etc.
+
+Frontier Professionals: To identify Frontier Professionals, we used a definition grounded in how people self-report how they are working with AI. Respondents were classified as Frontier Professionals only if they reported a combination of three distinct sets of behaviors: Advanced use of AI agents to complete complex or multi-step work; routine redesign of workflows to take advantage of what AI can do well; participation in structured, repeatable AI-enabled practices that can scale beyond individual use. They represent 3,233 of the 20,000 AI users surveyed. 44% are business decision makers, and 56% are employees. 50% are millennials, 23% Gen X, 22% Gen Z, and 4% Boomers. Frontier Professionals are more likely to work in tech (35%) or financial services (12%), with roles in IT (36%) or finance and accounting (11%). They tend to be in larger organizations (53% in companies with 500+ employees).
+
+Organization vs. Employee AI Readiness Index: The Organization vs. Employee AI Readiness Index places each respondent on two self-reported dimensions: how ready they are as an individual to work with AI (a composite of usage sophistication, self-efficacy, proactive behaviors, and self-reported value creation) and how ready their organization is to support AI use (a composite of organizational AI culture, manager support, governance maturity, and AI in performance evaluation). Both dimensions are normalized 0 to 1 within each market before pooling. Each respondent is then assigned to one of five mutually exclusive zones: Frontier (clearly above median on both readiness dimensions, 19%), Blocked Agency (high individual, low organizational, 10%), Unclaimed Capacity (low individual, high organizational, 5%), Stalled (clearly below median on both, 16%), and the Emergent Zone (50%). The index is calculated on 16,971 respondents. Pearson correlation between the two readiness dimensions is r = 0.55.
+
+AI Impact Analysis: The AI Impact Analysis identifies which of 29 measured factors are most strongly associated with workers reporting that AI is delivering real impact at work. The 29 factors are organized into three categories — organizational environment (10 factors describing the workplace), individual mindset and behavior (9 factors describing the worker's own orientation toward AI), and demographics (10 factors including job level, industry, market, generation, and AI familiarity). Importance is measured by random forest permutation, with cross-validation by elastic net regression and gradient-boosted trees. All three model families produce the same category ranking and the same top correlates, with held-out test R2 of 0.680, 0.689, and 0.690 respectively. The analysis was run on 19,854 respondents, after removing respondents' missing values on any of the 29 factors. Every variable in the analysis is self-reported by the same respondent at the same moment, so the relationships shown are statistical associations, not causal effects.
+
+AI Impact: A combination of outcome variables about how employees report AI is making an impact on them including being more creative, doing new kinds of work, giving higher-quality first drafts, improving work ability, collaboration, feeling in control, improving career prospects, doing high-value work, and being more likely to stay at my company because of AI.
+
+Org AI culture: How strongly the respondent says their organization has a culture aligned with AI, such as whether the organization overall is open and curious about AI, whether it feels safe to suggest new ways of working with AI, and whether people have confidence in their ability to use AI. Built from 10 survey items about the respondent's perception of their current workplace culture.
+
+Manager support: How much the respondent says their direct manager actively supports them using AI, including encouraging experiments, modeling AI use themselves, making room for AI-enabled work in how the respondent is evaluated, and making it feel safe to try new things. Built from 5 items about the manager-employee relationship around AI.
+
+Talent practices: How much AI is built into the company's talent practices, such as investing in building people's skills, encouraging employees to try new domains or projects, and whether their manager is helping with professional development. Built from 6 items about the company's talent practices.
+
+AI mindset: The respondent's own attitude toward AI, for example how confident they feel using it, openness to working with it, and how much they trust AI. Built from 10 items about the individual's own orientation toward AI.

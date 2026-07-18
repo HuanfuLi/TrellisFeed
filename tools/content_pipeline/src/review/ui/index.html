@@ -1,11 +1,15 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'">
-  <title>QuestionTrace operator review</title>
+  <title>QuestionTrace 内容审核</title>
   <link rel="stylesheet" href="/styles.css">
 </head>
-<body><header><h1>QuestionTrace operator review</h1><p>Codex is advisory. Your recorded disposition is the gate of record.</p></header><main id="app"></main><script src="/review.js" defer></script></body>
+<body>
+  <div id="app" class="loading-shell"><p>正在载入审核队列…</p></div>
+  <noscript>此审核工具需要启用 JavaScript。</noscript>
+  <script src="/review.js" defer></script>
+</body>
 </html>

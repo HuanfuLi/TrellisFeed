@@ -1,0 +1,14 @@
+The presentation introduces a conceptual framework for integrating AI agents into IT infrastructure. Pritchett distinguishes between 'assistants,' which operate on prompt-response mechanisms, and 'agents,' which have the capability to take action to achieve predefined outcomes. Using a multi-step quote creation process as a model, the presentation suggests that AI agents can augment rigid RPA workflows to create more dynamic systems.
+Central claims:
+- Eric Pritchett asserts that AI agents, powered by Large Language Models, can manage complex logic and business tasks by operating at their discretion within set boundaries, distinguishing them from traditional RPA.
+Concepts:
+- AI Agents: Software entities described in the presentation as having the agency to take actions to achieve outcomes.
+- Robotic Process Automation (RPA): Technology using programmed scripts to emulate tasks, often relying on structured data and APIs.
+- Orchestration Platform: A layer described as managing and coordinating workflows between multiple agents or applications.
+- Large Language Models (LLM): AI models trained on massive text data sets used to facilitate logic in business automation.
+- Agency: The capacity of a software system to take action at its discretion within defined boundaries.
+Counterpoints:
+- Autonomous decision-making in agents can introduce unpredictable outcomes or logic errors not found in deterministic RPA.
+- The overhead required to manage a master agent and multiple sub-agents may be prohibitive for smaller business tasks.
+Reliability notes:
+- The content reflects the perspective of a specific commercial entity (Terzo) and should be evaluated against broader industry practices.

@@ -1,0 +1,1043 @@
+[
+  {
+    "url": "https://arxiv.org/html/2505.20120v1",
+    "sourceType": "paper",
+    "evergreen": true,
+    "publicationDate": "2025-05-26",
+    "calibration": {
+      "batch": "v2",
+      "decidedAt": "2026-07-17T00:46:56.465Z",
+      "note": "",
+      "originalTitle": "Agents Require Metacognitive and Strategic Reasoning to Succeed in the Coming Labor Markets",
+      "originalAuthor": "Simpson Zhang, Tennison Liu, Mihaela van der Schaar"
+    }
+  },
+  {
+    "url": "https://arxiv.org/html/2511.12306v2",
+    "sourceType": "paper",
+    "evergreen": false,
+    "publicationDate": "2025-11-15",
+    "calibration": {
+      "batch": "v2",
+      "decidedAt": "2026-07-17T00:47:05.254Z",
+      "note": "",
+      "originalTitle": "UpBench: A Dynamically Evolving Real-World Labor-Market Agentic Benchmark Framework Built for Human-Centric AI",
+      "originalAuthor": "Darvin Yi, Teng Liu, Mattie Terzolo, Lance Hasson, Ayan Sinha, Pablo Mendes, Andrew Rabinovich"
+    }
+  },
+  {
+    "url": "https://arxiv.org/html/2604.00186v1",
+    "sourceType": "paper",
+    "evergreen": false,
+    "publicationDate": "2026-03-31",
+    "calibration": {
+      "batch": "v2",
+      "decidedAt": "2026-07-17T00:46:36.550Z",
+      "note": "",
+      "originalTitle": "Agentic AI and Occupational Displacement: A Multi-Regional Task Exposure Analysis of Emerging Labor Market Disruption",
+      "originalAuthor": "Ravish Gupta, Saket Kumar"
+    }
+  },
+  {
+    "url": "https://arxiv.org/html/2604.16337v1",
+    "sourceType": "paper",
+    "evergreen": true,
+    "publicationDate": "2026-03-13",
+    "calibration": {
+      "batch": "v2",
+      "decidedAt": "2026-07-17T00:46:49.475Z",
+      "note": "",
+      "originalTitle": "HR-Agents: Using Multiple LLM-based Agents to Improve Q&A about Brazilian Labor Legislation",
+      "originalAuthor": "Abriel K. Moraes, Gabriel S. M. Dias, Vitor L. Fabris, Lucas D. Gessoni, Leonardo R. do Nascimento, Charles S. Oliveira, Vitor G. C. B. de Farias, Fabiana C. Q. de O. Marucci, Matheus H. R. Vicente, Gabriel U. Talasso, Erik Soares, Amparo Munoz, Sildolfo Gomes, Maria L. A. de S. Cruvinel, Leonardo T. dos Santos, Renata De Paris, Wandemberg Gibaut"
+    }
+  },
+  {
+    "url": "https://arxiv.org/html/2605.05558v2",
+    "sourceType": "paper",
+    "evergreen": false,
+    "publicationDate": "2026-05-07",
+    "calibration": {
+      "batch": "v2",
+      "decidedAt": "2026-07-17T00:46:43.710Z",
+      "note": "",
+      "originalTitle": "Who Prices Cognitive Labor in the Age of Agents? Compute-Anchored Wages",
+      "originalAuthor": "Siqi Zhu"
+    }
+  },
+  {
+    "url": "https://budgetlab.yale.edu/research/tracking-impact-ai-labor-market",
+    "sourceType": "report",
+    "evergreen": false,
+    "publicationDate": "2026-03",
+    "calibration": {
+      "batch": "v2",
+      "decidedAt": "2026-07-17T00:31:11.191Z",
+      "note": "",
+      "originalTitle": "Tracking the Impact of AI on the Labor Market",
+      "originalAuthor": "The Budget Lab"
+    }
+  },
+  {
+    "url": "https://carnegieendowment.org/research/2026/04/the-ai-labor-debate-three-views-on-the-future-of-work",
+    "sourceType": "report",
+    "evergreen": false,
+    "publicationDate": "2026-04-23",
+    "calibration": {
+      "batch": "v2",
+      "decidedAt": "2026-07-17T00:31:48.654Z",
+      "note": "",
+      "originalTitle": "The AI Labor Debate: Three Views on the Future of Work",
+      "originalAuthor": "Teddy Tawil"
+    }
+  },
+  {
+    "url": "https://resumevera.com/blogs/ai-agents-agentic-ai-future-of-jobs-2030",
+    "sourceType": "article",
+    "evergreen": false,
+    "publicationDate": "2026-06-10",
+    "calibration": {
+      "batch": "v2",
+      "decidedAt": "2026-07-17T00:33:55.762Z",
+      "note": "",
+      "originalTitle": "AI Agents Explained: How Agentic AI Will Change Jobs",
+      "originalAuthor": "ResumeVera Team"
+    }
+  },
+  {
+    "url": "https://www.anthropic.com/research/labor-market-impacts",
+    "sourceType": "report",
+    "evergreen": false,
+    "publicationDate": "2026-03-05",
+    "calibration": {
+      "batch": "v2",
+      "decidedAt": "2026-07-17T00:32:14.110Z",
+      "note": "",
+      "originalTitle": "Labor market impacts of AI: A new measure and early evidence",
+      "originalAuthor": "Anthropic"
+    }
+  },
+  {
+    "url": "https://www.businessinsider.com/andrej-karpathy-ai-agents-timelines-openai-2025-10",
+    "sourceType": "article",
+    "evergreen": false,
+    "publicationDate": "2025-10-19",
+    "calibration": {
+      "batch": "v3",
+      "decidedAt": "2026-07-17T02:06:04.825Z",
+      "note": "",
+      "originalTitle": "OpenAI cofounder Andrej Karpathy says it will take a decade before AI agents actually work",
+      "originalAuthor": "Lakshmi Varanasi"
+    }
+  },
+  {
+    "url": "https://www.mercer.com/insights/talent-and-transformation/skill-based-talent-management/how-will-agentic-ai-challenge-and-change-your-business/",
+    "sourceType": "article",
+    "evergreen": true,
+    "publicationDate": "2026-02-27",
+    "calibration": {
+      "batch": "v2",
+      "decidedAt": "2026-07-17T00:31:30.930Z",
+      "note": "",
+      "originalTitle": "How will agentic AI challenge and change your business?",
+      "originalAuthor": "Padma Ramanathan, Ravin Jesuthasan"
+    }
+  },
+  {
+    "url": "https://www.microsoft.com/en-us/worklab/work-trend-index/agents-human-agency-and-the-opportunity-for-every-organization",
+    "sourceType": "report",
+    "evergreen": false,
+    "publicationDate": "2026",
+    "calibration": {
+      "batch": "v2",
+      "decidedAt": "2026-07-17T00:32:34.770Z",
+      "note": "",
+      "originalTitle": "2026 Annual: Agents, human agency, and the opportunity for every organization",
+      "originalAuthor": "Microsoft WorkLab"
+    }
+  },
+  {
+    "url": "https://www.motivenotes.ai/p/what-makes-5-of-ai-agents-actually",
+    "sourceType": "article",
+    "evergreen": true,
+    "publicationDate": "2025-10-02",
+    "calibration": {
+      "batch": "v3",
+      "decidedAt": "2026-07-17T02:06:13.319Z",
+      "note": "",
+      "originalTitle": "What Makes 5% of AI Agents Actually Work in Production?",
+      "originalAuthor": "Oana Olteanu"
+    }
+  },
+  {
+    "url": "https://www.reddit.com/r/AI_Agents/comments/1q65e9s/what_is_the_future_of_ai_agents/",
+    "sourceType": "reddit_discussion",
+    "evergreen": true,
+    "publicationDate": "2026-01-07T04:12:06.213Z",
+    "calibration": {
+      "batch": "v2",
+      "decidedAt": "2026-07-17T00:35:40.439Z",
+      "note": "",
+      "originalTitle": "What is the future of AI agents?",
+      "originalAuthor": "Edward12358"
+    }
+  },
+  {
+    "url": "https://www.reddit.com/r/AI_Agents/comments/1t1imwx/is_anyone_actually_running_a_company_with_30_ai/",
+    "sourceType": "reddit_discussion",
+    "evergreen": true,
+    "publicationDate": "2026-05-02T07:02:56.960000+0000",
+    "calibration": {
+      "batch": "v4",
+      "decidedAt": "2026-07-17T02:30:28.102Z",
+      "note": "",
+      "originalTitle": "Is anyone actually running a company with 30+ AI agents, or is this just hype?",
+      "originalAuthor": "Unhappy_Lavishness20"
+    }
+  },
+  {
+    "url": "https://www.reddit.com/r/AI_Agents/comments/1t25omv/state_of_ai_agents_in_corporates_in_mid2026/",
+    "sourceType": "reddit_discussion",
+    "evergreen": true,
+    "publicationDate": "2026-05-02T23:51:54.695000+0000",
+    "calibration": {
+      "batch": "v4",
+      "decidedAt": "2026-07-17T02:30:00.771Z",
+      "note": "",
+      "originalTitle": "State of AI Agents in corporates in mid-2026?",
+      "originalAuthor": "Putrid-Pay5714"
+    }
+  },
+  {
+    "url": "https://www.reddit.com/r/AI_Agents/comments/1u6cy0s/what_will_ai_agents_actually_do_inside/",
+    "sourceType": "reddit_discussion",
+    "evergreen": true,
+    "publicationDate": "2026-06-15T10:40:57.844Z",
+    "calibration": {
+      "batch": "v2",
+      "decidedAt": "2026-07-17T00:35:57.126Z",
+      "note": "",
+      "originalTitle": "What will AI agents actually do inside enterprises in the next 3 years?",
+      "originalAuthor": "More_Treacle_7123"
+    }
+  },
+  {
+    "url": "https://www.reddit.com/r/ArtificialInteligence/comments/1s9q7xj/if_ai_agents_are_the_current_trend_whats_the_next/",
+    "sourceType": "reddit_discussion",
+    "evergreen": true,
+    "publicationDate": "2026-04-01T16:53:40.780Z",
+    "calibration": {
+      "batch": "v2",
+      "decidedAt": "2026-07-17T00:35:55.395Z",
+      "note": "",
+      "originalTitle": "If “AI agents” are the current trend, what’s the next shift from a user perspective?",
+      "originalAuthor": "Overall_Zombie5705"
+    }
+  },
+  {
+    "url": "https://www.reddit.com/r/ArtificialInteligence/comments/1uy50n4/do_aiml_research_labs_actually_use_agent/",
+    "sourceType": "reddit_discussion",
+    "evergreen": true,
+    "publicationDate": "2026-07-16T14:49:22.082000+0000",
+    "calibration": {
+      "batch": "v3",
+      "decidedAt": "2026-07-17T01:59:59.540Z",
+      "note": "",
+      "originalTitle": "Do AI/ML research labs actually use agent frameworks (LangGraph, OpenAI Agents SDK, CrewAI, etc.), or do they build everything from scratch?",
+      "originalAuthor": "One_Fix5763"
+    }
+  },
+  {
+    "url": "https://www.reddit.com/r/cscareerquestions/comments/1qzzql2/serious_what_am_i_missing_about_agentic_ai/",
+    "sourceType": "reddit_discussion",
+    "evergreen": true,
+    "publicationDate": "2026-02-09T09:25:33.017000+0000",
+    "calibration": {
+      "batch": "v4",
+      "decidedAt": "2026-07-17T02:30:07.598Z",
+      "note": "",
+      "originalTitle": "[Serious] What am I missing about agentic AI?",
+      "originalAuthor": "XellosDrak"
+    }
+  },
+  {
+    "url": "https://www.reddit.com/r/cscareerquestions/comments/1sh5sng/if_you_had_to_choose_what_do_you_think_the_future/",
+    "sourceType": "reddit_discussion",
+    "evergreen": true,
+    "publicationDate": "2026-04-09T23:30:03.562Z",
+    "calibration": {
+      "batch": "v2",
+      "decidedAt": "2026-07-17T00:35:22.972Z",
+      "note": "",
+      "originalTitle": "If you had to choose, what do you think the future of the industry looks like?",
+      "originalAuthor": "jholliday55"
+    }
+  },
+  {
+    "url": "https://www.reddit.com/r/cscareerquestions/comments/1t6f33z/ai_isnt_going_to_take_your_job_and_heres_why/",
+    "sourceType": "reddit_discussion",
+    "evergreen": true,
+    "publicationDate": "2026-05-07T16:10:08.214000+0000",
+    "calibration": {
+      "batch": "v4",
+      "decidedAt": "2026-07-17T02:29:52.992Z",
+      "note": "",
+      "originalTitle": "AI isn't going to take your job and here's why",
+      "originalAuthor": "throwaway09234023322"
+    }
+  },
+  {
+    "url": "https://www.reddit.com/r/cscareerquestions/comments/1uy6dc8/how_do_i_compete_and_pass_late_stage_intervews/",
+    "sourceType": "reddit_discussion",
+    "evergreen": true,
+    "publicationDate": "2026-07-16T15:38:35.794000+0000",
+    "calibration": {
+      "batch": "v3",
+      "decidedAt": "2026-07-17T01:59:41.965Z",
+      "note": "",
+      "originalTitle": "how do i compete and pass late stage interv*ews when i have a lack of ai experience?",
+      "originalAuthor": "Bulbasaur2015"
+    }
+  },
+  {
+    "url": "https://www.reddit.com/r/cscareerquestions/comments/1uy7vcc/the_career_is_dead/",
+    "sourceType": "reddit_discussion",
+    "evergreen": true,
+    "publicationDate": "2026-07-16T16:32:35.627000+0000",
+    "calibration": {
+      "batch": "v3",
+      "decidedAt": "2026-07-17T01:59:00.049Z",
+      "note": "我觉得这个其实还行，但是现在 Reddit 上的内容虽然可以抓取了，但目前这个形式不太好看，所有人的评论都塞在一个地方，也没有指出哪句话是谁说的。所以根本没有办法看出其中的对话，只能感觉好像所有话都是同一个人说出来的，很难理解内容。",
+      "originalTitle": "The career is dead",
+      "originalAuthor": "Ok-Gap1970"
+    }
+  },
+  {
+    "url": "https://www.reddit.com/r/Futurology/comments/1ui7tph/how_optimistic_are_you_about_the_future_of_the/",
+    "sourceType": "reddit_discussion",
+    "evergreen": true,
+    "publicationDate": "2026-06-28T20:27:09.256Z",
+    "calibration": {
+      "batch": "v2",
+      "decidedAt": "2026-07-17T00:35:50.988Z",
+      "note": "",
+      "originalTitle": "How optimistic are you about the future of the job market in an AI-driven world?",
+      "originalAuthor": "Sebastian2123"
+    }
+  },
+  {
+    "url": "https://www.reddit.com/r/learnAIAgents/comments/1tkqjkv/how_is_your_company_using_ai_agents_in_workplace/",
+    "sourceType": "reddit_discussion",
+    "evergreen": true,
+    "publicationDate": "2026-05-22T17:54:44.283000+0000",
+    "calibration": {
+      "batch": "v4",
+      "decidedAt": "2026-07-17T02:30:37.448Z",
+      "note": "",
+      "originalTitle": "How is your company using AI Agents in workplace to improve efficiency",
+      "originalAuthor": "white_pinkman"
+    }
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=_F5Y1Dj4gkc",
+    "sourceType": "youtube",
+    "evergreen": true,
+    "calibration": {
+      "batch": "v2",
+      "decidedAt": "2026-07-17T00:44:23.209Z",
+      "note": "",
+      "originalTitle": "AI Agents - Future of Work or Job Killers",
+      "originalAuthor": "SaugaTalks  | Technology Insights & Expert Talks"
+    }
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=-bSd0BcAOLA",
+    "sourceType": "youtube",
+    "evergreen": true,
+    "calibration": {
+      "batch": "v2",
+      "decidedAt": "2026-07-17T00:44:08.172Z",
+      "note": "",
+      "originalTitle": "Stanford Economist Found: AI Is Cutting Junior Jobs First",
+      "originalAuthor": "EO"
+    }
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=0Iqqy3nCp54",
+    "sourceType": "youtube",
+    "evergreen": false,
+    "publicationDate": "2026-05-13T10:32:09-07:00",
+    "calibration": {
+      "batch": "v3",
+      "decidedAt": "2026-07-17T02:01:19.275Z",
+      "note": "",
+      "originalTitle": "Why AI Agents Are RUINING Work",
+      "originalAuthor": "BusinessCringe"
+    }
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=0lwftepuvYA",
+    "sourceType": "youtube",
+    "evergreen": false,
+    "publicationDate": "2026-02-24T06:32:06-08:00",
+    "calibration": {
+      "batch": "v3",
+      "decidedAt": "2026-07-17T02:03:30.782Z",
+      "note": "",
+      "originalTitle": "AI Will Replace White Collar Jobs in 12 Months? The Truth No One Explains",
+      "originalAuthor": "Asian Dad Energy"
+    }
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=15_pppse4fY",
+    "sourceType": "youtube",
+    "evergreen": true,
+    "publicationDate": "2025-05-02T06:30:06-07:00",
+    "calibration": {
+      "batch": "v3",
+      "decidedAt": "2026-07-17T02:05:29.771Z",
+      "note": "",
+      "originalTitle": "What is Agentic AI and How Does it Work?",
+      "originalAuthor": "codebasics"
+    }
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=446x7GqXdaA",
+    "sourceType": "youtube",
+    "evergreen": true,
+    "calibration": {
+      "batch": "v2",
+      "decidedAt": "2026-07-17T00:40:10.020Z",
+      "note": "",
+      "originalTitle": "AI Agents Best Practices: Monitoring, Governance, & Optimization",
+      "originalAuthor": "IBM Technology"
+    }
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=5YqltqJTWkI",
+    "sourceType": "youtube",
+    "evergreen": true,
+    "calibration": {
+      "batch": "v2",
+      "decidedAt": "2026-07-17T00:37:27.566Z",
+      "note": "",
+      "originalTitle": "Two AI Agents on a Call Realize They’re Both AI… What Happens Next?",
+      "originalAuthor": "dealonai"
+    }
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=Ay8inSTLnGE",
+    "sourceType": "youtube",
+    "evergreen": true,
+    "calibration": {
+      "batch": "v2",
+      "decidedAt": "2026-07-17T00:44:36.343Z",
+      "note": "",
+      "originalTitle": "The Autonomous Lab: How AI Agents Are Inventing the Medicines of the Future",
+      "originalAuthor": "The AI Entrepreneurs"
+    }
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=BctIQs_nHg4",
+    "sourceType": "youtube",
+    "evergreen": true,
+    "calibration": {
+      "batch": "v2",
+      "decidedAt": "2026-07-17T00:45:52.184Z",
+      "note": "",
+      "originalTitle": "Post-Labor Economics in 8 Minutes - How society will work once AGI takes all the jobs!",
+      "originalAuthor": "David Shapiro"
+    }
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=bwvfdFWR1RI",
+    "sourceType": "youtube",
+    "evergreen": true,
+    "publicationDate": "2025-12-27T04:01:19-08:00",
+    "calibration": {
+      "batch": "v3",
+      "decidedAt": "2026-07-17T02:05:42.404Z",
+      "note": "",
+      "originalTitle": "How to Use Agentic AI: LLMs, AI Agents &amp; Prompt Engineering in Action",
+      "originalAuthor": "IBM Technology"
+    }
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=cV3JNm4GUZY",
+    "sourceType": "youtube",
+    "evergreen": true,
+    "calibration": {
+      "batch": "v2",
+      "decidedAt": "2026-07-17T00:43:59.021Z",
+      "note": "",
+      "originalTitle": "AI Agents Are Overhyped (Here's Why)",
+      "originalAuthor": "Mark Kashef"
+    }
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=e85AxYW0Qyk",
+    "sourceType": "youtube",
+    "evergreen": false,
+    "publicationDate": "2025-08-17T23:05:35-07:00",
+    "calibration": {
+      "batch": "v3",
+      "decidedAt": "2026-07-17T02:02:31.853Z",
+      "note": "",
+      "originalTitle": "Agentic AI - how bots came for our workflows and drudgery | FT Working It",
+      "originalAuthor": "Financial Times"
+    }
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=EsRz6HKsFBI",
+    "sourceType": "youtube",
+    "evergreen": true,
+    "publicationDate": "2025-12-09T02:05:27-08:00",
+    "calibration": {
+      "batch": "v3",
+      "decidedAt": "2026-07-17T02:03:41.826Z",
+      "note": "",
+      "originalTitle": "Will Agentic AI Destroy Jobs?",
+      "originalAuthor": "Bernard Marr"
+    }
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=fOfy-OsKWf4",
+    "sourceType": "youtube",
+    "evergreen": true,
+    "publicationDate": "2026-06-03T19:30:24-07:00",
+    "calibration": {
+      "batch": "v3",
+      "decidedAt": "2026-07-17T02:05:37.720Z",
+      "note": "",
+      "originalTitle": "What Is Agentic AI? AI Agents and the Revolution That Changes Everything",
+      "originalAuthor": "Andy Stapleton"
+    }
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=FwOTs4UxQS4",
+    "sourceType": "youtube",
+    "evergreen": true,
+    "publicationDate": "2025-04-08T06:00:28-07:00",
+    "calibration": {
+      "batch": "v3",
+      "decidedAt": "2026-07-17T02:02:00.742Z",
+      "note": "",
+      "originalTitle": "AI Agents, Clearly Explained",
+      "originalAuthor": "Jeff Su"
+    }
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=fXizBc03D7E",
+    "sourceType": "youtube",
+    "evergreen": true,
+    "calibration": {
+      "batch": "v2",
+      "decidedAt": "2026-07-17T00:39:19.110Z",
+      "note": "",
+      "originalTitle": "5 Types of AI Agents: Autonomous Functions & Real-World Applications",
+      "originalAuthor": "IBM Technology"
+    }
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=HfkRV9nThWc",
+    "sourceType": "youtube",
+    "evergreen": true,
+    "publicationDate": "2025-02-06T13:00:04-08:00",
+    "calibration": {
+      "batch": "v3",
+      "decidedAt": "2026-07-17T02:00:31.411Z",
+      "note": "",
+      "originalTitle": "Future of AI agents: Hype or amazing? | Lex Fridman Podcast",
+      "originalAuthor": "Lex Clips"
+    }
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=JGqvd10ZG8U",
+    "sourceType": "youtube",
+    "evergreen": true,
+    "publicationDate": "2025-03-16T09:00:18-07:00",
+    "calibration": {
+      "batch": "v3",
+      "decidedAt": "2026-07-17T02:02:24.686Z",
+      "note": "",
+      "originalTitle": "AI Agents vs SaaS - Who Wins the Future of Software?",
+      "originalAuthor": "Rob Walling"
+    }
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=kO6R-F-Cidw",
+    "sourceType": "youtube",
+    "evergreen": true,
+    "publicationDate": "2025-07-30T16:20:05-07:00",
+    "calibration": {
+      "batch": "v3",
+      "decidedAt": "2026-07-17T02:03:21.063Z",
+      "note": "",
+      "originalTitle": "How Agentic AI is shifting the future of work",
+      "originalAuthor": "Change Fluency | Jay Kiew, Keynote Speaker"
+    }
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=kstQtEQFIbA",
+    "sourceType": "youtube",
+    "evergreen": true,
+    "calibration": {
+      "batch": "v2",
+      "decidedAt": "2026-07-17T00:39:26.883Z",
+      "note": "",
+      "originalTitle": "See How AI Agents Replace Human Workers #ai #aiagents #jobs",
+      "originalAuthor": "The Curiosity Lab"
+    }
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=L7FF8Zgab3M",
+    "sourceType": "youtube",
+    "evergreen": true,
+    "calibration": {
+      "batch": "v2",
+      "decidedAt": "2026-07-17T00:44:13.957Z",
+      "note": "",
+      "originalTitle": "What is OpenClaw? Inside AI Agents, LLMs and the Agentic Loop",
+      "originalAuthor": "IBM Technology"
+    }
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=MbtTBuKQhQU",
+    "sourceType": "youtube",
+    "evergreen": true,
+    "calibration": {
+      "batch": "v2",
+      "decidedAt": "2026-07-17T00:43:52.423Z",
+      "note": "",
+      "originalTitle": "What's an AI Agent?",
+      "originalAuthor": "OpenAI"
+    }
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=nYpJt6z0Boc",
+    "sourceType": "youtube",
+    "evergreen": true,
+    "calibration": {
+      "batch": "v2",
+      "decidedAt": "2026-07-17T00:41:47.533Z",
+      "note": "",
+      "originalTitle": "Vista Equity CEO Robert Smith: Massive opportunity ahead in agentic AI enterprise software",
+      "originalAuthor": "CNBC Television"
+    }
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=OFq_CvRCpA0",
+    "sourceType": "youtube",
+    "evergreen": true,
+    "calibration": {
+      "batch": "v2",
+      "decidedAt": "2026-07-17T00:43:42.992Z",
+      "note": "",
+      "originalTitle": "Orchestrating Complex AI Workflows with AI Agents & LLMs",
+      "originalAuthor": "IBM Technology"
+    }
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=sA6UA2fMNHg",
+    "sourceType": "youtube",
+    "evergreen": true,
+    "calibration": {
+      "batch": "v2",
+      "decidedAt": "2026-07-17T00:45:05.500Z",
+      "note": "",
+      "originalTitle": "Why is AI Governance Important?",
+      "originalAuthor": "IBM Technology"
+    }
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=te_om7KPb8k",
+    "sourceType": "youtube",
+    "evergreen": true,
+    "calibration": {
+      "batch": "v2",
+      "decidedAt": "2026-07-17T00:43:22.007Z",
+      "note": "",
+      "originalTitle": "Armchair Architects: Governance Strategies for AI Agents",
+      "originalAuthor": "Microsoft Developer"
+    }
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=UMYtqHptYvA",
+    "sourceType": "youtube",
+    "evergreen": true,
+    "calibration": {
+      "batch": "v2",
+      "decidedAt": "2026-07-17T00:38:17.579Z",
+      "note": "",
+      "originalTitle": "Guide to Architect Secure AI Agents: Best Practices for Safety",
+      "originalAuthor": "IBM Technology"
+    }
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=v5ExVI7egjw",
+    "sourceType": "youtube",
+    "evergreen": true,
+    "publicationDate": "2026-02",
+    "calibration": {
+      "batch": "v2",
+      "decidedAt": "2026-07-17T00:46:02.268Z",
+      "note": "",
+      "originalTitle": "How AI Agents Are Reshaping The Future of Work",
+      "originalAuthor": "Heather E. McGowan"
+    }
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=wiU7VEvi1LM",
+    "sourceType": "youtube",
+    "evergreen": true,
+    "calibration": {
+      "batch": "v2",
+      "decidedAt": "2026-07-17T00:44:54.524Z",
+      "note": "",
+      "originalTitle": "How will AI Agents Manage Identity & Build Trust in Complex Systems",
+      "originalAuthor": "IBM Technology"
+    }
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=YUWDzerHVjE",
+    "sourceType": "youtube",
+    "evergreen": true,
+    "calibration": {
+      "batch": "v2",
+      "decidedAt": "2026-07-17T00:44:30.567Z",
+      "note": "",
+      "originalTitle": "Will AI Replace Jobs Elon Musk's Take",
+      "originalAuthor": "AI Insights"
+    }
+  },
+  {
+    "url": "https://www.zdnet.com/article/want-ai-agents-to-work-together-the-linux-foundation-has-a-plan/",
+    "sourceType": "article",
+    "evergreen": false,
+    "publicationDate": "2025-07-29",
+    "calibration": {
+      "batch": "v3",
+      "decidedAt": "2026-07-17T02:05:57.899Z",
+      "note": "",
+      "originalTitle": "Want AI agents to work together? The Linux Foundation has a plan",
+      "originalAuthor": "Steven Vaughan-Nichols"
+    }
+  },
+  {
+    "url": "https://x.com/AndrewCurran_/status/2076664199670006181",
+    "sourceType": "x_post",
+    "evergreen": true,
+    "calibration": {
+      "batch": "v2",
+      "decidedAt": "2026-07-17T00:36:55.817Z",
+      "note": "",
+      "originalTitle": "More than 200 researchers and economists... signed a statement urging governments...",
+      "originalAuthor": "Andrew Curran"
+    }
+  },
+  {
+    "url": "https://x.com/biancoresearch/status/2026272586666062080",
+    "sourceType": "x_post",
+    "evergreen": true,
+    "publicationDate": "2026-02-24T12:26:00Z",
+    "calibration": {
+      "batch": "v4",
+      "decidedAt": "2026-07-17T02:31:12.452Z",
+      "note": "",
+      "originalTitle": "Agentic AI could remove database drudgery and make work more human",
+      "originalAuthor": "Jim Bianco"
+    }
+  },
+  {
+    "url": "https://x.com/davidautor/status/2021284200364552520",
+    "sourceType": "x_post",
+    "evergreen": true,
+    "publicationDate": "2026-02-10",
+    "calibration": {
+      "batch": "v2",
+      "decidedAt": "2026-07-17T00:50:53.708Z",
+      "note": "",
+      "originalTitle": "I'm pleased to share the release of the 2026 International AI Safety Report...",
+      "originalAuthor": "David Autor"
+    }
+  },
+  {
+    "url": "https://x.com/davidautor/status/2047685214411841871",
+    "sourceType": "x_post",
+    "evergreen": true,
+    "publicationDate": "2026-04-24",
+    "calibration": {
+      "batch": "v2",
+      "decidedAt": "2026-07-17T00:51:06.374Z",
+      "note": "",
+      "originalTitle": "The MIT Stone Center... first post shares findings from my recent paper... on understanding new work.",
+      "originalAuthor": "David Autor"
+    }
+  },
+  {
+    "url": "https://x.com/emollick/status/2007249835465072857",
+    "sourceType": "x_post",
+    "evergreen": true,
+    "calibration": {
+      "batch": "v2",
+      "decidedAt": "2026-07-17T00:49:46.441Z",
+      "note": "",
+      "originalTitle": "When you see how people use Claude Code/Codex/etc it becomes clear that managing agents is really a management problem. Can you specify goals? Can you provide context? Can you divide up tasks? Can you give feedback? These are teachable skills.",
+      "originalAuthor": "Ethan Mollick"
+    }
+  },
+  {
+    "url": "https://x.com/emollick/status/2020908765545959901",
+    "sourceType": "x_post",
+    "evergreen": true,
+    "publicationDate": "2026-02-09",
+    "calibration": {
+      "batch": "v2",
+      "decidedAt": "2026-07-17T00:50:00.554Z",
+      "note": "",
+      "originalTitle": "A corporate position that workers should 'just use AI to do stuff' has never been enough...",
+      "originalAuthor": "Ethan Mollick"
+    }
+  },
+  {
+    "url": "https://x.com/emollick/status/2029681855142744134",
+    "sourceType": "x_post",
+    "evergreen": true,
+    "publicationDate": "2026-03-05",
+    "calibration": {
+      "batch": "v2",
+      "decidedAt": "2026-07-17T00:49:55.171Z",
+      "note": "",
+      "originalTitle": "Alex has been tracking the evidence on whether AI is showing up in the productivity stats...",
+      "originalAuthor": "Ethan Mollick"
+    }
+  },
+  {
+    "url": "https://x.com/emollick/status/2031056069405941765",
+    "sourceType": "x_post",
+    "evergreen": true,
+    "publicationDate": "2026-03-09",
+    "calibration": {
+      "batch": "v2",
+      "decidedAt": "2026-07-17T00:50:02.816Z",
+      "note": "",
+      "originalTitle": "The 'how does AI improve individual productivity' discussion is much less interesting than 'how does AI improve organizational efficiency?'...",
+      "originalAuthor": "Ethan Mollick"
+    }
+  },
+  {
+    "url": "https://x.com/emollick/status/2041520467450765504",
+    "sourceType": "x_post",
+    "evergreen": true,
+    "publicationDate": "2026-04-07T14:16:23.713Z",
+    "calibration": {
+      "batch": "v3",
+      "decidedAt": "2026-07-17T02:06:17.895Z",
+      "note": "",
+      "originalTitle": "Design agentic work around job augmentation, not replacement",
+      "originalAuthor": "Ethan Mollick"
+    }
+  },
+  {
+    "url": "https://x.com/emollick/status/2056578946813100173",
+    "sourceType": "x_post",
+    "evergreen": true,
+    "publicationDate": "2026-05-19",
+    "calibration": {
+      "batch": "v2",
+      "decidedAt": "2026-07-17T00:50:13.124Z",
+      "note": "",
+      "originalTitle": "One trend that I think you might start to see at big companies is insourcing via hiring...",
+      "originalAuthor": "Ethan Mollick"
+    }
+  },
+  {
+    "url": "https://x.com/erikbryn/status/2006114498852327926",
+    "sourceType": "x_post",
+    "evergreen": true,
+    "publicationDate": "2025-12-30",
+    "calibration": {
+      "batch": "v2",
+      "decidedAt": "2026-07-17T00:50:24.944Z",
+      "note": "",
+      "originalTitle": "Here's a terrific new post... in a world of powerful AI, capital, not labor, may be the main source of income...",
+      "originalAuthor": "Erik Brynjolfsson"
+    }
+  },
+  {
+    "url": "https://x.com/erikbryn/status/2039083446468067469",
+    "sourceType": "x_post",
+    "evergreen": true,
+    "publicationDate": "2026-03-31",
+    "calibration": {
+      "batch": "v2",
+      "decidedAt": "2026-07-17T00:50:32.997Z",
+      "note": "",
+      "originalTitle": "Fascinating work on how different groups of experts expect GDP to change in the coming years...",
+      "originalAuthor": "Erik Brynjolfsson"
+    }
+  },
+  {
+    "url": "https://x.com/erikbryn/status/2064713650544271486",
+    "sourceType": "x_post",
+    "evergreen": true,
+    "publicationDate": "2026-06-10",
+    "calibration": {
+      "batch": "v2",
+      "decidedAt": "2026-07-17T00:50:39.198Z",
+      "note": "",
+      "originalTitle": "The Canaries Dashboard (jointly with ADP Research) — labor market outcomes across occupations...",
+      "originalAuthor": "Erik Brynjolfsson"
+    }
+  },
+  {
+    "url": "https://x.com/erikbryn/status/2072002413234717149",
+    "sourceType": "x_post",
+    "evergreen": true,
+    "publicationDate": "2026-06-30",
+    "calibration": {
+      "batch": "v2",
+      "decidedAt": "2026-07-17T00:50:16.750Z",
+      "note": "",
+      "originalTitle": "Great work. But I would be cautious about interpreting employment growth among AI adopters as evidence against broader labor-market displacement...",
+      "originalAuthor": "Erik Brynjolfsson"
+    }
+  },
+  {
+    "url": "https://x.com/erikbryn/status/2076674736860656083",
+    "sourceType": "x_post",
+    "evergreen": true,
+    "calibration": {
+      "batch": "v2",
+      "decidedAt": "2026-07-17T00:36:44.129Z",
+      "note": "",
+      "originalTitle": "Here's our statement on AI and the economy. We Must Act Now...",
+      "originalAuthor": "Erik Brynjolfsson"
+    }
+  },
+  {
+    "url": "https://x.com/fchollet/status/2019610121371054455",
+    "sourceType": "x_post",
+    "evergreen": true,
+    "publicationDate": "2026-02-06T03:12:30.133Z",
+    "calibration": {
+      "batch": "v3",
+      "decidedAt": "2026-07-17T02:07:35.350Z",
+      "note": "",
+      "originalTitle": "Why automating tasks does not imply replacing whole jobs",
+      "originalAuthor": "François Chollet"
+    }
+  },
+  {
+    "url": "https://x.com/InvestmentGuru_/status/2026479405036613778",
+    "sourceType": "x_post",
+    "evergreen": false,
+    "publicationDate": "2026-02-25T02:08:34.984Z",
+    "calibration": {
+      "batch": "v3",
+      "decidedAt": "2026-07-17T02:07:00.749Z",
+      "note": "你这个提取的原始内容不太恰当，不过帖子本身的内容还是很值得的。",
+      "originalTitle": "AI agents may compress labor-heavy service business models",
+      "originalAuthor": "InvestmentGuru"
+    }
+  },
+  {
+    "url": "https://x.com/karpathy/status/1990116666194456651",
+    "sourceType": "x_post",
+    "evergreen": true,
+    "calibration": {
+      "batch": "v2",
+      "decidedAt": "2026-07-17T00:49:50.300Z",
+      "note": "",
+      "originalTitle": "Sharing an interesting recent conversation on AI's impact on the economy. AI has been compared to various historical precedents: electricity, industrial revolution, etc., I think the strongest analogy is that of AI as a new computing paradigm (Software 2.0)",
+      "originalAuthor": "Andrej Karpathy"
+    }
+  },
+  {
+    "url": "https://x.com/karpathy/status/2024987174077432126",
+    "sourceType": "x_post",
+    "evergreen": true,
+    "calibration": {
+      "batch": "v2",
+      "decidedAt": "2026-07-17T00:49:40.142Z",
+      "note": "",
+      "originalTitle": "Bought a new Mac mini to properly tinker with claws over the weekend... I'm definitely a bit sus'd to run OpenClaw specifically - giving my private data/keys to 400K lines of vibe coded…",
+      "originalAuthor": "Andrej Karpathy"
+    }
+  },
+  {
+    "url": "https://x.com/OpenAI/status/2070196105745518913",
+    "sourceType": "x_post",
+    "evergreen": true,
+    "calibration": {
+      "batch": "v2",
+      "decidedAt": "2026-07-17T00:37:07.010Z",
+      "note": "",
+      "originalTitle": "Work at OpenAI is being transformed by agents, in every department.",
+      "originalAuthor": "OpenAI"
+    }
+  },
+  {
+    "url": "https://x.com/recap_david/status/2030662152151843250",
+    "sourceType": "x_post",
+    "evergreen": true,
+    "publicationDate": "2026-03-08T15:09:19.608Z",
+    "calibration": {
+      "batch": "v3",
+      "decidedAt": "2026-07-17T02:07:14.671Z",
+      "note": "",
+      "originalTitle": "Lower AI costs may unlock latent demand instead of only destroying jobs",
+      "originalAuthor": "David Roberts"
+    }
+  },
+  {
+    "url": "https://x.com/rohanpaul_ai/status/2026170158461681846",
+    "sourceType": "x_post",
+    "evergreen": false,
+    "publicationDate": "2026-02-24T05:39:44.855Z",
+    "calibration": {
+      "batch": "v3",
+      "decidedAt": "2026-07-17T02:07:08.197Z",
+      "note": "",
+      "originalTitle": "A displacement scenario for abundant machine intelligence",
+      "originalAuthor": "Rohan Paul"
+    }
+  },
+  {
+    "url": "https://x.com/Saboo_Shubham_/status/2026134519317934393",
+    "sourceType": "x_post",
+    "evergreen": true,
+    "publicationDate": "2026-02-24T01:18:00Z",
+    "calibration": {
+      "batch": "v4",
+      "decidedAt": "2026-07-17T02:33:51.489Z",
+      "note": "",
+      "originalTitle": "Human-written agent context beats auto-generated instruction files",
+      "originalAuthor": "Shubham Saboo"
+    }
+  },
+  {
+    "url": "https://x.com/summeryue0/status/2025836517831405980",
+    "sourceType": "x_post",
+    "evergreen": true,
+    "calibration": {
+      "batch": "v2",
+      "decidedAt": "2026-07-17T00:49:24.431Z",
+      "note": "",
+      "originalTitle": "I said “Check this inbox too and suggest what you would archive or delete, don’t action until I tell you to.” This has been working well for my toy inbox, but my real inbox was too huge and triggered compaction. During the compaction, it lost my original instruction 🤦‍♀️",
+      "originalAuthor": "Summer Yue"
+    }
+  },
+  {
+    "url": "https://x.com/tendon/status/2032457428344955011",
+    "sourceType": "x_post",
+    "evergreen": true,
+    "publicationDate": "2026-03-13T14:03:06.807Z",
+    "calibration": {
+      "batch": "v3",
+      "decidedAt": "2026-07-17T02:06:22.192Z",
+      "note": "",
+      "originalTitle": "Do not build a career strategy around hypothetical AI-manager jobs",
+      "originalAuthor": "Steve Tendon"
+    }
+  }
+]

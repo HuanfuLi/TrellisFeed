@@ -1,0 +1,566 @@
+[
+  {
+    "postId": "candidate-0000",
+    "claimId": "claim-candidate-0000-01"
+  },
+  {
+    "postId": "candidate-0000",
+    "claimId": "claim-candidate-0000-02"
+  },
+  {
+    "postId": "candidate-0001",
+    "claimId": "claim-candidate-0001-01"
+  },
+  {
+    "postId": "candidate-0001",
+    "claimId": "claim-candidate-0001-02"
+  },
+  {
+    "postId": "candidate-0002",
+    "claimId": "claim-candidate-0002-01"
+  },
+  {
+    "postId": "candidate-0002",
+    "claimId": "claim-candidate-0002-02"
+  },
+  {
+    "postId": "candidate-0003",
+    "claimId": "claim-candidate-0003-01"
+  },
+  {
+    "postId": "candidate-0003",
+    "claimId": "claim-candidate-0003-02"
+  },
+  {
+    "postId": "candidate-0003",
+    "claimId": "claim-candidate-0003-03"
+  },
+  {
+    "postId": "candidate-0004",
+    "claimId": "claim-candidate-0004-01"
+  },
+  {
+    "postId": "candidate-0004",
+    "claimId": "claim-candidate-0004-02"
+  },
+  {
+    "postId": "candidate-0004",
+    "claimId": "claim-candidate-0004-03"
+  },
+  {
+    "postId": "candidate-0006",
+    "claimId": "claim-candidate-0006-01"
+  },
+  {
+    "postId": "candidate-0006",
+    "claimId": "claim-candidate-0006-02"
+  },
+  {
+    "postId": "candidate-0007",
+    "claimId": "claim-candidate-0007-01"
+  },
+  {
+    "postId": "candidate-0007",
+    "claimId": "claim-candidate-0007-02"
+  },
+  {
+    "postId": "candidate-0007",
+    "claimId": "claim-candidate-0007-03"
+  },
+  {
+    "postId": "candidate-0008",
+    "claimId": "claim-candidate-0008-01"
+  },
+  {
+    "postId": "candidate-0008",
+    "claimId": "claim-candidate-0008-02"
+  },
+  {
+    "postId": "candidate-0009",
+    "claimId": "claim-candidate-0009-01"
+  },
+  {
+    "postId": "candidate-0009",
+    "claimId": "claim-candidate-0009-02"
+  },
+  {
+    "postId": "candidate-0009",
+    "claimId": "claim-candidate-0009-03"
+  },
+  {
+    "postId": "candidate-0010",
+    "claimId": "claim-candidate-0010-01"
+  },
+  {
+    "postId": "candidate-0010",
+    "claimId": "claim-candidate-0010-02"
+  },
+  {
+    "postId": "candidate-0011",
+    "claimId": "claim-candidate-0011-01"
+  },
+  {
+    "postId": "candidate-0011",
+    "claimId": "claim-candidate-0011-02"
+  },
+  {
+    "postId": "candidate-0012",
+    "claimId": "claim-candidate-0012-01"
+  },
+  {
+    "postId": "candidate-0012",
+    "claimId": "claim-candidate-0012-02"
+  },
+  {
+    "postId": "candidate-0012",
+    "claimId": "claim-candidate-0012-03"
+  },
+  {
+    "postId": "candidate-0013",
+    "claimId": "claim-candidate-0013-01"
+  },
+  {
+    "postId": "candidate-0014",
+    "claimId": "claim-candidate-0014-01"
+  },
+  {
+    "postId": "candidate-0014",
+    "claimId": "claim-candidate-0014-02"
+  },
+  {
+    "postId": "candidate-0015",
+    "claimId": "claim-candidate-0015-01"
+  },
+  {
+    "postId": "candidate-0016",
+    "claimId": "claim-candidate-0016-01"
+  },
+  {
+    "postId": "candidate-0017",
+    "claimId": "claim-candidate-0017-01"
+  },
+  {
+    "postId": "candidate-0018",
+    "claimId": "claim-candidate-0018-01"
+  },
+  {
+    "postId": "candidate-0019",
+    "claimId": "claim-candidate-0019-01"
+  },
+  {
+    "postId": "candidate-0019",
+    "claimId": "claim-candidate-0019-02"
+  },
+  {
+    "postId": "candidate-0020",
+    "claimId": "claim-candidate-0020-01"
+  },
+  {
+    "postId": "candidate-0021",
+    "claimId": "claim-candidate-0021-01"
+  },
+  {
+    "postId": "candidate-0022",
+    "claimId": "claim-candidate-0022-01"
+  },
+  {
+    "postId": "candidate-0023",
+    "claimId": "claim-candidate-0023-01"
+  },
+  {
+    "postId": "candidate-0023",
+    "claimId": "claim-candidate-0023-02"
+  },
+  {
+    "postId": "candidate-0024",
+    "claimId": "claim-candidate-0024-01"
+  },
+  {
+    "postId": "candidate-0024",
+    "claimId": "claim-candidate-0024-02"
+  },
+  {
+    "postId": "candidate-0025",
+    "claimId": "claim-candidate-0025-01"
+  },
+  {
+    "postId": "candidate-0027",
+    "claimId": "claim-candidate-0027-01"
+  },
+  {
+    "postId": "candidate-0027",
+    "claimId": "claim-candidate-0027-02"
+  },
+  {
+    "postId": "candidate-0028",
+    "claimId": "claim-candidate-0028-01"
+  },
+  {
+    "postId": "candidate-0028",
+    "claimId": "claim-candidate-0028-02"
+  },
+  {
+    "postId": "candidate-0028",
+    "claimId": "claim-candidate-0028-03"
+  },
+  {
+    "postId": "candidate-0029",
+    "claimId": "claim-candidate-0029-01"
+  },
+  {
+    "postId": "candidate-0029",
+    "claimId": "claim-candidate-0029-02"
+  },
+  {
+    "postId": "candidate-0030",
+    "claimId": "claim-candidate-0030-01"
+  },
+  {
+    "postId": "candidate-0030",
+    "claimId": "claim-candidate-0030-02"
+  },
+  {
+    "postId": "candidate-0031",
+    "claimId": "claim-candidate-0031-01"
+  },
+  {
+    "postId": "candidate-0031",
+    "claimId": "claim-candidate-0031-02"
+  },
+  {
+    "postId": "candidate-0033",
+    "claimId": "claim-candidate-0033-01"
+  },
+  {
+    "postId": "candidate-0034",
+    "claimId": "claim-candidate-0034-01"
+  },
+  {
+    "postId": "candidate-0034",
+    "claimId": "claim-candidate-0034-02"
+  },
+  {
+    "postId": "candidate-0036",
+    "claimId": "claim-candidate-0036-01"
+  },
+  {
+    "postId": "candidate-0036",
+    "claimId": "claim-candidate-0036-02"
+  },
+  {
+    "postId": "candidate-0037",
+    "claimId": "claim-candidate-0037-01"
+  },
+  {
+    "postId": "candidate-0037",
+    "claimId": "claim-candidate-0037-02"
+  },
+  {
+    "postId": "candidate-0038",
+    "claimId": "claim-candidate-0038-01"
+  },
+  {
+    "postId": "candidate-0038",
+    "claimId": "claim-candidate-0038-02"
+  },
+  {
+    "postId": "candidate-0038",
+    "claimId": "claim-candidate-0038-03"
+  },
+  {
+    "postId": "candidate-0039",
+    "claimId": "claim-candidate-0039-01"
+  },
+  {
+    "postId": "candidate-0039",
+    "claimId": "claim-candidate-0039-02"
+  },
+  {
+    "postId": "candidate-0040",
+    "claimId": "claim-candidate-0040-01"
+  },
+  {
+    "postId": "candidate-0040",
+    "claimId": "claim-candidate-0040-02"
+  },
+  {
+    "postId": "candidate-0041",
+    "claimId": "claim-candidate-0041-01"
+  },
+  {
+    "postId": "candidate-0041",
+    "claimId": "claim-candidate-0041-02"
+  },
+  {
+    "postId": "candidate-0042",
+    "claimId": "claim-candidate-0042-01"
+  },
+  {
+    "postId": "candidate-0042",
+    "claimId": "claim-candidate-0042-02"
+  },
+  {
+    "postId": "candidate-0043",
+    "claimId": "claim-candidate-0043-01"
+  },
+  {
+    "postId": "candidate-0043",
+    "claimId": "claim-candidate-0043-02"
+  },
+  {
+    "postId": "candidate-0044",
+    "claimId": "claim-candidate-0044-01"
+  },
+  {
+    "postId": "candidate-0044",
+    "claimId": "claim-candidate-0044-02"
+  },
+  {
+    "postId": "candidate-0045",
+    "claimId": "claim-candidate-0045-01"
+  },
+  {
+    "postId": "candidate-0045",
+    "claimId": "claim-candidate-0045-02"
+  },
+  {
+    "postId": "candidate-0046",
+    "claimId": "claim-candidate-0046-01"
+  },
+  {
+    "postId": "candidate-0046",
+    "claimId": "claim-candidate-0046-02"
+  },
+  {
+    "postId": "candidate-0047",
+    "claimId": "claim-candidate-0047-01"
+  },
+  {
+    "postId": "candidate-0047",
+    "claimId": "claim-candidate-0047-02"
+  },
+  {
+    "postId": "candidate-0048",
+    "claimId": "claim-candidate-0048-01"
+  },
+  {
+    "postId": "candidate-0048",
+    "claimId": "claim-candidate-0048-02"
+  },
+  {
+    "postId": "candidate-0049",
+    "claimId": "claim-candidate-0049-01"
+  },
+  {
+    "postId": "candidate-0050",
+    "claimId": "claim-candidate-0050-01"
+  },
+  {
+    "postId": "candidate-0050",
+    "claimId": "claim-candidate-0050-02"
+  },
+  {
+    "postId": "candidate-0050",
+    "claimId": "claim-candidate-0050-03"
+  },
+  {
+    "postId": "candidate-0051",
+    "claimId": "claim-candidate-0051-01"
+  },
+  {
+    "postId": "candidate-0051",
+    "claimId": "claim-candidate-0051-02"
+  },
+  {
+    "postId": "candidate-0052",
+    "claimId": "claim-candidate-0052-01"
+  },
+  {
+    "postId": "candidate-0052",
+    "claimId": "claim-candidate-0052-02"
+  },
+  {
+    "postId": "candidate-0053",
+    "claimId": "claim-candidate-0053-01"
+  },
+  {
+    "postId": "candidate-0053",
+    "claimId": "claim-candidate-0053-02"
+  },
+  {
+    "postId": "candidate-0054",
+    "claimId": "claim-candidate-0054-01"
+  },
+  {
+    "postId": "candidate-0054",
+    "claimId": "claim-candidate-0054-02"
+  },
+  {
+    "postId": "candidate-0056",
+    "claimId": "claim-candidate-0056-01"
+  },
+  {
+    "postId": "candidate-0056",
+    "claimId": "claim-candidate-0056-02"
+  },
+  {
+    "postId": "candidate-0057",
+    "claimId": "claim-candidate-0057-01"
+  },
+  {
+    "postId": "candidate-0058",
+    "claimId": "claim-candidate-0058-01"
+  },
+  {
+    "postId": "candidate-0058",
+    "claimId": "claim-candidate-0058-02"
+  },
+  {
+    "postId": "candidate-0059",
+    "claimId": "claim-candidate-0059-01"
+  },
+  {
+    "postId": "candidate-0060",
+    "claimId": "claim-candidate-0060-01"
+  },
+  {
+    "postId": "candidate-0061",
+    "claimId": "claim-candidate-0061-01"
+  },
+  {
+    "postId": "candidate-0062",
+    "claimId": "claim-candidate-0062-01"
+  },
+  {
+    "postId": "candidate-0062",
+    "claimId": "claim-candidate-0062-02"
+  },
+  {
+    "postId": "candidate-0063",
+    "claimId": "claim-candidate-0063-01"
+  },
+  {
+    "postId": "candidate-0064",
+    "claimId": "claim-candidate-0064-01"
+  },
+  {
+    "postId": "candidate-0065",
+    "claimId": "claim-candidate-0065-01"
+  },
+  {
+    "postId": "candidate-0065",
+    "claimId": "claim-candidate-0065-02"
+  },
+  {
+    "postId": "candidate-0066",
+    "claimId": "claim-candidate-0066-01"
+  },
+  {
+    "postId": "candidate-0067",
+    "claimId": "claim-candidate-0067-01"
+  },
+  {
+    "postId": "candidate-0067",
+    "claimId": "claim-candidate-0067-02"
+  },
+  {
+    "postId": "candidate-0068",
+    "claimId": "claim-candidate-0068-01"
+  },
+  {
+    "postId": "candidate-0069",
+    "claimId": "claim-candidate-0069-01"
+  },
+  {
+    "postId": "candidate-0070",
+    "claimId": "claim-candidate-0070-01"
+  },
+  {
+    "postId": "candidate-0070",
+    "claimId": "claim-candidate-0070-02"
+  },
+  {
+    "postId": "candidate-0071",
+    "claimId": "claim-candidate-0071-01"
+  },
+  {
+    "postId": "candidate-0071",
+    "claimId": "claim-candidate-0071-02"
+  },
+  {
+    "postId": "candidate-0072",
+    "claimId": "claim-candidate-0072-01"
+  },
+  {
+    "postId": "candidate-0072",
+    "claimId": "claim-candidate-0072-02"
+  },
+  {
+    "postId": "candidate-0073",
+    "claimId": "claim-candidate-0073-01"
+  },
+  {
+    "postId": "candidate-0073",
+    "claimId": "claim-candidate-0073-02"
+  },
+  {
+    "postId": "candidate-0074",
+    "claimId": "claim-candidate-0074-01"
+  },
+  {
+    "postId": "candidate-0074",
+    "claimId": "claim-candidate-0074-02"
+  },
+  {
+    "postId": "candidate-0075",
+    "claimId": "claim-candidate-0075-01"
+  },
+  {
+    "postId": "candidate-0075",
+    "claimId": "claim-candidate-0075-02"
+  },
+  {
+    "postId": "candidate-0075",
+    "claimId": "claim-candidate-0075-03"
+  },
+  {
+    "postId": "candidate-0076",
+    "claimId": "claim-candidate-0076-01"
+  },
+  {
+    "postId": "candidate-0077",
+    "claimId": "claim-candidate-0077-01"
+  },
+  {
+    "postId": "candidate-0077",
+    "claimId": "claim-candidate-0077-02"
+  },
+  {
+    "postId": "candidate-0078",
+    "claimId": "claim-candidate-0078-01"
+  },
+  {
+    "postId": "candidate-0078",
+    "claimId": "claim-candidate-0078-02"
+  },
+  {
+    "postId": "candidate-0079",
+    "claimId": "claim-candidate-0079-01"
+  },
+  {
+    "postId": "candidate-0079",
+    "claimId": "claim-candidate-0079-02"
+  },
+  {
+    "postId": "candidate-0080",
+    "claimId": "claim-candidate-0080-01"
+  },
+  {
+    "postId": "candidate-0081",
+    "claimId": "claim-candidate-0081-01"
+  },
+  {
+    "postId": "candidate-0081",
+    "claimId": "claim-candidate-0081-02"
+  }
+]

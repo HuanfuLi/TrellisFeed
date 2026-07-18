@@ -8,27 +8,17 @@ import type { PreprocessSuccess } from '../preprocess/run.ts';
 import type { QualityVerdict } from '../quality/index.ts';
 
 export type ReviewDisposition = 'approved' | 'rejected' | 'needs-edit';
-export type RightsReview = { status: 'cleared' | 'rejected' | 'missing'; reviewer: string; basis: string; notes: string };
 export type ReviewDecisionInput = {
-  disposition: ReviewDisposition; reviewer: string; notes: string; rubricVersion: string; editedContentHash: string;
-  rightsReview: RightsReview; scores?: { quality: number; interestingness: number; educationalValue: number; difficulty: number };
-  finalTopicTags?: string[]; review?: Record<string, string>;
+  disposition: ReviewDisposition; notes?: string; editedContentHash: string;
 };
 export type ReviewDecision = ReviewDecisionInput & {
-  candidateId: string; decidedAt: string; sequence: number; codexVerdictHash: string | null; operatorIsGateOfRecord: true;
+  notes: string; candidateId: string; decidedAt: string; sequence: number; codexVerdictHash: string | null; operatorIsGateOfRecord: true;
 };
 export type ReviewCandidate = {
   id: string; source: NormalizedCandidate; preprocess: PreprocessSuccess; draft: any; codex: CodexGateResult;
   contentHash: string; codexCurrent: boolean; latestDecision?: ReviewDecision;
   mechanicalQuality?: QualityVerdict; duplicateEvidence?: DedupeGroup;
-  reviewTemplate: Record<string, null>;
 };
-
-const REVIEW_FIELDS = [
-  'sourceQuality', 'factualReliability', 'contentRelevance', 'hookAccuracy', 'summaryFaithfulness',
-  'suggestedQuestionUsefulness', 'participantAppropriateness', 'duplicateRisk', 'biasRisk',
-  'misinformationRisk', 'contentWarnings', 'rightsReview',
-] as const;
 
 function safeId(value: string): string {
   if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(value) || value.includes('..')) throw new Error('invalid candidate id');
@@ -93,7 +83,7 @@ export async function loadReviewQueue(runDir: string): Promise<ReviewCandidate[]
       id: preprocess.candidateId, source, preprocess, draft, codex, contentHash,
       codexCurrent: codex.status === 'advisory-ready' && codex.canAdvanceToHuman && advisoryHash === contentHash,
       mechanicalQuality: quality.get(preprocess.candidateId), duplicateEvidence: duplicates.get(preprocess.candidateId),
-      latestDecision: candidateDecisions.at(-1), reviewTemplate: Object.fromEntries(REVIEW_FIELDS.map((field) => [field, null])),
+      latestDecision: candidateDecisions.at(-1),
     });
   }
   return output.sort((a, b) => a.id.localeCompare(b.id));
@@ -114,18 +104,12 @@ export async function writeReviewEdit(runDir: string, candidate: ReviewCandidate
 
 export async function writeReviewDecision(runDir: string, candidate: ReviewCandidate, input: ReviewDecisionInput): Promise<ReviewDecision> {
   if (!['approved', 'rejected', 'needs-edit'].includes(input.disposition)) throw new Error('invalid disposition');
-  if (!input.reviewer?.trim() || !input.rubricVersion?.trim()) throw new Error('reviewer and rubric version are required');
   if (input.editedContentHash !== candidate.contentHash) throw new Error('decision content hash is stale');
-  if (input.disposition === 'approved') {
-    if (!candidate.codexCurrent) throw new Error('current advancing Codex verdict is required for approval');
-    if (input.rightsReview?.status !== 'cleared' || !input.rightsReview.reviewer?.trim() || !input.rightsReview.basis?.trim()) throw new Error('cleared rights review is required for approval');
-    const missing = REVIEW_FIELDS.filter((field) => field !== 'rightsReview' && !input.review?.[field]);
-    if (missing.length) throw new Error(`review dimensions are incomplete: ${missing.join(', ')}`);
-    if (!input.scores || Object.values(input.scores).some((score) => !Number.isFinite(score) || score < 0 || score > 1)) throw new Error('final review scores from 0 to 1 are required');
-  }
+  if (input.disposition === 'approved' && !candidate.codexCurrent) throw new Error('current advancing Codex verdict is required for approval');
   const prior = await readDecisions(runDir);
   const decision: ReviewDecision = {
-    ...input, reviewer: input.reviewer.trim(), candidateId: candidate.id, decidedAt: new Date().toISOString(),
+    disposition: input.disposition, notes: input.notes?.trim() || '', editedContentHash: input.editedContentHash,
+    candidateId: candidate.id, decidedAt: new Date().toISOString(),
     sequence: prior.length + 1, codexVerdictHash: candidate.codex.status === 'advisory-ready' ? candidate.codex.advisory.candidateContentHash : null,
     operatorIsGateOfRecord: true,
   };

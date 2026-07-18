@@ -1,0 +1,1 @@
+Three key components: 1. The Canaries Dashboard (jointly with ADP Research) — labor market outcomes across occupations and worker groups with different levels of AI exposure. This is the same data that we used for our "Canaries in the Coal Mine?" paper, updated monthly. 2/6

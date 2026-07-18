@@ -18,11 +18,11 @@ async function approvedRun(overrides = {}) {
   const contentHash = sha(fullText);
   const id = overrides.id || 'post-1';
   const kind = overrides.kind || 'article';
-  const normalized = { id, kind, canonicalUrl: kind === 'video' ? 'https://www.youtube.com/watch?v=example' : 'https://example.com/source', sourceName: 'Example Source', author: 'Author', title: 'Original title', publicationDate: '2026-01-02', language: 'en', fullText: kind === 'video' ? '' : fullText, contentHash, blocks: [{ id: kind === 'video' ? 'video:example' : 'b-1', kind: 'paragraph', text: fullText }], ...(kind === 'video' ? { videoId: 'example', extractionMethod: 'gemini-youtube-url' } : {}), collectedAt: '2026-01-03T00:00:00.000Z', collectorVersion: 'collector-1', rawMetadata: {} };
+  const normalized = { id, kind, canonicalUrl: overrides.canonicalUrl || (kind === 'video' ? 'https://www.youtube.com/watch?v=example' : 'https://example.com/source'), sourceName: 'Example Source', author: 'Author', title: 'Original title', publicationDate: '2026-01-02', language: 'en', fullText: kind === 'video' ? '' : fullText, contentHash, blocks: [{ id: kind === 'video' ? 'video:example' : 'b-1', kind: 'paragraph', text: fullText }], ...(kind === 'video' ? { videoId: 'example', extractionMethod: 'gemini-youtube-url' } : {}), collectedAt: '2026-01-03T00:00:00.000Z', collectorVersion: 'collector-1', rawMetadata: overrides.rawMetadata || {} };
   const draft = { displayTitle: 'Display title', hook: 'Accurate hook', shortSummary: 'Short summary', longSummary: 'Long summary', difficulty: 0.4, qualityScore: 0.8, interestingnessScore: 0.7, educationalValueScore: 0.9, viewpoint: 'mixed', topicRelevance: 0.95, concepts: [{ label: 'AI agents', description: 'Systems that pursue goals.', aliases: ['agents'], relatedConceptLabels: [], prerequisiteConceptLabels: [] }], claims: [{ text: 'Agents may change how work is organized.', stance: 'neutral', conceptLabels: ['AI agents'], sourceBlockIds: ['b-1'] }], suggestedQuestions: [{ text: 'What evidence supports this claim?', type: 'evidence', targetConceptLabels: ['AI agents'], targetClaimIndexes: [0], generic: false }], potentialCounterpoints: [], reliabilityConcerns: [], safetyConcerns: [], contentWarnings: [], rejectRecommended: false, rejectionReasons: [] };
   const preprocess = { status: 'preprocessed', candidateId: id, candidateContentHash: contentHash, cacheKey: 'cache-1', attempts: 1, draft, provenance: { provider: 'fixture', model: 'top-model', promptVersion: 'prompt-1', schemaVersion: 'schema-1' }, providerRequestId: 'req-1', stopReason: 'end_turn', usage: { inputTokens: 1, outputTokens: 1, costUsd: 0 } };
   const codex = overrides.missingCodex ? { status: 'blocked', reasonCode: 'missing_verdict', canAdvanceToHuman: false, requiresHumanApproval: true } : { status: 'advisory-ready', advisory: { verdict: 'advance_to_human', reasonCodes: [], fidelityNotes: 'faithful', reliabilityNotes: 'reviewed', candidateContentHash: contentHash, preprocessingVersion: 'fixture:top-model:prompt-1:schema-1' }, canAdvanceToHuman: true, requiresHumanApproval: true };
-  const decision = { disposition: 'approved', reviewer: 'operator', notes: 'approved after source review', rubricVersion: 'rsd-8.7-v1', editedContentHash: overrides.staleHash || contentHash, rightsReview: { status: overrides.rights || 'cleared', reviewer: 'rights-reviewer', basis: 'documented permission', notes: 'recorded' }, scores: { quality: 0.8, interestingness: 0.7, educationalValue: 0.9, difficulty: 0.4 }, finalTopicTags: ['ai-agents'], review: { sourceQuality: 'pass', factualReliability: 'pass', contentRelevance: 'pass', hookAccuracy: 'pass', summaryFaithfulness: 'pass', suggestedQuestionUsefulness: 'pass', participantAppropriateness: 'pass', duplicateRisk: 'pass', biasRisk: 'pass', misinformationRisk: 'pass', contentWarnings: 'pass' }, candidateId: id, decidedAt: '2026-07-11T12:00:00.000Z', sequence: 1, codexVerdictHash: contentHash, operatorIsGateOfRecord: true };
+  const decision = { disposition: 'approved', notes: 'approved after source review', editedContentHash: overrides.staleHash || contentHash, candidateId: id, decidedAt: '2026-07-11T12:00:00.000Z', sequence: 1, codexVerdictHash: contentHash, operatorIsGateOfRecord: true };
   await writeFile(join(runDir, 'normalized', '0001.json'), JSON.stringify(normalized));
   await writeFile(join(runDir, 'preprocessed', 'cache-1.json'), JSON.stringify(preprocess));
   await writeFile(join(runDir, 'codex-review', 'cache-1.json'), JSON.stringify(codex));
@@ -69,12 +69,26 @@ test('video freeze stores fixed URL, video ID, and reviewed digest without trans
   assert.equal((await verifyFrozenPool(output)).valid, true);
 });
 
-test('freeze blocks missing/stale operator approval, Codex gate, rights review, and secrets', async () => {
+test('social snapshots remain article assets while posts preserve X and Reddit source platforms', async () => {
+  for (const [platform, canonicalUrl] of [
+    ['x', 'https://x.com/example/status/2023841994246852726'],
+    ['reddit', 'https://www.reddit.com/r/work/comments/abc123/example/'],
+  ]) {
+    const output = await outputPath(`${platform}-pool`);
+    await buildFrozenPool({ runDir: await approvedRun({ canonicalUrl, rawMetadata: { platform, contentKind: 'social-post' } }), output, version: 'v1' });
+    const [post] = JSON.parse(await readFile(join(output, 'posts.json'), 'utf8'));
+    const [asset] = JSON.parse(await readFile(join(output, 'source_assets.json'), 'utf8'));
+    assert.equal(post.sourcePlatform, platform);
+    assert.equal(asset.kind, 'article');
+    assert.match(asset.body, /Complete approved source text/);
+  }
+});
+
+test('freeze blocks missing/stale operator approval, missing Codex gate, and secrets', async () => {
   for (const [name, run, pattern] of [
     ['missing approval', await approvedRun({ missingDecision: true }), /operator approval/i],
     ['stale approval', await approvedRun({ staleHash: '0'.repeat(64) }), /stale/i],
     ['missing Codex', await approvedRun({ missingCodex: true }), /Codex/i],
-    ['rights', await approvedRun({ rights: 'missing' }), /rights/i],
     ['secret', await approvedRun({ fullText: 'OPENAI_API_KEY=sk-example-secret-material' }), /secret/i],
   ]) await assert.rejects(buildFrozenPool({ runDir: run, output: await outputPath(name), version: 'v1' }), pattern, name);
 });
