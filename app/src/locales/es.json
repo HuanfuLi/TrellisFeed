@@ -46,6 +46,11 @@
       "refreshFailed": "Falló la actualización"
     }
   },
+  "feed": {
+    "reason": {
+      "toggleLabel": "¿Por qué esta publicación?"
+    }
+  },
   "researchSetup": {
     "title": "Configuración de investigación",
     "body": "Introduce el ID numérico de cuenta asignado para preparar esta instalación.",

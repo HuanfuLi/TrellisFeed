@@ -210,11 +210,6 @@ export function HomeScreen() {
     };
   }, [readRecommendationFeed]);
 
-  const posts = feed.items.map((item) => item.post);
-  const conceptLabelsByPostId = new Map(
-    feed.items.map((item) => [item.post.id, item.conceptLabels] as const),
-  );
-
   return (
     <>
       <div ref={containerRef} data-home-scroll style={{ overflowY: 'auto', height: 'calc(100dvh - var(--safe-area-top))', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain', touchAction: 'pan-y' }}>
@@ -235,7 +230,7 @@ export function HomeScreen() {
               <p style={{ margin: 0, fontSize: '16px', lineHeight: 1.5, color: 'var(--muted-foreground)' }}>{t('home.feed.emptyBody')}</p>
             </section>
           ) : (
-            <MasonryFeed posts={posts} conceptLabelsByPostId={conceptLabelsByPostId} onOpenPost={(postId) => navigate(`/posts/${postId}`)} />
+            <MasonryFeed items={feed.items} onOpenPost={(postId) => navigate(`/posts/${postId}`)} />
           )}
         </main>
       </div>

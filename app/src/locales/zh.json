@@ -46,6 +46,11 @@
       "refreshFailed": "刷新失败"
     }
   },
+  "feed": {
+    "reason": {
+      "toggleLabel": "为什么推荐这篇？"
+    }
+  },
   "researchSetup": {
     "title": "研究设置",
     "body": "请输入已分配的数字账号编号，以准备此安装。",

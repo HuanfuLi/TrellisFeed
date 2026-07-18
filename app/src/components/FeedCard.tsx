@@ -1,11 +1,29 @@
 import { Clock, FileText, Newspaper, PlayCircle } from 'lucide-react';
-import type { KeyboardEvent } from 'react';
-import type { Post } from '../domain/content.types';
+import { useState, type KeyboardEvent, type MouseEvent } from 'react';
+import { useTranslation } from 'react-i18next';
+import type { Post, Recommendation } from '../domain/content.types';
+import { interactionLog } from '../services/interaction-log.service';
 
 export interface FeedCardProps {
   post: Readonly<Post>;
+  recommendation: Readonly<Recommendation>;
   conceptLabels: readonly string[];
   onOpen: (postId: string) => void;
+}
+
+type ReasonViewRecorder = (
+  eventType: 'recommendation_reason_view',
+  fields: { postId: string; recommendationId: string },
+) => Promise<unknown>;
+
+export function recordRecommendationReasonView(
+  recommendation: Pick<Recommendation, 'id' | 'postId'>,
+  record: ReasonViewRecorder = interactionLog.record,
+): Promise<unknown> {
+  return record('recommendation_reason_view', {
+    postId: recommendation.postId,
+    recommendationId: recommendation.id,
+  });
 }
 
 function SourceIcon({ platform }: { platform: Post['sourcePlatform'] }) {
@@ -14,7 +32,9 @@ function SourceIcon({ platform }: { platform: Post['sourcePlatform'] }) {
   return <FileText aria-hidden="true" size={18} />;
 }
 
-export function FeedCard({ post, conceptLabels, onOpen }: FeedCardProps) {
+export function FeedCard({ post, recommendation, conceptLabels, onOpen }: FeedCardProps) {
+  const { t } = useTranslation();
+  const [reasonExpanded, setReasonExpanded] = useState(false);
   const activate = () => onOpen(post.id);
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key === 'Enter' || event.key === ' ') {
@@ -27,6 +47,13 @@ export function FeedCard({ post, conceptLabels, onOpen }: FeedCardProps) {
     : post.readingTimeMinutes
       ? `${post.readingTimeMinutes} min`
       : null;
+  const handleReasonToggle = (event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    if (!reasonExpanded) {
+      void recordRecommendationReasonView(recommendation).catch(() => { /* observational */ });
+    }
+    setReasonExpanded((expanded) => !expanded);
+  };
 
   return (
     <div
@@ -77,6 +104,48 @@ export function FeedCard({ post, conceptLabels, onOpen }: FeedCardProps) {
           ))}
         </div>
       )}
+
+      <button
+        type="button"
+        aria-expanded={reasonExpanded}
+        onClick={handleReasonToggle}
+        onKeyDown={(event) => event.stopPropagation()}
+        style={{
+          minHeight: '44px',
+          width: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'flex-start',
+          gap: '4px',
+          padding: '8px 12px',
+          borderRadius: 'var(--radius-xl)',
+          border: '1px solid var(--border)',
+          background: 'var(--surface-variant)',
+          color: 'var(--foreground)',
+          cursor: 'pointer',
+          textAlign: 'left',
+        }}
+      >
+        <span style={{ color: 'var(--muted-foreground)', fontSize: '14px', lineHeight: 1.5, fontWeight: 600 }}>
+          {t('feed.reason.toggleLabel')}
+        </span>
+        <span
+          style={reasonExpanded ? {
+            fontSize: '14px',
+            lineHeight: 1.5,
+          } : {
+            display: '-webkit-box',
+            overflow: 'hidden',
+            WebkitBoxOrient: 'vertical',
+            WebkitLineClamp: 2,
+            fontSize: '14px',
+            lineHeight: 1.5,
+          }}
+        >
+          {recommendation.reasonText}
+        </span>
+      </button>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', color: 'var(--muted-foreground)', fontSize: '14px', lineHeight: 1.5 }}>
         {duration && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Clock aria-hidden="true" size={16} />{duration}</span>}

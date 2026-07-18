@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
+import React from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { createServer } from 'vite';
 
 const source = readFileSync(new URL('../../src/screens/HomeScreen.tsx', import.meta.url), 'utf8');
@@ -171,4 +173,61 @@ test('WKWebView direction slop still precedes preventDefault', () => {
   const claim = source.indexOf('claimed = true', slop);
   const prevent = source.indexOf('event.preventDefault()', claim);
   assert.ok(slop >= 0 && claim > slop && prevent > claim);
+});
+
+test('FeedCard renders hostile reason text as escaped plain React text in one shared surface', async () => {
+  const server = await createServer({
+    server: { middlewareMode: true },
+    appType: 'custom',
+    logLevel: 'silent',
+  });
+  try {
+    const { FeedCard } = await server.ssrLoadModule('/src/components/FeedCard.tsx');
+    const value = recommendation('rec-hostile', 'post-hostile');
+    value.reasonText = '<img src=x onerror=alert(1)> Continue exploring safely.';
+    const html = renderToStaticMarkup(React.createElement(FeedCard, {
+      post: post('post-hostile'),
+      recommendation: value,
+      conceptLabels: [],
+      onOpen() {},
+    }));
+
+    assert.match(html, /&lt;img src=x onerror=alert\(1\)&gt; Continue exploring safely\./);
+    assert.doesNotMatch(html, /<img|dangerouslySetInnerHTML/);
+  } finally {
+    await server.close();
+  }
+});
+
+test('expanding a recommendation reason logs one reason-view event with both IDs', async () => {
+  const server = await createServer({
+    server: { middlewareMode: true },
+    appType: 'custom',
+    logLevel: 'silent',
+  });
+  try {
+    const { recordRecommendationReasonView } = await server.ssrLoadModule('/src/components/FeedCard.tsx');
+    const events = [];
+    await recordRecommendationReasonView(
+      recommendation('rec-1', 'post-1'),
+      async (eventType, fields) => { events.push([eventType, fields]); },
+    );
+    assert.deepEqual(events, [[
+      'recommendation_reason_view',
+      { postId: 'post-1', recommendationId: 'rec-1' },
+    ]]);
+  } finally {
+    await server.close();
+  }
+});
+
+test('reason surface is condition-neutral, plain-text, and wired from Home items', () => {
+  const cardSource = readFileSync(new URL('../../src/components/FeedCard.tsx', import.meta.url), 'utf8');
+  const masonrySource = readFileSync(new URL('../../src/components/MasonryFeed.tsx', import.meta.url), 'utf8');
+  assert.match(cardSource, /recommendation\.reasonText/);
+  assert.match(cardSource, /feed\.reason\.toggleLabel/);
+  assert.match(cardSource, /recordRecommendationReasonView/);
+  assert.doesNotMatch(cardSource, /dangerouslySetInnerHTML|react-markdown|Markdown|condition\s*===/);
+  assert.match(masonrySource, /recommendation=\{item\.recommendation\}/);
+  assert.match(source, /<MasonryFeed items=\{feed\.items\}/);
 });

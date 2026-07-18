@@ -46,6 +46,11 @@
       "refreshFailed": "更新に失敗しました"
     }
   },
+  "feed": {
+    "reason": {
+      "toggleLabel": "この投稿を選んだ理由"
+    }
+  },
   "researchSetup": {
     "title": "研究設定",
     "body": "このインストールを準備するには、割り当てられた数字のアカウント ID を入力してください。",

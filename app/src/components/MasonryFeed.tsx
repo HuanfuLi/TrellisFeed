@@ -1,20 +1,26 @@
-import type { Post } from '../domain/content.types';
+import type { Post, Recommendation } from '../domain/content.types';
 import { FeedCard } from './FeedCard';
 
+export interface MasonryFeedItem {
+  recommendation: Readonly<Recommendation>;
+  post: Readonly<Post>;
+  conceptLabels: readonly string[];
+}
+
 export interface MasonryFeedProps {
-  posts: readonly Readonly<Post>[];
-  conceptLabelsByPostId: ReadonlyMap<string, readonly string[]>;
+  items: readonly MasonryFeedItem[];
   onOpenPost: (postId: string) => void;
 }
 
-export function MasonryFeed({ posts, conceptLabelsByPostId, onOpenPost }: MasonryFeedProps) {
+export function MasonryFeed({ items, onOpenPost }: MasonryFeedProps) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px', width: '100%' }}>
-      {posts.map((post) => (
+      {items.map((item) => (
         <FeedCard
-          key={post.id}
-          post={post}
-          conceptLabels={conceptLabelsByPostId.get(post.id) ?? []}
+          key={item.recommendation.id}
+          post={item.post}
+          recommendation={item.recommendation}
+          conceptLabels={item.conceptLabels}
           onOpen={onOpenPost}
         />
       ))}

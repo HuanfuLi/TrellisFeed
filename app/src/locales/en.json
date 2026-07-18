@@ -46,6 +46,11 @@
       "refreshFailed": "Refresh failed"
     }
   },
+  "feed": {
+    "reason": {
+      "toggleLabel": "Why this post?"
+    }
+  },
   "researchSetup": {
     "title": "Research setup",
     "body": "Enter the assigned numeric account ID to prepare this installation.",

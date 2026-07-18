@@ -23,6 +23,8 @@ test('FeedCard exposes one accessible whole-card activation surface', () => {
   assert.match(source, /onOpen\(post\.id\)/);
 });
 
-test('FeedCard contains no generated-feed or recommendation-reason surface', () => {
-  assert.doesNotMatch(source, /DailyPost|presentationStyle|imageGeneration|quickAskPrompts|recommendationReason/);
+test('FeedCard contains no generated-feed residue and renders the persisted recommendation reason', () => {
+  assert.doesNotMatch(source, /DailyPost|presentationStyle|imageGeneration|quickAskPrompts/);
+  assert.match(source, /recommendation\.reasonText/);
+  assert.doesNotMatch(source, /dangerouslySetInnerHTML|react-markdown|Markdown/);
 });
