@@ -57,12 +57,7 @@ test('all user-facing locale strings no longer name the legacy brand', () => {
 
 test('active participant surfaces contain no legacy feedback action or starter copy', () => {
   const home = read(appRoot, 'src/screens/HomeScreen.tsx');
-  const conceptFeed = read(appRoot, 'src/services/concept-feed.service.ts');
-  const starterSection = conceptFeed.slice(
-    conceptFeed.indexOf('export const STARTER_POSTS'),
-    conceptFeed.indexOf('function makeStarterPost'),
-  );
 
   assert.doesNotMatch(home, /mailto:|Trellis%20Feedback/i);
-  assert.doesNotMatch(starterSection, /\bTrellis\b/i);
+  assert.doesNotMatch(home, /starter post|\bTrellis\b/i);
 });

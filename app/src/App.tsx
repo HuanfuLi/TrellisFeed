@@ -16,9 +16,6 @@ import { PostDetailScreen } from './screens/PostDetailScreen';
 import SavedScreen from './screens/SavedScreen';
 import { settingsService } from './services/settings.service';
 import { hydrateFromSQLite } from './services/question.service';
-// Phase 55 D-12 boot orchestration — every migrated heavy-store service's hydrate.
-import { hydrateDailyPostsFromSQLite } from './services/concept-feed.service';
-import { hydrateQueueFromSQLite } from './services/post-queue.service';
 import { hydratePostHistoryFromSQLite } from './services/post-history.service';
 import { hydrateEngagementFromSQLite } from './services/engagement.service';
 import { studyContextService } from './services/study-context.service';
@@ -28,7 +25,6 @@ import { clearLegacyHeavyLocalStorageKeys } from './services/db.service';
 // cold-start stall — see scripts/profile-cold-start.mjs).
 import { prewarmFilterCorpus } from './services/filter-corpus.service';
 import { useKeyboard } from './state/useKeyboard';
-import { bootstrapImageGeneration } from './services/imageGeneration.bootstrap';
 import { applyTheme } from './lib/theme';
 import { PageTransition } from './components/PageTransition';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -263,24 +259,17 @@ const router = createBrowserRouter([
   },
 ]);
 
-// Phase 55-07: hydrate EVERY migrated heavy-store service's in-memory mirror
-// from IndexedDB once on boot. AWAITED (Promise.all) before the main app
-// renders — IndexedDB reads are async and the in-memory mirrors are now the SOLE
-// synchronous read path, so first render MUST wait for hydration or post-boot
-// reads return empty (empty-feed flash, premature refill against an empty queue).
-// Each hydrate emits its own resync event (GRAPH_UPDATED / SESSION_UPDATED /
-// ENGAGEMENT_CHANGED / COLLECTIONS_CHANGED / FLASHCARDS_CREATED) so always-mounted
-// screens re-read without a refresh.
+// Hydrate every active durable mirror before revealing participant routes.
+// The frozen pool is validated/imported in the same barrier, so Home never sees
+// a partial bundle or falls back to a generated/network content path.
 //
 // AFTER hydration completes, the one-time D-11 cutover sweep removes the now-stale
 // legacy heavy localStorage keys — ONLY after the mirrors are restored from
 // IndexedDB, never before (a pre-hydrate clear would discard data if IndexedDB
 // were somehow staler; the dual-write means IndexedDB is current).
 async function hydrateAllFromSQLite(): Promise<ContentPoolRepositorySnapshot> {
-  const [, , , , , , contentPool] = await Promise.all([
+  const [, , , , contentPool] = await Promise.all([
     hydrateFromSQLite(),            // questions
-    hydrateDailyPostsFromSQLite(),  // concept-feed daily-posts cache
-    hydrateQueueFromSQLite(),       // post-queue state
     hydratePostHistoryFromSQLite(), // post history
     hydrateEngagementFromSQLite(),  // saved/liked/dismissed
     studyContextService.hydrate(),   // immutable participant identity
@@ -295,8 +284,7 @@ async function hydrateAllFromSQLite(): Promise<ContentPoolRepositorySnapshot> {
 
 export default function App() {
   const { t } = useTranslation();
-  // Gate first render on hydration so post-boot synchronous mirror reads have
-  // data (no empty-feed flash, no premature refill against an empty queue).
+  // Gate first render on hydration so synchronous repository reads are ready.
   const [hydrated, setHydrated] = useState(false);
   const [poolError, setPoolError] = useState<string | null>(null);
   const [hydrationAttempt, setHydrationAttempt] = useState(0);
@@ -341,8 +329,6 @@ export default function App() {
     }).catch(() => {
       if (!cancelled) setPoolError('POOL_IMPORT_FAILED');
     });
-    // Bootstrap image generation providers with keys from user settings.
-    bootstrapImageGeneration();
     // Phase 55.1-07 GAP-C — fire-and-forget boot warm-up of the filter-corpus
     // embedding cache. The malicious RAW-ARGMAX pre-gate runs filterQuestion
     // BEFORE chatStream on every ask; on a cold cache that pays 124 sequential

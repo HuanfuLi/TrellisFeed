@@ -24,14 +24,7 @@ const activeStorageOwners = [
   ]],
   ['settings.service.ts', ["const STORAGE_KEY = 'questiontrace_settings'"]],
   ['daily-read.service.ts', ["const STORAGE_KEY = 'questiontrace_daily_read'"]],
-  ['session.service.ts', ["const ACTIVE_ID_KEY = 'questiontrace_active_session'"]],
-  ['concept-feed.service.ts', ["const CONNECTION_POSTS_KEY = 'questiontrace_connection_posts'"]],
   ['filter-corpus.service.ts', ["FILTER_CORPUS_CACHE_KEY = 'questiontrace_filter_corpus_emb_v1'"]],
-  ['imageGeneration.service.ts', [
-    "const CACHE_KEY_PREFIX = 'questiontrace_img_cache_'",
-    "const CACHE_META_KEY = 'questiontrace_img_cache_meta'",
-    "const IDB_NAME = 'questiontrace_images'",
-  ]],
 ];
 
 function sourceFor(relativePath) {

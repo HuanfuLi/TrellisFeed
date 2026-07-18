@@ -110,18 +110,15 @@ describe('storage-migration (Phase 55 D-11/D-12/D-13)', () => {
   // reintroduces a localStorage.setItem for its heavy store key.
   it('heavy-store services do NOT write their heavy store to localStorage (no dual-write)', () => {
     const heavyServices = [
-      'question', 'post-queue', 'post-history', 'session',
-      'concept-feed', 'engagement',
+      'question', 'post-history', 'engagement',
     ];
-    // Allowlisted small-pref localStorage writes that are intentionally retained.
-    const ALLOWED = /localStorage\.setItem\(\s*ACTIVE_ID_KEY/;
     for (const name of heavyServices) {
       const src = fs.readFileSync(
         new URL(`../../src/services/${name}.service.ts`, import.meta.url),
         'utf-8',
       );
       const setItems = src.match(/localStorage\.setItem\([^)]*/g) ?? [];
-      const offending = setItems.filter((call) => !ALLOWED.test(call));
+      const offending = setItems;
       assert.equal(
         offending.length,
         0,

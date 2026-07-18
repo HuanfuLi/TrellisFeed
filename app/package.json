@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "package:content-pool": "node scripts/package-content-pool.mjs",
+    "prebuild": "npm run package:content-pool",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "test": "node scripts/run-tests.mjs",

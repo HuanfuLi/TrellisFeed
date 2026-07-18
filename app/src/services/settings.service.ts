@@ -2,31 +2,12 @@ import type { AppPreferences, AppSettings, ServiceResult, SupportedLocale } from
 
 const STORAGE_KEY = 'questiontrace_settings';
 
-export const FEED_DEFAULTS = {
-  postRetentionDays: 7 as number | null,
-  dailyGenerationCapMultiplier: 5,
-  bonusPostCap: 8,
-} as const;
-
 const defaultSettings: AppSettings = {
   llm: {
     provider: 'openai',
     apiKey: '',
     baseUrl: '',
     model: 'gpt-4o',
-    isConfigured: false,
-  },
-  // Phase 55.1 GAP-E — optional low-latency generation model. Disabled/unset by default
-  // so existing users see NO behavior change (resolveGenerationConfig falls back to `llm`).
-  // MUST be present here for deepMerge() to default pre-feature stored settings (deepMerge
-  // iterates Object.keys(defaults), so an absent key would never be filled in) — this is the
-  // additive-optional defaulting path, NOT a migration (CLAUDE.md feedback_no_normalize_for_optional_fields).
-  fastModel: {
-    enabled: false,
-    provider: 'openai',
-    apiKey: '',
-    baseUrl: '',
-    model: 'gpt-4o-mini',
     isConfigured: false,
   },
   embedding: {
@@ -61,20 +42,6 @@ const defaultSettings: AppSettings = {
     language: 'en',
     onboardingCompleted: false,
     aiConsentGiven: false,
-  },
-  imageGeneration: {
-    nanoBananaApiKey: '',
-    geminiApiKey: '',
-    geminiModel: 'gemini-3.1-flash-image-preview',
-    maxCacheSizeMb: 50,
-    cacheTtlDays: 30,
-    primaryProvider: 'auto' as const,
-    enabled: true,
-  },
-  feed: {
-    postRetentionDays: FEED_DEFAULTS.postRetentionDays,
-    dailyGenerationCapMultiplier: FEED_DEFAULTS.dailyGenerationCapMultiplier,
-    bonusPostCap: FEED_DEFAULTS.bonusPostCap,
   },
 };
 

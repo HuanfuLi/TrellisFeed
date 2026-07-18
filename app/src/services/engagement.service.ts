@@ -1,8 +1,7 @@
 // Engagement service — Phase 39 (D-03/D-04/D-05/D-06/D-08).
 //
-// Local-first leaf service that owns save / like / dismiss state for posts and
-// concept anchors. Modeled on `daily-read.service.ts` MINUS the date-keyed
-// reset (engagement persists cross-day per Phase 39 success criterion #5).
+// Local-first leaf service that owns save / like / dismiss state for immutable
+// frozen post IDs. Engagement persists across days.
 //
 // Leaf-module discipline (Phase 37 D-01 / D-08):
 //   - No JSON imports, no `react-i18next`, no `lib/date.ts` (would re-introduce
@@ -11,14 +10,8 @@
 //   - ID-only storage. Immutable content resolves through frozenFeedService at
 //     the screen/facade boundary, never through an engagement snapshot.
 //
-// Event-emission rules (D-05 — one signal per semantic action; D-06 anti-wire):
-//   - savePost / removeSavedPost / likePost / unlikePost / undismissAnchor:
-//     emit EXACTLY ONE engagement-change event with the appropriate `kind`.
-//   - dismissAnchor: emit EXACTLY ONE anchor-dismiss event. Never also an
-//     engagement-change event. Never any explored-anchor signal — D-06
-//     anti-wire invariant; the walker is the consumer of the dismiss event.
-//   - undismissAnchor: emit EXACTLY ONE engagement-change event with
-//     kind 'undismiss'. Never also an anchor-dismiss event.
+// Event-emission rules (one signal per semantic action):
+//   - save/remove, like/unlike, and dismiss/undismiss emit one engagement event.
 //   - reset(): emits NOTHING (D-08 — wholesale wipe, UI consumers should re-read).
 //   - All mutators are idempotent: re-saving an already-saved post is a no-op
 //     AND does NOT re-emit (membership check before push+emit).
@@ -196,90 +189,11 @@ export const engagementService = {
     return [...loadState().dismissed];
   },
 
-  // Transitional aliases for the generated-feed shell. Plan 02-07 removes
-  // those consumers; the frozen feed uses only the post-ID API above.
-  /**
-   * Dismiss an anchor (idempotent). Emits EXACTLY ONE anchor-dismiss event.
-   * Does NOT emit any engagement-change event here — D-06 anti-wire invariant;
-   * the walker (concept-feed.service.ts) subscribes specifically to this event.
-   */
-  dismissAnchor(anchorId: string): void {
-    const state = loadState();
-    if (state.dismissed.includes(anchorId)) return;
-    state.dismissed.push(anchorId);
-    saveState(state);
-    eventBus.emit({ type: 'ANCHOR_DISMISSED', payload: { anchorId } });
-  },
-
-  /**
-   * Undismiss an anchor (idempotent). Emits EXACTLY ONE engagement-change
-   * event with kind 'undismiss'. Does NOT emit any anchor-dismiss event
-   * here — D-06.
-   */
-  undismissAnchor(anchorId: string): void {
-    const state = loadState();
-    if (!state.dismissed.includes(anchorId)) return;
-    state.dismissed = state.dismissed.filter(id => id !== anchorId);
-    saveState(state);
-    eventBus.emit({ type: 'ENGAGEMENT_CHANGED', payload: { kind: 'undismiss', id: anchorId } });
-  },
-
-  isDismissed(anchorId: string): boolean {
-    return loadState().dismissed.includes(anchorId);
-  },
-
-  getDismissedAnchorIds(): string[] {
-    return [...loadState().dismissed];
-  },
-
-  // ─── Cross-module helper (D-04) ──────────────────────────────────────────
-
-  /**
-   * Returns the union of saved ∪ liked post IDs (NOT
-   * dismissed anchor IDs). Consumed by `postHistoryService.purgeExpired()`
-   * to pin engaged posts against the retention purge.
-   */
-  getPinnedIds(): Set<string> {
-    const s = loadState();
-    return new Set<string>([...s.saved, ...s.liked]);
-  },
-
   // ─── Test/dev affordance (D-08) ──────────────────────────────────────────
 
-  /**
-   * Wipe all three collections to []. Phase 43 wires this into the
-   * Force-New-Day handler in SettingsDataScreen alongside `dailyReadService.reset()`.
-   * Emits NOTHING — wholesale wipe is not a per-id change; UI consumers
-   * should re-read on Force-New-Day rather than chase per-action events.
-   */
+  /** Wipe all three collections without synthesizing per-ID events. */
   reset(): void {
     saveState(freshState());
   },
 
-  /**
-   * Wipe ONLY the dismissed-anchor list (saved + liked are user archives —
-   * persist across days per operator intent confirmed during Phase 43 UAT).
-   * Phase 43 (gap-closure 43-13) wires this into Force-New-Day in
-   * SettingsDataScreen so the dev affordance produces the intended
-   * "previously-hidden tiles return tomorrow" UX without nuking the user's
-   * saved/liked archives.
-   *
-   * Idempotent: no-op + no event when dismissed.length === 0.
-   *
-   * Emits EXACTLY ONE ENGAGEMENT_CHANGED with kind: 'undismiss' and sentinel
-   * id: '*' to signal "bulk reset" to subscribers. HomeScreen Effect B
-   * (Phase 43-06 dual-effect canonical shape) re-reads
-   * getDismissedAnchorIds() on this emit and refills dismissed-anchor tiles
-   * in the feed.
-   *
-   * `reset()` (above) stays as the wholesale wipe for Clear-All-Data /
-   * settingsService.reset() — that path still wants saved + liked cleared.
-   */
-  resetDismissedOnly(): void {
-    const state = loadState();
-    if (state.dismissed.length === 0) return; // idempotent — no-op + no event
-    state.dismissed = [];
-    saveState(state);
-    eventBus.emit({ type: 'ENGAGEMENT_CHANGED', payload: { kind: 'undismiss', id: '*' } });
-  },
 };

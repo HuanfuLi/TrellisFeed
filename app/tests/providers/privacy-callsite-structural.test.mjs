@@ -26,8 +26,7 @@ const CHOKEPOINTS = [
 
 const PROMPT_CALL_SITES = [
   'state/useQuestions.ts',
-  'services/post-essay.service.ts',
-  'services/post-context-qa.service.ts',
+  'services/post-qa.service.ts',
   'services/canonical-knowledge.service.ts',
 ];
 
@@ -53,16 +52,4 @@ describe('PRIVACY-01 — prompt call-sites do not read engagement state', () => 
       );
     });
   }
-
-  it('concept-feed.service.ts uses only dismissed-anchor IDs, not liked/saved content', () => {
-    const src = readSrc('services/concept-feed.service.ts');
-    assert.ok(
-      /getDismissedAnchorIds/.test(src),
-      'concept-feed.service.ts may use dismissed anchor IDs to filter feed candidates.',
-    );
-    assert.ok(
-      !/getLikedPosts|getSavedPosts|likedPosts|savedPosts/.test(src),
-      'concept-feed.service.ts must not read liked/saved post content for prompt construction.',
-    );
-  });
 });

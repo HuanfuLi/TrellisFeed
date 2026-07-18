@@ -137,12 +137,14 @@ describe('bundled content pool import', () => {
     await indexedDbModule.clearAllTables();
   });
 
-  it('default loader fails closed without attempting network acquisition', async () => {
+  it('default loader reads the packaged immutable pool without network acquisition', async () => {
     const originalFetch = globalThis.fetch;
     let fetchCalls = 0;
     globalThis.fetch = async () => { fetchCalls += 1; throw new Error('network forbidden'); };
     try {
-      await assert.rejects(bundleModule.loadBundledContentPool(), { code: 'POOL_NOT_PACKAGED' });
+      const packaged = await bundleModule.loadBundledContentPool();
+      assert.equal(packaged.manifest.contentPoolVersion, 'pilot-v1-20260717');
+      assert.equal(packaged.posts.length, 77);
       assert.equal(fetchCalls, 0);
     } finally {
       globalThis.fetch = originalFetch;

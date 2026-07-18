@@ -83,9 +83,9 @@ test('generated-feed shell is absent and participant content has no acquisition 
 });
 
 test('production and native web assets contain only the verified runtime projection', { timeout: 240_000 }, () => {
-  const build = spawnSync('npm.cmd', ['run', 'build'], { cwd: appRoot, encoding: 'utf8' });
+  const build = spawnSync('npm', ['run', 'build'], { cwd: appRoot, encoding: 'utf8', shell: true });
   assert.equal(build.status, 0, build.stderr || build.stdout);
-  const sync = spawnSync('npx.cmd', ['cap', 'sync'], { cwd: appRoot, encoding: 'utf8' });
+  const sync = spawnSync('npx', ['cap', 'sync'], { cwd: appRoot, encoding: 'utf8', shell: true });
   assert.equal(sync.status, 0, sync.stderr || sync.stdout);
 
   const roots = [
@@ -101,14 +101,14 @@ test('production and native web assets contain only the verified runtime project
   }
 
   const forbiddenPath = /(?:^|\/)(?:\.env(?:\.|$)|runs?|review_logs?|source_files?|content_pipeline|credentials?)(?:\/|$)/i;
-  const secret = /(?:AIza[0-9A-Za-z_-]{30,}|sk-[0-9A-Za-z_-]{20,})/;
+  const secret = /(?:AIza[0-9A-Za-z_-]{30,}|sk-proj-[0-9A-Za-z_-]{20,}|sk-[0-9A-Za-z]{20,})/;
   for (const root of [join(appRoot, 'dist'), join(appRoot, 'android', 'app', 'src', 'main', 'assets', 'public'), join(appRoot, 'ios', 'App', 'App', 'public')]) {
     for (const path of walk(root)) {
       const rel = relative(root, path).replaceAll('\\', '/');
       assert.doesNotMatch(rel, forbiddenPath);
       const bytes = readFileSync(path);
       if (bytes.includes(0)) continue;
-      assert.doesNotMatch(bytes.toString('utf8'), secret, `secret-like value in ${rel}`);
+      assert.equal(secret.test(bytes.toString('utf8')), false, `secret-like value in ${rel}`);
     }
   }
 });

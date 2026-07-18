@@ -8,7 +8,12 @@ import type {
   Topic,
 } from '../domain/content.types.ts';
 
-export const PACKAGED_CONTENT_POOL_VERSION = 'v1';
+import {
+  PACKAGED_CONTENT_POOL_VERSION,
+  packagedContentPoolReader,
+} from '../generated/content-pool-v1/index.ts';
+
+export { PACKAGED_CONTENT_POOL_VERSION };
 
 export const CONTENT_POOL_FILENAMES = [
   'manifest.json',
@@ -44,12 +49,7 @@ export class ContentPoolBundleError extends Error {
   }
 }
 
-const defaultReader: PackagedPoolReader = {
-  expectedVersion: PACKAGED_CONTENT_POOL_VERSION,
-  async readText() {
-    throw new ContentPoolBundleError('POOL_NOT_PACKAGED');
-  },
-};
+const defaultReader: PackagedPoolReader = packagedContentPoolReader;
 
 const artifactCollections: Record<ArtifactFilename, keyof Pick<FrozenPoolBundle,
   'topics' | 'posts' | 'concepts' | 'claims' | 'suggestedQuestions' | 'sourceAssets'>> = {

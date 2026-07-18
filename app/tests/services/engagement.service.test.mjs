@@ -28,25 +28,19 @@ const { dbQuery, clearAllTables } = await import('../../src/services/db.service.
 // methods and assert through public getters instead of reading localStorage.
 
 // Capture buckets refreshed in beforeEach so prior-test subscribers can no-op.
-let dismissEvents;
 let engagementEvents;
-let exploredEvents;
 const unsubs = [];
 
 function captureAll() {
   // Each beforeEach replaces these arrays so the closures captured by the
   // singleton event-bus push into the active iteration's arrays. Tests assert
   // against the ACTIVE arrays only.
-  dismissEvents = [];
   engagementEvents = [];
-  exploredEvents = [];
   // Tear down any previous subscriptions so we don't accumulate handlers.
   while (unsubs.length) {
     try { unsubs.pop()?.(); } catch { /* noop */ }
   }
-  unsubs.push(eventBus.subscribe('ANCHOR_DISMISSED', (e) => dismissEvents.push(e)));
   unsubs.push(eventBus.subscribe('ENGAGEMENT_CHANGED', (e) => engagementEvents.push(e)));
-  unsubs.push(eventBus.subscribe('CONCEPT_EXPLORED', (e) => exploredEvents.push(e)));
 }
 
 describe('engagementService — Phase 39', () => {
@@ -101,69 +95,26 @@ describe('engagementService — Phase 39', () => {
     assert.equal(engagementEvents[1].payload.id, 'p1');
   });
 
-  // CASE 6 — D-06 BEHAVIORAL HALF
-  it('dismissAnchor emits EXACTLY ONE anchor-dismiss event + ZERO engagement-change events + ZERO explored events', () => {
-    engagementService.dismissAnchor('a1');
-    assert.equal(dismissEvents.length, 1, 'expected exactly one ANCHOR_DISMISSED');
-    assert.equal(dismissEvents[0].payload.anchorId, 'a1');
-    assert.equal(engagementEvents.length, 0, 'dismissAnchor must NOT emit ENGAGEMENT_CHANGED — D-06');
-    assert.equal(exploredEvents.length, 0, 'dismissAnchor must NOT emit CONCEPT_EXPLORED — D-06 anti-wire');
-  });
-
-  it('dismissAnchor is idempotent — duplicate calls do not re-emit', () => {
-    engagementService.dismissAnchor('a1');
-    engagementService.dismissAnchor('a1');
-    assert.equal(dismissEvents.length, 1, 'second dismissAnchor on the same anchor must not re-emit');
-    assert.deepEqual(engagementService.getDismissedAnchorIds(), ['a1']);
-  });
-
-  it("undismissAnchor emits EXACTLY ONE engagement-change event kind:'undismiss' + ZERO anchor-dismiss events", () => {
-    engagementService.dismissAnchor('a1');
-    dismissEvents.length = 0;
-    engagementEvents.length = 0;
-    engagementService.undismissAnchor('a1');
-    assert.deepEqual(engagementService.getDismissedAnchorIds(), []);
-    assert.equal(engagementEvents.length, 1);
-    assert.equal(engagementEvents[0].payload.kind, 'undismiss');
-    assert.equal(engagementEvents[0].payload.id, 'a1');
-    assert.equal(dismissEvents.length, 0, 'undismissAnchor must NOT emit ANCHOR_DISMISSED — D-06');
-  });
-
-  it('getPinnedIds returns saved ∪ liked, NOT dismissed', () => {
-    engagementService.savePost('p1');
-    engagementService.likePost('p2');
-    engagementService.dismissAnchor('a1');
-    const pinned = engagementService.getPinnedIds();
-    assert.equal(pinned.has('p1'), true);
-    assert.equal(pinned.has('p2'), true);
-    assert.equal(pinned.has('a1'), false);
-    assert.equal(pinned.size, 2);
-  });
-
   it('state round-trips through the public getters (saved/liked/dismissed)', () => {
     engagementService.savePost('p1');
     engagementService.likePost('p2');
-    engagementService.dismissAnchor('a1');
+    engagementService.dismissPost('p3');
     assert.deepEqual(engagementService.getSavedPostIds(), ['p1']);
     assert.deepEqual(engagementService.getLikedPostIds(), ['p2']);
-    assert.deepEqual(engagementService.getDismissedAnchorIds(), ['a1']);
+    assert.deepEqual(engagementService.getDismissedPostIds(), ['p3']);
   });
 
   it('reset() clears saved, liked, and dismissed state AND emits NOTHING (D-08)', () => {
     engagementService.savePost('p1');
     engagementService.likePost('p2');
-    engagementService.dismissAnchor('a1');
+    engagementService.dismissPost('p3');
     // Clear capture arrays so the assertions below only see post-reset events.
-    dismissEvents.length = 0;
     engagementEvents.length = 0;
-    exploredEvents.length = 0;
     engagementService.reset();
     assert.deepEqual(engagementService.getSavedPostIds(), []);
     assert.deepEqual(engagementService.getLikedPostIds(), []);
-    assert.deepEqual(engagementService.getDismissedAnchorIds(), []);
-    assert.equal(dismissEvents.length, 0, 'reset() must not emit ANCHOR_DISMISSED');
+    assert.deepEqual(engagementService.getDismissedPostIds(), []);
     assert.equal(engagementEvents.length, 0, 'reset() must not emit ENGAGEMENT_CHANGED');
-    assert.equal(exploredEvents.length, 0, 'reset() must not emit CONCEPT_EXPLORED');
   });
 
   it('a freshly-reset store reports empty saved/liked/dismissed (no throw)', () => {
@@ -173,7 +124,7 @@ describe('engagementService — Phase 39', () => {
     engagementService.reset();
     assert.deepEqual(engagementService.getSavedPostIds(), []);
     assert.deepEqual(engagementService.getLikedPostIds(), []);
-    assert.deepEqual(engagementService.getDismissedAnchorIds(), []);
+    assert.deepEqual(engagementService.getDismissedPostIds(), []);
   });
 
   it('canonical save and like APIs accept immutable post IDs only', () => {

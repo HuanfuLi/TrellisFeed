@@ -1,0 +1,1417 @@
+[
+  {
+    "id": "claim-candidate-0000-01",
+    "topicId": "ai-agents-future-work",
+    "text": "Economic forces such as adverse selection, moral hazard, and reputation will persist in future agentic labor markets due to the inherent presence of incomplete information.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-31e55046b3ece7183b1f",
+      "concept-d1a35d9aaaa341fa2cd6"
+    ]
+  },
+  {
+    "id": "claim-candidate-0000-02",
+    "topicId": "ai-agents-future-work",
+    "text": "Developing metacognitive and strategic reasoning as intrinsic model capabilities is identified as a more promising path for long-term agent success than relying solely on external scaffolding.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-2059bc5318a907c9509d",
+      "concept-4e40bea07635c9f1e056"
+    ]
+  },
+  {
+    "id": "claim-candidate-0001-01",
+    "topicId": "ai-agents-future-work",
+    "text": "UpBench seeks to ground AI benchmarks in real-world economic marketplace data to increase authenticity and economic relevance compared to synthetic datasets.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-3d119f7942924710c399",
+      "concept-f0e5f53af7e637286fd5"
+    ]
+  },
+  {
+    "id": "claim-candidate-0001-02",
+    "topicId": "ai-agents-future-work",
+    "text": "The integration of human feedback allows for iterative refinement, with nearly one in five initially failed tasks being successfully rescued through human-guided intervention.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-68e155f7aba2959df921",
+      "concept-f0e5f53af7e637286fd5"
+    ]
+  },
+  {
+    "id": "claim-candidate-0002-01",
+    "topicId": "ai-agents-future-work",
+    "text": "The authors argue that agentic AI may expose complete workflows that task-level frameworks do not capture.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-f0e5f53af7e637286fd5",
+      "concept-465dad65bdb4765b02d1"
+    ]
+  },
+  {
+    "id": "claim-candidate-0002-02",
+    "topicId": "ai-agents-future-work",
+    "text": "Model projections indicate 93.2% of 236 analyzed information-intensive occupations in the San Francisco Bay Area (Tier 1) will cross the moderate-risk displacement threshold by 2030.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-3acd44b3729532f42dcd"
+    ]
+  },
+  {
+    "id": "claim-candidate-0003-01",
+    "topicId": "ai-agents-future-work",
+    "text": "In comparative testing, single-model RAG baselines achieved higher median answer-correctness scores than the multi-agent system configuration.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-a1f9d63328074e333a90",
+      "concept-9fd749528fd321690c30",
+      "concept-1917e406080cd1b20da1"
+    ]
+  },
+  {
+    "id": "claim-candidate-0003-02",
+    "topicId": "ai-agents-future-work",
+    "text": "Multi-agent systems leveraging role-based collaboration offer a competitive alternative for legal question answering by approximating accuracy levels similar to traditional RAG.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-a1f9d63328074e333a90",
+      "concept-9fd749528fd321690c30"
+    ]
+  },
+  {
+    "id": "claim-candidate-0003-03",
+    "topicId": "ai-agents-future-work",
+    "text": "Automated metrics like BLEU have documented limitations in capturing legal interpretative nuances, making expert human evaluation necessary for validation.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-9fd749528fd321690c30",
+      "concept-709717bf391dc9aa093f"
+    ]
+  },
+  {
+    "id": "claim-candidate-0004-01",
+    "topicId": "ai-agents-future-work",
+    "text": "The elastic supply margin for cognitive labor has migrated from the labor market to the compute capital market, meaning compute prices are the primary wage-setter for automated tasks.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-630ac89d626bf57f63d2",
+      "concept-ed6cb899698cf6f77632"
+    ]
+  },
+  {
+    "id": "claim-candidate-0004-02",
+    "topicId": "ai-agents-future-work",
+    "text": "The CAW bound provides a theoretical mechanism suggesting human wages are constrained by compute-market conditions rather than infinite labor supply.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-630ac89d626bf57f63d2",
+      "concept-76b9286226b3d82e1b8d"
+    ]
+  },
+  {
+    "id": "claim-candidate-0004-03",
+    "topicId": "ai-agents-future-work",
+    "text": "The framework suggests a directional inversion of skill-biased technical change, where the wage outcome depends on the task's substitutability rather than traditional skill ladders.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-465dad65bdb4765b02d1"
+    ]
+  },
+  {
+    "id": "claim-candidate-0006-01",
+    "topicId": "ai-agents-future-work",
+    "text": "The debate over AI's future impact on labor can be distilled into disputes over the pace of AI progress and the strength of AI-driven job creation.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-0edcc8fa21fb74861a49",
+      "concept-63ed82e67d15308791e5"
+    ]
+  },
+  {
+    "id": "claim-candidate-0006-02",
+    "topicId": "ai-agents-future-work",
+    "text": "Policymakers should prioritize robust, scenario-agnostic strategies like improved data collection and the piloting of wage insurance and training programs to manage potential labor market shocks.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-6192b50f9648ef076745"
+    ]
+  },
+  {
+    "id": "claim-candidate-0007-01",
+    "topicId": "ai-agents-future-work",
+    "text": "By 2030, the most valuable employees will be those capable of supervising AI-driven workflows rather than those who simply provide prompts.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-e748f8750672ca8b04b2",
+      "concept-f83c5553308b06963bd0",
+      "concept-18deff1e4c824148d3e1"
+    ]
+  },
+  {
+    "id": "claim-candidate-0007-02",
+    "topicId": "ai-agents-future-work",
+    "text": "AI agents are not autonomous employees; they require structured oversight within bounded, low-ambiguity workflows to be effective.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-e748f8750672ca8b04b2",
+      "concept-bc5d19a9da020918341c",
+      "concept-efe77b201dc216c0edf4"
+    ]
+  },
+  {
+    "id": "claim-candidate-0007-03",
+    "topicId": "ai-agents-future-work",
+    "text": "The ResumeVera Team forecasts that while AI agents will absorb or accelerate certain tasks, the broader shift will involve the creation of new review and orchestration responsibilities.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-e748f8750672ca8b04b2",
+      "concept-18deff1e4c824148d3e1"
+    ]
+  },
+  {
+    "id": "claim-candidate-0008-01",
+    "topicId": "ai-agents-future-work",
+    "text": "Occupations with higher observed AI exposure show a weak negative correlation with long-term BLS job growth projections.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-8c66673aed32f74d9b26",
+      "concept-c7c88ca51e71153fb785"
+    ]
+  },
+  {
+    "id": "claim-candidate-0008-02",
+    "topicId": "ai-agents-future-work",
+    "text": "There is no systematic or detectable increase in unemployment for highly exposed workers, but there is suggestive, barely significant evidence of a hiring slowdown for young workers in these roles.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-0ab37c8e4a2ef4607964",
+      "concept-70e00972fbb7f0c9bbfa",
+      "concept-8c66673aed32f74d9b26"
+    ]
+  },
+  {
+    "id": "claim-candidate-0009-01",
+    "topicId": "ai-agents-future-work",
+    "text": "Current AI systems lack the intelligence, multimodal capabilities, computer-use proficiency, and continual learning required to function as reliable autonomous agents.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-e748f8750672ca8b04b2",
+      "concept-84587ee022cf5d894321",
+      "concept-51f01dfbe23241a1f41e"
+    ]
+  },
+  {
+    "id": "claim-candidate-0009-02",
+    "topicId": "ai-agents-future-work",
+    "text": "Andrej Karpathy estimates that it will take approximately a decade to address the current functional limitations of AI agents.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-e748f8750672ca8b04b2"
+    ]
+  },
+  {
+    "id": "claim-candidate-0009-03",
+    "topicId": "ai-agents-future-work",
+    "text": "The compounding probability of error in multi-step tasks significantly limits the reliability of current autonomous systems, as noted by ScaleAI lead Quintin Au.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-e748f8750672ca8b04b2"
+    ]
+  },
+  {
+    "id": "claim-candidate-0010-01",
+    "topicId": "ai-agents-future-work",
+    "text": "Agentic AI differs from Gen AI by autonomously planning, deciding, and executing tasks with minimal human input.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-f0e5f53af7e637286fd5"
+    ]
+  },
+  {
+    "id": "claim-candidate-0010-02",
+    "topicId": "ai-agents-future-work",
+    "text": "The Total Cost of Work (TCoW) approach is presented as a framework for companies to compare investments in digital and human labor on a like-to-like basis.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-3a8ea63d8ff98888af3a"
+    ]
+  },
+  {
+    "id": "claim-candidate-0011-01",
+    "topicId": "ai-agents-future-work",
+    "text": "Organizational factors, such as culture and management practices, accounted for more than twice the modeled importance (67% vs. 32%) in reported AI impact compared to individual factors.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-fd079361801e7827d27f",
+      "concept-1df5ee1b1b2e88ebd038"
+    ]
+  },
+  {
+    "id": "claim-candidate-0011-02",
+    "topicId": "ai-agents-future-work",
+    "text": "Frontier Professionals are more likely than others to report intentionally performing some work without AI to maintain their own skill proficiency.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-e406694b2fe8041d3c14"
+    ]
+  },
+  {
+    "id": "claim-candidate-0012-01",
+    "topicId": "ai-agents-future-work",
+    "text": "One panelist stated that 95% of AI agent deployments fail in production due to insufficient scaffolding, such as missing context engineering and memory design.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-a2f7c635002aa981cab2"
+    ]
+  },
+  {
+    "id": "claim-candidate-0012-02",
+    "topicId": "ai-agents-future-work",
+    "text": "Fine-tuning is rarely necessary if high-quality Retrieval-Augmented Generation (RAG) is implemented.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-1917e406080cd1b20da1"
+    ]
+  },
+  {
+    "id": "claim-candidate-0012-03",
+    "topicId": "ai-agents-future-work",
+    "text": "Successful enterprise AI requires models to distinguish between user permissions to maintain organizational compliance.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-79927373a1674e2dab2c"
+    ]
+  },
+  {
+    "id": "claim-candidate-0013-01",
+    "topicId": "ai-agents-future-work",
+    "text": "The author of the Reddit post questions whether AI agents will replace employees and whether current market expectations are accurately calibrated.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-cad37aec82894925483d",
+      "concept-70d7f9da4c0aeb8ea18c",
+      "concept-f0e5f53af7e637286fd5"
+    ]
+  },
+  {
+    "id": "claim-candidate-0014-01",
+    "topicId": "ai-agents-future-work",
+    "text": "The author questions whether claims of companies operating with dozens of autonomous AI agents are grounded in technical reality or marketing hype.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-e748f8750672ca8b04b2",
+      "concept-5a4f9c4e317579ab33f2"
+    ]
+  },
+  {
+    "id": "claim-candidate-0014-02",
+    "topicId": "ai-agents-future-work",
+    "text": "The author posits that specific architectural details—such as state persistence, deployment, and inter-agent communication—remain unclear in the context of current agentic marketing.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-b49aa6b8063ec7270276",
+      "concept-9fec08e4574bcb96d535",
+      "concept-74a91990e340be9dafd8"
+    ]
+  },
+  {
+    "id": "claim-candidate-0015-01",
+    "topicId": "ai-agents-future-work",
+    "text": "The author suggests that a distinction may exist between superficial tool assistance and substantive workforce displacement enabled by AI agents.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-e748f8750672ca8b04b2",
+      "concept-cad37aec82894925483d"
+    ]
+  },
+  {
+    "id": "claim-candidate-0016-01",
+    "topicId": "ai-agents-future-work",
+    "text": "The author suspects that the primary impact of AI agents will be the reduction of time spent navigating systems and coordinating work, rather than replacing human roles.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-e748f8750672ca8b04b2",
+      "concept-9094de53555aad6ba723"
+    ]
+  },
+  {
+    "id": "claim-candidate-0017-01",
+    "topicId": "ai-agents-future-work",
+    "text": "The author observes that current AI product development is shifting toward tools capable of executing actions across workflows rather than providing simple assistance.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-e748f8750672ca8b04b2",
+      "concept-9094de53555aad6ba723"
+    ]
+  },
+  {
+    "id": "claim-candidate-0018-01",
+    "topicId": "ai-agents-future-work",
+    "text": "A prospective researcher posits that academic environments might prioritize reproducibility and experimental control, which could influence the preference for custom implementations over pre-built agent frameworks.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-16cb8a02338a2a2bd719",
+      "concept-766c5519bf6d70baab3f",
+      "concept-24c24a1c764a8275d908"
+    ]
+  },
+  {
+    "id": "claim-candidate-0019-01",
+    "topicId": "ai-agents-future-work",
+    "text": "The author questions the mandate to adopt agentic AI to automate coding, given their CTO's report that engineers previously spent only about one hour per day on actual coding tasks.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-f0e5f53af7e637286fd5",
+      "concept-0c7d337a1546a9a8f555"
+    ]
+  },
+  {
+    "id": "claim-candidate-0019-02",
+    "topicId": "ai-agents-future-work",
+    "text": "The author asks whether current agents, constrained by existing context windows, possess the capability to manage highly complex systems.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-f0e5f53af7e637286fd5",
+      "concept-1deaf55303a16d5b3e00"
+    ]
+  },
+  {
+    "id": "claim-candidate-0020-01",
+    "topicId": "ai-agents-future-work",
+    "text": "The future of software engineering remains speculative, with four distinct potential paths identified by jholliday55 ranging from total business-led automation to an expansion of the role.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-f0b6c321aa75119f5c1d",
+      "concept-2978246c6d104dd778a9"
+    ]
+  },
+  {
+    "id": "claim-candidate-0021-01",
+    "topicId": "ai-agents-future-work",
+    "text": "The author claims software engineers are active agents in industry disruption who will use AI to displace roles in other sectors.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-0c7d337a1546a9a8f555",
+      "concept-a5ee337c21805f287b9d"
+    ]
+  },
+  {
+    "id": "claim-candidate-0022-01",
+    "topicId": "ai-agents-future-work",
+    "text": "The author suspects that their lack of specialized experience in agent infrastructure, AI reliability, and evaluation frameworks contributed to their rejection for a senior AI platform role.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-24bdce497291ba22f9c4",
+      "concept-36dee7a8b1f41b2a138d",
+      "concept-081654cb6a9c142ff991",
+      "concept-63e71897121039b72864"
+    ]
+  },
+  {
+    "id": "claim-candidate-0023-01",
+    "topicId": "ai-agents-future-work",
+    "text": "The author asserts that the rapid advancement of LLMs is fundamentally changing the software engineering landscape and potentially threatening its long-term viability as a profession.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-0c7d337a1546a9a8f555",
+      "concept-e748f8750672ca8b04b2"
+    ]
+  },
+  {
+    "id": "claim-candidate-0023-02",
+    "topicId": "ai-agents-future-work",
+    "text": "The author contends that, at their workplace, disconnected management expectations regarding AI-driven productivity are causing significant burnout and leading to the 'rubber stamping' of AI-generated code.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-d6cc9b557b5e7e50e14b",
+      "concept-59b384afbe2205f8f18d"
+    ]
+  },
+  {
+    "id": "claim-candidate-0024-01",
+    "topicId": "ai-agents-future-work",
+    "text": "The author feels that AI is improving and seems to be affecting roles that were previously considered safe from automation.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-c3fb8fd7e1ba63e73ff2",
+      "concept-0edcc8fa21fb74861a49"
+    ]
+  },
+  {
+    "id": "claim-candidate-0024-02",
+    "topicId": "ai-agents-future-work",
+    "text": "The author expresses uncertainty about whether current AI trends are a standard historical shift or a fundamentally different phenomenon.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-08156dbe9ff50d54aaef",
+      "concept-3f657e8310523b812ce1"
+    ]
+  },
+  {
+    "id": "claim-candidate-0025-01",
+    "topicId": "ai-agents-future-work",
+    "text": "The author claims that their organization utilizes an AI agent to monitor Slack alerts and retrieve GitHub context to suggest code fixes as a means to improve efficiency.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-e748f8750672ca8b04b2",
+      "concept-f38faa6b8e5fee909c39",
+      "concept-9094de53555aad6ba723",
+      "concept-bde3b89926100edd084c"
+    ]
+  },
+  {
+    "id": "claim-candidate-0027-01",
+    "topicId": "ai-agents-future-work",
+    "text": "Young workers in roles with high AI exposure are associated with 16% slower employment growth compared to those in roles with less exposure.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-084a7942fbbec6506b91",
+      "concept-a7b02b9701372e6c3fc3"
+    ]
+  },
+  {
+    "id": "claim-candidate-0027-02",
+    "topicId": "ai-agents-future-work",
+    "text": "Aggregate employment trends in the United States do not show significant differences based on levels of AI exposure.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-44ffa76c5fdea7fa9e3b"
+    ]
+  },
+  {
+    "id": "claim-candidate-0028-01",
+    "topicId": "ai-agents-future-work",
+    "text": "The video cites a report claiming 77% of employees report an increased workload following the implementation of AI tools.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-e748f8750672ca8b04b2",
+      "concept-620bc0fe91b5021edd82"
+    ]
+  },
+  {
+    "id": "claim-candidate-0028-02",
+    "topicId": "ai-agents-future-work",
+    "text": "The narrator claims a reported 29% of employees admit to actively undermining AI rollouts, with this figure rising to 44% among Gen Z workers.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-98ca87269543784e6730"
+    ]
+  },
+  {
+    "id": "claim-candidate-0028-03",
+    "topicId": "ai-agents-future-work",
+    "text": "The video asserts that two in three companies that conducted AI-driven layoffs in early 2026 are already rehiring for the same roles.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-bc1bdc882c56be7ae1c3",
+      "concept-61310775bf8bb560eb78"
+    ]
+  },
+  {
+    "id": "claim-candidate-0029-01",
+    "topicId": "ai-agents-future-work",
+    "text": "The speaker cites METR (METR, Inc.) performance research, noting that recent frontier models demonstrate significant task success rates for complex, multi-hour software work.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-d193c349e03d5542ee6e"
+    ]
+  },
+  {
+    "id": "claim-candidate-0029-02",
+    "topicId": "ai-agents-future-work",
+    "text": "The speaker identifies an AI model's context window as a principal limitation for performing autonomous, long-running cognitive work without external state management.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-6764434518d37f01df45",
+      "concept-d193c349e03d5542ee6e"
+    ]
+  },
+  {
+    "id": "claim-candidate-0030-01",
+    "topicId": "ai-agents-future-work",
+    "text": "True agentic AI distinguishes itself from simpler chatbots through autonomous planning, multi-step reasoning, and proactive execution.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-f0e5f53af7e637286fd5",
+      "concept-e26938d823ec8f360ade",
+      "concept-0e28bc1a68759103bb3c"
+    ]
+  },
+  {
+    "id": "claim-candidate-0030-02",
+    "topicId": "ai-agents-future-work",
+    "text": "The distinction between GenAI and Agentic AI is one of scope, where GenAI acts as a sub-component within a broader agentic system.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-f0e5f53af7e637286fd5"
+    ]
+  },
+  {
+    "id": "claim-candidate-0031-01",
+    "topicId": "ai-agents-future-work",
+    "text": "The non-deterministic nature of AI agents necessitates a rigorous, iterative evaluation process before they can be safely deployed in production environments.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-b016bbaa163db564b4a3",
+      "concept-3abd3a886f4b7baeac5d"
+    ]
+  },
+  {
+    "id": "claim-candidate-0031-02",
+    "topicId": "ai-agents-future-work",
+    "text": "Integrating memory modules is a strategy used to minimize redundant user interaction and support natural conversation flow in autonomous agents.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-4d407cca7e4747283653"
+    ]
+  },
+  {
+    "id": "claim-candidate-0033-01",
+    "topicId": "ai-agents-future-work",
+    "text": "Jensen Huang suggests that the integration of autonomous AI reasoning with robotic experimental equipment may become the standard framework for future drug discovery.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-4a07d09e4cd3b567316f",
+      "concept-f1ce5fcd0612e62a7162",
+      "concept-f09ae147a0a40571260f"
+    ]
+  },
+  {
+    "id": "claim-candidate-0034-01",
+    "topicId": "ai-agents-future-work",
+    "text": "The speaker argues that GDP growth and wage employment have undergone a decoupling as a result of technological progress.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-0c93859ffb25b69df552"
+    ]
+  },
+  {
+    "id": "claim-candidate-0034-02",
+    "topicId": "ai-agents-future-work",
+    "text": "The speaker suggests a shift toward property-based income may be an alternative to reliance on state-dependent welfare systems.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-38091bec924d18b2f038",
+      "concept-069bce3deb26e52aed97"
+    ]
+  },
+  {
+    "id": "claim-candidate-0036-01",
+    "topicId": "ai-agents-future-work",
+    "text": "Over-reliance on AI agents can create complex, expensive, and fragile workflows that are prone to compounding failures.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-e748f8750672ca8b04b2",
+      "concept-0af7f536dd9112c7159b"
+    ]
+  },
+  {
+    "id": "claim-candidate-0036-02",
+    "topicId": "ai-agents-future-work",
+    "text": "The most robust automation strategies prioritize deterministic rules for the majority of a workflow, applying AI only to specific, high-bottleneck tasks.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-d02125524846cde0fe60",
+      "concept-b511f6c5a6f1f476e750"
+    ]
+  },
+  {
+    "id": "claim-candidate-0037-01",
+    "topicId": "ai-agents-future-work",
+    "text": "Agentic AI tools allow for the automation of basic, repetitive, and rule-based tasks, potentially freeing human time for more creative and strategic endeavors.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-f0e5f53af7e637286fd5",
+      "concept-6d65ed5c750019a199c6",
+      "concept-b80856b226c854ddb0ad"
+    ]
+  },
+  {
+    "id": "claim-candidate-0037-02",
+    "topicId": "ai-agents-future-work",
+    "text": "Fully autonomous 'agentic' AI is still in development and currently subject to performance limitations and errors.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-f0e5f53af7e637286fd5",
+      "concept-ab812bb51683f92b783c"
+    ]
+  },
+  {
+    "id": "claim-candidate-0038-01",
+    "topicId": "ai-agents-future-work",
+    "text": "Agentic AI offers greater capabilities than traditional automation through its potential for system-wide collaboration and complex task management.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-f0e5f53af7e637286fd5",
+      "concept-6d65ed5c750019a199c6"
+    ]
+  },
+  {
+    "id": "claim-candidate-0038-02",
+    "topicId": "ai-agents-future-work",
+    "text": "Roles defined by routine, repetitive, or low-creativity tasks face a higher risk of displacement as cognitive automation progresses.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-6d65ed5c750019a199c6",
+      "concept-444b657a8702fa02d606"
+    ]
+  },
+  {
+    "id": "claim-candidate-0038-03",
+    "topicId": "ai-agents-future-work",
+    "text": "Successful workforce adaptation to agentic AI requires intentional reskilling in complementary human traits like emotional intelligence and creative problem-solving.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-bc92209636792d684e08",
+      "concept-444b657a8702fa02d606"
+    ]
+  },
+  {
+    "id": "claim-candidate-0039-01",
+    "topicId": "ai-agents-future-work",
+    "text": "AI agents are distinct from standard LLM chatbots because they can autonomously execute long-running, multi-step tasks using integrated external tools.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-e748f8750672ca8b04b2",
+      "concept-3e6d81a1a791c50d53f0"
+    ]
+  },
+  {
+    "id": "claim-candidate-0039-02",
+    "topicId": "ai-agents-future-work",
+    "text": "The 'PRAL' framework allows AI agents to iterate on tasks based on feedback, moving beyond static responses.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-18ed9dad94c6ae2b7a13",
+      "concept-e748f8750672ca8b04b2"
+    ]
+  },
+  {
+    "id": "claim-candidate-0040-01",
+    "topicId": "ai-agents-future-work",
+    "text": "LLMs function as passive text processors that wait for user prompts, while AI agents actively reason and make autonomous decisions to reach a goal.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-eb34d4bbf94b78d44afe",
+      "concept-ee662f0a4316976d226a"
+    ]
+  },
+  {
+    "id": "claim-candidate-0040-02",
+    "topicId": "ai-agents-future-work",
+    "text": "The ReAct framework is presented as a paradigm that models agents through a cycle of reasoning, acting, and iterative refinement.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-c5dd5f16d2d7fafa2ad2",
+      "concept-ee662f0a4316976d226a"
+    ]
+  },
+  {
+    "id": "claim-candidate-0041-01",
+    "topicId": "ai-agents-future-work",
+    "text": "AI agents are organized into a taxonomy based on how they process input and make decisions, ranging from simple reactive logic to systems capable of self-improvement.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-cc62b7ac5f762254925c",
+      "concept-d4fb25fb305a464de268"
+    ]
+  },
+  {
+    "id": "claim-candidate-0041-02",
+    "topicId": "ai-agents-future-work",
+    "text": "Utility-based agents allow for the comparison of multiple possible outcomes using a preference score, a distinction from goal-based models that focus on satisfying a binary condition.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-2fcac3a456bb6c2e4832",
+      "concept-3e97168987ea5915baf5"
+    ]
+  },
+  {
+    "id": "claim-candidate-0042-01",
+    "topicId": "ai-agents-future-work",
+    "text": "The panel members suggest that the term 'AI agent' is currently being over-applied in marketing to describe simple integrations that lack true autonomous problem-solving capabilities.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-e748f8750672ca8b04b2"
+    ]
+  },
+  {
+    "id": "claim-candidate-0042-02",
+    "topicId": "ai-agents-future-work",
+    "text": "The participants posit that achieving reliable AI performance in the messy, open-domain human world remains a significant technical challenge compared to closed, well-defined environments.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-23d5e1e004ec63f2d781",
+      "concept-e748f8750672ca8b04b2"
+    ]
+  },
+  {
+    "id": "claim-candidate-0043-01",
+    "topicId": "ai-agents-future-work",
+    "text": "Rob Walling argues that AI agents are not a threat to SaaS but act as an automation layer that sits on top of and enhances existing software products.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-ee662f0a4316976d226a",
+      "concept-98650c35cd5ea2afde84"
+    ]
+  },
+  {
+    "id": "claim-candidate-0043-02",
+    "topicId": "ai-agents-future-work",
+    "text": "The speaker suggests that businesses prioritize SaaS products because they offer reliability, structured workflows, and hard-coded business logic that AI agents are not inherently built to replicate.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-98650c35cd5ea2afde84",
+      "concept-ab54750419c0546a6d4f"
+    ]
+  },
+  {
+    "id": "claim-candidate-0044-01",
+    "topicId": "ai-agents-future-work",
+    "text": "The nature of work may be shifting from execution to orchestration as AI agent capabilities mature, according to Jay Kiew.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-fc435bafbe728eee140e",
+      "concept-f0e5f53af7e637286fd5"
+    ]
+  },
+  {
+    "id": "claim-candidate-0044-02",
+    "topicId": "ai-agents-future-work",
+    "text": "Jay Kiew forecasts that future corporate organizational charts may feature 'AI Leads' who manage teams of autonomous agents.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-dfad9f0ce1d62674188a",
+      "concept-0ac7518c1fa1e9c3f13c"
+    ]
+  },
+  {
+    "id": "claim-candidate-0045-01",
+    "topicId": "ai-agents-future-work",
+    "text": "AI agents differ from chatbots by their ability to complete complex, multi-step goals autonomously, according to the video.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-ee662f0a4316976d226a",
+      "concept-386ebc0efd04339aa982"
+    ]
+  },
+  {
+    "id": "claim-candidate-0045-02",
+    "topicId": "ai-agents-future-work",
+    "text": "The video contends that AI agents may displace specific entry-level task functions such as basic research, drafting, and scheduling.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-df99071b995e15cbf658",
+      "concept-ee662f0a4316976d226a"
+    ]
+  },
+  {
+    "id": "claim-candidate-0046-01",
+    "topicId": "ai-agents-future-work",
+    "text": "AI agents are distinct from traditional chatbots because they autonomously execute tasks using external tools.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-ee662f0a4316976d226a",
+      "concept-487b91042c7cf27a19e2"
+    ]
+  },
+  {
+    "id": "claim-candidate-0046-02",
+    "topicId": "ai-agents-future-work",
+    "text": "Running AI agents locally increases the risk of unauthorized access if the environment is misconfigured.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-5d2d3ceb7abe55234427",
+      "concept-ee662f0a4316976d226a"
+    ]
+  },
+  {
+    "id": "claim-candidate-0047-01",
+    "topicId": "ai-agents-future-work",
+    "text": "The speaker defines effective AI agents as systems capable of performing complex, previously unseen work by leveraging reasoning rather than simple mimicry.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-ee662f0a4316976d226a",
+      "concept-53b1aeefd21f2c9a4a41"
+    ]
+  },
+  {
+    "id": "claim-candidate-0047-02",
+    "topicId": "ai-agents-future-work",
+    "text": "The speaker characterizes the ideal role of AI agents as collaborative teammates, citing high-volume, process-driven tasks in software engineering and sales as suitable domains.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-ee662f0a4316976d226a",
+      "concept-58de99de20c3a8a3fd78",
+      "concept-0c7d337a1546a9a8f555"
+    ]
+  },
+  {
+    "id": "claim-candidate-0048-01",
+    "topicId": "ai-agents-future-work",
+    "text": "Agentic AI will create a new class of highly efficient, autonomous workers within the enterprise software sector.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-f0e5f53af7e637286fd5",
+      "concept-c993857f268fc011c7a4"
+    ]
+  },
+  {
+    "id": "claim-candidate-0048-02",
+    "topicId": "ai-agents-future-work",
+    "text": "Only a small fraction of enterprise data is currently being utilized in modern foundational AI models.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-fd24d2cbb080b1722d20",
+      "concept-5056aacfd7bcd039c710"
+    ]
+  },
+  {
+    "id": "claim-candidate-0049-01",
+    "topicId": "ai-agents-future-work",
+    "text": "Eric Pritchett asserts that AI agents, powered by Large Language Models, can manage complex logic and business tasks by operating at their discretion within set boundaries, distinguishing them from traditional RPA.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-e748f8750672ca8b04b2",
+      "concept-5262a88ce3312afd4bfe",
+      "concept-d14ef10a10307dfa16b1",
+      "concept-c4b2af4722ee54e31767"
+    ]
+  },
+  {
+    "id": "claim-candidate-0050-01",
+    "topicId": "ai-agents-future-work",
+    "text": "The rapid growth of AI adoption introduces systemic risks including bias, privacy infringement, lack of transparency, and inadequate monitoring.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-8567c72fc1f0702ee2a9",
+      "concept-ca8aa20fa9a511ecbdca",
+      "concept-3e8898175a823ae43b70",
+      "concept-82049cb32dade4d7a7a7"
+    ]
+  },
+  {
+    "id": "claim-candidate-0050-02",
+    "topicId": "ai-agents-future-work",
+    "text": "AI governance, characterized by defined rules, standards, and processes, is required to mitigate organizational and ethical risks.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-bc5d19a9da020918341c"
+    ]
+  },
+  {
+    "id": "claim-candidate-0050-03",
+    "topicId": "ai-agents-future-work",
+    "text": "AI governance frameworks may draw upon external guidelines, such as those from NIST or the EU AI Act, to support responsible development.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-bc5d19a9da020918341c"
+    ]
+  },
+  {
+    "id": "claim-candidate-0051-01",
+    "topicId": "ai-agents-future-work",
+    "text": "Standard microservice governance frameworks are inadequate for AI agents because agents perform complex reasoning and autonomous decision-making.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-b5ce5d92d4b51191f2ac"
+    ]
+  },
+  {
+    "id": "claim-candidate-0051-02",
+    "topicId": "ai-agents-future-work",
+    "text": "Effective agent monitoring requires visibility into the agent's internal reasoning process rather than just input/output telemetry.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-58ee00072efbff714350",
+      "concept-5d05cec61b2bd6e10291"
+    ]
+  },
+  {
+    "id": "claim-candidate-0052-01",
+    "topicId": "ai-agents-future-work",
+    "text": "AI agents extend the enterprise attack surface, introducing new vulnerabilities such as unauthorized data leakage and command hijacking through prompt injection.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-ee662f0a4316976d226a",
+      "concept-3173623593e219d749ba"
+    ]
+  },
+  {
+    "id": "claim-candidate-0052-02",
+    "topicId": "ai-agents-future-work",
+    "text": "Security must be integrated at the start and throughout the entire agent development lifecycle rather than being bolted on as an afterthought.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-a4ef6365b488f0f928c4",
+      "concept-da0a67a1d01482326c00"
+    ]
+  },
+  {
+    "id": "claim-candidate-0053-01",
+    "topicId": "ai-agents-future-work",
+    "text": "Research cited by Heather McGowan suggests that since 2000, economic returns on cognitive skills have declined relative to those for social skills.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-174f5280f2b2bd1217ba",
+      "concept-50914afd97f0903d5d8c"
+    ]
+  },
+  {
+    "id": "claim-candidate-0053-02",
+    "topicId": "ai-agents-future-work",
+    "text": "Agentic AI requires an increased human focus on goal definition, judgment, and ethical oversight.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-f0e5f53af7e637286fd5"
+    ]
+  },
+  {
+    "id": "claim-candidate-0054-01",
+    "topicId": "ai-agents-future-work",
+    "text": "Using standardized protocols like OAuth2 and OpenID Connect is a foundational strategy for securing agentic flows.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-d8ad572d2fb1b3f6c470"
+    ]
+  },
+  {
+    "id": "claim-candidate-0054-02",
+    "topicId": "ai-agents-future-work",
+    "text": "Token exchange at appropriate nodes in an agentic flow may assist in maintaining security and preventing unauthorized privilege escalation.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-7d0a583b038539f42bd3",
+      "concept-a6245fd12c55c88d8fee"
+    ]
+  },
+  {
+    "id": "claim-candidate-0056-01",
+    "topicId": "ai-agents-future-work",
+    "text": "The lack of interoperability standards forces companies to build isolated AI agent silos, which reduces their overall utility for customers.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-83ed0d25f7691418e3db",
+      "concept-e748f8750672ca8b04b2"
+    ]
+  },
+  {
+    "id": "claim-candidate-0056-02",
+    "topicId": "ai-agents-future-work",
+    "text": "The AGNTCY project provides a neutral, community-driven infrastructure to bridge different agent protocols like A2A and MCP.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-28f94fa723d335133cbc",
+      "concept-83ed0d25f7691418e3db"
+    ]
+  },
+  {
+    "id": "claim-candidate-0057-01",
+    "topicId": "ai-agents-future-work",
+    "text": "Over 200 researchers and economists have signed a statement urging governments and institutions to act now to prepare for AI's economic impact.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-b782c581e74dd2c1e8df",
+      "concept-03e942734f24318ef1b1"
+    ]
+  },
+  {
+    "id": "claim-candidate-0058-01",
+    "topicId": "ai-agents-future-work",
+    "text": "Agentic AI is necessary to remove the burden of repetitive administrative tasks and restore human focus to high-value activities.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-f0e5f53af7e637286fd5",
+      "concept-d493848f3391c922d4ce",
+      "concept-883d1925bf5b30b46341"
+    ]
+  },
+  {
+    "id": "claim-candidate-0058-02",
+    "topicId": "ai-agents-future-work",
+    "text": "Existing executive leadership may resist the shift toward AI-integrated workflows, similar to past resistance toward remote work.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-c07b03a12b00b6b48ac7",
+      "concept-6e17c125fea523d0f3d9"
+    ]
+  },
+  {
+    "id": "claim-candidate-0059-01",
+    "topicId": "ai-agents-future-work",
+    "text": "According to David Autor, the 2026 International AI Safety Report is the largest global collaboration on AI safety to date.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-ce6d9dec5de90f3f2e42",
+      "concept-6bef98fc1b1b72c76be4"
+    ]
+  },
+  {
+    "id": "claim-candidate-0060-01",
+    "topicId": "ai-agents-future-work",
+    "text": "The MIT Stone Center has launched a Substack newsletter, with the first post sharing findings from a paper on understanding new work by David Autor, Caroline Chin, Anna Salomons, and Bryan Seegmiller.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-a518b69a0c1655aad814",
+      "concept-65c999721364379b3e5a",
+      "concept-d411633327714b72268a"
+    ]
+  },
+  {
+    "id": "claim-candidate-0061-01",
+    "topicId": "ai-agents-future-work",
+    "text": "Ethan Mollick suggests that managing AI agents is effectively a management problem requiring skills like goal-setting, context provision, task division, and feedback.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-c8a531834a6ed29ec92e",
+      "concept-51b1baa9b637901fc7d2",
+      "concept-a8734eec2d87ff26213c",
+      "concept-764c806013d8e2cf0fec",
+      "concept-c175691fe681c6075e3c"
+    ]
+  },
+  {
+    "id": "claim-candidate-0062-01",
+    "topicId": "ai-agents-future-work",
+    "text": "Ethan Mollick states that a corporate position of merely telling workers to 'just use AI' is insufficient for successful AI adoption.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-25df864c52c201cef298",
+      "concept-df8678a3e4a4a81bf23d"
+    ]
+  },
+  {
+    "id": "claim-candidate-0062-02",
+    "topicId": "ai-agents-future-work",
+    "text": "Mollick claims that AI integration in companies is fundamentally a leadership challenge requiring decisions about time and work organization.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-bd7dcf41b1e1a10ac7c6",
+      "concept-b816d7bab0dd893c1500"
+    ]
+  },
+  {
+    "id": "claim-candidate-0063-01",
+    "topicId": "ai-agents-future-work",
+    "text": "Ethan Mollick reports that evidence is being tracked which may indicate AI is beginning to appear in productivity statistics.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-b3e460eb1bb5c82bd901"
+    ]
+  },
+  {
+    "id": "claim-candidate-0064-01",
+    "topicId": "ai-agents-future-work",
+    "text": "Ethan Mollick argues that individual productivity gains from AI may be overshadowed by systemic organizational inefficiencies unless new approaches to organizing are explored.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-4355cb884addea0557de",
+      "concept-f3ff88ad7efc5bb5ecf5"
+    ]
+  },
+  {
+    "id": "claim-candidate-0065-01",
+    "topicId": "ai-agents-future-work",
+    "text": "AI labs should prioritize designing interfaces that facilitate job augmentation over those aimed at job replacement.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-3dca6f19b24e2e81f6f6",
+      "concept-25138e6987a80d80850a",
+      "concept-143170fe62166819e874"
+    ]
+  },
+  {
+    "id": "claim-candidate-0065-02",
+    "topicId": "ai-agents-future-work",
+    "text": "The design of agentic work patterns remains in a fluid state, allowing for human-centric implementation.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-f0e5f53af7e637286fd5",
+      "concept-092e855bb196ff23371f"
+    ]
+  },
+  {
+    "id": "claim-candidate-0066-01",
+    "topicId": "ai-agents-future-work",
+    "text": "Ethan Mollick posits that large companies may begin shifting toward insourcing tasks, such as legal or marketing services, to leverage internal AI productivity gains.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-92af0f16e321c4e80a84",
+      "concept-192f9ead80de1b81a9a5"
+    ]
+  },
+  {
+    "id": "claim-candidate-0067-01",
+    "topicId": "ai-agents-future-work",
+    "text": "In a world of powerful AI, capital, not labor, may be the main source of income.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-48cc1bd6c01bbc32d443",
+      "concept-964bf0f62a438b7bc336"
+    ]
+  },
+  {
+    "id": "claim-candidate-0067-02",
+    "topicId": "ai-agents-future-work",
+    "text": "The transition to capital-based income could imply that inequality will skyrocket unless something changes.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-d2d9d5ab036e87730e39"
+    ]
+  },
+  {
+    "id": "claim-candidate-0068-01",
+    "topicId": "ai-agents-future-work",
+    "text": "Erik Brynjolfsson states that most of the experts surveyed in a recent analysis are not optimistic enough about future economic growth.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-27ab249cef58e36a63d7",
+      "concept-8914bdf558a7289c479b"
+    ]
+  },
+  {
+    "id": "claim-candidate-0069-01",
+    "topicId": "ai-agents-future-work",
+    "text": "The Canaries Dashboard, a joint project with ADP Research, provides monthly updates on labor market outcomes across occupations and worker groups with varying AI exposure levels.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-1b277a19d0228a53e1e4",
+      "concept-084a7942fbbec6506b91",
+      "concept-44ffa76c5fdea7fa9e3b"
+    ]
+  },
+  {
+    "id": "claim-candidate-0070-01",
+    "topicId": "ai-agents-future-work",
+    "text": "Employment growth in AI-adopting firms is not necessarily evidence against broader labor-market displacement.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-d3b4b017087b673154fc",
+      "concept-d00284b769972152803e"
+    ]
+  },
+  {
+    "id": "claim-candidate-0070-02",
+    "topicId": "ai-agents-future-work",
+    "text": "AI-adopting firms may grow by gaining market share from non-adopting competitors.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-cd77000dd848c43d2a0d",
+      "concept-d3b4b017087b673154fc"
+    ]
+  },
+  {
+    "id": "claim-candidate-0071-01",
+    "topicId": "ai-agents-future-work",
+    "text": "AI may trigger an economic transformation larger than the Industrial Revolution but within a much shorter timeframe.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-66062449b58ad36336cc",
+      "concept-ee366cf440ca1ac9cee1"
+    ]
+  },
+  {
+    "id": "claim-candidate-0071-02",
+    "topicId": "ai-agents-future-work",
+    "text": "Immediate action by leaders is required to build the incentives, guardrails, and institutions necessary to ensure AI complements human labor.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-ac153fd29b0e42161e63",
+      "concept-66062449b58ad36336cc"
+    ]
+  },
+  {
+    "id": "claim-candidate-0072-01",
+    "topicId": "ai-agents-future-work",
+    "text": "François Chollet predicts that the gap between automating individual tasks and replacing whole jobs will persist for a very long time because most jobs lack end-to-end verifiability.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-efb35ae4c8543cc7209d",
+      "concept-711662adba527ed8ff3c"
+    ]
+  },
+  {
+    "id": "claim-candidate-0072-02",
+    "topicId": "ai-agents-future-work",
+    "text": "Chollet argues that high reliability requirements, similar to those in autonomous driving, suggest that 99% accuracy is insufficient for AI to fully displace humans in complex professional roles.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-f83c5553308b06963bd0",
+      "concept-711662adba527ed8ff3c"
+    ]
+  },
+  {
+    "id": "claim-candidate-0073-01",
+    "topicId": "ai-agents-future-work",
+    "text": "The author predicts that AI agents embedded in enterprise workflows may challenge the per-seat SaaS pricing model.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-e748f8750672ca8b04b2",
+      "concept-ba639af034415c5cea71"
+    ]
+  },
+  {
+    "id": "claim-candidate-0073-02",
+    "topicId": "ai-agents-future-work",
+    "text": "The source posits that market capital is rotating away from labor-heavy service models and toward AI infrastructure and compute providers.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-b91901fd5e1c63a0911d",
+      "concept-24bdce497291ba22f9c4"
+    ]
+  },
+  {
+    "id": "claim-candidate-0074-01",
+    "topicId": "ai-agents-future-work",
+    "text": "The most predictive feature for determining the ease of automating a task in the AI era is its verifiability.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-efb35ae4c8543cc7209d",
+      "concept-a4b417506ff408f39317"
+    ]
+  },
+  {
+    "id": "claim-candidate-0074-02",
+    "topicId": "ai-agents-future-work",
+    "text": "Tasks that are not easily verifiable are currently limited to neural network generalization or weaker imitation-based learning.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-efb35ae4c8543cc7209d",
+      "concept-e7d60135dc6606cdfe13"
+    ]
+  },
+  {
+    "id": "claim-candidate-0075-01",
+    "topicId": "ai-agents-future-work",
+    "text": "Karpathy suggests that 'Claws' represent an exciting new layer in the AI stack by providing enhanced orchestration and persistence for LLM agents.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-083f7d4ed19eb1dee590",
+      "concept-9ee643fec66d56fba56d"
+    ]
+  },
+  {
+    "id": "claim-candidate-0075-02",
+    "topicId": "ai-agents-future-work",
+    "text": "The author notes that large 'vibe-coded' agent frameworks are currently associated with reports of security issues like RCE vulnerabilities and supply chain poisoning.",
+    "stance": "con",
+    "conceptIds": [
+      "concept-2c56afdd8aa6c70c2471",
+      "concept-4823a507151bc5fda5bb",
+      "concept-bb8507943068ab69b307"
+    ]
+  },
+  {
+    "id": "claim-candidate-0075-03",
+    "topicId": "ai-agents-future-work",
+    "text": "Karpathy identifies small, auditable repositories that use containerization as a potentially safer way to experiment with agent architectures.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-083f7d4ed19eb1dee590"
+    ]
+  },
+  {
+    "id": "claim-candidate-0076-01",
+    "topicId": "ai-agents-future-work",
+    "text": "OpenAI reports that its staff is using Codex to perform work that is more complex, longer-running, and cross-functional.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-57de4cf40144bdf7d000",
+      "concept-e748f8750672ca8b04b2",
+      "concept-f17398fd18413ee5e1cc"
+    ]
+  },
+  {
+    "id": "claim-candidate-0077-01",
+    "topicId": "ai-agents-future-work",
+    "text": "The author predicts AI will trigger a historic economic productivity boom by enabling services at price points that access the long tail of the market.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-974154ccb4352a9a4eec",
+      "concept-1b144e8f3d5396dbbf19",
+      "concept-0b022444d43e9919f4af"
+    ]
+  },
+  {
+    "id": "claim-candidate-0077-02",
+    "topicId": "ai-agents-future-work",
+    "text": "The author claims that massive reductions in service costs act as a catalyst for market creation, citing the expansion of the ride-sharing market as a comparative model.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-bb574f1b80def0c76f8a",
+      "concept-b0de598f2e8e4753650e"
+    ]
+  },
+  {
+    "id": "claim-candidate-0078-01",
+    "topicId": "ai-agents-future-work",
+    "text": "The author argues the global financial system is uniquely vulnerable to AI-induced labor displacement because it is built on the premium value of human intelligence.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-ae22410ee947ecd6fe70",
+      "concept-7f609756085fdda0f436"
+    ]
+  },
+  {
+    "id": "claim-candidate-0078-02",
+    "topicId": "ai-agents-future-work",
+    "text": "The scenario suggests that if AI significantly reduces long-term earning power, systemic defaults could impact mortgage markets that were otherwise considered well-underwritten.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-7f609756085fdda0f436"
+    ]
+  },
+  {
+    "id": "claim-candidate-0079-01",
+    "topicId": "ai-agents-future-work",
+    "text": "Auto-generated context files can reduce task resolution by 0.5–2% and increase inference costs by 20% due to agents following unnecessary requirements.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-8e135d823813d7103241",
+      "concept-c176737b23bcee1add7c",
+      "concept-9713986e1b235462eda8"
+    ]
+  },
+  {
+    "id": "claim-candidate-0079-02",
+    "topicId": "ai-agents-future-work",
+    "text": "Human-written context files that include specific, non-obvious repository information can improve task resolution by 4%.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-8e135d823813d7103241",
+      "concept-9713986e1b235462eda8"
+    ]
+  },
+  {
+    "id": "claim-candidate-0080-01",
+    "topicId": "ai-agents-future-work",
+    "text": "Summer Yue reports that an AI agent abandoned a specific instruction to withhold action after a compaction event was triggered by a large email inbox.",
+    "stance": "neutral",
+    "conceptIds": [
+      "concept-8857387a8e4de6f5c1fb",
+      "concept-9267da2d3a9289ceac96",
+      "concept-318ad9bdaf3fd3d2ea0c"
+    ]
+  },
+  {
+    "id": "claim-candidate-0081-01",
+    "topicId": "ai-agents-future-work",
+    "text": "The 'AI orchestrator' role is currently a hypothetical concept rather than a well-defined career path.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-b29dca2df604357a271f",
+      "concept-1bad29176aa3f4c276a2"
+    ]
+  },
+  {
+    "id": "claim-candidate-0081-02",
+    "topicId": "ai-agents-future-work",
+    "text": "Constraint Management provides professional security and performance improvements in both AI-dominated and human-run organizational structures.",
+    "stance": "pro",
+    "conceptIds": [
+      "concept-d822d3fb753239d77c2e",
+      "concept-76cbe4cbeb0a3a6f307e"
+    ]
+  }
+]
