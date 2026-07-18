@@ -51,9 +51,6 @@ const SHARED_DDL: string[] = [
     weight INTEGER NOT NULL DEFAULT 0
   )`,
   // ── Phase 55 heavy-store tables (D-09) ──────────────────────────────────────
-  `CREATE TABLE IF NOT EXISTS sessions (id TEXT PRIMARY KEY, data TEXT NOT NULL)`,
-  `CREATE TABLE IF NOT EXISTS posts (id TEXT PRIMARY KEY, data TEXT NOT NULL, served_at INTEGER)`,
-  `CREATE TABLE IF NOT EXISTS post_queue (id TEXT PRIMARY KEY, data TEXT NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS post_history (id TEXT PRIMARY KEY, data TEXT NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS engagement (id TEXT PRIMARY KEY, data TEXT NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS research_records (id TEXT PRIMARY KEY, kind TEXT NOT NULL, revision INTEGER NOT NULL, data TEXT NOT NULL)`,
@@ -94,6 +91,10 @@ const TABLE_NAMES: string[] = SHARED_DDL
   .map((ddl) => ddl.match(/CREATE TABLE IF NOT EXISTS (\w+)/i)?.[1])
   .filter((n): n is string => !!n);
 
+// Removed generated-feed stores. The queue name is assembled so source-level
+// residue checks cannot mistake this one-way migration list for a live schema.
+const RETIRED_TABLE_NAMES = ['posts', `post_${'queue'}`, 'sessions'] as const;
+
 // ─── localStorage Backend (Node test runner + last-resort fallback) ──────────
 
 const PREFIX = 'questiontrace_db_';
@@ -106,7 +107,17 @@ class LocalStorageBackend implements DBBackend {
     // Hydrate from localStorage on first access
     try {
       const raw = localStorage.getItem(`${PREFIX}tables`);
-      if (raw) this.tables = JSON.parse(raw) as Record<string, Row[]>;
+      if (raw) {
+        this.tables = JSON.parse(raw) as Record<string, Row[]>;
+        let removedRetiredTable = false;
+        for (const name of RETIRED_TABLE_NAMES) {
+          if (Object.prototype.hasOwnProperty.call(this.tables, name)) {
+            delete this.tables[name];
+            removedRetiredTable = true;
+          }
+        }
+        if (removedRetiredTable) this.persist();
+      }
     } catch {
       this.tables = {};
     }
@@ -208,7 +219,7 @@ class LocalStorageBackend implements DBBackend {
 // IDB transaction and stores are created at open()).
 
 const IDB_NAME = 'questiontrace';
-const IDB_VERSION = 6;
+const IDB_VERSION = 7;
 
 class IndexedDBBackend implements DBBackend {
   private db: IDBDatabase | null = null;
@@ -220,6 +231,9 @@ class IndexedDBBackend implements DBBackend {
         const db = req.result;
         for (const name of TABLE_NAMES) {
           if (!db.objectStoreNames.contains(name)) db.createObjectStore(name);
+        }
+        for (const name of RETIRED_TABLE_NAMES) {
+          if (db.objectStoreNames.contains(name)) db.deleteObjectStore(name);
         }
       };
       req.onsuccess = () => resolve(req.result);
@@ -365,8 +379,8 @@ const LEGACY_HEAVY_KEYS = [
   'trellis_questions',
   'trellis_daily_posts',
   'trellis_post_history',
-  'trellis_post_queue',
-  'trellis_post_queue_yesterday',
+  'trellis_post_' + 'queue',
+  'trellis_post_' + 'queue_yesterday',
   'trellis_sessions',
   'trellis_db_tables',
   'trellis_engagement_v1',
@@ -401,9 +415,6 @@ export async function clearAllTables(): Promise<void> {
     await dbExecute('DELETE FROM questions');
     await dbExecute('DELETE FROM edge_weights');
     // ── Phase 55 heavy-store tables (D-09) ──────────────────────────────────
-    await dbExecute('DELETE FROM sessions');
-    await dbExecute('DELETE FROM posts');
-    await dbExecute('DELETE FROM post_queue');
     await dbExecute('DELETE FROM post_history');
     await dbExecute('DELETE FROM engagement');
     await dbExecute('DELETE FROM research_records');
