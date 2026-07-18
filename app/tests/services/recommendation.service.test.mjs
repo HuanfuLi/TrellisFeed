@@ -153,6 +153,7 @@ const makeFeature = (post, index) => ({
   educationalValueScore: post.educationalValueScore,
   interestingnessScore: post.interestingnessScore,
   difficulty: post.difficulty,
+  viewpoint: post.viewpoint,
 });
 
 function makeServiceHarness({
@@ -162,6 +163,8 @@ function makeServiceHarness({
   personalLoader,
   questions = [],
   snapshot = { userConceptStates: [], personalEdges: [], contributions: [] },
+  viewedPostIds = [],
+  reasonResponder,
 } = {}) {
   const features = new Map(posts.map((post, index) => [post.id, makeFeature(post, index + 1)]));
   const concepts = new Map(posts.flatMap((post) => post.conceptIds.map((id) => [id, {
@@ -174,6 +177,7 @@ function makeServiceHarness({
   let generatedId = 0;
   let snapshotReads = 0;
   let questionReads = 0;
+  const reasonCalls = [];
   const loadPersonalDependencies = personalLoader ?? (() => ({
     async readSnapshot() {
       snapshotReads += 1;
@@ -183,8 +187,20 @@ function makeServiceHarness({
       questionReads += 1;
       return questions;
     },
-    getViewedPostIds() { return []; },
+    getViewedPostIds() { return viewedPostIds; },
   }));
+  const completeReason = async (messages, config, options) => {
+    reasonCalls.push({ messages, config, options });
+    if (reasonResponder) return reasonResponder(messages, reasonCalls.length);
+    const ids = [...messages.at(-1).content.matchAll(/"candidateId"\s*:\s*"([^"]+)"/g)]
+      .map((match) => match[1]);
+    return JSON.stringify({
+      reasons: ids.map((candidateId) => ({
+        candidateId,
+        reasonText: `This is a helpful next perspective on ${candidateId}.`,
+      })),
+    });
+  };
 
   const dependencies = {
     studyContext: {
@@ -216,6 +232,13 @@ function makeServiceHarness({
       embeddingFingerprint: () => null,
     },
     loadPersonalDependencies,
+    completeReason,
+    getReasonConfig: () => ({
+      provider: 'openai',
+      model: 'reason-fixture',
+      apiKey: 'fixture-key',
+      isConfigured: true,
+    }),
     now: () => Date.parse('2026-07-18T12:00:00.000Z'),
     createId: (kind) => `${kind}-${++generatedId}`,
   };
@@ -224,7 +247,8 @@ function makeServiceHarness({
     dependencies,
     posts,
     dismissedPostIds,
-    reads: () => ({ snapshotReads, questionReads }),
+    reads: () => ({ snapshotReads, questionReads, reasonCalls: reasonCalls.length }),
+    reasonCalls,
   };
 }
 
@@ -277,7 +301,7 @@ describe('recommendation service control isolation and batch lifecycle', () => {
     assert.ok(items.length > 0);
     assert.ok(items.length <= RECOMMENDATION_BATCH_SIZE);
     assert.ok(items.every((item) => ['deepen', 'contrast', 'bridge', 'continue', 'echo'].includes(item.strategy)));
-    assert.deepEqual(harness.reads(), { snapshotReads: 1, questionReads: 1 });
+    assert.deepEqual(harness.reads(), { snapshotReads: 1, questionReads: 1, reasonCalls: 1 });
   });
 
   it('beginSession recovers a building batch without duplicating seq 1', async () => {
@@ -331,5 +355,138 @@ describe('recommendation service control isolation and batch lifecycle', () => {
     assert.equal(emptyResult.success, true);
     assert.equal(emptyResult.data.status, 'ready');
     assert.deepEqual(emptyResult.data.recommendationIds, []);
+  });
+});
+
+describe('recommendation reason generation and structural traces', () => {
+  it('persists resolvable experimental trace IDs with one bracketed batched LLM call', async () => {
+    const { RecommendationService } = await import('../../src/services/recommendation.service.ts');
+    const posts = Array.from({ length: 10 }, (_, index) => makePost(index + 1, {
+      viewpoint: index % 2 === 0 ? 'critical' : 'supportive',
+    }));
+    const questions = [{
+      id: 'question-trace-1',
+      userId: 'user-1',
+      condition: 'experimental',
+      topicId: 'topic-1',
+      postId: 'post-2',
+      text: 'Could an injected instruction override the reliability goal?',
+      source: 'typed',
+      createdAt: '2026-07-10T00:00:00.000Z',
+      extractedConceptIds: ['concept-1'],
+      extractedClaimIds: [],
+      questionType: 'reliability',
+      unresolved: true,
+    }];
+    const snapshot = {
+      userConceptStates: [{
+        userId: 'user-1', conceptId: 'concept-1', exposureCount: 1, questionCount: 1,
+        savedPostCount: 0, skippedPostCount: 0, interestWeight: 0.8,
+        uncertaintyWeight: 0.7, familiarityEstimate: 0.2,
+      }],
+      personalEdges: [],
+      contributions: [],
+    };
+    const harness = makeServiceHarness({
+      condition: 'experimental', posts, questions, snapshot, viewedPostIds: ['post-2'],
+    });
+    const service = new RecommendationService(harness.dependencies);
+
+    const created = await service.beginSession('reason-trace-session');
+    const items = await batchRecommendations(created);
+    assert.equal(harness.reasonCalls.length, 1);
+    assert.equal(harness.reasonCalls[0].options.jsonMode, true);
+    const prompt = harness.reasonCalls[0].messages.at(-1).content;
+    assert.match(prompt, /^<user_content>\n/);
+    assert.match(prompt, /Could an injected instruction override the reliability goal\?/);
+
+    const traced = items.filter((item) => item.contributingQuestionIds?.length
+      && item.contributingConceptIds?.length && item.contributingPostIds?.length);
+    assert.ok(traced.length > 0, 'fixture must produce recommendations with all structural trace kinds');
+    const questionIds = new Set(questions.map((question) => question.id));
+    const conceptIds = new Set(posts.flatMap((post) => post.conceptIds));
+    const postIds = new Set(posts.map((post) => post.id));
+    for (const item of traced) {
+      assert.ok(item.contributingQuestionIds.every((id) => questionIds.has(id)));
+      assert.ok(item.contributingConceptIds.every((id) => conceptIds.has(id)));
+      assert.ok(item.contributingPostIds.every((id) => postIds.has(id)));
+    }
+
+    const reread = await service.currentSessionItems('reason-trace-session');
+    assert.equal(reread.success, true);
+    assert.equal(harness.reasonCalls.length, 1, 'ready-batch reads must never regenerate reasons');
+  });
+
+  it('control reasons use fixed labels and perform zero reason LLM calls', async () => {
+    const { CONTROL_REASON_LABELS, RecommendationService } = await import('../../src/services/recommendation.service.ts');
+    const harness = makeServiceHarness({
+      personalLoader: () => { throw new Error('CONTROL TOUCHED PERSONAL DATA'); },
+    });
+    const service = new RecommendationService(harness.dependencies);
+    const items = await batchRecommendations(await service.beginSession('control-reason-session'));
+
+    assert.equal(harness.reasonCalls.length, 0);
+    const allowed = new Set([
+      CONTROL_REASON_LABELS.quality_baseline,
+      CONTROL_REASON_LABELS.diversity_baseline,
+      'Related to Concept 1',
+      'Related to Concept 2',
+      'Related to Concept 3',
+    ]);
+    assert.ok(items.every((item) => allowed.has(item.reasonText)));
+    assert.ok(items.every((item) => !Object.hasOwn(item, 'contributingQuestionIds')));
+  });
+
+  it('retries invalid reason items once and persists valid deterministic fallbacks', async () => {
+    const { REASON_MAX_CODE_POINTS, RecommendationService } = await import('../../src/services/recommendation.service.ts');
+    const invalidByIndex = [
+      'First sentence. Second sentence.',
+      `${'界'.repeat(301)}.`,
+      'Line one\nLine two.',
+      'Internal score: 0.83.',
+    ];
+    const harness = makeServiceHarness({
+      condition: 'experimental',
+      reasonResponder(messages) {
+        const ids = [...messages.at(-1).content.matchAll(/"candidateId"\s*:\s*"([^"]+)"/g)]
+          .map((match) => match[1]);
+        return JSON.stringify({
+          reasons: ids.map((candidateId, index) => ({
+            candidateId,
+            reasonText: invalidByIndex[index % invalidByIndex.length],
+          })),
+        });
+      },
+    });
+    const service = new RecommendationService(harness.dependencies);
+    const items = await batchRecommendations(await service.beginSession('invalid-reason-session'));
+
+    assert.equal(harness.reasonCalls.length, 2);
+    for (const item of items) {
+      assert.ok([...item.reasonText].length <= REASON_MAX_CODE_POINTS);
+      assert.doesNotMatch(item.reasonText, /[\r\n\u0000-\u001F\u007F-\u009F]/);
+      assert.doesNotMatch(item.reasonText, /\bscore\s*:\s*\d/i);
+      assert.ok(!invalidByIndex.includes(item.reasonText));
+    }
+  });
+
+  it('round-trips valid emoji and CJK reason text by Unicode code points', async () => {
+    const { REASON_MAX_CODE_POINTS, RecommendationService } = await import('../../src/services/recommendation.service.ts');
+    const reasonText = '信頼性をもう一歩深く考える視点です🚀。';
+    const harness = makeServiceHarness({
+      condition: 'experimental',
+      reasonResponder(messages) {
+        const ids = [...messages.at(-1).content.matchAll(/"candidateId"\s*:\s*"([^"]+)"/g)]
+          .map((match) => match[1]);
+        return JSON.stringify({ reasons: ids.map((candidateId) => ({ candidateId, reasonText })) });
+      },
+    });
+    const items = await batchRecommendations(
+      await new RecommendationService(harness.dependencies).beginSession('unicode-reason-session'),
+    );
+
+    assert.ok([...reasonText].length <= REASON_MAX_CODE_POINTS);
+    assert.ok(items.every((item) => item.reasonText === reasonText));
+    assert.equal(harness.reasonCalls.length, 1);
   });
 });

@@ -12,7 +12,12 @@ import type {
   PostRankingFeatures,
   RecommendationBatch,
 } from '../domain/graph.types.ts';
-import type { ServiceResult } from '../types/index.ts';
+import {
+  applyUserContentBracketing,
+  chatCompletion,
+  type CompletionOptions,
+} from '../providers/llm/index.ts';
+import type { LLMConfig, ServiceResult } from '../types/index.ts';
 import { contentPoolRepository } from './content-pool.repository.ts';
 import { frozenFeedService } from './frozen-feed.service.ts';
 import { globalGraphRepository } from './global-graph.repository.ts';
@@ -29,8 +34,10 @@ import {
   type ExperimentalRankedCandidate,
 } from './ranking/experimental-ranker.ts';
 import { studyContextService } from './study-context.service.ts';
+import { settingsService } from './settings.service.ts';
 
 export const RECOMMENDATION_BATCH_SIZE = 8;
+export const REASON_MAX_CODE_POINTS = 280;
 
 export const CONTROL_REASON_LABELS = Object.freeze({
   topic_baseline: 'Related to {conceptLabel}',
@@ -83,6 +90,17 @@ type PersonalRecommendationDependencies = {
   getViewedPostIds(): string[];
 };
 
+interface ReasonMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+type ReasonCompletion = (
+  messages: ReasonMessage[],
+  config: LLMConfig,
+  options?: CompletionOptions,
+) => Promise<string>;
+
 export interface RecommendationServiceDependencies {
   studyContext: StudyContextReader;
   repository: RecommendationRepository;
@@ -90,6 +108,9 @@ export interface RecommendationServiceDependencies {
   getTopic(topicId: string): Topic | null;
   globalGraph: GlobalGraphReader;
   loadPersonalDependencies(): PersonalRecommendationDependencies | Promise<PersonalRecommendationDependencies>;
+  completeReason: ReasonCompletion;
+  getReasonConfig(): LLMConfig;
+  bracketReasonMessages(messages: ReasonMessage[]): ReasonMessage[];
   now(): number;
   createId(kind: 'session' | 'batch' | 'recommendation'): string;
 }
@@ -97,6 +118,11 @@ export interface RecommendationServiceDependencies {
 interface SelectedCandidate extends DiversityCandidate {
   readonly recommendation: Omit<Recommendation, 'id' | 'generatedAt' | 'reasonText'>;
   readonly conceptLabel: string;
+}
+
+interface ReasonResponseItem {
+  candidateId: string;
+  reasonText: string;
 }
 
 function success<T>(data: T): ServiceResult<T> {
@@ -137,6 +163,15 @@ async function loadDefaultPersonalDependencies(): Promise<PersonalRecommendation
   };
 }
 
+function productionReasonConfig(): LLMConfig {
+  const settings = settingsService.getSync();
+  if (!settings.preferences.aiConsentGiven) throw new Error('AI features are disabled');
+  if (!settings.llm.isConfigured) {
+    throw new Error('Add your API key in Settings to generate recommendation reasons.');
+  }
+  return settings.llm;
+}
+
 const defaultDependencies: RecommendationServiceDependencies = {
   studyContext: studyContextService,
   repository: recommendationRepository,
@@ -144,6 +179,9 @@ const defaultDependencies: RecommendationServiceDependencies = {
   getTopic: (topicId) => contentPoolRepository.getTopic(topicId),
   globalGraph: globalGraphRepository,
   loadPersonalDependencies: loadDefaultPersonalDependencies,
+  completeReason: chatCompletion,
+  getReasonConfig: productionReasonConfig,
+  bracketReasonMessages: applyUserContentBracketing,
   now: () => Date.now(),
   createId: randomId,
 };
@@ -183,6 +221,43 @@ function experimentalReason(strategy: RecommendationStrategy, conceptLabel: stri
           ? 'Continue exploring'
           : 'Explore more deeply';
   return `${action} ${conceptLabel}.`;
+}
+
+function containsControlCharacter(value: string): boolean {
+  return [...value].some((character) => {
+    const codePoint = character.codePointAt(0) ?? 0;
+    return codePoint <= 0x1f || (codePoint >= 0x7f && codePoint <= 0x9f);
+  });
+}
+
+function isValidReasonText(value: unknown): value is string {
+  if (typeof value !== 'string' || value.length === 0 || value !== value.trim()) return false;
+  if ([...value].length > REASON_MAX_CODE_POINTS) return false;
+  if (containsControlCharacter(value)) return false;
+  if (/<\/?[A-Za-z][^>]*>/u.test(value)) return false;
+  if (/(?:\b(?:score|weight|component)\s*:\s*[-+]?\d|\d+\s*:\s*\d)/iu.test(value)) return false;
+  const sentenceBoundaries = value.match(/[.!?。！？](?=\s|$)/gu) ?? [];
+  return sentenceBoundaries.length === 1 && /[.!?。！？]$/u.test(value);
+}
+
+function parseReasonItems(raw: string, requestedIds: ReadonlySet<string>): Map<string, string> {
+  try {
+    const parsed = JSON.parse(raw) as { reasons?: unknown };
+    if (!Array.isArray(parsed.reasons)) return new Map();
+    const values = new Map<string, string>();
+    const duplicates = new Set<string>();
+    for (const candidate of parsed.reasons) {
+      if (!candidate || typeof candidate !== 'object') continue;
+      const item = candidate as Partial<ReasonResponseItem>;
+      if (typeof item.candidateId !== 'string' || !requestedIds.has(item.candidateId)) continue;
+      if (values.has(item.candidateId)) duplicates.add(item.candidateId);
+      if (isValidReasonText(item.reasonText)) values.set(item.candidateId, item.reasonText);
+    }
+    for (const duplicate of duplicates) values.delete(duplicate);
+    return values;
+  } catch {
+    return new Map();
+  }
 }
 
 export class RecommendationService {
@@ -263,13 +338,16 @@ export class RecommendationService {
     const priorRecommendations = await this.readRecommendations(priorBatches);
     const selected = await this.materializeBatch(identity, priorBatches, priorRecommendations);
     const generatedAt = new Date(this.dependencies.now()).toISOString();
+    const experimentalReasons = identity.condition === 'experimental'
+      ? await this.generateReasons(selected.selected, selected.questions)
+      : new Map<string, string>();
     const recommendations = selected.selected.map((item): Recommendation => ({
       id: this.dependencies.createId('recommendation'),
       ...item.recommendation,
       generatedAt,
       reasonText: identity.condition === 'control'
         ? controlReason(item.strategy, item.conceptLabel)
-        : experimentalReason(item.strategy, item.conceptLabel),
+        : experimentalReasons.get(item.postId) ?? experimentalReason(item.strategy, item.conceptLabel),
     }));
     const ready: RecommendationBatch = {
       id: batchId,
@@ -344,11 +422,12 @@ export class RecommendationService {
         },
       };
     });
-    return selectDiverse(scored, RECOMMENDATION_BATCH_SIZE, {
+    const selection = selectDiverse(scored, RECOMMENDATION_BATCH_SIZE, {
       sourceCounts: priorBatches.at(-1)?.diversityCounters.sourceCounts ?? {},
       recentPrimaryConceptIds: priorBatches.at(-1)?.diversityCounters.recentPrimaryConceptIds ?? [],
       historyQuestionCount: 0,
     });
+    return { ...selection, questions: [] as UserQuestion[] };
   }
 
   private async materializeExperimental(
@@ -390,11 +469,120 @@ export class RecommendationService {
       now: this.dependencies.now,
     });
     const scored = ranked.map((candidate): SelectedCandidate => this.selectedExperimental(identity, candidate));
-    return selectDiverse(scored, RECOMMENDATION_BATCH_SIZE, {
+    const selection = selectDiverse(scored, RECOMMENDATION_BATCH_SIZE, {
       sourceCounts: priorBatches.at(-1)?.diversityCounters.sourceCounts ?? {},
       recentPrimaryConceptIds: priorBatches.at(-1)?.diversityCounters.recentPrimaryConceptIds ?? [],
       historyQuestionCount: questions.length,
     });
+    return { ...selection, questions };
+  }
+
+  private async generateReasons(
+    selected: readonly SelectedCandidate[],
+    questions: readonly UserQuestion[],
+  ): Promise<Map<string, string>> {
+    const reasons = new Map<string, string>();
+    if (selected.length === 0) return reasons;
+
+    const config = this.dependencies.getReasonConfig();
+    let pending = [...selected];
+    for (let attempt = 0; attempt < 2 && pending.length > 0; attempt += 1) {
+      const requestedIds = new Set(pending.map((item) => item.postId));
+      let parsed = new Map<string, string>();
+      try {
+        const raw = await this.dependencies.completeReason(
+          this.reasonMessages(pending, questions),
+          config,
+          {
+            jsonMode: true,
+            maxTokens: Math.max(512, pending.length * 120),
+            serviceName: 'recommendation-reasons',
+            disableThinking: true,
+          },
+        );
+        parsed = parseReasonItems(raw, requestedIds);
+      } catch {
+        parsed = new Map();
+      }
+      for (const [candidateId, reasonText] of parsed) reasons.set(candidateId, reasonText);
+      pending = pending.filter((item) => !reasons.has(item.postId));
+    }
+
+    for (const item of pending) {
+      reasons.set(item.postId, experimentalReason(item.strategy, item.conceptLabel));
+    }
+    return reasons;
+  }
+
+  private reasonMessages(
+    selected: readonly SelectedCandidate[],
+    questions: readonly UserQuestion[],
+  ): ReasonMessage[] {
+    const questionsById = new Map(questions.map((question) => [question.id, question]));
+    const items = selected.map((item) => {
+      const post = this.dependencies.feed.getPostById(item.postId);
+      if (!post) throw new Error(`Recommended post is unavailable: ${item.postId}`);
+      const contributingQuestionIds = item.recommendation.contributingQuestionIds ?? [];
+      const contributingConceptIds = item.recommendation.contributingConceptIds ?? [];
+      const contributingPostIds = item.recommendation.contributingPostIds ?? [];
+      return {
+        candidateId: item.postId,
+        strategy: item.strategy,
+        recommendedPost: {
+          title: post.displayTitle,
+          summary: post.shortSummary,
+        },
+        contributingPriorQuestions: contributingQuestionIds
+          .map((id) => questionsById.get(id))
+          .filter((question): question is UserQuestion => question !== undefined)
+          .map((question) => ({ id: question.id, text: question.text })),
+        contributingConcepts: contributingConceptIds.map((id) => ({
+          id,
+          label: this.conceptLabelById(id),
+        })),
+        contributingPriorPosts: contributingPostIds.map((id) => ({
+          id,
+          title: this.dependencies.feed.getPostById(id)?.displayTitle ?? 'Prior post',
+        })),
+      };
+    });
+    return this.dependencies.bracketReasonMessages([
+      {
+        role: 'system',
+        content: [
+          'Generate a short user-facing recommendation reason.',
+          '',
+          'Input:',
+          '- Strategy: Continue / Deepen / Contrast / Bridge / Echo',
+          '- Current recommended post:',
+          '- Contributing prior question, if any:',
+          '- Contributing concept(s):',
+          '- Contributing prior post(s):',
+          '',
+          'Rules:',
+          '- One sentence.',
+          '- Do not reveal internal scores.',
+          '- Make it feel helpful, not creepy.',
+          '- Do not overclaim.',
+          '',
+          'Return JSON only: {"reasons":[{"candidateId":string,"reasonText":string}]}.',
+          'Return exactly one item for every supplied candidateId and do not invent IDs.',
+        ].join('\n'),
+      },
+      {
+        role: 'user',
+        content: JSON.stringify({ items }),
+      },
+    ]);
+  }
+
+  private conceptLabelById(conceptId: string): string {
+    for (const post of this.dependencies.feed.getFeed()) {
+      const concept = this.dependencies.feed.getConcepts(post.id)
+        .find((candidate) => candidate.id === conceptId);
+      if (concept) return concept.label;
+    }
+    return 'this topic';
   }
 
   private selectedExperimental(
