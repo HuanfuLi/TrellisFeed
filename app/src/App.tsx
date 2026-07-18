@@ -305,6 +305,13 @@ export default function App() {
     }).catch(() => { /* observer only */ });
   };
 
+  const prewarmFilterCorpusIfAuthorized = () => {
+    const settings = settingsService.getSync();
+    if (!studyContextService.isBound() || !hasAffirmativeResearchConsent()
+      || !settings.preferences.aiConsentGiven) return;
+    void prewarmFilterCorpus(settings.embedding);
+  };
+
   // Hydrate data from IndexedDB on app start, THEN reveal the app.
   useEffect(() => {
     let cancelled = false;
@@ -323,23 +330,16 @@ export default function App() {
       if (contentPool.status === 'ready') {
         setHydrated(true);
         startResearchSession();
+        prewarmFilterCorpusIfAuthorized();
       } else {
         setPoolError(contentPool.errorCode ?? 'POOL_IMPORT_FAILED');
       }
     }).catch(() => {
       if (!cancelled) setPoolError('POOL_IMPORT_FAILED');
     });
-    // Phase 55.1-07 GAP-C — fire-and-forget boot warm-up of the filter-corpus
-    // embedding cache. The malicious RAW-ARGMAX pre-gate runs filterQuestion
-    // BEFORE chatStream on every ask; on a cold cache that pays 124 sequential
-    // corpus embeds (~6.9s in-process, measured) and dominates the first
-    // roundtrip. Warming it here at boot — NOT awaited, so it never delays first
-    // paint — lets the first ask hit the warm localStorage cache. Non-blocking,
-    // key-absent/offline-safe (no-ops when embedding is unconfigured, swallows
-    // embed errors). See scripts/profile-cold-start.mjs for the measurement.
-    void prewarmFilterCorpus(settingsService.getSync().embedding);
     const unsubscribeIdentity = eventBus.subscribe('RESEARCH_IDENTITY_BOUND', () => {
       startResearchSession();
+      prewarmFilterCorpusIfAuthorized();
     });
     return () => {
       cancelled = true;

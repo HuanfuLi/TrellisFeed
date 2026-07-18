@@ -10,6 +10,7 @@ import { Header, HEADER_HEIGHT } from '../components/ui/Header';
 import type { Concept, OriginalContentAsset, Post, SuggestedQuestion } from '../domain/content.types';
 import type { SessionMessage } from '../types';
 import { eventBus } from '../lib/event-bus';
+import { AskInFlightGate } from '../lib/ask-in-flight';
 import { toast } from '../lib/toast';
 import { dailyReadService } from '../services/daily-read.service';
 import { engagementService } from '../services/engagement.service';
@@ -34,13 +35,25 @@ export function PostDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [messages, setMessages] = useState<SessionMessage[]>([]);
   const [qaStreaming, setQaStreaming] = useState('');
+  const [isAsking, setIsAsking] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const hasEmittedRef = useRef(false);
   const scrollSentinelRef = useRef<HTMLDivElement>(null);
   const dwellTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const threadEndRef = useRef<HTMLDivElement>(null);
+  const askGateRef = useRef(new AskInFlightGate());
+  const askAbortRef = useRef<AbortController | null>(null);
+  const routeGenerationRef = useRef(0);
 
   useEffect(() => {
+    const askGate = askGateRef.current;
+    const generation = ++routeGenerationRef.current;
+    askAbortRef.current?.abort();
+    askAbortRef.current = null;
+    askGate.finish();
+    setIsAsking(false);
+    setQaStreaming('');
+    setMessages([]);
     setLoading(true);
     hasEmittedRef.current = false;
     if (!id) {
@@ -63,19 +76,27 @@ export function PostDetailScreen() {
       try {
         const identity = studyContextService.getRequired();
         void postQaRepository.loadSamePostThread(identity.userId, post.id).then((turns) => {
+          if (routeGenerationRef.current !== generation) return;
           setMessages(turns.flatMap((turn) => [
             { id: turn.question.id, type: 'user' as const, content: turn.question.text },
             { id: turn.answer.id, type: 'ai' as const, content: turn.answer.answerText },
           ]));
+        }).catch(() => {
+          if (routeGenerationRef.current === generation) setMessages([]);
         });
-      } catch {
-        setMessages([]);
-      }
+      } catch { /* setup/unbound state keeps the freshly-cleared thread */ }
     } catch {
       setDetail(null);
     } finally {
       setLoading(false);
     }
+    return () => {
+      if (routeGenerationRef.current !== generation) return;
+      routeGenerationRef.current += 1;
+      askAbortRef.current?.abort();
+      askAbortRef.current = null;
+      askGate.finish();
+    };
   }, [id]);
 
   const post = detail?.post ?? null;
@@ -133,7 +154,11 @@ export function PostDetailScreen() {
     source: 'typed' | 'suggested_question' = 'typed',
     suggestedQuestionId?: string,
   ) => {
-    if (!post || !text.trim() || qaStreaming) return;
+    if (!post || !text.trim() || !askGateRef.current.tryStart()) return;
+    const generation = routeGenerationRef.current;
+    const controller = new AbortController();
+    askAbortRef.current = controller;
+    setIsAsking(true);
     setQaStreaming('');
     try {
       const identity = studyContextService.getRequired();
@@ -146,12 +171,15 @@ export function PostDetailScreen() {
         text,
         source,
         suggestedQuestionId,
+        signal: controller.signal,
         onDelta: (delta) => {
+          if (controller.signal.aborted || routeGenerationRef.current !== generation) return;
           streamed += delta;
           setQaStreaming(streamed);
         },
       });
       if (!result.success) throw new Error(result.error.message);
+      if (controller.signal.aborted || routeGenerationRef.current !== generation) return;
 
       setMessages((current) => [...current,
         { id: result.data.question.id, type: 'user', content: result.data.question.text },
@@ -166,10 +194,18 @@ export function PostDetailScreen() {
       // Detector C: only a successfully completed post follow-up marks exploration.
       if (primaryConceptId) emitExplored(primaryConceptId);
     } catch (error) {
-      setQaStreaming('');
-      toast(error instanceof Error ? error.message : t('posts.qa.askFailed'), 'error');
+      if (!controller.signal.aborted && routeGenerationRef.current === generation) {
+        toast(error instanceof Error ? error.message : t('posts.qa.askFailed'), 'error');
+      }
+    } finally {
+      askGateRef.current.finish();
+      if (askAbortRef.current === controller) askAbortRef.current = null;
+      if (routeGenerationRef.current === generation) {
+        setQaStreaming('');
+        setIsAsking(false);
+      }
     }
-  }, [emitExplored, post, primaryConceptId, qaStreaming, t]);
+  }, [emitExplored, post, primaryConceptId, t]);
 
   const backButton = (
     <button type="button" aria-label={t('common.back')} onClick={() => navigate(-1)} style={{ minWidth: '44px', minHeight: '44px', display: 'grid', placeItems: 'center', padding: 0, border: 0, background: 'transparent', color: 'var(--foreground)', cursor: 'pointer' }}>
@@ -217,6 +253,7 @@ export function PostDetailScreen() {
         </header>
 
         <OriginalContent
+          key={post.id}
           post={post}
           asset={detail.asset}
           fallbackNotice={t('posts.detail.videoUnavailable')}
@@ -241,7 +278,7 @@ export function PostDetailScreen() {
             <SuggestedQuestionList
               suggestions={detail.suggestions}
               heading={t('posts.detail.suggestedQuestions')}
-              disabled={Boolean(qaStreaming)}
+              disabled={isAsking}
               onSelect={(suggestion) => {
                 void interactionLog.record('question_suggestion_click', { postId: post.id, questionId: suggestion.id }).catch(() => { /* observational */ });
                 void handleAsk(suggestion.text, 'suggested_question', suggestion.id);
@@ -253,7 +290,7 @@ export function PostDetailScreen() {
             {qaStreaming && <ChatMessage messageId="streaming" type="ai" content={qaStreaming} />}
             <div ref={threadEndRef} />
           </div>
-          <ChatInput onSend={(text) => { void handleAsk(text); }} placeholder={t('posts.qa.placeholderGeneric')} disabled={Boolean(qaStreaming)} />
+          <ChatInput onSend={(text) => { void handleAsk(text); }} placeholder={t('posts.qa.placeholderGeneric')} disabled={isAsking} />
         </section>
       </main>
     </div>

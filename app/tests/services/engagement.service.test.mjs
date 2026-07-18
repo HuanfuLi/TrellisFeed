@@ -18,10 +18,10 @@ globalThis.localStorage = {
   clear() { this._store.clear(); },
 };
 
-const { engagementService } = await import('../../src/services/engagement.service.ts');
+const { engagementService, hydrateEngagementFromSQLite, waitForEngagementWrites } = await import('../../src/services/engagement.service.ts');
 const { postHistoryService } = await import('../../src/services/post-history.service.ts');
 const { eventBus } = await import('../../src/lib/event-bus.ts');
-const { dbQuery, clearAllTables } = await import('../../src/services/db.service.ts');
+const { dbExecute, dbQuery, clearAllTables } = await import('../../src/services/db.service.ts');
 
 // Phase 55-07: engagement + post-history are now in-memory mirrors persisted to
 // IndexedDB (not localStorage). Tests reset via the services' own reset/clear
@@ -50,6 +50,7 @@ describe('engagementService — Phase 39', () => {
     // Reset the in-memory mirrors (the localStorage clear no longer does this
     // now that the stores are in-memory + IndexedDB).
     engagementService.reset();
+    await waitForEngagementWrites();
     postHistoryService.clear();
     captureAll();
   });
@@ -150,6 +151,28 @@ describe('engagementService — Phase 39', () => {
     assert.deepEqual(stored.saved, ['post-saved']);
     assert.deepEqual(stored.dismissed, ['post-dismissed']);
     assert.equal(JSON.stringify(stored).includes('bodyMarkdown'), false);
+  });
+
+  it('retries failed hydration before allowing a later mutation to preserve durable IDs', async () => {
+    await dbExecute('INSERT OR REPLACE INTO engagement (id, data) VALUES (?, ?)', [
+      'engagement_state',
+      JSON.stringify({ saved: ['old-saved'], liked: [], dismissed: ['old-dismissed'] }),
+    ]);
+
+    await assert.rejects(
+      hydrateEngagementFromSQLite(async () => { throw new Error('forced read failure'); }, true),
+      /forced read failure/,
+    );
+    assert.deepEqual(engagementService.getSavedPostIds(), []);
+
+    await hydrateEngagementFromSQLite();
+    engagementService.savePost('new-saved');
+    await waitForEngagementWrites();
+
+    const rows = await dbQuery('SELECT * FROM engagement WHERE id = ?', ['engagement_state']);
+    const stored = JSON.parse(rows[0].data);
+    assert.deepEqual(stored.saved, ['old-saved', 'new-saved']);
+    assert.deepEqual(stored.dismissed, ['old-dismissed']);
   });
 
   it('post history persists only postId and viewedAt and groups metadata by day', async () => {

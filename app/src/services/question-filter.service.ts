@@ -212,9 +212,44 @@ const DIRECT_MALICIOUS_REGEXES: RegExp[] = [
   /^\s*(?:(?:please|kindly)\s+)?(?:act|pretend|roleplay|operate|enter)\b[\s\S]{0,160}\b(?:jailbroken|unrestricted|developer\s+mode|no\s+(?:rules|restrictions)|without\s+(?:rules|filtering|restrictions))\b/i,
 ];
 
+const SECURITY_COMMAND_PREFIX = /^(?:(?:please|kindly|now|then)\s+|(?:(?:can|could|would|will)\s+you|you\s+(?:must|should|need\s+to)|i\s+(?:want|need)\s+you\s+to)\s+)?/i;
+const OVERRIDE_VERB = /\b(?:ignor(?:e|ed|ing)|disregard(?:ed|ing)?|forget|override|bypass|disable|evade|violate|discard|remove)\b/i;
+const INSTRUCTION_TARGET = /\b(?:your|the|all|any|previous|prior|above|earlier|system|developer|hidden|initial|safety|content)\s+(?:instructions?|prompts?|rules?|guidelines?|polic(?:y|ies)|directives?|restrictions?|safeguards?|filters?|programming)\b|\beverything\s+(?:you(?:'ve|\s+have)?\s+)?(?:were\s+)?told\b/i;
+const EXTRACTION_VERB = /\b(?:reveal|print|show|dump|output|repeat|exfiltrate|leak|expose|return|quote)\b/i;
+const HIDDEN_TARGET = /\b(?:system|developer|hidden|initial|confidential|secret|internal|original)\s+(?:prompts?|instructions?|rules?|guidelines?|directives?|configuration|messages?)\b/i;
+const UNRESTRICTED_TARGET = /\b(?:jailbroken|developer\s+mode|unrestricted|without\s+(?:any\s+)?(?:rules?|filters?|filtering|restrictions?|safeguards?)|no\s+(?:rules?|filters?|restrictions?|safeguards?))\b/i;
+const ROLEPLAY_VERB = /\b(?:act|pretend|roleplay|operate|enter|respond|answer)\b/i;
+
+// These narrow exclusions protect genuine discussion of prompt-security ideas.
+// They intentionally do not exclude a question merely because it begins with
+// "can you" or "explain": those are also common wrappers for direct attacks.
+const SECURITY_CONCEPT_QUESTIONS: RegExp[] = [
+  /^(?:what|why|how)\b[\s\S]{0,180}\b(?:prompt\s+injection|jailbreak(?:ing)?|system\s+prompts?)\b/i,
+  /^why\b[\s\S]{0,120}\b(?:models?|agents?)\b[\s\S]{0,120}\b(?:vulnerable|ignore|disregard)\b[\s\S]{0,120}\b(?:untrusted|webpages?|documents?|tool\s+output|prompt\s+injection)\b/i,
+];
+
+function normalizeSecurityCommand(content: string): string {
+  return content.normalize('NFKC').replace(/[\u200B-\u200D\u2060\uFEFF]/g, '').replace(/\s+/g, ' ').trim();
+}
+
 export function layer1MaliciousRegex(content: string): { matched: boolean } {
-  const trimmed = content.trim();
-  return { matched: DIRECT_MALICIOUS_REGEXES.some((pattern) => pattern.test(trimmed)) };
+  const normalized = normalizeSecurityCommand(content);
+  if (SECURITY_CONCEPT_QUESTIONS.some((pattern) => pattern.test(normalized))
+    && !(EXTRACTION_VERB.test(normalized) && HIDDEN_TARGET.test(normalized))) {
+    return { matched: false };
+  }
+  if (DIRECT_MALICIOUS_REGEXES.some((pattern) => pattern.test(normalized))) return { matched: true };
+
+  // Word-order-independent grammar for common direct command variants. The
+  // prefix requirement keeps descriptive prose from being classified merely
+  // because it mentions an override verb and instructions in the same sentence.
+  const direct = SECURITY_COMMAND_PREFIX.exec(normalized)?.[0] ?? '';
+  const beginsAsCommand = direct.length > 0 || OVERRIDE_VERB.test(normalized.slice(0, 48))
+    || EXTRACTION_VERB.test(normalized.slice(0, 48)) || ROLEPLAY_VERB.test(normalized.slice(0, 48));
+  const override = beginsAsCommand && OVERRIDE_VERB.test(normalized) && INSTRUCTION_TARGET.test(normalized);
+  const extraction = beginsAsCommand && EXTRACTION_VERB.test(normalized) && HIDDEN_TARGET.test(normalized);
+  const unrestricted = beginsAsCommand && ROLEPLAY_VERB.test(normalized) && UNRESTRICTED_TARGET.test(normalized);
+  return { matched: override || extraction || unrestricted };
 }
 
 /**

@@ -58,14 +58,34 @@ function saveState(state: EngagementState): void {
     liked: [...state.liked],
     dismissed: [...state.dismissed],
   };
-  // IndexedDB write-through (D-09/D-12) — fire-and-forget single-row upsert.
-  void dbExecute('INSERT OR REPLACE INTO engagement (id, data) VALUES (?, ?)', [
-    SQLITE_ROW_ID,
-    JSON.stringify(state),
-  ]).catch(() => { /* IndexedDB unavailable — in-memory mirror is the read path */ });
+  // Serialize whole-blob writes so rapid save/like/dismiss actions cannot land
+  // out of order and resurrect an older snapshot.
+  const serialized = JSON.stringify(_state);
+  _engagementWriteTail = _engagementWriteTail.then(() => dbExecute(
+    'INSERT OR REPLACE INTO engagement (id, data) VALUES (?, ?)',
+    [SQLITE_ROW_ID, serialized],
+  )).catch(() => { /* Boot hydration protects durable state; mirror remains usable for this process. */ });
 }
 
 let _hydratedEngagement = false;
+let _engagementWriteTail: Promise<void> = Promise.resolve();
+
+type EngagementQuery = (
+  sql: string,
+  values?: (string | number | null)[],
+) => Promise<{ id: string; data: string }[]>;
+
+function parsePersistedState(data: string): EngagementState {
+  const parsed: unknown = JSON.parse(data);
+  if (!parsed || typeof parsed !== 'object') throw new Error('Invalid engagement state');
+  const value = parsed as Partial<EngagementState>;
+  for (const key of ['saved', 'liked', 'dismissed'] as const) {
+    if (!Array.isArray(value[key]) || !value[key]!.every((id) => typeof id === 'string')) {
+      throw new Error('Invalid engagement state');
+    }
+  }
+  return { saved: [...value.saved!], liked: [...value.liked!], dismissed: [...value.dismissed!] };
+}
 
 /**
  * Boot hydration (D-12). Restore the engagement mirror from SQLite's single row
@@ -73,33 +93,46 @@ let _hydratedEngagement = false;
  * populated mirror is never overwritten. Emits ENGAGEMENT_CHANGED (bulk sentinel
  * id '*') so saved/liked consumers re-read (no-refresh assumption).
  */
-export async function hydrateEngagementFromSQLite(): Promise<void> {
+export async function hydrateEngagementFromSQLite(
+  query: EngagementQuery = (sql, values) => dbQuery(sql, values),
+  force = false,
+): Promise<void> {
+  if (force) {
+    _hydratedEngagement = false;
+    _state = freshState();
+  }
   if (_hydratedEngagement) return;
-  _hydratedEngagement = true;
   try {
     const cur = loadState();
     const hasData = cur.saved.length > 0 || cur.liked.length > 0
       || cur.dismissed.length > 0;
-    if (hasData) return; // mirror already has data — trust it
-    const rows = await dbQuery<{ id: string; data: string }>(
+    if (hasData) {
+      _hydratedEngagement = true;
+      return; // mirror already has data — trust it
+    }
+    const rows = await query(
       'SELECT * FROM engagement WHERE id = ?', [SQLITE_ROW_ID],
     );
-    if (rows.length === 0) return;
-    let parsed: Partial<EngagementState> | null = null;
-    try { parsed = JSON.parse(rows[0].data) as Partial<EngagementState>; } catch { return; }
-    const next: EngagementState = {
-      saved: Array.isArray(parsed?.saved) ? parsed!.saved : [],
-      liked: Array.isArray(parsed?.liked) ? parsed!.liked : [],
-      dismissed: Array.isArray(parsed?.dismissed) ? parsed!.dismissed : [],
-    };
+    if (rows.length === 0) {
+      _hydratedEngagement = true;
+      return;
+    }
+    const next = parsePersistedState(rows[0].data);
     const restored = next.saved.length || next.liked.length || next.dismissed.length;
     if (restored) {
       _state = next;
       eventBus.emit({ type: 'ENGAGEMENT_CHANGED', payload: { kind: 'save', id: '*' } });
     }
-  } catch {
-    // IndexedDB unavailable — silently skip
+    _hydratedEngagement = true;
+  } catch (error) {
+    _hydratedEngagement = false;
+    throw error;
   }
+}
+
+/** Test seam for observing the durable end of the serialized write chain. */
+export function waitForEngagementWrites(): Promise<void> {
+  return _engagementWriteTail;
 }
 
 export const engagementService = {
@@ -193,6 +226,7 @@ export const engagementService = {
 
   /** Wipe all three collections without synthesizing per-ID events. */
   reset(): void {
+    _hydratedEngagement = true;
     saveState(freshState());
   },
 

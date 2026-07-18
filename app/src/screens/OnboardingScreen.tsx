@@ -6,6 +6,10 @@ import { Button } from '../components/ui/Button';
 import { useSettings } from '../state/useSettings';
 import i18n from '../locales';
 import { eventBus } from '../lib/event-bus';
+import { prewarmFilterCorpus } from '../services/filter-corpus.service';
+import { hasAffirmativeResearchConsent } from '../services/research-consent.service';
+import { settingsService } from '../services/settings.service';
+import { studyContextService } from '../services/study-context.service';
 import type { SupportedLocale } from '../types';
 
 type Step = 'welcome' | 'language' | 'consent';
@@ -44,6 +48,11 @@ export function OnboardingScreen() {
       onboardingCompleted: true,
       aiConsentGiven: true,
     });
+    const settings = settingsService.getSync();
+    if (studyContextService.isBound() && hasAffirmativeResearchConsent()
+      && settings.preferences.aiConsentGiven) {
+      void prewarmFilterCorpus(settings.embedding);
+    }
     setIsSaving(false);
     navigate('/home', { replace: true });
   };
