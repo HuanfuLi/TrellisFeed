@@ -404,7 +404,7 @@ export default function App() {
 
   // Minimal neutral loading placeholder until the IndexedDB hydration resolves.
   // Plain on purpose — a spinner on the app surface color avoids a flash of an
-  // empty feed / premature feed-refill against an empty in-memory queue.
+  // empty feed before persisted recommendation batches are available.
   if (poolError) {
     return (
       <div

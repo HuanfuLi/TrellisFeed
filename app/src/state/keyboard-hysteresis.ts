@@ -5,7 +5,7 @@
  * HYSTERESIS (separate open and close thresholds). Lives in its own module so
  * it can be unit-tested under `node --test` without pulling in `react`
  * (importing useKeyboard.ts fails ERR_MODULE_NOT_FOUND on the React import).
- * Mirrors the feed-spread.ts / trellis-perf-mask.ts pure-helper pattern.
+ * Kept React-free so the state transitions remain directly unit-testable.
  *
  * BUGFIX-03 (Phase 55.1): The Android WebView keyboard-open animation fires
  * `visualViewport.resize` repeatedly, with the viewport height crossing a single
