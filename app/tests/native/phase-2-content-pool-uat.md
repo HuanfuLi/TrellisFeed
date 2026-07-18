@@ -8,11 +8,11 @@ Last emulator run: 2026-07-18 (Android API 36.1, `Medium_Phone_API_36.1`)
 
 | Field | Value |
 |---|---|
-| Git commit used for the final synced build | `4047cc22b48e77ed36edfe5bb39c27f134fd919b` |
+| Git commit used for the final synced build | `26fb91d7e8f8562f40fbc0d314f565d99f2171e8` |
 | Content-pool version | `pilot-v1-20260717` |
 | Approved posts | 77 |
 | `manifest.json` SHA-256 | `9fed9992776fab0b4b11b50913a7949a00aca42034b76b62c3f7ee468e2568cc` |
-| Android debug APK SHA-256 | `7f963d52dc58497134553ecefbbe5d51c9418a29b232d22477f05ae7ded214b5` |
+| Android debug APK SHA-256 | `d9b3a007fa780f5049a291a21582c39f6c47a523718142b7935e98d6b00d05b4` |
 | Android application ID | `com.trellis.app` |
 | iOS bundle ID / development team | `com.huanfuli.trellis` / `ZW465WJST3` |
 
@@ -24,7 +24,7 @@ this record must not be reused for a different artifact.
 | Check | Result | Evidence |
 |---|---|---|
 | Production build and deterministic packaging | PASS | `npm run build`; packaged 77 posts from `pilot-v1-20260717` |
-| App regression suite | PASS | `npm test`: 496/496 |
+| App regression suite | PASS | `npm test`: 508/508 |
 | Lint | PASS | `npm run lint`: 0 errors, 7 pre-existing warnings |
 | Capacitor native asset sync and Android APK assembly | PASS | `npx cap sync android`; `gradlew.bat assembleDebug` |
 | Packaged files byte-identical in web, Android, and iOS assets | PASS | `app/tests/phase2/frozen-cutover.test.mjs` |
@@ -68,10 +68,18 @@ Failed observations are retained inline with their fixes and retest evidence.
 | N-08 | Malicious fixture is rejected before model/write and raw text is absent durably. | PASS after fix | WAIVED | Initial run exposed a deterministic pre-gate gap. Commit `049827b` added a fail-closed direct-imperative gate. Clean-install retest found zero Q/A/upload rows and no raw malicious text in any research store. |
 | N-09 | Restart recovers same-post thread without cross-post leakage. | PASS | WAIVED | Five-category thread recovered on `candidate-0027`; navigating to `candidate-0000` showed no leaked thread. |
 | N-10 | Interaction events contain only allowlisted fields. | PASS after fix | WAIVED | Actual `feed_impression`, `post_open`, `source_click`, `video_play`, `video_progress`, question, answer, and save records matched the allowlist. Frozen videos omit duration, so initial code never emitted progress; commit `4047cc2` added bounded elapsed milestones. At 16 seconds the WebView persisted 5- and 15-second `video_progress` events with `durationMs=16000`. Recommendation-reason events are not applicable until the Phase 3 recommendation surface exists; Phase 2 has no call site. |
-| N-11 | Header, scroll, keyboard, pull/back, edge swipe, and root overflow remain stable. | PASS | WAIVED | ADB exercised vertical scroll, pull, edge swipe, keyboard open/close, and system back without layout or route regression. Android reported `mInputShown=true` while focused and false after back. Header/overflow/swipe automated contracts passed in the 496-test suite. |
+| N-11 | Header, scroll, keyboard, pull/back, edge swipe, and root overflow remain stable. | PASS | WAIVED | ADB exercised vertical scroll, pull, edge swipe, keyboard open/close, and system back without layout or route regression. Android reported `mInputShown=true` while focused and false after back. Header/overflow/swipe automated contracts passed in the 508-test suite. |
 | N-12 | en/zh/es/ja UI localizes while frozen content remains English. | PASS | WAIVED | Runtime switching produced localized Ask placeholders and source labels for all four locales; the same frozen English video title/content remained present. |
 
 ## Sign-off
+
+After the phase code review, final code commit `26fb91d` was rebuilt and installed
+over the tested emulator state. Targeted regression confirmed the exact frozen
+YouTube embed, direct possessive-prompt extraction rejection, acceptance of a
+benign post-scoped unrestricted-length question, synchronous disabling of all
+Ask entry points while a request is in flight, no stale question after switching
+posts, and saved-state recovery after force-stop/relaunch. The original N-01
+through N-12 matrix and the physical-device waiver remain unchanged.
 
 - Android emulator reviewer: Codex automated operator run, 2026-07-18
 - Research owner decision: physical Android/iOS device UAT waived after simulator pass, 2026-07-17

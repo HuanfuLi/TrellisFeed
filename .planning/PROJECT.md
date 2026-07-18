@@ -21,8 +21,8 @@ The two study conditions must produce **different but comparable feeds with inte
 
 Building toward the v0.1 research-instrument milestone. Full checkable list in `.planning/REQUIREMENTS.md`.
 
-- [ ] Phase 1 — Rebrand + research shell hardening (rebrand, storage rename, condition config, interaction logging)
-- [ ] Phase 2 — Content pool + feed/post UI on frozen data (schemas, curation pipeline, frozen pool, feed/post UI, suggested questions, post-scoped Ask)
+- [x] Phase 1 — Rebrand + research shell hardening (rebrand, storage rename, condition config, interaction logging)
+- [x] Phase 2 — Content pool + feed/post UI on frozen data (schemas, curation pipeline, frozen pool, feed/post UI, suggested questions, post-scoped Ask). Validated 2026-07-18: 77-post immutable pilot pool, Android API 36.1 emulator N-01–N-12, 6/6 requirements; physical Android/iOS UAT owner-waived.
 - [ ] Phase 3 — Graph-memory + recommendation engine (content graph, graph-memory, extraction, control + experimental rankers, strategies, diversity rerank, reasons, verification)
 - [ ] Phase 4 — Study infrastructure + pilot (onboarding, condition assignment, data export, oral-test support, internal pilot)
 
@@ -78,4 +78,4 @@ Locked decisions (from `docs/SCOPE.md` LOCKED ADR + operator locks + `research_s
 Proposed design decisions (rationale-backed in the canonical SPEC §18; not independently locked but several reinforce the locks above): real curated content not AI-generated posts; post-centered Q&A not global chat; no full knowledge graph exposed; three semi-open topics; 200–400 posts/topic; oral-explanation assessment; pretest verbal baseline.
 
 ---
-*Last updated: 2026-07-10 after new-project ingest bootstrap (Phase 0 already complete)*
+*Last updated: 2026-07-18 after Phase 2 verification passed and Phase 3 became current*

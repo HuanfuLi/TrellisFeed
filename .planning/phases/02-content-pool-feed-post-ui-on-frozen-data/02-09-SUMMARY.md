@@ -49,7 +49,7 @@ coverage:
     description: Canonical docs, D-01 through D-12, AI safety gates, app, backend, lint, and build match the frozen release boundary.
     verification:
       - kind: other
-        ref: "pipeline 77/77; Phoenix 7/7; Promptfoo 16/16; app 496/496; backend 30/30; lint/build pass"
+        ref: "pipeline 77/77; Phoenix 7/7; Promptfoo 16/16; app 508/508; backend 30/30; lint/build pass"
         status: pass
     human_judgment: false
   - id: D4
@@ -88,6 +88,7 @@ status: complete
 2. **Task 2: Canonical documentation and release-boundary audit** — `f001ea0` (docs)
 3. **Task 3: Native packaging and acceptance** — `6bb9f1b`, `7a94c2d`, `4624f09` (test)
 4. **Acceptance fixes found by emulator UAT** — `22bf6c1`, `049827b`, `4047cc2` (fix)
+5. **Phase review blockers and convergence** — `cfcd9b1`, `26fb91d` (fix); `02-REVIEW.md` status `clean`
 
 ## Files Created/Modified
 
@@ -127,7 +128,13 @@ status: complete
 - **Verification:** Android WebView persisted two allowlisted `video_progress` records at a 16-second position.
 - **Committed in:** `4047cc2`
 
-**Total deviations:** 3 auto-fixed correctness/security gaps. **Impact:** All fixes were required to satisfy existing acceptance contracts; no feature scope was added.
+**4. [Review hardening] Security, Ask lifecycle, consent, persistence, and packaging edge cases**
+- **Found during:** Independent Phase 2 code review and two convergence passes
+- **Fix:** Expanded normalized prompt-injection grammar with benign exclusions; added token-owned synchronous Ask locking and route cancellation; made engagement hydration retry-safe with serialized writes; gated corpus prewarm on consent; aligned package validation with runtime references; reset video state by post key.
+- **Verification:** Review status `clean`; focused adversarial/lifecycle tests passed; full App suite 508/508; final Android API 36.1 targeted regression passed.
+- **Committed in:** `cfcd9b1`, `26fb91d`
+
+**Total deviations:** 4 groups of auto-fixed correctness/security gaps. **Impact:** All fixes were required to satisfy existing acceptance contracts; no feature scope was added.
 
 ## Issues Encountered
 
@@ -142,13 +149,13 @@ None for the packaged participant artifact. Local UAT credentials remain in igno
 
 - Content pipeline/freeze verification — 77/77, valid immutable manifest.
 - Phoenix local-safety — 7/7; Promptfoo offline reference set — 16/16.
-- App — 496/496; research backend — 30/30.
+- App — 508/508; research backend — 30/30.
 - Lint — 0 errors, 7 existing warnings; production build, Capacitor Android sync, and debug APK assembly — pass.
 - Android API 36.1 native matrix — N-01 through N-12 pass; physical Android/iOS rows waived by owner.
 
 ## Next Phase Readiness
 
-- Phase 2 is complete. Phase 3 can consume the fixed frozen-feed facade and add the graph-memory/control rankers without touching content acquisition or Ask parity.
+- Phase 2 is independently verified complete (`02-VERIFICATION.md`: `passed`; `02-REVIEW.md`: `clean`). Phase 3 can consume the fixed frozen-feed facade and add the graph-memory/control rankers without touching content acquisition or Ask parity.
 - No unresolved HIGH threat or Phase 2 acceptance blocker remains.
 
 ## Self-Check: PASSED
