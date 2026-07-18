@@ -7,6 +7,12 @@ import type {
   SuggestedQuestion,
   Topic,
 } from '../domain/content.types.ts';
+import type {
+  EmbeddingFingerprint,
+  GlobalEdge,
+  PostRankingFeatures,
+  SourceRecord,
+} from '../domain/graph.types.ts';
 
 import {
   PACKAGED_CONTENT_POOL_VERSION,
@@ -23,10 +29,29 @@ export const CONTENT_POOL_FILENAMES = [
   'claims.json',
   'suggested_questions.json',
   'source_assets.json',
+  'sources.json',
+  'global_edges.json',
+  'ranking_features.json',
 ] as const;
 
 export type ContentPoolFilename = typeof CONTENT_POOL_FILENAMES[number];
-type ArtifactFilename = Exclude<ContentPoolFilename, 'manifest.json'>;
+export type ArtifactFilename = Exclude<ContentPoolFilename, 'manifest.json'>;
+
+export interface RankingFeaturesArtifact {
+  embeddingFingerprint: EmbeddingFingerprint | null;
+  posts: PostRankingFeatures[];
+}
+
+export type FrozenGraphPoolManifest = Omit<FrozenPoolBundle['manifest'], 'artifactHashes'> & {
+  artifactHashes: Record<ArtifactFilename, string>;
+};
+
+export type FrozenGraphPoolBundle = Omit<FrozenPoolBundle, 'manifest'> & {
+  manifest: FrozenGraphPoolManifest;
+  sources: SourceRecord[];
+  globalEdges: GlobalEdge[];
+  rankingFeatures: RankingFeaturesArtifact;
+};
 
 export interface PackagedPoolReader {
   readonly expectedVersion: string;
@@ -49,16 +74,33 @@ export class ContentPoolBundleError extends Error {
   }
 }
 
-const defaultReader: PackagedPoolReader = packagedContentPoolReader;
+const legacyPackagedReader = packagedContentPoolReader as unknown as {
+  readonly expectedVersion: string;
+  readText(filename: string): Promise<string | undefined>;
+};
 
-const artifactCollections: Record<ArtifactFilename, keyof Pick<FrozenPoolBundle,
-  'topics' | 'posts' | 'concepts' | 'claims' | 'suggestedQuestions' | 'sourceAssets'>> = {
+// The currently packaged pilot predates the required graph artifacts. Keep the
+// runtime contract strict: a missing required file enters the existing
+// POOL_INVALID snapshot path until an operator re-freezes the projection.
+const defaultReader: PackagedPoolReader = {
+  expectedVersion: legacyPackagedReader.expectedVersion,
+  async readText(filename) {
+    const text = await legacyPackagedReader.readText(filename);
+    if (typeof text !== 'string') throw new ContentPoolBundleError('POOL_INVALID');
+    return text;
+  },
+};
+
+const artifactCollections: Record<ArtifactFilename, keyof FrozenGraphPoolBundle> = {
   'topics.json': 'topics',
   'posts.json': 'posts',
   'concepts.json': 'concepts',
   'claims.json': 'claims',
   'suggested_questions.json': 'suggestedQuestions',
   'source_assets.json': 'sourceAssets',
+  'sources.json': 'sources',
+  'global_edges.json': 'globalEdges',
+  'ranking_features.json': 'rankingFeatures',
 };
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
@@ -146,13 +188,51 @@ function validAsset(value: unknown): value is OriginalContentAsset {
     && isText(value.digest, 20_000) && value.body === undefined;
 }
 
+function validSource(value: unknown): value is SourceRecord {
+  return isObject(value) && hasExactKeys(value, ['id', 'name', 'platform', 'url'])
+    && isId(value.id) && isText(value.name, 200)
+    && oneOf(value.platform, ['youtube', 'article', 'blog', 'newsletter', 'x', 'reddit', 'news', 'other'])
+    && isHttpsUrl(value.url);
+}
+
+function validGlobalEdge(value: unknown): value is GlobalEdge {
+  return isObject(value) && hasExactKeys(value, ['id', 'topicId', 'type', 'sourceId', 'targetId'])
+    && isText(value.id, 512) && isId(value.topicId) && isId(value.sourceId) && isId(value.targetId)
+    && oneOf(value.type, ['explains', 'mentions', 'supports', 'challenges', 'about', 'contrasts_with', 'related_to', 'prerequisite_of', 'targets']);
+}
+
+function validEmbeddingFingerprint(value: unknown): value is EmbeddingFingerprint {
+  return isObject(value) && hasExactKeys(value, ['provider', 'model', 'dimensions'])
+    && isText(value.provider, 100) && isText(value.model, 200)
+    && Number.isInteger(value.dimensions) && (value.dimensions as number) >= 1 && (value.dimensions as number) <= 65_536;
+}
+
+function validRankingFeature(value: unknown): value is PostRankingFeatures {
+  const required = ['postId', 'topicId', 'primaryConceptId', 'sourceId', 'format', 'qualityScore', 'educationalValueScore', 'interestingnessScore', 'difficulty'];
+  if (!isObject(value) || !hasExactKeys(value, required, ['viewpoint', 'summaryVector'])) return false;
+  return isId(value.postId) && isId(value.topicId) && isId(value.primaryConceptId) && isId(value.sourceId)
+    && oneOf(value.format, ['video', 'article', 'social', 'other'])
+    && isScore(value.qualityScore) && isScore(value.educationalValueScore)
+    && isScore(value.interestingnessScore) && isScore(value.difficulty)
+    && (value.viewpoint === undefined || oneOf(value.viewpoint, ['supportive', 'critical', 'neutral', 'mixed']))
+    && (value.summaryVector === undefined || (Array.isArray(value.summaryVector)
+      && value.summaryVector.length >= 1 && value.summaryVector.length <= 65_536
+      && value.summaryVector.every((entry) => typeof entry === 'number' && Number.isFinite(entry))));
+}
+
+function validRankingArtifact(value: unknown): value is RankingFeaturesArtifact {
+  return isObject(value) && hasExactKeys(value, ['embeddingFingerprint', 'posts'])
+    && (value.embeddingFingerprint === null || validEmbeddingFingerprint(value.embeddingFingerprint))
+    && Array.isArray(value.posts) && value.posts.every(validRankingFeature);
+}
+
 async function digest(text: string): Promise<string> {
   const bytes = new TextEncoder().encode(text);
   const hash = await globalThis.crypto.subtle.digest('SHA-256', bytes);
   return [...new Uint8Array(hash)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
-function requireValidShape(bundle: FrozenPoolBundle): void {
+function requireValidShape(bundle: FrozenGraphPoolBundle): void {
   const manifest = bundle.manifest as unknown;
   const base = ['contentPoolVersion', 'generatedAt', 'preprocessingModelVersions', 'rawCandidateCount', 'approvedCount', 'rejectedCount', 'reviewProcedureSummary', 'counts', 'artifactHashes', 'feedOrderPostIds'];
   const extended = [...base, 'collectorVersions', 'promptVersions', 'schemaVersions', 'sourceFormatDistribution', 'stanceDistribution', 'fixedFilenames', 'bundleFileHashes'];
@@ -181,10 +261,13 @@ function requireValidShape(bundle: FrozenPoolBundle): void {
     || !Array.isArray(bundle.concepts) || !bundle.concepts.every(validConcept)
     || !Array.isArray(bundle.claims) || !bundle.claims.every(validClaim)
     || !Array.isArray(bundle.suggestedQuestions) || !bundle.suggestedQuestions.every(validSuggestion)
-    || !Array.isArray(bundle.sourceAssets) || !bundle.sourceAssets.every(validAsset)) throw new ContentPoolBundleError('POOL_INVALID');
+    || !Array.isArray(bundle.sourceAssets) || !bundle.sourceAssets.every(validAsset)
+    || !Array.isArray(bundle.sources) || !bundle.sources.every(validSource)
+    || !Array.isArray(bundle.globalEdges) || !bundle.globalEdges.every(validGlobalEdge)
+    || !validRankingArtifact(bundle.rankingFeatures)) throw new ContentPoolBundleError('POOL_INVALID');
 }
 
-function requireValidReferences(bundle: FrozenPoolBundle): void {
+function requireValidReferences(bundle: FrozenGraphPoolBundle): void {
   const topics = new Map(bundle.topics.map((record) => [record.id, record]));
   const posts = new Map(bundle.posts.map((record) => [record.id, record]));
   const concepts = new Map(bundle.concepts.map((record) => [record.id, record]));
@@ -224,10 +307,31 @@ function requireValidReferences(bundle: FrozenPoolBundle): void {
   const assetIds = bundle.sourceAssets.map((asset) => asset.postId);
   if (assetIds.length !== posts.size || new Set(assetIds).size !== posts.size
     || bundle.sourceAssets.some((asset) => posts.get(asset.postId)?.sourceUrl !== asset.sourceUrl)) throw new ContentPoolBundleError('POOL_INVALID');
+  const sourceIds = bundle.sources.map((source) => source.id);
+  if (new Set(sourceIds).size !== sourceIds.length) throw new ContentPoolBundleError('POOL_INVALID');
+  const sources = new Map(bundle.sources.map((source) => [source.id, source]));
+  const rankedPostIds = bundle.rankingFeatures.posts.map((features) => features.postId);
+  if (rankedPostIds.length !== posts.size || new Set(rankedPostIds).size !== posts.size
+    || rankedPostIds.some((id) => !posts.has(id))) throw new ContentPoolBundleError('POOL_INVALID');
+  for (const features of bundle.rankingFeatures.posts) {
+    const post = posts.get(features.postId);
+    const source = sources.get(features.sourceId);
+    if (!post || features.topicId !== post.topicId || !post.conceptIds.includes(features.primaryConceptId)
+      || concepts.get(features.primaryConceptId)?.topicId !== post.topicId || !source
+      || source.name !== post.sourceName || source.platform !== post.sourcePlatform || source.url !== post.sourceUrl) {
+      throw new ContentPoolBundleError('POOL_INVALID');
+    }
+  }
+  const fingerprint = bundle.rankingFeatures.embeddingFingerprint;
+  if (fingerprint === null) {
+    if (bundle.rankingFeatures.posts.some((features) => features.summaryVector !== undefined)) throw new ContentPoolBundleError('POOL_INVALID');
+  } else if (bundle.rankingFeatures.posts.some((features) => features.summaryVector?.length !== fingerprint.dimensions)) {
+    throw new ContentPoolBundleError('POOL_INVALID');
+  }
 }
 
 export async function validateBundledContentPool(
-  bundle: FrozenPoolBundle,
+  bundle: FrozenGraphPoolBundle,
   artifactTexts: Readonly<Record<ArtifactFilename, string>>,
   expectedVersion: string,
 ): Promise<void> {
@@ -245,11 +349,11 @@ export async function validateBundledContentPool(
   }
 }
 
-export async function loadBundledContentPool(reader: PackagedPoolReader = defaultReader): Promise<FrozenPoolBundle> {
+export async function loadBundledContentPool(reader: PackagedPoolReader = defaultReader): Promise<FrozenGraphPoolBundle> {
   const texts = {} as Record<ContentPoolFilename, string>;
   for (const filename of CONTENT_POOL_FILENAMES) texts[filename] = await reader.readText(filename);
   try {
-    const bundle: FrozenPoolBundle = {
+    const bundle: FrozenGraphPoolBundle = {
       manifest: JSON.parse(texts['manifest.json']),
       topics: JSON.parse(texts['topics.json']),
       posts: JSON.parse(texts['posts.json']),
@@ -257,6 +361,9 @@ export async function loadBundledContentPool(reader: PackagedPoolReader = defaul
       claims: JSON.parse(texts['claims.json']),
       suggestedQuestions: JSON.parse(texts['suggested_questions.json']),
       sourceAssets: JSON.parse(texts['source_assets.json']),
+      sources: JSON.parse(texts['sources.json']),
+      globalEdges: JSON.parse(texts['global_edges.json']),
+      rankingFeatures: JSON.parse(texts['ranking_features.json']),
     };
     const artifacts = Object.fromEntries(
       (Object.keys(artifactCollections) as ArtifactFilename[]).map((filename) => [filename, texts[filename]]),

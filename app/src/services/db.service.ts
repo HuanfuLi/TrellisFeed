@@ -70,10 +70,20 @@ const SHARED_DDL: string[] = [
   `CREATE TABLE IF NOT EXISTS content_pool_claims (storage_id TEXT PRIMARY KEY, version TEXT NOT NULL, record_id TEXT NOT NULL, data TEXT NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS content_pool_suggestions (storage_id TEXT PRIMARY KEY, version TEXT NOT NULL, record_id TEXT NOT NULL, data TEXT NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS content_pool_assets (storage_id TEXT PRIMARY KEY, version TEXT NOT NULL, record_id TEXT NOT NULL, data TEXT NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS content_pool_sources (storage_id TEXT PRIMARY KEY, version TEXT NOT NULL, record_id TEXT NOT NULL, data TEXT NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS content_pool_global_edges (storage_id TEXT PRIMARY KEY, version TEXT NOT NULL, record_id TEXT NOT NULL, data TEXT NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS content_pool_ranking_features (storage_id TEXT PRIMARY KEY, version TEXT NOT NULL, record_id TEXT NOT NULL, data TEXT NOT NULL)`,
   // Canonical RSD Q&A records. Query columns enforce the same-user/same-post
   // boundary without making a derived transport record the local source of truth.
   `CREATE TABLE IF NOT EXISTS user_questions (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, post_id TEXT NOT NULL, created_at TEXT NOT NULL, data TEXT NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS ai_answers (id TEXT PRIMARY KEY, user_question_id TEXT NOT NULL, post_id TEXT NOT NULL, created_at TEXT NOT NULL, data TEXT NOT NULL)`,
+  // ── Phase 3 graph-memory and recommendation stores ──────────────────────
+  `CREATE TABLE IF NOT EXISTS user_concept_states (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, concept_id TEXT NOT NULL, data TEXT NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS graph_contributions (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, concept_id TEXT NOT NULL, data TEXT NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS personal_graph_edges (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, data TEXT NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS extraction_jobs (id TEXT PRIMARY KEY, status TEXT NOT NULL, data TEXT NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS recommendations (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, data TEXT NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS recommendation_batches (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, session_id TEXT NOT NULL, data TEXT NOT NULL)`,
 ];
 
 // Object-store names for the IndexedDB backend, derived from SHARED_DDL so the
@@ -198,7 +208,7 @@ class LocalStorageBackend implements DBBackend {
 // IDB transaction and stores are created at open()).
 
 const IDB_NAME = 'questiontrace';
-const IDB_VERSION = 5;
+const IDB_VERSION = 6;
 
 class IndexedDBBackend implements DBBackend {
   private db: IDBDatabase | null = null;
@@ -408,8 +418,18 @@ export async function clearAllTables(): Promise<void> {
     await dbExecute('DELETE FROM content_pool_claims');
     await dbExecute('DELETE FROM content_pool_suggestions');
     await dbExecute('DELETE FROM content_pool_assets');
+    await dbExecute('DELETE FROM content_pool_sources');
+    await dbExecute('DELETE FROM content_pool_global_edges');
+    await dbExecute('DELETE FROM content_pool_ranking_features');
     await dbExecute('DELETE FROM user_questions');
     await dbExecute('DELETE FROM ai_answers');
+    // ── Phase 3 graph-memory and recommendation stores ────────────────────
+    await dbExecute('DELETE FROM user_concept_states');
+    await dbExecute('DELETE FROM graph_contributions');
+    await dbExecute('DELETE FROM personal_graph_edges');
+    await dbExecute('DELETE FROM extraction_jobs');
+    await dbExecute('DELETE FROM recommendations');
+    await dbExecute('DELETE FROM recommendation_batches');
   } catch {
     // DB may not be available (e.g. tables not yet created) — silently ignore
   }

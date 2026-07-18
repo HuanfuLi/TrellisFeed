@@ -12,6 +12,15 @@ const POOL_TABLES = [
   'content_pool_claims',
   'content_pool_suggestions',
   'content_pool_assets',
+  'content_pool_sources',
+  'content_pool_global_edges',
+  'content_pool_ranking_features',
+  'user_concept_states',
+  'graph_contributions',
+  'personal_graph_edges',
+  'extraction_jobs',
+  'recommendations',
+  'recommendation_batches',
 ];
 
 function makeLocalStorage() {
@@ -41,6 +50,22 @@ const clone = (value) => JSON.parse(JSON.stringify(value));
 
 function fixtureReader(mutator = () => {}) {
   const bundle = clone(fixture);
+  bundle.sources = [
+    { id: 'source-article', name: 'Example Journal', platform: 'article', url: 'https://example.com/article' },
+    { id: 'source-video', name: 'Example Channel', platform: 'youtube', url: 'https://www.youtube.com/watch?v=example' },
+  ];
+  bundle.globalEdges = [
+    { id: 'explains:post-article:concept-1', topicId: 'topic-1', type: 'explains', sourceId: 'post-article', targetId: 'concept-1' },
+    { id: 'mentions:post-video:concept-1', topicId: 'topic-1', type: 'mentions', sourceId: 'post-video', targetId: 'concept-1' },
+    { id: 'about:claim-1:concept-1', topicId: 'topic-1', type: 'about', sourceId: 'claim-1', targetId: 'concept-1' },
+  ];
+  bundle.rankingFeatures = {
+    embeddingFingerprint: null,
+    posts: [
+      { postId: 'post-article', topicId: 'topic-1', primaryConceptId: 'concept-1', sourceId: 'source-article', format: 'article', qualityScore: 0.9, educationalValueScore: 0.9, interestingnessScore: 0.8, difficulty: 0.3, viewpoint: 'neutral' },
+      { postId: 'post-video', topicId: 'topic-1', primaryConceptId: 'concept-1', sourceId: 'source-video', format: 'video', qualityScore: 0.8, educationalValueScore: 0.8, interestingnessScore: 0.9, difficulty: 0.4 },
+    ],
+  };
   for (const asset of bundle.sourceAssets) {
     asset.sha256 = sha256(asset.kind === 'article' ? asset.body : asset.digest);
   }
@@ -52,6 +77,9 @@ function fixtureReader(mutator = () => {}) {
     'claims.json': JSON.stringify(bundle.claims),
     'suggested_questions.json': JSON.stringify(bundle.suggestedQuestions),
     'source_assets.json': JSON.stringify(bundle.sourceAssets),
+    'sources.json': JSON.stringify(bundle.sources),
+    'global_edges.json': JSON.stringify(bundle.globalEdges),
+    'ranking_features.json': JSON.stringify(bundle.rankingFeatures),
   };
   for (const [filename, text] of Object.entries(artifacts)) {
     bundle.manifest.artifactHashes[filename] = sha256(text);
@@ -137,14 +165,15 @@ describe('bundled content pool import', () => {
     await indexedDbModule.clearAllTables();
   });
 
-  it('default loader reads the packaged immutable pool without network acquisition', async () => {
+  it('fails closed without network acquisition when the packaged pool predates graph artifacts', async () => {
     const originalFetch = globalThis.fetch;
     let fetchCalls = 0;
     globalThis.fetch = async () => { fetchCalls += 1; throw new Error('network forbidden'); };
     try {
-      const packaged = await bundleModule.loadBundledContentPool();
-      assert.equal(packaged.manifest.contentPoolVersion, 'pilot-v1-20260717');
-      assert.equal(packaged.posts.length, 77);
+      await assert.rejects(
+        bundleModule.loadBundledContentPool(),
+        (error) => error instanceof bundleModule.ContentPoolBundleError && error.code === 'POOL_INVALID',
+      );
       assert.equal(fetchCalls, 0);
     } finally {
       globalThis.fetch = originalFetch;
@@ -167,6 +196,9 @@ describe('bundled content pool import', () => {
     const meta = await indexedDbModule.dbQuery('SELECT * FROM content_pool_meta WHERE version = ?', ['v1']);
     assert.equal(meta[0].status, 'ready');
     assert.equal((await indexedDbModule.dbQuery('SELECT * FROM content_pool_posts WHERE version = ?', ['v1'])).length, 2);
+    assert.equal((await indexedDbModule.dbQuery('SELECT * FROM content_pool_sources WHERE version = ?', ['v1'])).length, 2);
+    assert.equal((await indexedDbModule.dbQuery('SELECT * FROM content_pool_global_edges WHERE version = ?', ['v1'])).length, 3);
+    assert.equal((await indexedDbModule.dbQuery('SELECT * FROM content_pool_ranking_features WHERE version = ?', ['v1'])).length, 2);
   });
 
   it('reuses an identical ready version without mutating it', async () => {
@@ -264,6 +296,25 @@ describe('bundled content pool import', () => {
       assert.equal((await indexedDbModule.dbQuery('SELECT * FROM content_pool_posts')).length, 0);
     });
   }
+
+  it('rejects a hash-valid graph with a dangling endpoint before marking it ready', async () => {
+    const repository = new repositoryModule.ContentPoolRepository({ reader: fixtureReader((bundle) => {
+      bundle.globalEdges.push({
+        id: 'related_to:concept-1:missing-concept',
+        topicId: 'topic-1',
+        type: 'related_to',
+        sourceId: 'concept-1',
+        targetId: 'missing-concept',
+      });
+    }) });
+
+    const snapshot = await repository.hydrate();
+    assert.equal(snapshot.status, 'error');
+    assert.equal(snapshot.errorCode, 'POOL_INVALID');
+    assert.equal(repository.getReadyVersion(), null);
+    const meta = await indexedDbModule.dbQuery('SELECT * FROM content_pool_meta WHERE version = ?', ['v1']);
+    assert.equal(meta[0].status, 'importing');
+  });
 
   it('fails closed when a ready stored version is corrupt instead of repairing it', async () => {
     const first = new repositoryModule.ContentPoolRepository({ reader: fixtureReader() });
