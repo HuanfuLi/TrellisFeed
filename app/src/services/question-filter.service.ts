@@ -34,10 +34,9 @@
 //
 // ─── Failure path (D-12) ─────────────────────────────────────────────────────
 //
-// embedding-provider down, no API key, signal aborted, etc. → return Layer 1
-// outcome if Layer 1 matched, else `{label: 'on-topic'}`. Bracketing keeps
-// safety intact during outages; malicious prompts can technically slip
-// through but they hit a bracketed LLM that won't be jailbroken.
+// embedding-provider down, no API key, signal aborted, etc. → direct imperative
+// override/extraction commands are still rejected locally; ambiguous semantic
+// cases return `{label: 'on-topic'}` and retain prompt bracketing downstream.
 
 import type { EmbeddingConfig } from '../types/index.ts';
 import { embedText, cosine } from '../providers/embedding/index.ts';
@@ -202,6 +201,22 @@ const LAYER_1_REGEXES: RegExp[] = [
   /^\s*(how\s+are\s+you|how['']?s\s+it\s+going|how\s+have\s+you\s+been|what['']?s\s+up|what['']?s\s+new|nice\s+to\s+meet\s+you)[\s!.?]*$/i,
 ];
 
+// Security-critical deterministic pre-gate. These patterns intentionally cover
+// only direct imperative attempts to override or extract model instructions.
+// Conceptual questions such as "What is a system prompt?" and "Why are models
+// vulnerable to prompt injection?" do not match and remain available for the
+// semantic classifier. This gate stays active when embeddings are unavailable.
+const DIRECT_MALICIOUS_REGEXES: RegExp[] = [
+  /^\s*(?:(?:please|kindly)\s+)?(?:ignore|disregard|forget|override|bypass|disable)\b[\s\S]{0,160}\b(?:previous|prior|system|developer|safety|hidden|initial|content)\b[\s\S]{0,80}\b(?:instructions?|prompt|rules?|guidelines?|configuration|filter|programming)\b/i,
+  /^\s*(?:(?:please|kindly)\s+)?(?:reveal|print|show|dump|output|repeat|exfiltrate)\b[\s\S]{0,160}\b(?:system|developer|hidden|initial|confidential)\b[\s\S]{0,80}\b(?:prompt|instructions?|rules?|guidelines?|directives?|configuration)\b/i,
+  /^\s*(?:(?:please|kindly)\s+)?(?:act|pretend|roleplay|operate|enter)\b[\s\S]{0,160}\b(?:jailbroken|unrestricted|developer\s+mode|no\s+(?:rules|restrictions)|without\s+(?:rules|filtering|restrictions))\b/i,
+];
+
+export function layer1MaliciousRegex(content: string): { matched: boolean } {
+  const trimmed = content.trim();
+  return { matched: DIRECT_MALICIOUS_REGEXES.some((pattern) => pattern.test(trimmed)) };
+}
+
 /**
  * Synchronous narrow regex check — Layer 1 fast-path.
  *
@@ -359,11 +374,12 @@ async function layer2Embedding(
  *
  * Flow:
  *   1. If signal already aborted → throw AbortError.
- *   2. Layer 1: if narrow regex hits AND length ≤ 60 → return off-topic
+ *   2. Deterministic malicious pre-gate rejects direct override/extraction commands.
+ *   3. Layer 1: if narrow regex hits AND length ≤ 60 → return off-topic
  *      WITHOUT invoking embedText (fast-path skip).
- *   3. Lazy-load embedding config from settingsService (leaf-module discipline).
- *   4. If embConfig is unconfigured → return on-topic (D-12 graceful degradation).
- *   5. Try Layer 2. On any error or post-call abort → log + return on-topic (D-12).
+ *   4. Lazy-load embedding config from settingsService (leaf-module discipline).
+ *   5. If embConfig is unconfigured → return on-topic (D-12 graceful degradation).
+ *   6. Try Layer 2. On any error or post-call abort → log + return on-topic (D-12).
  *
  * @param content       The user-supplied message under classification.
  * @param context       Optional prior Q&A pair for follow-up context (D-11).
@@ -380,6 +396,15 @@ export async function evaluateQuestion(
     throw new DOMException('Aborted', 'AbortError');
   }
 
+  // Direct prompt override/extraction attempts must fail closed before settings,
+  // embeddings, context, provider calls, or persistence are touched.
+  if (layer1MaliciousRegex(content).matched) {
+    return {
+      label: 'malicious',
+      bestMatch: { label: 'malicious', exemplar: 'deterministic-direct-command', score: 1 },
+    };
+  }
+
   // Layer 1 fast-path.
   const l1 = layer1Regex(content);
   if (l1.matched) {
@@ -393,7 +418,10 @@ export async function evaluateQuestion(
   // Phase 55 D-05/D-06: live debug knobs (or undefined → constants used).
   const embDebug = settings.embeddingDebug as EmbeddingDebugLike | undefined;
 
-  // D-12 — graceful degradation when embedding is unconfigured.
+  // D-12 — graceful degradation when embedding is unconfigured. Direct
+  // instruction-override/extraction commands are already rejected by the
+  // deterministic pre-gate above; only ambiguous semantic cases degrade to
+  // on-topic here.
   if (!embConfig.isConfigured) {
     return { label: 'on-topic' };
   }
