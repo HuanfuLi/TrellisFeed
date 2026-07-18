@@ -465,6 +465,7 @@
       "discoverContextLabel": "概念发现",
       "discoverHookPreview": "探索 {{concept}}…",
       "videoUnavailable": "视频不可用 — 正在显示已审核摘要",
+      "transcriptUnavailable": "字幕不可用 — 本应用仅存储已审核摘要。",
       "originalSource": "打开原始来源",
       "seenEnough": "已看够",
       "suggestedQuestions": "建议问题",

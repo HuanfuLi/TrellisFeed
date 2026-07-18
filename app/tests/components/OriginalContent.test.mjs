@@ -55,6 +55,7 @@ test('online video and offline reviewed digest fallback execute from the same st
     Object.defineProperty(globalThis, 'navigator', { value: { onLine: false }, configurable: true });
     const offline = renderToStaticMarkup(React.createElement(OriginalContent, props));
     assert.match(offline, /Video unavailable - showing reviewed summary/);
+    assert.match(offline, /Transcript unavailable — this app stores only the reviewed summary\./);
     assert.match(offline, /Reviewed frozen digest/);
     assert.match(offline, /Stored summary/);
     assert.doesNotMatch(offline, /<iframe/);
@@ -81,8 +82,11 @@ test('YouTube is the only embedded remote content and uses selected parameters',
 
 test('offline and player errors expose canonical reviewed digest fallback', () => {
   assert.match(source, /navigator\.onLine/);
+  assert.match(source, /@capacitor\/network/);
+  assert.match(source, /networkStatusChange/);
   assert.match(source, /asset\.digest/);
   assert.match(source, /Video unavailable - showing reviewed summary/);
+  assert.match(source, /Transcript unavailable — this app stores only the reviewed summary\./);
   assert.match(source, /100|101|150|153/);
 });
 

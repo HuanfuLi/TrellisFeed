@@ -7,6 +7,7 @@ export interface OriginalContentProps {
   post: Readonly<Post>;
   asset: Readonly<OriginalContentAsset>;
   fallbackNotice?: string;
+  transcriptUnavailableNotice?: string;
   sourceLinkLabel?: string;
   onSourceClick: (postId: string) => void;
   onVideoPlay: (postId: string) => void;
@@ -43,6 +44,7 @@ export function OriginalContent({
   post,
   asset,
   fallbackNotice = 'Video unavailable - showing reviewed summary',
+  transcriptUnavailableNotice = 'Transcript unavailable — this app stores only the reviewed summary.',
   sourceLinkLabel = 'Open original source',
   onSourceClick,
   onVideoPlay,
@@ -65,13 +67,33 @@ export function OriginalContent({
   const handleSourceClick = () => onSourceClick(post.id);
 
   useEffect(() => {
+    let disposed = false;
+    let nativeListener: { remove: () => Promise<void> } | undefined;
     const markOnline = () => setOnline(true);
     const markOffline = () => setOnline(false);
     window.addEventListener('online', markOnline);
     window.addEventListener('offline', markOffline);
+
+    // Android WebView can leave navigator.onLine=true in airplane mode and an
+    // iframe DNS failure does not reliably reach React's onError handler. The
+    // native Network plugin observes ConnectivityManager instead.
+    void import('@capacitor/network').then(async ({ Network }) => {
+      const status = await Network.getStatus();
+      if (!disposed) setOnline(status.connected);
+      const listener = await Network.addListener('networkStatusChange', ({ connected }) => {
+        if (!disposed) setOnline(connected);
+      });
+      if (disposed) await listener.remove();
+      else nativeListener = listener;
+    }).catch(() => {
+      // Browser tests and unsupported hosts retain the online/offline fallback.
+    });
+
     return () => {
+      disposed = true;
       window.removeEventListener('online', markOnline);
       window.removeEventListener('offline', markOffline);
+      void nativeListener?.remove();
     };
   }, []);
 
@@ -156,6 +178,7 @@ export function OriginalContent({
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <p role="status" style={{ margin: 0, padding: '8px 16px', borderRadius: 'var(--radius-xl)', background: 'var(--surface-variant)', fontSize: '14px', lineHeight: 1.5 }}>{fallbackNotice}</p>
+          <p style={{ margin: 0, fontSize: '14px', lineHeight: 1.5, color: 'var(--muted-foreground)' }}>{transcriptUnavailableNotice}</p>
           <p style={{ margin: 0, fontSize: '16px', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{asset.digest}</p>
           <p style={{ margin: 0, fontSize: '16px', lineHeight: 1.5, color: 'var(--muted-foreground)' }}>{post.longSummary ?? post.shortSummary}</p>
         </div>

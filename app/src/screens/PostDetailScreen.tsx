@@ -220,6 +220,7 @@ export function PostDetailScreen() {
           post={post}
           asset={detail.asset}
           fallbackNotice={t('posts.detail.videoUnavailable')}
+          transcriptUnavailableNotice={t('posts.detail.transcriptUnavailable')}
           sourceLinkLabel={t('posts.detail.originalSource')}
           onSourceClick={(postId) => { void interactionLog.record('source_click', { postId }).catch(() => { /* observational */ }); }}
           onVideoPlay={(postId) => { void interactionLog.record('video_play', { postId }).catch(() => { /* observational */ }); }}

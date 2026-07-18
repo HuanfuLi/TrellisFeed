@@ -35,7 +35,7 @@ test('typed and suggested input share the same Ask handler', () => {
 
 test('all visible frozen-feed chrome uses locale keys', () => {
   for (const key of [
-    'posts.detail.videoUnavailable', 'posts.detail.originalSource',
+    'posts.detail.videoUnavailable', 'posts.detail.transcriptUnavailable', 'posts.detail.originalSource',
     'posts.detail.seenEnough', 'posts.detail.suggestedQuestions',
   ]) {
     assert.match(detail, new RegExp(key.replaceAll('.', '\\.')));

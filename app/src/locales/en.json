@@ -465,6 +465,7 @@
       "discoverContextLabel": "Concept Discovery",
       "discoverHookPreview": "Exploring {{concept}}...",
       "videoUnavailable": "Video unavailable - showing reviewed summary",
+      "transcriptUnavailable": "Transcript unavailable — this app stores only the reviewed summary.",
       "originalSource": "Open original source",
       "seenEnough": "Seen enough",
       "suggestedQuestions": "Suggested questions",

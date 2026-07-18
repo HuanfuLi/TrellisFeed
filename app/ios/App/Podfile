@@ -13,6 +13,7 @@ def capacitor_pods
   pod 'CapacitorCommunitySqlite', :path => '../../node_modules/@capacitor-community/sqlite'
   pod 'CapacitorApp', :path => '../../node_modules/@capacitor/app'
   pod 'CapacitorHaptics', :path => '../../node_modules/@capacitor/haptics'
+  pod 'CapacitorNetwork', :path => '../../node_modules/@capacitor/network'
 end
 
 target 'App' do

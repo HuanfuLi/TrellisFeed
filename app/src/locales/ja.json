@@ -465,6 +465,7 @@
       "discoverContextLabel": "概念の発見",
       "discoverHookPreview": "{{concept}} を探索中…",
       "videoUnavailable": "動画を利用できません — 確認済みの要約を表示しています",
+      "transcriptUnavailable": "文字起こしは利用できません — このアプリには確認済みの要約のみが保存されています。",
       "originalSource": "元のソースを開く",
       "seenEnough": "十分に見た",
       "suggestedQuestions": "おすすめの質問",
