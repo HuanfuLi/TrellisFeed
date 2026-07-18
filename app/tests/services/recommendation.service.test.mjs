@@ -437,6 +437,21 @@ describe('recommendation reason generation and structural traces', () => {
     assert.ok(items.every((item) => !Object.hasOwn(item, 'contributingQuestionIds')));
   });
 
+  it('falls back to deterministic reasons when the reason config is unavailable', async () => {
+    const { RecommendationService } = await import('../../src/services/recommendation.service.ts');
+    const harness = makeServiceHarness({ condition: 'experimental' });
+    harness.dependencies.getReasonConfig = () => { throw new Error('LLM is not configured'); };
+    const service = new RecommendationService(harness.dependencies);
+
+    const batchResult = await service.beginSession('reason-config-missing-session');
+    const items = await batchRecommendations(batchResult);
+
+    assert.equal(batchResult.data.status, 'ready', 'batch must not stay stuck in building');
+    assert.equal(harness.reasonCalls.length, 0);
+    assert.ok(items.length > 0);
+    assert.ok(items.every((item) => typeof item.reasonText === 'string' && item.reasonText.length > 0));
+  });
+
   it('retries invalid reason items once and persists valid deterministic fallbacks', async () => {
     const { REASON_MAX_CODE_POINTS, RecommendationService } = await import('../../src/services/recommendation.service.ts');
     const invalidByIndex = [

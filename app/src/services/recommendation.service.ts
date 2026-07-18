@@ -484,9 +484,16 @@ export class RecommendationService {
     const reasons = new Map<string, string>();
     if (selected.length === 0) return reasons;
 
-    const config = this.dependencies.getReasonConfig();
+    // An unconfigured/consent-revoked LLM must degrade to the deterministic
+    // fallback below, not strand the batch in 'building' with an uncaught throw.
+    let config: LLMConfig | null = null;
+    try {
+      config = this.dependencies.getReasonConfig();
+    } catch {
+      config = null;
+    }
     let pending = [...selected];
-    for (let attempt = 0; attempt < 2 && pending.length > 0; attempt += 1) {
+    for (let attempt = 0; config !== null && attempt < 2 && pending.length > 0; attempt += 1) {
       const requestedIds = new Set(pending.map((item) => item.postId));
       let parsed = new Map<string, string>();
       try {
