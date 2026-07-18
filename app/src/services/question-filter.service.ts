@@ -217,7 +217,11 @@ const OVERRIDE_VERB = /\b(?:ignor(?:e|ed|ing)|disregard(?:ed|ing)?|forget|overri
 const INSTRUCTION_TARGET = /\b(?:your|the|all|any|previous|prior|above|earlier|system|developer|hidden|initial|safety|content)\s+(?:instructions?|prompts?|rules?|guidelines?|polic(?:y|ies)|directives?|restrictions?|safeguards?|filters?|programming)\b|\beverything\s+(?:you(?:'ve|\s+have)?\s+)?(?:were\s+)?told\b/i;
 const EXTRACTION_VERB = /\b(?:reveal|print|show|dump|output|repeat|exfiltrate|leak|expose|return|quote)\b/i;
 const HIDDEN_TARGET = /\b(?:system|developer|hidden|initial|confidential|secret|internal|original)\s+(?:prompts?|instructions?|rules?|guidelines?|directives?|configuration|messages?)\b/i;
-const UNRESTRICTED_TARGET = /\b(?:jailbroken|developer\s+mode|unrestricted|without\s+(?:any\s+)?(?:rules?|filters?|filtering|restrictions?|safeguards?)|no\s+(?:rules?|filters?|restrictions?|safeguards?))\b/i;
+const POSSESSIVE_PROMPT_TARGET = /\b(?:your|the)\s+(?:(?:system|developer|hidden|internal)\s+)?prompts?\b/i;
+// Keep this deliberately security-specific. Phrases such as "without
+// restrictions on length" or "without filtering out counterarguments" are
+// legitimate post-scoped requests and must remain available to participants.
+const UNRESTRICTED_TARGET = /\b(?:jailbroken|developer\s+mode|unrestricted\s+(?:model|mode|assistant)|without\s+(?:any\s+)?(?:rules?|safeguards?|safety\s+restrictions?|content\s+filters?)|no\s+(?:rules?|safeguards?|safety\s+restrictions?|content\s+filters?))\b/i;
 const ROLEPLAY_VERB = /\b(?:act|pretend|roleplay|operate|enter|respond|answer)\b/i;
 
 // These narrow exclusions protect genuine discussion of prompt-security ideas.
@@ -247,7 +251,8 @@ export function layer1MaliciousRegex(content: string): { matched: boolean } {
   const beginsAsCommand = direct.length > 0 || OVERRIDE_VERB.test(normalized.slice(0, 48))
     || EXTRACTION_VERB.test(normalized.slice(0, 48)) || ROLEPLAY_VERB.test(normalized.slice(0, 48));
   const override = beginsAsCommand && OVERRIDE_VERB.test(normalized) && INSTRUCTION_TARGET.test(normalized);
-  const extraction = beginsAsCommand && EXTRACTION_VERB.test(normalized) && HIDDEN_TARGET.test(normalized);
+  const extraction = beginsAsCommand && EXTRACTION_VERB.test(normalized)
+    && (HIDDEN_TARGET.test(normalized) || POSSESSIVE_PROMPT_TARGET.test(normalized));
   const unrestricted = beginsAsCommand && ROLEPLAY_VERB.test(normalized) && UNRESTRICTED_TARGET.test(normalized);
   return { matched: override || extraction || unrestricted };
 }

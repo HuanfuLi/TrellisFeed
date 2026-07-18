@@ -1,17 +1,24 @@
 export class AskInFlightGate {
-  private active = false;
+  private activeToken: symbol | null = null;
 
-  tryStart(): boolean {
-    if (this.active) return false;
-    this.active = true;
+  tryStart(): symbol | null {
+    if (this.activeToken) return null;
+    const token = Symbol('ask-in-flight');
+    this.activeToken = token;
+    return token;
+  }
+
+  finish(token: symbol): boolean {
+    if (this.activeToken !== token) return false;
+    this.activeToken = null;
     return true;
   }
 
-  finish(): void {
-    this.active = false;
+  reset(): void {
+    this.activeToken = null;
   }
 
   isActive(): boolean {
-    return this.active;
+    return this.activeToken !== null;
   }
 }

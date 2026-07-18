@@ -50,7 +50,7 @@ export function PostDetailScreen() {
     const generation = ++routeGenerationRef.current;
     askAbortRef.current?.abort();
     askAbortRef.current = null;
-    askGate.finish();
+    askGate.reset();
     setIsAsking(false);
     setQaStreaming('');
     setMessages([]);
@@ -95,7 +95,7 @@ export function PostDetailScreen() {
       routeGenerationRef.current += 1;
       askAbortRef.current?.abort();
       askAbortRef.current = null;
-      askGate.finish();
+      askGate.reset();
     };
   }, [id]);
 
@@ -154,7 +154,9 @@ export function PostDetailScreen() {
     source: 'typed' | 'suggested_question' = 'typed',
     suggestedQuestionId?: string,
   ) => {
-    if (!post || !text.trim() || !askGateRef.current.tryStart()) return;
+    if (!post || !text.trim()) return;
+    const askToken = askGateRef.current.tryStart();
+    if (!askToken) return;
     const generation = routeGenerationRef.current;
     const controller = new AbortController();
     askAbortRef.current = controller;
@@ -198,7 +200,7 @@ export function PostDetailScreen() {
         toast(error instanceof Error ? error.message : t('posts.qa.askFailed'), 'error');
       }
     } finally {
-      askGateRef.current.finish();
+      askGateRef.current.finish(askToken);
       if (askAbortRef.current === controller) askAbortRef.current = null;
       if (routeGenerationRef.current === generation) {
         setQaStreaming('');
