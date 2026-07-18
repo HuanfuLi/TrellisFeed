@@ -75,6 +75,16 @@ beforeEach(async () => {
   await dbExecute('DELETE FROM research_records');
 });
 
+test('video_progress contributes interest only at 30s+ watch positions, never on early ticks', async () => {
+  const early = await graphMemoryService.applyEvent(event('vp-1', 'video_progress', ['concept-1'], { durationMs: 5_000 }));
+  assert.equal(early.success, true);
+  assert.equal((await contributions()).length, 0, 'an early live marker (5s position in ms) must not count as watched');
+
+  const watched = await graphMemoryService.applyEvent(event('vp-2', 'video_progress', ['concept-1'], { durationMs: 45_000 }));
+  assert.equal(watched.success, true);
+  assert.deepEqual((await contributions()).map((row) => row.id), ['vp-2:concept-1:video_progress']);
+});
+
 test('post_open writes durable per-concept contributions and field-exact states', async () => {
   const updated = [];
   const unsubscribe = eventBus.subscribe('GRAPH_UPDATED', (message) => updated.push(message));

@@ -8,7 +8,11 @@ import type { ServiceResult, UserInteractionEvent } from '../types/index.ts';
 import { dbExecute, dbQuery, type Row } from './db.service.ts';
 import { globalGraphRepository } from './global-graph.repository.ts';
 
-export const VIDEO_PROGRESS_THRESHOLD = 0.5;
+// video_progress events carry the watch POSITION in milliseconds (`durationMs`),
+// never a 0–1 fraction — the wire allowlist rejects a `payload` field, and frozen
+// YouTube records may omit total duration, so a watched fraction is not computable
+// here. Gate interest on ≥30s watched, matching the PostDetail 30s dwell detector.
+export const VIDEO_PROGRESS_MIN_WATCH_MS = 30_000;
 
 export const GRAPH_MEMORY_RULES = {
   feed_impression: { interest: 0.05, counts: { exposureCount: 1 } },
@@ -49,7 +53,6 @@ interface ResearchRecordRow extends Row {
 
 interface EventPayload {
   conceptIds?: unknown;
-  progress?: unknown;
   followedEcho?: unknown;
   questionType?: unknown;
 }
@@ -95,10 +98,7 @@ function uniqueStrings(value: unknown): string[] {
 
 function contributionRule(event: EventWithPayload): GraphMemoryRule | null {
   if (event.eventType === 'video_progress') {
-    const progress = typeof event.payload?.progress === 'number'
-      ? event.payload.progress
-      : event.durationMs;
-    return typeof progress === 'number' && progress > VIDEO_PROGRESS_THRESHOLD
+    return typeof event.durationMs === 'number' && event.durationMs >= VIDEO_PROGRESS_MIN_WATCH_MS
       ? 'video_progress'
       : null;
   }
