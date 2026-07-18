@@ -384,12 +384,6 @@ class GraphMemoryService {
           createdAt: question.createdAt,
         });
       }
-      if (conceptIds.length > 0 || claimIds.length > 0) {
-        eventBus.emit({
-          type: 'GRAPH_UPDATED',
-          payload: { kind: 'interaction', affectedIds: [...conceptIds, ...claimIds].sort() },
-        });
-      }
       return success(conceptIds);
     } catch {
       return failure('Question extraction could not be applied to graph memory.');
