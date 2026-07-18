@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "source.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "name", "platform", "url"],
+  "properties": {
+    "id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "name": {"type": "string", "minLength": 1, "maxLength": 200},
+    "platform": {"enum": ["youtube", "article", "blog", "newsletter", "x", "reddit", "news", "other"]},
+    "url": {"type": "string", "format": "uri", "pattern": "^https://", "maxLength": 2048}
+  }
+}

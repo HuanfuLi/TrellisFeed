@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "global-edge.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "topicId", "type", "sourceId", "targetId"],
+  "properties": {
+    "id": {"type": "string", "minLength": 1, "maxLength": 512},
+    "topicId": {"type": "string", "minLength": 1, "maxLength": 128},
+    "type": {"enum": ["explains", "mentions", "supports", "challenges", "about", "contrasts_with", "related_to", "prerequisite_of", "targets"]},
+    "sourceId": {"type": "string", "minLength": 1, "maxLength": 128},
+    "targetId": {"type": "string", "minLength": 1, "maxLength": 128}
+  }
+}
