@@ -40,6 +40,17 @@ export function handleVideoStateChange(state: number): 'play' | 'other' {
   return state === 1 ? 'play' : 'other';
 }
 
+export function videoProgressMarkers(currentSeconds: number, durationSeconds?: number): string[] {
+  if (!Number.isFinite(currentSeconds) || currentSeconds <= 0) return [];
+  if (durationSeconds && durationSeconds > 0) {
+    const ratio = currentSeconds / durationSeconds;
+    return [25, 50, 75].filter((marker) => ratio >= marker / 100).map((marker) => `ratio:${marker}`);
+  }
+  // Frozen YouTube records may intentionally omit duration. Emit bounded,
+  // low-frequency elapsed-time milestones so progress remains observable.
+  return [5, 15, 30, 60].filter((marker) => currentSeconds >= marker).map((marker) => `elapsed:${marker}`);
+}
+
 export function OriginalContent({
   post,
   asset,
@@ -52,7 +63,7 @@ export function OriginalContent({
 }: OriginalContentProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const playedRef = useRef(false);
-  const progressRef = useRef(new Set<number>());
+  const progressRef = useRef(new Set<string>());
   const currentSecondsRef = useRef(0);
   const [online, setOnline] = useState(() => typeof navigator === 'undefined' || navigator.onLine);
   const [playerFailed, setPlayerFailed] = useState(false);
@@ -129,12 +140,11 @@ export function OriginalContent({
   }, [onVideoPlay, post.id, status]);
 
   useEffect(() => {
-    if (!playing || !post.durationSeconds) return;
+    if (!playing) return;
     const interval = window.setInterval(() => {
       iframeRef.current?.contentWindow?.postMessage(JSON.stringify({ event: 'command', func: 'getCurrentTime', args: [] }), 'https://www.youtube.com');
-      const ratio = currentSecondsRef.current / post.durationSeconds!;
-      for (const marker of [25, 50, 75]) {
-        if (ratio >= marker / 100 && !progressRef.current.has(marker)) {
+      for (const marker of videoProgressMarkers(currentSecondsRef.current, post.durationSeconds)) {
+        if (!progressRef.current.has(marker)) {
           progressRef.current.add(marker);
           onVideoProgress(post.id, Math.round(currentSecondsRef.current * 1000));
         }

@@ -37,7 +37,7 @@ test('online video and offline reviewed digest fallback execute from the same st
   const server = await createServer({ server: { middlewareMode: true }, appType: 'custom', logLevel: 'silent' });
   const priorNavigator = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
   try {
-    const { OriginalContent } = await server.ssrLoadModule('/src/components/OriginalContent.tsx');
+    const { OriginalContent, videoProgressMarkers } = await server.ssrLoadModule('/src/components/OriginalContent.tsx');
     const post = {
       id: 'video-1', topicId: 'topic-1', sourceUrl: 'https://www.youtube.com/watch?v=abc123', sourcePlatform: 'youtube',
       sourceName: 'Example channel', originalTitle: 'Original', displayTitle: 'Display', hook: 'Hook', shortSummary: 'Summary',
@@ -59,6 +59,8 @@ test('online video and offline reviewed digest fallback execute from the same st
     assert.match(offline, /Reviewed frozen digest/);
     assert.match(offline, /Stored summary/);
     assert.doesNotMatch(offline, /<iframe/);
+    assert.deepEqual(videoProgressMarkers(16), ['elapsed:5', 'elapsed:15']);
+    assert.deepEqual(videoProgressMarkers(50, 100), ['ratio:25', 'ratio:50']);
   } finally {
     if (priorNavigator) Object.defineProperty(globalThis, 'navigator', priorNavigator);
     else delete globalThis.navigator;
