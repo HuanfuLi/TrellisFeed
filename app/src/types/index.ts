@@ -302,7 +302,7 @@ export type AppEvent =
   | {
       type: 'GRAPH_UPDATED';
       payload?: {
-        kind?: 'classification';
+        kind?: 'classification' | 'interaction' | 'extraction';
         anchorId?: string;
         affectedIds?: string[];
       };
