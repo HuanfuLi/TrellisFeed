@@ -201,14 +201,13 @@ Kept services:
 - `question-filter.service`
 - `filter-corpus.service`
 - `post-history.service`
-- `post-queue.service`
 - `daily-read.service`
 - `settings.service`
 - event bus
 - i18n bundles
-- `imageGeneration.*`
 - `engagement.service`
-- `session.service` for post-context Q&A
+- `content-pool.repository` / `frozen-feed.service`
+- `post-qa.service` for canonical post-context Q&A
 
 Removed DB tables / legacy heavy-store paths:
 
@@ -219,20 +218,23 @@ Removed DB tables / legacy heavy-store paths:
 - video cache
 - news posts
 
-`sessions` stayed because PostDetail Q&A uses it. `reviewSchedule` fields stayed on questions because they are persisted historical shape, but the feed no longer consumes them.
+The generated daily/derived/queue feed, generated presentation styles, on-open
+essay/image generation, generated session context, and their tests were removed
+atomically in Phase 2 after every caller moved to `frozen-feed.service`. The
+legacy `sessions` table may remain as inert storage schema, but participant Q&A
+uses canonical `UserQuestion`/`AIAnswer` rows. `reviewSchedule` fields stayed on
+questions because they are persisted historical shape, but the feed does not
+consume them.
 
 ## Settings / Onboarding / Locale Cleanup
 
 Settings now keeps:
 
 - LLM provider keys
-- fast generation model
 - embedding provider keys/debug thresholds
-- image generation keys/cache
 - theme
 - locale
 - privacy/data management
-- post retention/generation caps
 
 Settings copy in `en`, `zh`, `es`, and `ja` was updated for active screens so it no longer advertises YouTube, web search, TTS, podcast, review, planner, or token analytics. Large unused namespaces were left in place when not on active UI paths to avoid churn and preserve bundle parity.
 
@@ -265,21 +267,18 @@ Deleted tests for removed features:
 - token usage
 - scheduler/native notification related paths
 
-Updated surviving guard tests:
-
-- style assignment tests now use `image`, `text-art`, `suggestion`
-- post essay tests now cover standard/text-art generators only
-- queue/spread tests use surviving styles
-- SavedScreen/LongPressMenu tests cover plain save/like/history only
-- privacy tests cover surviving engagement data and LLM providers
-- PostDetail concept route tests now assert removed graph routes are not used
+Updated surviving guard tests cover the deterministic packaged pool, immutable-ID
+engagement/history, frozen feed/detail/suggestions, condition-neutral canonical
+Ask, load-bearing navigation/layout, and absence of generator/pipeline/live-content
+acquisition paths. Obsolete generator, queue, spread, image, essay, carousel, and
+generated-session tests were deleted with their production owners.
 
 ## Judgment Calls
 
-- Kept `session.service` and the `sessions` store because PostDetail post-context Q&A still needs durable threaded sessions.
+- Replaced `session.service` with canonical same-post `UserQuestion`/`AIAnswer` hydration; complete threads survive restart without generated post snapshots.
 - Kept raw review schedule fields on `Question` to avoid persistence-shape breakage, but stopped using them for the feed.
 - Kept `GRAPH_UPDATED` and anchor/cluster model fields because question classification and canonical anchoring still use them.
-- Kept `daily-read.service` because the concept feed still uses explored-anchor lazy skipping and PostDetail still emits exploration signals.
+- Kept the small `daily-read.service` exploration tracker because PostDetail still emits the study's scroll/dwell/Q&A exploration signals; all generated-feed quota/walker helpers were removed.
 - Kept unused locale namespaces rather than deleting large sections, because unused keys are harmless and parity risk was not worth the churn in this prune pass.
 - Kept a minimal `/settings/features` route because the requested surviving route list includes it, but removed deleted feature controls from the screen.
 

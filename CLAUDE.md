@@ -27,7 +27,7 @@ QuestionTrace is a mobile field-study system: participants browse a **curated po
 2. **Both study conditions get "Ask about this post."** The ONLY isolated variable is graph-memory feed orchestration (§6.6). Never gate Q&A features by condition.
 3. **The control ranker must never consume user question history** (§11.7). Unit tests must enforce this once the rankers exist (§12.3).
 4. **Framing language** (§22): "post-centered graph-memory feed orchestration", not "AI learning feed"; "contextual post-level Q&A as learner trace collection", not "AI tutor"; "latent learner memory graph", not "mind map".
-5. **Transitional state:** the current home feed still generates AI posts (styles `image` / `text-art` / `suggestion`, weights 0.15/0.75/0.10 in `style-assignment.ts`) as a temporary shell. It gets replaced by the frozen content pool in Phases 2–3 — don't invest in polishing it, and don't build new features on top of it.
+5. **Frozen-content boundary:** Phase 2 retired the generated feed. Primary content comes only from the packaged immutable pool through `frozenFeedService`; never recreate a daily/derived/queue generator path or live article acquisition.
 
 ## Style Conventions
 
@@ -73,7 +73,7 @@ Phase 55 (pre-fork) moved every heavy store to IndexedDB. Legacy keys listed in 
 ### Rules
 
 1. **All question mutations go through `questionService`.** Use `insertNode()` for new anchor/cluster nodes and `replaceAll()` for bulk rebuilds — both write through to IndexedDB. Never write `trellis_questions` directly. `canonical-knowledge.service.ts` must not name that key at all; `tests/services/anchor-persistence.test.mjs` enforces this.
-2. **Generated post bodies are costly assets.** `patchPostEssayInCache` persists via `conceptFeedService.patchPost` + `postHistoryService.patchPost` — both, unconditionally. Post-history is the only durable full-content store and keeps a body openable from `/saved` and history after the midnight daily-cache rejection.
+2. **Frozen post bodies are immutable assets.** `contentPoolRepository` imports a checksum-verified packaged version behind an importing→ready barrier. Engagement and post history persist IDs/metadata only; never copy or patch frozen bodies in mutable stores.
 3. **`LocalStorageBackend` and `IndexedDBBackend` must implement the same SQL subset.** They are the last-resort fallback and the real backend; a statement one handles and the other silently ignores is a live data bug.
 
 ### Testing this area
@@ -82,61 +82,28 @@ The Node suite is a **false-green risk here** — much of it reads source text r
 
 ---
 
-## Concept Feed Generation Pipeline (load-bearing — read before touching `concept-feed.service.ts` or `post-queue.service.ts`)
+## Frozen feed boundary (load-bearing)
 
-> Transitional subsystem: serves AI-generated placeholder posts until the frozen content pool replaces it (Phases 2–3). Its invariants still apply while it lives.
+`app/scripts/package-content-pool.mjs` verifies `data/content_pool_v1` and generates
+the exact static runtime projection before every build. `content-pool-bundle.ts`
+reads that projection in-process; `contentPoolRepository` exposes it only after
+whole-bundle validation and durable ready-state import; `frozenFeedService` is the
+only participant-facing post selector and the Phase 3 ranking insertion seam.
 
-The home feed is driven by THREE LISTS in a strict pipeline. **Do not invent a fourth, do not collapse two into one, do not bypass any step.**
+Rules:
 
-```
-1. DAILY CONCEPT LIST  — anchor nodes (q.isAnchorNode === true). Post-prune: ALL
-                          unexplored anchors are eligible (SM-2 due-date filtering
-                          removed with the SRS system).
-            │ derived from
-            ▼
-2. DERIVED LIST  — per concept: assign post style AND multiplicity. APPEND-ONLY
-                   when new questions arrive (rebuild loses cycle position).
-                   postQueueService.appendToDerivedList(ids[]) — dedups by
-                   conceptId. Removal: on read (CONCEPT_EXPLORED →
-                   dailyReadService.getExploredAnchors()); the walker
-                   (walkDerivedList) LAZILY skips explored ids at walk time;
-                   physical splice would corrupt cyclePosition.
-            │ feeds
-            ▼
-3. QUEUE  — cyclic walker over the derived list, maintains CYCLE POSITION.
-            Swipe-for-more pops → walker advances → refills. Empty derived list
-            (all read) → "No more posts" state is correct, not an error.
-```
+1. Never import `tools/content_pipeline` from `app/src` or fetch primary article,
+   search, or thumbnail content at runtime.
+2. Never mutate `data/content_pool_v1` in place. Corrections create a new version
+   and regenerate the projection.
+3. Articles render inert stored text. The selected YouTube iframe/source click is
+   the only remote original-content surface and must retain frozen fallback copy.
+4. Home and Settings remain always-mounted slots. Re-read facade state on route
+   return or engagement events; do not add a generator/refill event.
+5. Post-scoped Ask may use only the current frozen post. Study condition and prior
+   question history must not change its filter, prompt, provider, model, or answer.
 
-### Numeric defaults
-
-- `MAX_QUEUE_SIZE` = **32**, `REFILL_THRESHOLD` = **24** (`post-queue.service.ts`), paired with `walkDerivedList(24, ...)` in `concept-feed.service.ts`.
-- Posts served per swipe-for-more: **8** (`loadNextBatch` default `limit = 8`, `generateMorePosts` default `count = 8`).
-- Refill mutex: `createPromiseMutex()` (`refill-mutex.ts`) wraps `refillQueue`'s body; in-flight callers await the same Promise; `try/finally` clears the in-flight reference on success AND error. Tests at `tests/services/refill-mutex.test.mjs`.
-- Style weights: `style-assignment.ts` — `image` 0.15, `text-art` 0.75, `suggestion` 0.10; stratified largest-remainder + Fisher–Yates sampling (±1 of `round(N×weight)` per style).
-- Walker termination guard: `maxSteps = Math.max(count * 2, len)`. **Do not regress to `len * 2`** (Phase 36 GAP-B bug). Tests at `derived-list.test.mjs` + `refill-queue-integration.test.mjs`.
-- Yesterday-queue snapshot in IndexedDB under `SQLITE_ROW_ID_YESTERDAY`; new-day rehydration re-populates today's queue from yesterday's UNSERVED posts, then `spreadByConcept` BEFORE `spreadByStyle` (`feed-spread.ts`). `loadCache()` returns `null` on date mismatch so yesterday's SERVED posts don't render across midnight.
-- **Always-mounted screens must explicitly re-read service state on navigation.** Home and Settings are always-mounted slots in `SwipeTabContainer`; `useState(() => svc.get())` initializers fire once at boot. Any screen reading state that can change while backgrounded MUST re-read in a `location.pathname` effect — HomeScreen.tsx has the canonical pattern. Related: a dev affordance simulating a wall-clock event (Force-New-Day) must call every service `reset()` AND mutate every date-stamped storage key.
-
-### When in doubt
-
-Derived list is **append-only** (grows on new question, shrinks on read). Queue is **cyclic** over that list. Implement what the design says.
-
----
-
-## Feed cold start — an empty feed is not an error (load-bearing)
-
-`getDailyPosts()` returns `[]` on a cold start **by design**: refill runs in the background and can take minutes against a local endpoint. `refillQueue` emits **`FEED_REFILL_COMPLETED`** `{ added, error? }` exactly once per cycle that actually runs.
-
-### Rules
-
-1. **Never treat an empty `getDailyPosts()` result as an error.** Stay in the loading state; `FEED_REFILL_COMPLETED` decides.
-2. **Emit from inside the mutex body, in a `finally`** — covers the "nothing to do" early returns; emitting outside the mutex fires once per concurrent caller.
-3. **`attempted > 0 && generated === 0` is the only signal of a broken API key.** `attempted === 0` is a normal empty state.
-4. **The HomeScreen subscriber must no-op when the feed already has posts** (else: infinite refill loop).
-5. No timer-based recovery. The event is the signal.
-
-Tests: `tests/screens/HomeScreen.empty-questions-no-error.test.mjs`.
+Guard: `app/tests/phase2/frozen-cutover.test.mjs`.
 
 ---
 

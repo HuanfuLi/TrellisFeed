@@ -381,12 +381,9 @@ Example for a post about AI agents:
 - How does this relate to tool use?
 - What would this mean for entry-level workers?
 
-Experimental condition may personalize one or two suggestions:
-
-- You previously asked about reliability. What reliability risk appears in this post?
-- You watched a pro-agent example yesterday. How does this post challenge that view?
-
-Control condition should receive only generic post-based questions.
+Both conditions receive the same frozen, generic post-based questions. Question
+history does not alter suggested questions or contextual-answer behavior; the
+experimental manipulation is confined to later feed orchestration.
 
 ### 7.6 Ask about this post
 
@@ -582,11 +579,10 @@ Review result fields:
 
 - approved / rejected / needs edit;
 - reviewer notes;
-- quality score;
-- interestingness score;
-- educational value score;
-- final difficulty score;
-- final topic tags.
+
+The local review page intentionally keeps this decision surface minimal. Model-
+generated scores, tags, provenance, and source evidence remain visible audit
+context, but the operator does not re-enter them for every candidate.
 
 ### 8.8 Content pool freezing
 
@@ -615,6 +611,16 @@ The manifest should include:
 - number approved;
 - number rejected;
 - review procedure summary.
+
+The shipped pilot artifact is `data/content_pool_v1`, version
+`pilot-v1-20260717`, with 77 operator-approved posts. `app/scripts/package-content-pool.mjs`
+revalidates its fixed inventory, hashes, counts, and references before every
+production build. It generates `app/src/generated/content-pool-v1/` for a static
+in-process reader and `app/public/content-pool-v1/` for byte-verifiable Capacitor
+web assets. Runtime content reads go only through `content-pool-bundle.ts` →
+`content-pool.repository.ts` → `frozen-feed.service.ts`; articles are never fetched
+from their source URL. The only remote original renderer is the selected YouTube
+iframe, with the frozen digest as fallback.
 
 ---
 
@@ -1418,6 +1424,21 @@ Remove/freeze for first paper:
 
 ### 15.4 Recommended repository structure
 
+The Phase 2 implementation uses the existing repository layout rather than the
+illustrative structure below. Its shipped boundaries are:
+
+```text
+app/src/generated/content-pool-v1/   # generated immutable projection
+app/src/data/content-pool-bundle.ts  # fixed-name static reader + validation
+app/src/services/content-pool.repository.ts
+app/src/services/frozen-feed.service.ts
+app/src/services/post-qa.service.ts  # condition-neutral current-post Ask
+tools/content_pipeline/              # operator-only; never bundled
+data/content_pool_v1/                # immutable source artifact
+```
+
+The following tree remains a conceptual recommendation for later modules:
+
 ```text
 src/
   app/
@@ -1590,7 +1611,7 @@ Input:
 - Topic:
 - Source URL:
 - Title:
-- Transcript or article text:
+- Complete article text, or fixed public YouTube URL plus derived video digest:
 
 Tasks:
 1. Write a faithful 1-sentence hook that makes the content interesting without exaggeration.
@@ -1647,7 +1668,7 @@ Output JSON only.
 You are an AI assistant inside a research app. The user is asking about a specific post.
 
 Rules:
-- Answer only in the context of the current post, the selected study topic, and approved content pool.
+- Answer only from the current approved post's bounded grounding material.
 - Do not become a general-purpose homework assistant.
 - If the user asks something unrelated, gently redirect them to the post/topic.
 - Be concise but useful.
@@ -1659,8 +1680,7 @@ Input:
 - Current post:
 - Post summary:
 - User question:
-- Relevant approved content snippets:
-- User prior question traces, if experimental condition:
+- Current-post approved content blocks:
 
 Answer:
 ```

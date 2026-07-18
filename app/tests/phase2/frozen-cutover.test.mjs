@@ -82,6 +82,52 @@ test('generated-feed shell is absent and participant content has no acquisition 
   assert.doesNotMatch(contentBoundary, /thumbnailUrl\s*\?\?|live article|content endpoint/i);
 });
 
+test('D-01 through D-12 and all Phase 2 requirements have shipped artifact evidence', () => {
+  const manifest = JSON.parse(readFileSync(join(poolRoot, 'manifest.json'), 'utf8'));
+  const topics = JSON.parse(readFileSync(join(poolRoot, 'topics.json'), 'utf8'));
+  const posts = JSON.parse(readFileSync(join(poolRoot, 'posts.json'), 'utf8'));
+  const assets = JSON.parse(readFileSync(join(poolRoot, 'source_assets.json'), 'utf8'));
+  const index = readFileSync(join(appRoot, 'src/generated/content-pool-v1/index.ts'), 'utf8');
+
+  // D-01–D-04: pilot topic, real-source mix, evergreen freeze, and the
+  // operator-authorized 82-candidate/77-approved calibration are explicit.
+  assert.deepEqual(topics.map((topic) => topic.id), ['ai-agents-future-work']);
+  assert.equal(posts.some((post) => post.sourcePlatform === 'youtube'), true);
+  assert.equal(posts.some((post) => post.sourcePlatform !== 'youtube'), true);
+  assert.equal(posts.every((post) => post.status === 'frozen'), true);
+  assert.deepEqual([manifest.rawCandidateCount, manifest.approvedCount], [82, 77]);
+
+  // D-05–D-08: every canonical post has an embedded reviewed original; text is
+  // complete stored body, video is fixed URL/ID + digest only, and the exact
+  // pool version is compiled and copied into install-time assets.
+  assert.equal(assets.length, posts.length);
+  assert.equal(assets.filter((asset) => asset.kind === 'article').every((asset) => asset.body?.length >= 150), true);
+  assert.equal(assets.filter((asset) => asset.kind === 'video').every((asset) => asset.videoId && asset.digest && !('body' in asset)), true);
+  assert.equal(assets.every((asset) => !('transcript' in asset) && !('audio' in asset)), true);
+  assert.match(index, /pilot-v1-20260717/);
+
+  // D-09–D-12: immutable collector/preprocessor provenance and both review
+  // gates are auditable, while the local review implementation stays outside
+  // the participant bundle.
+  assert.equal(manifest.collectorVersions.length > 0, true);
+  assert.equal(manifest.preprocessingModelVersions.some((value) => value.includes('gemini-3.1-flash-lite')), true);
+  assert.match(manifest.reviewProcedureSummary, /Codex advisory.*operator decision/i);
+  assert.equal(existsSync(join(repoRoot, 'tools/content_pipeline/src/review/ui/review.ts')), true);
+
+  // CONT-01/02/03, FEED-01/02, and ASK-01 plus the UI/AI contracts retain
+  // executable/source artifacts at the final release boundary.
+  for (const filename of [
+    'src/domain/content.types.ts',
+    'src/services/frozen-feed.service.ts',
+    'src/components/FeedCard.tsx',
+    'src/components/OriginalContent.tsx',
+    'src/components/SuggestedQuestionList.tsx',
+    'src/services/post-qa.service.ts',
+  ]) assert.equal(existsSync(join(appRoot, filename)), true, filename);
+  assert.match(readFileSync(join(repoRoot, '.planning/phases/02-content-pool-feed-post-ui-on-frozen-data/02-UI-SPEC.md'), 'utf8'), /frozen/i);
+  assert.match(readFileSync(join(repoRoot, '.planning/phases/02-content-pool-feed-post-ui-on-frozen-data/02-AI-SPEC.md'), 'utf8'), /condition-neutral/i);
+});
+
 test('production and native web assets contain only the verified runtime projection', { timeout: 240_000 }, () => {
   const build = spawnSync('npm', ['run', 'build'], { cwd: appRoot, encoding: 'utf8', shell: true });
   assert.equal(build.status, 0, build.stderr || build.stdout);

@@ -14,6 +14,13 @@ Short scope contract for contributors and code agents. The authority is [`resear
 - Study infrastructure: onboarding, topic selection, condition assignment, interaction logging (§14), data export, pre/post oral-test support.
 - Content curation pipeline (`tools/content_pipeline/`) and frozen pool (`data/content_pool_v1/`).
 
+Current Phase 2 boundary: the immutable `pilot-v1-20260717` pool (77 approved
+posts) is compiled into the app by `app/scripts/package-content-pool.mjs` and read
+through `frozenFeedService`. Participant code never imports the pipeline or
+fetches article/thumbnail content. The only bounded remote-content exceptions are
+the selected YouTube embed and condition-neutral Gemini understanding of that
+same frozen YouTube URL during an on-topic Ask; both fall back to frozen material.
+
 ## Out of scope (do not build, do not resurrect)
 
 - Global free-form AI chat.
