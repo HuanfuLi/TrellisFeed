@@ -110,6 +110,8 @@ test('correct Basic credentials can download the cache-controlled two-file expor
   assert.match(response.headers.get('content-disposition') ?? '', /^attachment;/);
   assert.deepEqual(Object.keys(unzipSync(new Uint8Array(await response.arrayBuffer()))).sort(), [
     'behavioral-events.csv',
+    'participants.csv',
     'question-answer-records.csv',
+    'recommendations.csv',
   ]);
 });

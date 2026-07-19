@@ -376,7 +376,7 @@ async function handleAdminStatus(env) {
 }
 
 async function handleAdminExport(env) {
-  const [events, questionAnswers] = await Promise.all([
+  const [events, questionAnswers, recommendations, participants] = await Promise.all([
     selectAdminRows(
       env.DB,
       `SELECT id, user_id, condition, topic_id, timestamp, event_type, post_id, question_id,
@@ -394,8 +394,41 @@ async function handleAdminExport(env) {
        FROM question_answer_records
        ORDER BY received_at ASC, id ASC`,
     ),
+    selectAdminRows(
+      env.DB,
+      `SELECT r.id, r.user_id, r.condition, r.topic_id, r.session_id, r.batch_id,
+        r.batch_seq, r.batch_position, r.post_id, r.generated_at, s.served_at AS served_at,
+        r.strategy, r.score, r.reason_text, r.contributing_question_ids,
+        r.contributing_concept_ids, r.contributing_post_ids, r.component_scores, r.received_at
+       FROM recommendations r
+       LEFT JOIN (
+         SELECT recommendation_id, MIN(timestamp) AS served_at
+         FROM behavioral_events
+         WHERE event_type = 'feed_impression' AND recommendation_id IS NOT NULL
+         GROUP BY recommendation_id
+       ) s ON s.recommendation_id = r.id
+       ORDER BY r.received_at ASC, r.id ASC`,
+    ),
+    selectAdminRows(
+      env.DB,
+      `SELECT a.user_id, a.condition, a.topic_id, i.enrolled_at, e.first_activity_at,
+        e.last_activity_at, e.last_received_at
+       FROM study_accounts a
+       LEFT JOIN (
+         SELECT user_id, MIN(created_at) AS enrolled_at
+         FROM research_installations
+         GROUP BY user_id
+       ) i ON i.user_id = a.user_id
+       LEFT JOIN (
+         SELECT user_id, MIN(timestamp) AS first_activity_at,
+           MAX(timestamp) AS last_activity_at, MAX(received_at) AS last_received_at
+         FROM behavioral_events
+         GROUP BY user_id
+       ) e ON e.user_id = a.user_id
+       ORDER BY a.user_id ASC`,
+    ),
   ]);
-  const archive = buildExportZip(events, questionAnswers);
+  const archive = buildExportZip(events, questionAnswers, recommendations, participants);
   return new Response(archive, {
     headers: {
       'cache-control': 'no-store',

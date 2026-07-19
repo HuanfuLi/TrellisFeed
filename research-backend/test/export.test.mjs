@@ -128,7 +128,10 @@ test('buildExportZip produces exactly four aggregate CSV files with closed heade
   const participants = strFromU8(files['participants.csv']);
   assert.equal(recommendations.split(/\r?\n/)[0], RECOMMENDATION_COLUMNS.join(','));
   assert.equal(participants.split(/\r?\n/)[0], PARTICIPANT_COLUMNS.join(','));
-  assert.match(recommendations, /,'=HYPERLINK\(""https:\/\/attacker\.invalid""\),\[\],\[\],\[\],,/);
+  assert.equal(
+    recommendations.includes(",\"'=HYPERLINK(\"\"https://attacker.invalid\"\")\",[],[],[],,"),
+    true,
+  );
   assert.match(participants, /^0012,control,topic-a,/m);
 });
 
@@ -211,7 +214,10 @@ test('admin export derives first impression and one participant row per seeded a
   assert.equal(response.status, 200);
   assert.match(recommendations, /^recommendation-1,0012,control,topic-a,session-1,batch-1,1,1,post-1,2026-07-11T12:00:00.000Z,2026-07-11T12:01:00.000Z,/m);
   assert.match(recommendations, /^recommendation-never-seen,0012,control,topic-a,session-1,batch-1,1,2,post-2,2026-07-11T12:00:00.000Z,,/m);
-  assert.match(recommendations, /,topic_baseline,0\.75,'=HYPERLINK\(""https:\/\/attacker\.invalid""\),\[\],\[\],\[\],,/);
+  assert.equal(
+    recommendations.includes(",topic_baseline,0.75,\"'=HYPERLINK(\"\"https://attacker.invalid\"\")\",[],[],[],,"),
+    true,
+  );
   assert.match(participants, /^0007,experimental,topic-b,,,,\r?$/m);
   assert.match(participants, /^0012,control,topic-a,2026-07-10T09:00:00.000Z,2026-07-11T12:01:00.000Z,2026-07-11T12:05:00.000Z,2026-07-11T12:06:00.000Z\r?$/m);
   assert.equal(participants.match(/^0012,/gm)?.length, 1);

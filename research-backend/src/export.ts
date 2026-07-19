@@ -41,6 +41,38 @@ export const QUESTION_ANSWER_COLUMNS = [
   'received_at',
 ];
 
+export const RECOMMENDATION_COLUMNS = [
+  'id',
+  'user_id',
+  'condition',
+  'topic_id',
+  'session_id',
+  'batch_id',
+  'batch_seq',
+  'batch_position',
+  'post_id',
+  'generated_at',
+  'served_at',
+  'strategy',
+  'score',
+  'reason_text',
+  'contributing_question_ids',
+  'contributing_concept_ids',
+  'contributing_post_ids',
+  'component_scores',
+  'received_at',
+];
+
+export const PARTICIPANT_COLUMNS = [
+  'user_id',
+  'condition',
+  'topic_id',
+  'enrolled_at',
+  'first_activity_at',
+  'last_activity_at',
+  'last_received_at',
+];
+
 /** Escape a value for a spreadsheet-safe RFC 4180-style CSV cell. */
 export function escapeCsvCell(value: unknown) {
   let text = value === null || value === undefined ? '' : String(value);
@@ -59,9 +91,13 @@ export function toCsv(rows: Record<string, unknown>[], columns: string[]) {
 export function buildExportZip(
   events: Record<string, unknown>[],
   questionAnswers: Record<string, unknown>[],
+  recommendations: Record<string, unknown>[],
+  participants: Record<string, unknown>[],
 ) {
   return zipSync({
     'behavioral-events.csv': strToU8(toCsv(events, EVENT_COLUMNS)),
     'question-answer-records.csv': strToU8(toCsv(questionAnswers, QUESTION_ANSWER_COLUMNS)),
+    'recommendations.csv': strToU8(toCsv(recommendations, RECOMMENDATION_COLUMNS)),
+    'participants.csv': strToU8(toCsv(participants, PARTICIPANT_COLUMNS)),
   });
 }
