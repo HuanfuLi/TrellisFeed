@@ -3,6 +3,7 @@ import type { StudyCondition } from './research';
 export type {
   InteractionEventType,
   QuestionAnswerRecord,
+  RecommendationResearchRecord,
   ResearchIdentity,
   StudyCondition,
   UserInteractionEvent,

@@ -1,5 +1,9 @@
 import contractJson from '../../../shared/research-wire-contract.v1.json' with { type: 'json' };
-import type { QuestionAnswerRecord, UserInteractionEvent } from '../types/index.ts';
+import type {
+  QuestionAnswerRecord,
+  RecommendationResearchRecord,
+  UserInteractionEvent,
+} from '../types/index.ts';
 
 const EXPECTED_CONTRACT_VERSION = 'research-ingest-v1';
 
@@ -12,7 +16,7 @@ export const RESEARCH_WIRE_LIMITS = Object.freeze({ ...contractJson.limits });
 export const RESEARCH_INGEST_ROUTE = contractJson.routes.ingest;
 export const RESEARCH_AUTHORIZATION_HEADER = contractJson.authorizationHeader;
 
-type LocalRecord = UserInteractionEvent | QuestionAnswerRecord;
+type LocalRecord = UserInteractionEvent | QuestionAnswerRecord | RecommendationResearchRecord;
 export type ResearchWireRecord = Omit<LocalRecord, 'userId' | 'condition' | 'topicId'>;
 
 const EVENT_TYPES = new Set([
@@ -43,6 +47,12 @@ const QA_FIELDS = new Set([
   'citedPostIds', 'citedSourceUrls', 'conceptIds', 'claimIds',
   'extractedConceptIds', 'extractedClaimIds', 'questionType', 'unresolved',
 ]);
+const RECOMMENDATION_FIELDS = new Set([
+  'kind', 'id', 'batchId', 'sessionId', 'batchSeq', 'batchPosition', 'postId',
+  'generatedAt', 'strategy', 'score', 'reasonText', 'contributingQuestionIds',
+  'contributingConceptIds', 'contributingPostIds', 'componentScores',
+]);
+const RECOMMENDATION_STRATEGIES = new Set<string>(contractJson.recommendation.strategies);
 
 export class ResearchWireValidationError extends Error {
   readonly reason: 'invalid_record' | 'oversized_record';
@@ -83,6 +93,32 @@ function assertStringArray(value: unknown, optional = false): void {
   }
 }
 
+function assertRecommendationStringArray(value: unknown): void {
+  if (value === undefined) return;
+  if (!Array.isArray(value) ||
+      value.length > contractJson.recommendation.limits.contributorArrayItems ||
+      value.some((item) =>
+        typeof item !== 'string' || item.length === 0 || item.length > RESEARCH_WIRE_LIMITS.postId)) {
+    throw new ResearchWireValidationError('invalid_record');
+  }
+}
+
+function assertComponentScores(value: unknown): void {
+  if (value === undefined) return;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new ResearchWireValidationError('invalid_record');
+  }
+  const entries = Object.entries(value);
+  if (entries.length > contractJson.recommendation.limits.componentScoreKeys ||
+      entries.some(([key, score]) =>
+        key.length === 0 ||
+        key.length > contractJson.recommendation.limits.componentScoreKeyLength ||
+        typeof score !== 'number' ||
+        !Number.isFinite(score))) {
+    throw new ResearchWireValidationError('invalid_record');
+  }
+}
+
 function assertOnlyFields(record: Record<string, unknown>, allowed: Set<string>): void {
   for (const key of Object.keys(record)) {
     if (!allowed.has(key)) throw new ResearchWireValidationError('invalid_record');
@@ -95,7 +131,28 @@ export function toResearchWireRecord(record: LocalRecord): ResearchWireRecord {
   const candidate = wire as Record<string, unknown>;
 
   assertString(candidate.id, RESEARCH_WIRE_LIMITS.id);
-  if (Object.hasOwn(candidate, 'eventType')) {
+  if (candidate.kind === 'recommendation') {
+    assertOnlyFields(candidate, RECOMMENDATION_FIELDS);
+    assertString(candidate.batchId, RESEARCH_WIRE_LIMITS.id);
+    assertString(candidate.sessionId, RESEARCH_WIRE_LIMITS.id);
+    if (!Number.isSafeInteger(candidate.batchSeq) || (candidate.batchSeq as number) <= 0 ||
+        !Number.isSafeInteger(candidate.batchPosition) || (candidate.batchPosition as number) <= 0) {
+      throw new ResearchWireValidationError('invalid_record');
+    }
+    assertString(candidate.postId, RESEARCH_WIRE_LIMITS.postId);
+    assertTimestamp(candidate.generatedAt);
+    if (typeof candidate.strategy !== 'string' || !RECOMMENDATION_STRATEGIES.has(candidate.strategy)) {
+      throw new ResearchWireValidationError('invalid_record');
+    }
+    if (typeof candidate.score !== 'number' || !Number.isFinite(candidate.score)) {
+      throw new ResearchWireValidationError('invalid_record');
+    }
+    assertString(candidate.reasonText, contractJson.recommendation.limits.reasonText);
+    assertRecommendationStringArray(candidate.contributingQuestionIds);
+    assertRecommendationStringArray(candidate.contributingConceptIds);
+    assertRecommendationStringArray(candidate.contributingPostIds);
+    assertComponentScores(candidate.componentScores);
+  } else if (Object.hasOwn(candidate, 'eventType')) {
     assertOnlyFields(candidate, EVENT_FIELDS);
     if (typeof candidate.eventType !== 'string' || !EVENT_TYPES.has(candidate.eventType)) {
       throw new ResearchWireValidationError('invalid_record');

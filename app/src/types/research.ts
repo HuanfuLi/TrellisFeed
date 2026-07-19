@@ -1,3 +1,5 @@
+import type { RecommendationStrategy } from '../domain/content.types.ts';
+
 /** Fixed, server-resolved study condition for a participant installation. */
 export type StudyCondition = 'control' | 'experimental';
 
@@ -76,4 +78,26 @@ export interface QuestionAnswerRecord {
   extractedClaimIds?: string[];
   questionType?: string;
   unresolved?: boolean;
+}
+
+/** Immutable recommendation exposure metadata projected for research upload. */
+export interface RecommendationResearchRecord {
+  kind: 'recommendation';
+  id: string;
+  userId: string;
+  condition: StudyCondition;
+  topicId: string;
+  batchId: string;
+  sessionId: string;
+  batchSeq: number;
+  batchPosition: number;
+  postId: string;
+  generatedAt: string;
+  strategy: RecommendationStrategy;
+  score: number;
+  reasonText: string;
+  contributingQuestionIds?: string[];
+  contributingConceptIds?: string[];
+  contributingPostIds?: string[];
+  componentScores?: Record<string, number>;
 }

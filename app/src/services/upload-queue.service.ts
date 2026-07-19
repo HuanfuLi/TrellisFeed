@@ -15,9 +15,13 @@ import {
   toResearchWireRecord,
   type ResearchWireRecord,
 } from './research-wire-contract.ts';
-import type { QuestionAnswerRecord, UserInteractionEvent } from '../types/index.ts';
+import type {
+  QuestionAnswerRecord,
+  RecommendationResearchRecord,
+  UserInteractionEvent,
+} from '../types/index.ts';
 
-type UploadRecord = UserInteractionEvent | QuestionAnswerRecord;
+type UploadRecord = UserInteractionEvent | QuestionAnswerRecord | RecommendationResearchRecord;
 type QuarantineReason = 'malformed_envelope' | 'invalid_record' | 'oversized_record' | 'server_rejected';
 
 interface QueueEnvelope {
