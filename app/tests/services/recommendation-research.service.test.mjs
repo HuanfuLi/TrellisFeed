@@ -212,3 +212,118 @@ test('control projection carries no personal contributor IDs and produces a vali
     assert.equal(Object.hasOwn(wire, field), false);
   }
 });
+
+function hookHarness(captureResearch) {
+  const posts = Array.from({ length: 8 }, (_, index) => ({
+    id: `hook-post-${index + 1}`,
+    topicId: 'topic-1',
+    sourceUrl: `https://example.test/hook/${index + 1}`,
+    sourcePlatform: index % 2 === 0 ? 'youtube' : 'article',
+    sourceName: `Hook source ${index + 1}`,
+    originalTitle: `Hook original ${index + 1}`,
+    displayTitle: `Hook post ${index + 1}`,
+    hook: `Hook ${index + 1}`,
+    shortSummary: `Summary ${index + 1}`,
+    language: 'en',
+    collectedAt: '2026-07-01T00:00:00.000Z',
+    qualityScore: 0.9,
+    interestingnessScore: 0.8,
+    educationalValueScore: 0.85,
+    difficulty: 0.5,
+    conceptIds: [`hook-concept-${(index % 2) + 1}`],
+    claimIds: [],
+    suggestedQuestionIds: [],
+    status: 'frozen',
+  }));
+  const concepts = new Map([
+    ['hook-concept-1', {
+      id: 'hook-concept-1', topicId: 'topic-1', label: 'Hook concept 1', description: '', aliases: [],
+    }],
+    ['hook-concept-2', {
+      id: 'hook-concept-2', topicId: 'topic-1', label: 'Hook concept 2', description: '', aliases: [],
+    }],
+  ]);
+  const features = new Map(posts.map((post, index) => [post.id, {
+    postId: post.id,
+    topicId: post.topicId,
+    primaryConceptId: post.conceptIds[0],
+    sourceId: `hook-source-${index + 1}`,
+    format: post.sourcePlatform === 'youtube' ? 'video' : 'article',
+    qualityScore: post.qualityScore,
+    educationalValueScore: post.educationalValueScore,
+    interestingnessScore: post.interestingnessScore,
+    difficulty: post.difficulty,
+  }]));
+  let id = 0;
+  return {
+    studyContext: {
+      getRequired: () => ({ userId: '2401', condition: 'control', topicId: 'topic-1' }),
+    },
+    repository: recommendationRepository,
+    feed: {
+      getFeed: () => posts,
+      getPostById: (postId) => posts.find((post) => post.id === postId) ?? null,
+      getConcepts: (postId) => (posts.find((post) => post.id === postId)?.conceptIds ?? [])
+        .map((conceptId) => concepts.get(conceptId)),
+    },
+    getTopic: () => ({
+      id: 'topic-1',
+      name: 'Topic',
+      shortDescription: '',
+      hooks: [],
+      coreConceptIds: ['hook-concept-1', 'hook-concept-2'],
+      testRubricId: 'rubric-1',
+      contentPoolVersion: 'fixture-v1',
+    }),
+    globalGraph: {
+      rankingFeatures: (postId) => features.get(postId) ?? null,
+      edgesByType: () => [],
+      embeddingFingerprint: () => null,
+    },
+    loadPersonalDependencies: () => { throw new Error('CONTROL TOUCHED PERSONAL DATA'); },
+    completeReason: async () => { throw new Error('CONTROL REQUESTED A REASON'); },
+    getReasonConfig: () => { throw new Error('CONTROL REQUESTED REASON CONFIG'); },
+    bracketReasonMessages: (messages) => messages,
+    now: () => Date.parse('2026-07-19T02:00:00.000Z'),
+    createId: (kind) => `hook-${kind}-${++id}`,
+    captureResearch,
+  };
+}
+
+test('ready-batch save invokes capture once only after the batch is dbQuery-visible', async () => {
+  await resetResearchStores();
+  setConsent(true);
+  const { RecommendationService } = await import('../../src/services/recommendation.service.ts');
+  let captureCalls = 0;
+  let finishCapture;
+  const captured = new Promise((resolve) => { finishCapture = resolve; });
+  const service = new RecommendationService(hookHarness(async () => {
+    captureCalls += 1;
+    const rows = await dbQuery('SELECT * FROM recommendation_batches');
+    assert.equal(rows.length, 1);
+    assert.equal(JSON.parse(rows[0].data).status, 'ready');
+    finishCapture();
+  }));
+
+  const result = await service.beginSession('hook-visible-session');
+  assert.equal(result.success, true);
+  await captured;
+  assert.equal(captureCalls, 1);
+});
+
+test('capture rejection is isolated from successful ready-batch materialization', async () => {
+  await resetResearchStores();
+  setConsent(true);
+  const { RecommendationService } = await import('../../src/services/recommendation.service.ts');
+  let captureCalls = 0;
+  const service = new RecommendationService(hookHarness(async () => {
+    captureCalls += 1;
+    throw new Error('injected capture failure');
+  }));
+
+  const result = await service.beginSession('hook-rejection-session');
+  assert.equal(result.success, true);
+  assert.equal(result.data.status, 'ready');
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.equal(captureCalls, 1);
+});

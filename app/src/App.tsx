@@ -41,6 +41,7 @@ import {
   reconcileResearchOutbox,
   registerRetryTriggers,
 } from './services/upload-queue.service';
+import { projectRecommendationResearchRecords } from './services/recommendation-research.service';
 
 const SCREEN_ROUTES = ['/home', '/settings'] as const;
 
@@ -324,6 +325,7 @@ export default function App() {
       if (studyContextService.isBound()) {
         disposeRetryTriggers = registerRetryTriggers();
         if (hasAffirmativeResearchConsent()) {
+          await projectRecommendationResearchRecords();
           await reconcileResearchOutbox();
           if (cancelled) return;
           void flushPendingUploads();

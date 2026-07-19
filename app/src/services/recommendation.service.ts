@@ -113,7 +113,15 @@ export interface RecommendationServiceDependencies {
   bracketReasonMessages(messages: ReasonMessage[]): ReasonMessage[];
   now(): number;
   createId(kind: 'session' | 'batch' | 'recommendation'): string;
+  captureResearch?: () => Promise<void>;
 }
+
+type ResolvedRecommendationServiceDependencies = Omit<
+  RecommendationServiceDependencies,
+  'captureResearch'
+> & {
+  captureResearch: () => Promise<void>;
+};
 
 interface SelectedCandidate extends DiversityCandidate {
   readonly recommendation: Omit<Recommendation, 'id' | 'generatedAt' | 'reasonText'>;
@@ -172,7 +180,7 @@ function productionReasonConfig(): LLMConfig {
   return settings.llm;
 }
 
-const defaultDependencies: RecommendationServiceDependencies = {
+const defaultDependencies: ResolvedRecommendationServiceDependencies = {
   studyContext: studyContextService,
   repository: recommendationRepository,
   feed: frozenFeedService,
@@ -184,6 +192,8 @@ const defaultDependencies: RecommendationServiceDependencies = {
   bracketReasonMessages: applyUserContentBracketing,
   now: () => Date.now(),
   createId: randomId,
+  captureResearch: () => import('./recommendation-research.service.ts')
+    .then((module) => module.captureRecommendationResearch()),
 };
 
 function componentValues(scores: ExperimentalComponentScores): Record<string, number> {
@@ -261,10 +271,14 @@ function parseReasonItems(raw: string, requestedIds: ReadonlySet<string>): Map<s
 }
 
 export class RecommendationService {
-  private readonly dependencies: RecommendationServiceDependencies;
+  private readonly dependencies: ResolvedRecommendationServiceDependencies;
 
   constructor(dependencies: Partial<RecommendationServiceDependencies> = {}) {
-    this.dependencies = { ...defaultDependencies, ...dependencies };
+    this.dependencies = {
+      ...defaultDependencies,
+      ...dependencies,
+      captureResearch: dependencies.captureResearch ?? defaultDependencies.captureResearch,
+    };
   }
 
   async beginSession(sessionId = this.dependencies.createId('session')): Promise<ServiceResult<RecommendationBatch>> {
@@ -360,9 +374,12 @@ export class RecommendationService {
       createdAt: interrupted?.createdAt ?? generatedAt,
     };
     const saved = await this.dependencies.repository.saveBatch(ready, recommendations);
-    return saved.success
-      ? success(ready)
-      : failure(saved.error?.message ?? 'Ready batch could not be persisted.');
+    if (!saved.success) {
+      return failure(saved.error?.message ?? 'Ready batch could not be persisted.');
+    }
+    // Projection is downstream-only; boot reconciliation converges any missed capture window.
+    void this.dependencies.captureResearch().catch(() => {});
+    return success(ready);
   }
 
   private async materializeBatch(
