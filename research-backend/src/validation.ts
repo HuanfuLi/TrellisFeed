@@ -55,6 +55,26 @@ const QUESTION_ANSWER_FIELDS = new Set([
   'unresolved',
 ]);
 
+const RECOMMENDATION_FIELDS = new Set([
+  'kind',
+  'id',
+  'batchId',
+  'sessionId',
+  'batchSeq',
+  'batchPosition',
+  'postId',
+  'generatedAt',
+  'strategy',
+  'score',
+  'reasonText',
+  'contributingQuestionIds',
+  'contributingConceptIds',
+  'contributingPostIds',
+  'componentScores',
+]);
+
+export const RECOMMENDATION_STRATEGIES = new Set(contract.recommendation.strategies);
+
 export class ValidationError extends Error {
   status;
 
@@ -115,6 +135,36 @@ function assertStringArray(record, field, recordType, { optional = false } = {})
   }
 }
 
+function assertRecommendationStringArray(record, field, recordType) {
+  const value = record[field];
+  if (value === undefined) return;
+
+  if (!Array.isArray(value) ||
+      value.length > contract.recommendation.limits.contributorArrayItems ||
+      value.some((item) => typeof item !== 'string' || item.length === 0 || item.length > contract.limits.postId)) {
+    throw new ValidationError(`${recordType}.${field} must be a bounded string array.`);
+  }
+}
+
+function assertComponentScores(record, recordType) {
+  const value = record.componentScores;
+  if (value === undefined) return;
+
+  if (!isRecord(value)) {
+    throw new ValidationError(`${recordType}.componentScores must be a bounded finite-number object.`);
+  }
+
+  const entries = Object.entries(value);
+  if (entries.length > contract.recommendation.limits.componentScoreKeys ||
+      entries.some(([key, score]) =>
+        key.length === 0 ||
+        key.length > contract.recommendation.limits.componentScoreKeyLength ||
+        typeof score !== 'number' ||
+        !Number.isFinite(score))) {
+    throw new ValidationError(`${recordType}.componentScores must be a bounded finite-number object.`);
+  }
+}
+
 function parseEvent(record) {
   const recordType = 'Event record';
   assertAllowedFields(record, EVENT_FIELDS, recordType);
@@ -172,6 +222,45 @@ function parseQuestionAnswer(record) {
   return { ...record, kind: 'question_answer' };
 }
 
+function parseRecommendation(record) {
+  const recordType = 'Recommendation record';
+  assertAllowedFields(record, RECOMMENDATION_FIELDS, recordType);
+  assertString(record, 'id', recordType, { maxLength: contract.limits.id });
+  assertString(record, 'batchId', recordType, { maxLength: contract.limits.id });
+  assertString(record, 'sessionId', recordType, { maxLength: contract.limits.id });
+
+  if (!Number.isSafeInteger(record.batchSeq) || record.batchSeq <= 0) {
+    throw new ValidationError('Recommendation record.batchSeq must be a positive safe integer.');
+  }
+  if (!Number.isSafeInteger(record.batchPosition) || record.batchPosition <= 0) {
+    throw new ValidationError('Recommendation record.batchPosition must be a positive safe integer.');
+  }
+
+  assertString(record, 'postId', recordType, { maxLength: contract.limits.postId });
+  assertTimestamp(record, 'generatedAt', recordType);
+
+  if (typeof record.strategy !== 'string' || !RECOMMENDATION_STRATEGIES.has(record.strategy)) {
+    throw new ValidationError('Recommendation record.strategy is not allowed.');
+  }
+  if (typeof record.score !== 'number' || !Number.isFinite(record.score)) {
+    throw new ValidationError('Recommendation record.score must be a finite number.');
+  }
+
+  assertString(record, 'reasonText', recordType, {
+    maxLength: contract.recommendation.limits.reasonText,
+  });
+  assertRecommendationStringArray(record, 'contributingQuestionIds', recordType);
+  assertRecommendationStringArray(record, 'contributingConceptIds', recordType);
+  assertRecommendationStringArray(record, 'contributingPostIds', recordType);
+  assertComponentScores(record, recordType);
+
+  if (record.kind !== contract.recommendation.kind) {
+    throw new ValidationError('Recommendation record.kind is not allowed.');
+  }
+
+  return { ...record };
+}
+
 /**
  * Validate the only permitted public ingest envelope. The optional byteLength
  * argument lets the Worker enforce the exact request size before JSON parsing;
@@ -194,6 +283,16 @@ export function parseIngest(body, suppliedByteLength) {
   return body.records.map((record) => {
     if (!isRecord(record)) {
       throw new ValidationError('Each ingest record must be an object.');
+    }
+
+    if (Object.hasOwn(record, 'kind')) {
+      if (Object.hasOwn(record, 'eventType') || Object.hasOwn(record, 'revision')) {
+        throw new ValidationError('A kind-bearing record cannot have an ambiguous event or question/answer shape.');
+      }
+      if (record.kind !== contract.recommendation.kind) {
+        throw new ValidationError('Ingest record.kind is not allowed.');
+      }
+      return parseRecommendation(record);
     }
 
     if (Object.hasOwn(record, 'eventType') && Object.hasOwn(record, 'revision')) {
