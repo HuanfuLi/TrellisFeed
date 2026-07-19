@@ -629,12 +629,12 @@
     },
     "consent": {
       "title": "Datos y privacidad del estudio",
-      "intro": "Antes de comenzar, revise lo que implica participar en este estudio:",
-      "itemLogging": "Sus interacciones dentro de QuestionTrace (publicaciones que abre, tiempo de lectura, toques, preguntas y elementos guardados) se registran para la investigación.",
-      "itemQaStorage": "Las preguntas que haga a la AI y las respuestas que reciba se almacenan y se cargan de forma segura para el análisis de la investigación.",
-      "itemOralRecording": "Sus respuestas orales en las entrevistas previas y posteriores a la prueba son grabadas en audio fuera de la aplicación por el personal investigador y transcritas para su análisis.",
-      "itemAnonymization": "Sus datos del estudio se almacenan con un ID neutral de participante y se anonimizan de acuerdo con el protocolo del estudio.",
-      "itemWithdrawal": "Puede retirarse del estudio en cualquier momento según lo descrito en el protocolo del estudio; para retirarse, contacte con el equipo investigador.",
+      "intro": "Antes de comenzar, revisa lo que implica participar en este estudio:",
+      "itemLogging": "Tus interacciones dentro de QuestionTrace (publicaciones que abres, tiempo de lectura, toques, preguntas y elementos guardados) se registran para la investigación.",
+      "itemQaStorage": "Las preguntas que haces a la IA y las respuestas que recibes se almacenan y se cargan de forma segura para el análisis de la investigación.",
+      "itemOralRecording": "Tus respuestas orales en las entrevistas previas y posteriores a la prueba son grabadas en audio fuera de la aplicación por el personal investigador y transcritas para su análisis.",
+      "itemAnonymization": "Tus datos del estudio se almacenan con un ID neutral de participante y se anonimizan de acuerdo con el protocolo del estudio.",
+      "itemWithdrawal": "Puedes retirarte del estudio en cualquier momento según lo descrito en el protocolo del estudio; para retirarte, contacta con el equipo de investigación.",
       "consent": "He leído los cinco puntos anteriores y acepto participar en este estudio.",
       "continue": "Continuar"
     },
