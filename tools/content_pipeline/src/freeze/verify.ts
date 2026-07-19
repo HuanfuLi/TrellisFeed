@@ -5,10 +5,9 @@ import { join } from 'node:path';
 import type { ErrorObject, ValidateFunction } from 'ajv';
 import type { GlobalEdgeRecord, RankingFeaturesArtifact, SourceRecord } from '../graph/build.ts';
 import { validateFrozenPoolBundle } from '../schema/validate.ts';
+import { RUNTIME_ARTIFACT_FILENAMES } from './runtime-artifacts.ts';
 
-const RUNTIME_FILES = ['topics.json', 'posts.json', 'concepts.json', 'claims.json', 'suggested_questions.json', 'source_assets.json'] as const;
-const GRAPH_FILES = ['sources.json', 'global_edges.json', 'ranking_features.json'] as const;
-const TOP_LEVEL = new Set([...RUNTIME_FILES, ...GRAPH_FILES, 'manifest.json', 'source_files', 'review_logs']);
+const TOP_LEVEL = new Set([...RUNTIME_ARTIFACT_FILENAMES, 'manifest.json', 'source_files', 'review_logs']);
 const sha256 = (value: string | Buffer): string => createHash('sha256').update(value).digest('hex');
 
 const require = createRequire(import.meta.url);
@@ -124,8 +123,8 @@ export async function verifyFrozenPool(root: string): Promise<{ valid: boolean; 
     for (const entry of entries) if ((await lstat(join(root, entry.name))).isSymbolicLink()) errors.push(`symbolic link forbidden: ${entry.name}`);
     if (errors.length) return { valid: false, errors };
     const manifest = JSON.parse(await readFile(join(root, 'manifest.json'), 'utf8'));
-    const texts = Object.fromEntries(await Promise.all([...RUNTIME_FILES, ...GRAPH_FILES].map(async (filename) => [filename, await readFile(join(root, filename), 'utf8')])));
-    for (const filename of RUNTIME_FILES) if (sha256(texts[filename]) !== manifest.artifactHashes?.[filename]) errors.push(`checksum/hash mismatch for ${filename}`);
+    const texts = Object.fromEntries(await Promise.all(RUNTIME_ARTIFACT_FILENAMES.map(async (filename) => [filename, await readFile(join(root, filename), 'utf8')])));
+    for (const filename of RUNTIME_ARTIFACT_FILENAMES) if (sha256(texts[filename]) !== manifest.artifactHashes?.[filename]) errors.push(`checksum/hash mismatch for ${filename}`);
     const bundle = {
       manifest, topics: JSON.parse(texts['topics.json']), posts: JSON.parse(texts['posts.json']), concepts: JSON.parse(texts['concepts.json']),
       claims: JSON.parse(texts['claims.json']), suggestedQuestions: JSON.parse(texts['suggested_questions.json']), sourceAssets: JSON.parse(texts['source_assets.json']),

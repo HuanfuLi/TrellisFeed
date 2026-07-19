@@ -4,12 +4,12 @@ import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'nod
 import { compileGlobalGraph, type ConceptRelationInput, type EmbeddingBuildConfig } from '../graph/build.ts';
 import { validateFrozenPoolBundle } from '../schema/validate.ts';
 import { loadReviewQueue, type ReviewCandidate, type ReviewDecision } from '../review/store.ts';
+import { RUNTIME_ARTIFACT_FILENAMES } from './runtime-artifacts.ts';
 import { verifyFrozenPool } from './verify.ts';
 
 export type FreezeInput = { runDir: string; output: string; version: string; embedding?: EmbeddingBuildConfig };
 export type FreezeAudit = { candidateId: string; contentHash: string; codexVerdictHash: string; operatorDecisionSequence: number; frozenPostSha256: string };
 
-const RUNTIME_FILES = ['topics.json', 'posts.json', 'concepts.json', 'claims.json', 'suggested_questions.json', 'source_assets.json'] as const;
 const sha256 = (value: string | Buffer): string => createHash('sha256').update(value).digest('hex');
 const jsonText = (value: unknown): string => `${JSON.stringify(value, null, 2)}\n`;
 
@@ -165,7 +165,7 @@ export async function buildFrozenPool(input: FreezeInput) {
       'claims.json': jsonText(projected.claims), 'suggested_questions.json': jsonText(projected.suggestedQuestions), 'source_assets.json': jsonText(projected.sourceAssets),
       'sources.json': jsonText(graph.sources), 'global_edges.json': jsonText(graph.globalEdges), 'ranking_features.json': jsonText(graph.rankingFeatures),
     };
-    const hashes = Object.fromEntries(RUNTIME_FILES.map((filename) => [filename, sha256(texts[filename])]));
+    const hashes = Object.fromEntries(RUNTIME_ARTIFACT_FILENAMES.map((filename) => [filename, sha256(texts[filename])]));
     const decisions = candidates.map(approvalFor);
     const rawCandidateCount = await readRawCandidateCount(input.runDir, queue.length);
     const manifest: any = {

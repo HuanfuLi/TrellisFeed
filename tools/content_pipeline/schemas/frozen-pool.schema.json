@@ -29,8 +29,8 @@
         },
         "artifactHashes": {
           "type": "object", "additionalProperties": false,
-          "required": ["topics.json", "posts.json", "concepts.json", "claims.json", "suggested_questions.json", "source_assets.json"],
-          "properties": {"topics.json":{"$ref":"#/$defs/sha256"},"posts.json":{"$ref":"#/$defs/sha256"},"concepts.json":{"$ref":"#/$defs/sha256"},"claims.json":{"$ref":"#/$defs/sha256"},"suggested_questions.json":{"$ref":"#/$defs/sha256"},"source_assets.json":{"$ref":"#/$defs/sha256"}}
+          "required": ["topics.json", "posts.json", "concepts.json", "claims.json", "suggested_questions.json", "source_assets.json", "sources.json", "global_edges.json", "ranking_features.json"],
+          "properties": {"topics.json":{"$ref":"#/$defs/sha256"},"posts.json":{"$ref":"#/$defs/sha256"},"concepts.json":{"$ref":"#/$defs/sha256"},"claims.json":{"$ref":"#/$defs/sha256"},"suggested_questions.json":{"$ref":"#/$defs/sha256"},"source_assets.json":{"$ref":"#/$defs/sha256"},"sources.json":{"$ref":"#/$defs/sha256"},"global_edges.json":{"$ref":"#/$defs/sha256"},"ranking_features.json":{"$ref":"#/$defs/sha256"}}
         },
         "feedOrderPostIds": {"type": "array", "items": {"type": "string", "minLength": 1, "maxLength": 128}, "uniqueItems": true},
         "fixedFilenames": {"type":"array","items":{"type":"string","pattern":"^(?!.*(?:^|/)\\.\\.(?:/|$))[A-Za-z0-9._/-]+$","maxLength":300},"uniqueItems":true},
