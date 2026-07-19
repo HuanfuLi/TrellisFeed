@@ -12,5 +12,24 @@
     "text": 65536,
     "timestamp": 64
   },
-  "forbiddenIdentityFields": ["userId", "condition", "topicId"]
+  "forbiddenIdentityFields": ["userId", "condition", "topicId"],
+  "recommendation": {
+    "kind": "recommendation",
+    "strategies": [
+      "topic_baseline",
+      "quality_baseline",
+      "diversity_baseline",
+      "continue",
+      "deepen",
+      "contrast",
+      "bridge",
+      "echo"
+    ],
+    "limits": {
+      "reasonText": 2048,
+      "contributorArrayItems": 64,
+      "componentScoreKeys": 32,
+      "componentScoreKeyLength": 64
+    }
+  }
 }
