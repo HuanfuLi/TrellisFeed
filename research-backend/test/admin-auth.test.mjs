@@ -97,7 +97,7 @@ test('the health page escapes dynamic text instead of emitting live HTML', () =>
   assert.doesNotMatch(html, /<script>alert\("participant text"\)<\/script>/);
 });
 
-test('correct Basic credentials can download the cache-controlled two-file export', async () => {
+test('correct Basic credentials can download the cache-controlled four-file export', async () => {
   const db = fakeAdminD1();
   const response = await worker.fetch(adminRequest('/admin/export.zip', 'correct-password'), {
     DB: db,
