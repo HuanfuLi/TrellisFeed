@@ -27,6 +27,8 @@ const {
 const {
   RESEARCH_WIRE_CONTRACT_VERSION,
   RESEARCH_WIRE_LIMITS,
+  ResearchWireValidationError,
+  toResearchWireRecord,
 } = await import('../../src/services/research-wire-contract.ts');
 const {
   MAX_INGEST_RECORDS,
@@ -55,6 +57,30 @@ function event(id, overrides = {}) {
     timestamp: '2026-07-11T12:00:00.000Z',
     eventType: 'post_open',
     postId: `post-${id}`,
+    ...overrides,
+  };
+}
+
+function recommendation(id, overrides = {}) {
+  return {
+    kind: 'recommendation',
+    id,
+    userId: '1001',
+    condition: 'experimental',
+    topicId: 'topic-1',
+    batchId: 'batch-1',
+    sessionId: 'session-1',
+    batchSeq: 1,
+    batchPosition: 1,
+    postId: `post-${id}`,
+    generatedAt: '2026-07-11T12:00:00.000Z',
+    strategy: 'deepen',
+    score: 0.75,
+    reasonText: 'Builds on a question from this session.',
+    contributingQuestionIds: ['question-1'],
+    contributingConceptIds: ['concept-1'],
+    contributingPostIds: ['post-prior'],
+    componentScores: { semantic: 0.8, diversity: 0.7 },
     ...overrides,
   };
 }
@@ -273,6 +299,110 @@ test('question/answer upload keeps local condition but follows the server-owned 
     assert.equal(Object.hasOwn(uploaded, field), false);
   }
   assert.equal(authorization, `Bearer ${installToken}`);
+});
+
+test('recommendation wire validation strips identity and enforces contract-owned bounds', () => {
+  const wire = toResearchWireRecord(recommendation('recommendation-wire'));
+  assert.equal(wire.kind, 'recommendation');
+  for (const field of ['userId', 'condition', 'topicId']) {
+    assert.equal(Object.hasOwn(wire, field), false);
+  }
+
+  const invalidRecords = [
+    recommendation('extra-key', { unexpected: true }),
+    recommendation('bad-strategy', { strategy: 'personalized' }),
+    recommendation('bad-score', { score: Number.POSITIVE_INFINITY }),
+    recommendation('bad-seq', { batchSeq: 0 }),
+    recommendation('bad-position', { batchPosition: 1.5 }),
+    recommendation('empty-reason', { reasonText: '' }),
+    recommendation('long-reason', { reasonText: 'x'.repeat(2049) }),
+    recommendation('too-many-contributors', {
+      contributingQuestionIds: Array.from({ length: 65 }, (_, index) => `question-${index}`),
+    }),
+    recommendation('invalid-contributor', { contributingConceptIds: [''] }),
+    recommendation('too-many-components', {
+      componentScores: Object.fromEntries(
+        Array.from({ length: 33 }, (_, index) => [`score-${index}`, index]),
+      ),
+    }),
+    recommendation('long-component-key', { componentScores: { ['x'.repeat(65)]: 1 } }),
+    recommendation('invalid-component-value', { componentScores: { semantic: Number.NaN } }),
+  ];
+  for (const record of invalidRecords) {
+    assert.throws(
+      () => toResearchWireRecord(record),
+      (error) => error instanceof ResearchWireValidationError && error.reason === 'invalid_record',
+      record.id,
+    );
+  }
+});
+
+test('recommendation enqueue, wire upload, ACK receipt, and deletion reuse the durable outbox', async () => {
+  await resetQueue();
+  const record = recommendation('recommendation-delivery');
+  await enqueue(record, { triggerFlush: false });
+  const persisted = await queueRows();
+  assert.equal(persisted.length, 1);
+  assert.equal(JSON.parse(persisted[0].data).record.kind, 'recommendation');
+
+  let uploaded;
+  await flushPendingUploads({
+    apiBaseUrl,
+    fetch: async (_url, init) => {
+      uploaded = JSON.parse(init.body).records[0];
+      return jsonResponse({ acknowledgedIds: [record.id] });
+    },
+  });
+
+  assert.equal(uploaded.kind, 'recommendation');
+  for (const field of ['userId', 'condition', 'topicId']) {
+    assert.equal(Object.hasOwn(uploaded, field), false);
+  }
+  assert.equal((await queueRows()).length, 0);
+  assert.equal((await metadataRows()).some((row) => row.id === `delivery:${record.id}`), true);
+});
+
+test('a recommendation rejected with HTTP 422 is quarantined as server_rejected', async () => {
+  await resetQueue();
+  const record = recommendation('recommendation-poison');
+  await enqueue(record, { triggerFlush: false });
+
+  await flushPendingUploads({
+    apiBaseUrl,
+    fetch: async () => jsonResponse({ error: 'invalid' }, 422),
+  });
+
+  assert.equal((await queueRows()).length, 0);
+  const quarantine = await dbQuery('SELECT * FROM research_upload_quarantine');
+  assert.equal(quarantine.length, 1);
+  assert.equal(quarantine[0].id, record.id);
+  assert.equal(JSON.parse(quarantine[0].data).reason, 'server_rejected');
+});
+
+test('reconciliation re-enqueues an undelivered recommendation research record', async () => {
+  await resetQueue();
+  await dbExecute('DELETE FROM research_records');
+  const record = recommendation('recommendation-reconcile', {
+    condition: 'control',
+    strategy: 'topic_baseline',
+    reasonText: 'Relevant to this topic.',
+    contributingQuestionIds: undefined,
+    contributingConceptIds: undefined,
+    contributingPostIds: undefined,
+    componentScores: undefined,
+  });
+  await dbExecute(
+    'INSERT OR REPLACE INTO research_records (id, kind, revision, data) VALUES (?, ?, ?, ?)',
+    [record.id, 'recommendation', 1, JSON.stringify(record)],
+  );
+
+  await uploadQueueService.reconcileResearchOutbox();
+
+  const queued = await queueRows();
+  assert.equal(queued.length, 1);
+  assert.equal(JSON.parse(queued[0].data).record.kind, 'recommendation');
+  await dbExecute('DELETE FROM research_records WHERE id = ?', [record.id]);
+  await dbExecute('DELETE FROM research_upload_queue WHERE id = ?', [record.id]);
 });
 
 test('malformed and individually oversized queue heads are quarantined while later rows upload', async () => {
