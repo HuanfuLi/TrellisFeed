@@ -14,7 +14,10 @@
       "concepts.json": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
       "claims.json": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
       "suggested_questions.json": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-      "source_assets.json": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      "source_assets.json": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "sources.json": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "global_edges.json": "123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0",
+      "ranking_features.json": "23456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef01"
     },
     "feedOrderPostIds": ["post-article", "post-video"]
   },

@@ -76,6 +76,18 @@ test('manifest hash consistency hook rejects mismatched computed hashes', () => 
   assert.equal(result.errors[0].path, '/manifest/artifactHashes/posts.json');
 });
 
+test('frozen pool manifest requires exactly the nine runtime artifact hash keys', () => {
+  const missing = mutate((bundle) => { delete bundle.manifest.artifactHashes['global_edges.json']; });
+  const missingResult = validateFrozenPoolBundle(missing);
+  assert.equal(missingResult.valid, false);
+  assert.ok(missingResult.errors.some((error) => error.path === '/manifest/artifactHashes/global_edges.json'), JSON.stringify(missingResult.errors));
+
+  const extra = mutate((bundle) => { bundle.manifest.artifactHashes['retired-helper.json'] = '0'.repeat(64); });
+  const extraResult = validateFrozenPoolBundle(extra);
+  assert.equal(extraResult.valid, false);
+  assert.ok(extraResult.errors.some((error) => error.path === '/manifest/artifactHashes'), JSON.stringify(extraResult.errors));
+});
+
 test('validation dependencies are pinned and have no install scripts or binary downloads', () => {
   const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url)));
   const lock = JSON.parse(readFileSync(new URL('../package-lock.json', import.meta.url)));

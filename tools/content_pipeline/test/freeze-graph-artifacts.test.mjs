@@ -10,6 +10,17 @@ import { verifyFrozenPool } from '../src/freeze/verify.ts';
 
 const sha = (value) => createHash('sha256').update(value).digest('hex');
 const jsonText = (value) => `${JSON.stringify(value, null, 2)}\n`;
+const RUNTIME_ARTIFACTS = [
+  'topics.json',
+  'posts.json',
+  'concepts.json',
+  'claims.json',
+  'suggested_questions.json',
+  'source_assets.json',
+  'sources.json',
+  'global_edges.json',
+  'ranking_features.json',
+];
 
 async function approvedRun() {
   const runDir = await mkdtemp(join(tmpdir(), 'questiontrace-graph-run-'));
@@ -74,6 +85,11 @@ test('freeze graph artifacts replace untyped helpers and enter the immutable has
   const names = await readdir(output);
   const manifest = JSON.parse(await readFile(join(output, 'manifest.json'), 'utf8'));
 
+  assert.deepEqual(Object.keys(manifest.artifactHashes), RUNTIME_ARTIFACTS);
+  for (const filename of RUNTIME_ARTIFACTS) {
+    assert.equal(manifest.artifactHashes[filename], sha(await readFile(join(output, filename))));
+  }
+
   for (const filename of ['sources.json', 'global_edges.json', 'ranking_features.json']) {
     assert.ok(names.includes(filename));
     assert.ok(manifest.fixedFilenames.includes(filename));
@@ -85,6 +101,17 @@ test('freeze graph artifacts replace untyped helpers and enter the immutable has
   assert.equal(ranking.embeddingFingerprint, null);
   assert.ok(ranking.posts.every((post) => !('summaryVector' in post)));
   assert.deepEqual(await verifyFrozenPool(output), { valid: true, errors: [] });
+});
+
+test('freeze graph verification rejects a graph runtime checksum mismatch even when its bundle hash is current', async () => {
+  const output = await frozenFixture();
+  await rewriteHashedArtifact(output, 'global_edges.json', (edges) => {
+    edges[0].topicId = 'tampered-topic';
+  });
+
+  const result = await verifyFrozenPool(output);
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some((error) => /checksum\/hash mismatch for global_edges\.json/.test(error)), result.errors.join('; '));
 });
 
 test('freeze graph verification rejects dangling, illegal-kind, and cross-topic edges distinctly', async () => {
