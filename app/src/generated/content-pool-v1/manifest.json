@@ -1,5 +1,5 @@
 {
-  "contentPoolVersion": "pilot-v1-20260717",
+  "contentPoolVersion": "pilot-graph-20260718",
   "generatedAt": "2026-07-18T01:21:09.538Z",
   "preprocessingModelVersions": [
     "gemini:gemini-3.1-flash-lite:phase-2-video-url-v1:preprocessed-post-v1"
@@ -37,12 +37,15 @@
     "sourceAssets": 77
   },
   "artifactHashes": {
-    "topics.json": "279dfc92ef0006b5b1390b8b1e7755206286087536da3aa3f84a69398d24dbf0",
+    "topics.json": "04015fe9706c2a5c4f11ddd5808c57fe098c029e4d7dec89dd867e5781c04fbb",
     "posts.json": "459ab7cc3ac3fc4d94facd26b451d5de18e4ff1c4a7c63dc46ce338047f77808",
     "concepts.json": "95b921533d26885b36d44e8dac425955cf3bcb70f73300fb47f71c55255b96f8",
     "claims.json": "361b8d9987323a70cea3c7519510331ca78a94d9c353d589c8304aea473d1b77",
     "suggested_questions.json": "8df494428890c955e2e526558a2e6ddf8d35d392373ccce1f46f9b3ffdbb4dfe",
-    "source_assets.json": "7c838d2f4e15e0b751f1a7d04d9c306c57537273688770e2e9661cad4cf2875b"
+    "source_assets.json": "7c838d2f4e15e0b751f1a7d04d9c306c57537273688770e2e9661cad4cf2875b",
+    "sources.json": "5a825291238bdea53bc97916597fcb5e1c86993f418f73240e463aa862ee7395",
+    "global_edges.json": "63b47e526eb7c56edd103c1fcd67dc329c5d5b1c4d6ced5489e563be484300de",
+    "ranking_features.json": "95f14d45cc0ec1a3e49ed3d69fba5f7e28de4c96564e2cac52a84d401669a074"
   },
   "feedOrderPostIds": [
     "candidate-0000",
@@ -126,9 +129,9 @@
   "fixedFilenames": [
     "claims.json",
     "concepts.json",
-    "post_claim_edges.json",
-    "post_concept_edges.json",
+    "global_edges.json",
     "posts.json",
+    "ranking_features.json",
     "review_logs/approval-audit.json",
     "source_assets.json",
     "source_files/candidate-0000.txt",
@@ -208,15 +211,16 @@
     "source_files/candidate-0079.txt",
     "source_files/candidate-0080.txt",
     "source_files/candidate-0081.txt",
+    "sources.json",
     "suggested_questions.json",
     "topics.json"
   ],
   "bundleFileHashes": {
     "claims.json": "361b8d9987323a70cea3c7519510331ca78a94d9c353d589c8304aea473d1b77",
     "concepts.json": "95b921533d26885b36d44e8dac425955cf3bcb70f73300fb47f71c55255b96f8",
-    "post_claim_edges.json": "523e553b25e29d1f86082cef39ae7c8cf9b8fcce77e505a443f65ea7c2800107",
-    "post_concept_edges.json": "a52de66c36a9e402b9eb8cff261c1d70e3dd3ca10bac4b14f770428c28627c32",
+    "global_edges.json": "63b47e526eb7c56edd103c1fcd67dc329c5d5b1c4d6ced5489e563be484300de",
     "posts.json": "459ab7cc3ac3fc4d94facd26b451d5de18e4ff1c4a7c63dc46ce338047f77808",
+    "ranking_features.json": "95f14d45cc0ec1a3e49ed3d69fba5f7e28de4c96564e2cac52a84d401669a074",
     "review_logs/approval-audit.json": "87c0080c12228bcd338f7fa2d4b4f7f7c8da6812e90c931287caded634e8d329",
     "source_assets.json": "7c838d2f4e15e0b751f1a7d04d9c306c57537273688770e2e9661cad4cf2875b",
     "source_files/candidate-0000.txt": "22685d704f82c4ec08d120d36997b40183d3b26e2f637d30cff1a8771ec7311c",
@@ -296,7 +300,8 @@
     "source_files/candidate-0079.txt": "7fd0a0f21a046f4cda0451e5851c68f028aded7dea5c4a7acbd6c595e7b70319",
     "source_files/candidate-0080.txt": "03af21c2b13f255dd81d89a1e1f2f93e86ccc1dea40af986abf7bffd96de57e7",
     "source_files/candidate-0081.txt": "20284b71f918b8538b864d4f2ea1472d8a1904b0c2efdc2af75a8293c74d63d6",
+    "sources.json": "5a825291238bdea53bc97916597fcb5e1c86993f418f73240e463aa862ee7395",
     "suggested_questions.json": "8df494428890c955e2e526558a2e6ddf8d35d392373ccce1f46f9b3ffdbb4dfe",
-    "topics.json": "279dfc92ef0006b5b1390b8b1e7755206286087536da3aa3f84a69398d24dbf0"
+    "topics.json": "04015fe9706c2a5c4f11ddd5808c57fe098c029e4d7dec89dd867e5781c04fbb"
   }
 }

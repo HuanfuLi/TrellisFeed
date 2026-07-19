@@ -1,0 +1,464 @@
+[
+  {
+    "id": "source-01d8bef46a35bbee5da4",
+    "name": "www.microsoft.com",
+    "platform": "article",
+    "url": "https://www.microsoft.com/en-us/worklab/work-trend-index/agents-human-agency-and-the-opportunity-for-every-organization"
+  },
+  {
+    "id": "source-0301213bf2dfca2ab46f",
+    "name": "Reddit",
+    "platform": "reddit",
+    "url": "https://www.reddit.com/r/AI_Agents/comments/1u6cy0s/what_will_ai_agents_actually_do_inside/"
+  },
+  {
+    "id": "source-030181826cb01a89f3d7",
+    "name": "Reddit",
+    "platform": "reddit",
+    "url": "https://www.reddit.com/r/AI_Agents/comments/1t1imwx/is_anyone_actually_running_a_company_with_30_ai/"
+  },
+  {
+    "id": "source-037a0f022ae82ac4d456",
+    "name": "carnegieendowment.org",
+    "platform": "article",
+    "url": "https://carnegieendowment.org/research/2026/04/the-ai-labor-debate-three-views-on-the-future-of-work"
+  },
+  {
+    "id": "source-07e981ecb8a7b2a56ce2",
+    "name": "Reddit",
+    "platform": "reddit",
+    "url": "https://www.reddit.com/r/learnAIAgents/comments/1tkqjkv/how_is_your_company_using_ai_agents_in_workplace/"
+  },
+  {
+    "id": "source-0a82c337507ce5456c1a",
+    "name": "arxiv.org",
+    "platform": "article",
+    "url": "https://arxiv.org/html/2604.16337v1"
+  },
+  {
+    "id": "source-0b2858c42d2dae058c34",
+    "name": "YouTube",
+    "platform": "youtube",
+    "url": "https://www.youtube.com/watch?v=te_om7KPb8k"
+  },
+  {
+    "id": "source-0fffe4059072aa67f89c",
+    "name": "YouTube",
+    "platform": "youtube",
+    "url": "https://www.youtube.com/watch?v=15_pppse4fY"
+  },
+  {
+    "id": "source-1100802b9604c1b6ceb9",
+    "name": "X",
+    "platform": "x",
+    "url": "https://x.com/Saboo_Shubham_/status/2026134519317934393"
+  },
+  {
+    "id": "source-12d8088549d0f178ba3d",
+    "name": "YouTube",
+    "platform": "youtube",
+    "url": "https://www.youtube.com/watch?v=e85AxYW0Qyk"
+  },
+  {
+    "id": "source-1ddcc2398aa92dbce3fa",
+    "name": "YouTube",
+    "platform": "youtube",
+    "url": "https://www.youtube.com/watch?v=446x7GqXdaA"
+  },
+  {
+    "id": "source-25f171cf2a16768385fd",
+    "name": "Reddit",
+    "platform": "reddit",
+    "url": "https://www.reddit.com/r/Futurology/comments/1ui7tph/how_optimistic_are_you_about_the_future_of_the/"
+  },
+  {
+    "id": "source-275943b8c880658e2dd4",
+    "name": "X",
+    "platform": "x",
+    "url": "https://x.com/davidautor/status/2021284200364552520"
+  },
+  {
+    "id": "source-27da720de2c7587a5beb",
+    "name": "YouTube",
+    "platform": "youtube",
+    "url": "https://www.youtube.com/watch?v=0Iqqy3nCp54"
+  },
+  {
+    "id": "source-2b540e3bfc3f094596e2",
+    "name": "YouTube",
+    "platform": "youtube",
+    "url": "https://www.youtube.com/watch?v=Ay8inSTLnGE"
+  },
+  {
+    "id": "source-2dddf74c5d64b8c406eb",
+    "name": "X",
+    "platform": "x",
+    "url": "https://x.com/emollick/status/2041520467450765504"
+  },
+  {
+    "id": "source-2e3bb4dfe06617e1a6b8",
+    "name": "resumevera.com",
+    "platform": "article",
+    "url": "https://resumevera.com/blogs/ai-agents-agentic-ai-future-of-jobs-2030"
+  },
+  {
+    "id": "source-2ef7fd617d27a4fb3b39",
+    "name": "arxiv.org",
+    "platform": "article",
+    "url": "https://arxiv.org/html/2511.12306v2"
+  },
+  {
+    "id": "source-389b107bf68054af549c",
+    "name": "X",
+    "platform": "x",
+    "url": "https://x.com/erikbryn/status/2064713650544271486"
+  },
+  {
+    "id": "source-4016c7ab7db16a1c70d8",
+    "name": "Reddit",
+    "platform": "reddit",
+    "url": "https://www.reddit.com/r/cscareerquestions/comments/1uy6dc8/how_do_i_compete_and_pass_late_stage_intervews/"
+  },
+  {
+    "id": "source-40bc4364c089af27886d",
+    "name": "X",
+    "platform": "x",
+    "url": "https://x.com/InvestmentGuru_/status/2026479405036613778"
+  },
+  {
+    "id": "source-44ff0f3a4ecb189d704d",
+    "name": "YouTube",
+    "platform": "youtube",
+    "url": "https://www.youtube.com/watch?v=0lwftepuvYA"
+  },
+  {
+    "id": "source-48054720213d55d58cba",
+    "name": "Reddit",
+    "platform": "reddit",
+    "url": "https://www.reddit.com/r/ArtificialInteligence/comments/1s9q7xj/if_ai_agents_are_the_current_trend_whats_the_next/"
+  },
+  {
+    "id": "source-48aaa3b10ad9b8a42a10",
+    "name": "YouTube",
+    "platform": "youtube",
+    "url": "https://www.youtube.com/watch?v=sA6UA2fMNHg"
+  },
+  {
+    "id": "source-4fc2bc7811b89c431b65",
+    "name": "X",
+    "platform": "x",
+    "url": "https://x.com/erikbryn/status/2076674736860656083"
+  },
+  {
+    "id": "source-560b3359b7650b2cd175",
+    "name": "X",
+    "platform": "x",
+    "url": "https://x.com/rohanpaul_ai/status/2026170158461681846"
+  },
+  {
+    "id": "source-5758b9d2583aa200b4c9",
+    "name": "X",
+    "platform": "x",
+    "url": "https://x.com/erikbryn/status/2039083446468067469"
+  },
+  {
+    "id": "source-5a372bf36a5438e58145",
+    "name": "X",
+    "platform": "x",
+    "url": "https://x.com/AndrewCurran_/status/2076664199670006181"
+  },
+  {
+    "id": "source-660c946e67846fee6f07",
+    "name": "X",
+    "platform": "x",
+    "url": "https://x.com/summeryue0/status/2025836517831405980"
+  },
+  {
+    "id": "source-6667a00b6ecf5aac2092",
+    "name": "YouTube",
+    "platform": "youtube",
+    "url": "https://www.youtube.com/watch?v=MbtTBuKQhQU"
+  },
+  {
+    "id": "source-6761ac8648af66f4cd27",
+    "name": "YouTube",
+    "platform": "youtube",
+    "url": "https://www.youtube.com/watch?v=fXizBc03D7E"
+  },
+  {
+    "id": "source-67ea0cad39883cfc2f63",
+    "name": "X",
+    "platform": "x",
+    "url": "https://x.com/recap_david/status/2030662152151843250"
+  },
+  {
+    "id": "source-6e34df5638ce64b659e4",
+    "name": "YouTube",
+    "platform": "youtube",
+    "url": "https://www.youtube.com/watch?v=-bSd0BcAOLA"
+  },
+  {
+    "id": "source-6e45e74073c5d128701d",
+    "name": "X",
+    "platform": "x",
+    "url": "https://x.com/emollick/status/2056578946813100173"
+  },
+  {
+    "id": "source-721e36991c06625f132d",
+    "name": "YouTube",
+    "platform": "youtube",
+    "url": "https://www.youtube.com/watch?v=FwOTs4UxQS4"
+  },
+  {
+    "id": "source-72858ef0dff7dbede474",
+    "name": "X",
+    "platform": "x",
+    "url": "https://x.com/tendon/status/2032457428344955011"
+  },
+  {
+    "id": "source-76a7b02989d34fc866bd",
+    "name": "X",
+    "platform": "x",
+    "url": "https://x.com/emollick/status/2031056069405941765"
+  },
+  {
+    "id": "source-7c215794f69625b363fc",
+    "name": "X",
+    "platform": "x",
+    "url": "https://x.com/karpathy/status/1990116666194456651"
+  },
+  {
+    "id": "source-7ffec7f426d37ffc9f16",
+    "name": "YouTube",
+    "platform": "youtube",
+    "url": "https://www.youtube.com/watch?v=cV3JNm4GUZY"
+  },
+  {
+    "id": "source-804db8b668306101b0b9",
+    "name": "www.mercer.com",
+    "platform": "article",
+    "url": "https://www.mercer.com/insights/talent-and-transformation/skill-based-talent-management/how-will-agentic-ai-challenge-and-change-your-business/"
+  },
+  {
+    "id": "source-809c901c4c588ff60a62",
+    "name": "www.businessinsider.com",
+    "platform": "article",
+    "url": "https://www.businessinsider.com/andrej-karpathy-ai-agents-timelines-openai-2025-10"
+  },
+  {
+    "id": "source-80f15bbd334d83617bf7",
+    "name": "X",
+    "platform": "x",
+    "url": "https://x.com/erikbryn/status/2006114498852327926"
+  },
+  {
+    "id": "source-8bfb819d8b437ce787e8",
+    "name": "YouTube",
+    "platform": "youtube",
+    "url": "https://www.youtube.com/watch?v=wiU7VEvi1LM"
+  },
+  {
+    "id": "source-8c8d5878973ea02817f0",
+    "name": "YouTube",
+    "platform": "youtube",
+    "url": "https://www.youtube.com/watch?v=kstQtEQFIbA"
+  },
+  {
+    "id": "source-90683c0d2ca1575dcdaa",
+    "name": "Reddit",
+    "platform": "reddit",
+    "url": "https://www.reddit.com/r/ArtificialInteligence/comments/1uy50n4/do_aiml_research_labs_actually_use_agent/"
+  },
+  {
+    "id": "source-92bf309bd58e378e28cc",
+    "name": "X",
+    "platform": "x",
+    "url": "https://x.com/emollick/status/2029681855142744134"
+  },
+  {
+    "id": "source-92c36d5b3df3368cf9ab",
+    "name": "YouTube",
+    "platform": "youtube",
+    "url": "https://www.youtube.com/watch?v=HfkRV9nThWc"
+  },
+  {
+    "id": "source-943d0b9bd050f4b388a1",
+    "name": "YouTube",
+    "platform": "youtube",
+    "url": "https://www.youtube.com/watch?v=EsRz6HKsFBI"
+  },
+  {
+    "id": "source-9536d03adf2f7babf357",
+    "name": "YouTube",
+    "platform": "youtube",
+    "url": "https://www.youtube.com/watch?v=fOfy-OsKWf4"
+  },
+  {
+    "id": "source-9689dd7d8d90bca8e60e",
+    "name": "YouTube",
+    "platform": "youtube",
+    "url": "https://www.youtube.com/watch?v=L7FF8Zgab3M"
+  },
+  {
+    "id": "source-9766cc4957f7f9c15f32",
+    "name": "YouTube",
+    "platform": "youtube",
+    "url": "https://www.youtube.com/watch?v=v5ExVI7egjw"
+  },
+  {
+    "id": "source-9f6ca468e4407856ebf9",
+    "name": "YouTube",
+    "platform": "youtube",
+    "url": "https://www.youtube.com/watch?v=JGqvd10ZG8U"
+  },
+  {
+    "id": "source-a2a5c4281966dd6cc25b",
+    "name": "Reddit",
+    "platform": "reddit",
+    "url": "https://www.reddit.com/r/cscareerquestions/comments/1qzzql2/serious_what_am_i_missing_about_agentic_ai/"
+  },
+  {
+    "id": "source-a81a618d3c5c298bdfdb",
+    "name": "X",
+    "platform": "x",
+    "url": "https://x.com/erikbryn/status/2072002413234717149"
+  },
+  {
+    "id": "source-b07e1768363aed17842e",
+    "name": "www.zdnet.com",
+    "platform": "article",
+    "url": "https://www.zdnet.com/article/want-ai-agents-to-work-together-the-linux-foundation-has-a-plan/"
+  },
+  {
+    "id": "source-b0df8db3565248de19b0",
+    "name": "X",
+    "platform": "x",
+    "url": "https://x.com/fchollet/status/2019610121371054455"
+  },
+  {
+    "id": "source-b724680c3274977ffb0f",
+    "name": "Reddit",
+    "platform": "reddit",
+    "url": "https://www.reddit.com/r/cscareerquestions/comments/1sh5sng/if_you_had_to_choose_what_do_you_think_the_future/"
+  },
+  {
+    "id": "source-ba3b7150b0fc36ac64a4",
+    "name": "X",
+    "platform": "x",
+    "url": "https://x.com/emollick/status/2007249835465072857"
+  },
+  {
+    "id": "source-c3a0e0bb387a947b1c6e",
+    "name": "Reddit",
+    "platform": "reddit",
+    "url": "https://www.reddit.com/r/AI_Agents/comments/1t25omv/state_of_ai_agents_in_corporates_in_mid2026/"
+  },
+  {
+    "id": "source-c41701518d4a64ea8071",
+    "name": "arxiv.org",
+    "platform": "article",
+    "url": "https://arxiv.org/html/2605.05558v2"
+  },
+  {
+    "id": "source-c46f81917ec466ccc0a4",
+    "name": "Reddit",
+    "platform": "reddit",
+    "url": "https://www.reddit.com/r/cscareerquestions/comments/1t6f33z/ai_isnt_going_to_take_your_job_and_heres_why/"
+  },
+  {
+    "id": "source-c6e519d4830b5e468a01",
+    "name": "YouTube",
+    "platform": "youtube",
+    "url": "https://www.youtube.com/watch?v=OFq_CvRCpA0"
+  },
+  {
+    "id": "source-c78dc5a935da4c063954",
+    "name": "Reddit",
+    "platform": "reddit",
+    "url": "https://www.reddit.com/r/cscareerquestions/comments/1uy7vcc/the_career_is_dead/"
+  },
+  {
+    "id": "source-d3fa1fdc2f540ed5dfbe",
+    "name": "www.anthropic.com",
+    "platform": "article",
+    "url": "https://www.anthropic.com/research/labor-market-impacts"
+  },
+  {
+    "id": "source-e0ef5ae99f782bac968c",
+    "name": "www.motivenotes.ai",
+    "platform": "article",
+    "url": "https://www.motivenotes.ai/p/what-makes-5-of-ai-agents-actually"
+  },
+  {
+    "id": "source-e1273678d8601b698eef",
+    "name": "arxiv.org",
+    "platform": "article",
+    "url": "https://arxiv.org/html/2604.00186v1"
+  },
+  {
+    "id": "source-e2118c23a88f4ca2161a",
+    "name": "YouTube",
+    "platform": "youtube",
+    "url": "https://www.youtube.com/watch?v=UMYtqHptYvA"
+  },
+  {
+    "id": "source-e221470c990490d6316a",
+    "name": "X",
+    "platform": "x",
+    "url": "https://x.com/biancoresearch/status/2026272586666062080"
+  },
+  {
+    "id": "source-e2a1b235fc4bbbd00a95",
+    "name": "X",
+    "platform": "x",
+    "url": "https://x.com/OpenAI/status/2070196105745518913"
+  },
+  {
+    "id": "source-e48f7acdbad567da7cc5",
+    "name": "YouTube",
+    "platform": "youtube",
+    "url": "https://www.youtube.com/watch?v=kO6R-F-Cidw"
+  },
+  {
+    "id": "source-e7b2e97d376fedd0751d",
+    "name": "X",
+    "platform": "x",
+    "url": "https://x.com/karpathy/status/2024987174077432126"
+  },
+  {
+    "id": "source-e7ebfc5d37aa36bbdb65",
+    "name": "Reddit",
+    "platform": "reddit",
+    "url": "https://www.reddit.com/r/AI_Agents/comments/1q65e9s/what_is_the_future_of_ai_agents/"
+  },
+  {
+    "id": "source-edbda645215e7a180574",
+    "name": "X",
+    "platform": "x",
+    "url": "https://x.com/emollick/status/2020908765545959901"
+  },
+  {
+    "id": "source-f3368b5ca59436907154",
+    "name": "YouTube",
+    "platform": "youtube",
+    "url": "https://www.youtube.com/watch?v=nYpJt6z0Boc"
+  },
+  {
+    "id": "source-f4c609c3dcb96a6a3cd5",
+    "name": "YouTube",
+    "platform": "youtube",
+    "url": "https://www.youtube.com/watch?v=BctIQs_nHg4"
+  },
+  {
+    "id": "source-fda8759998cc3c0e9ab6",
+    "name": "X",
+    "platform": "x",
+    "url": "https://x.com/davidautor/status/2047685214411841871"
+  },
+  {
+    "id": "source-fdd5d12122b96da60bac",
+    "name": "arxiv.org",
+    "platform": "article",
+    "url": "https://arxiv.org/html/2505.20120v1"
+  }
+]
