@@ -165,15 +165,17 @@ describe('bundled content pool import', () => {
     await indexedDbModule.clearAllTables();
   });
 
-  it('fails closed without network acquisition when the packaged pool predates graph artifacts', async () => {
+  it('validates the packaged graph pool in-process without network acquisition', async () => {
     const originalFetch = globalThis.fetch;
     let fetchCalls = 0;
     globalThis.fetch = async () => { fetchCalls += 1; throw new Error('network forbidden'); };
     try {
-      await assert.rejects(
-        bundleModule.loadBundledContentPool(),
-        (error) => error instanceof bundleModule.ContentPoolBundleError && error.code === 'POOL_INVALID',
-      );
+      const bundle = await bundleModule.loadBundledContentPool();
+      assert.equal(bundle.manifest.contentPoolVersion, bundleModule.PACKAGED_CONTENT_POOL_VERSION);
+      assert.equal(bundle.posts.length, bundle.manifest.counts.posts);
+      assert.ok(bundle.sources.length > 0);
+      assert.ok(bundle.globalEdges.length > 0);
+      assert.equal(bundle.rankingFeatures.posts.length, bundle.posts.length);
       assert.equal(fetchCalls, 0);
     } finally {
       globalThis.fetch = originalFetch;
