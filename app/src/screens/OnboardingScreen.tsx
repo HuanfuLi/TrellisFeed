@@ -1,13 +1,16 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Brain, Shield, Smartphone, Cloud, Lock } from 'lucide-react';
+import { Activity, ArrowLeft, Brain, LogOut, MessageCircle, Mic, Shield, UserRound } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { useSettings } from '../state/useSettings';
 import i18n from '../locales';
 import { eventBus } from '../lib/event-bus';
 import { prewarmFilterCorpus } from '../services/filter-corpus.service';
-import { hasAffirmativeResearchConsent } from '../services/research-consent.service';
+import {
+  hasAffirmativeResearchConsent,
+  RESEARCH_CONSENT_VERSION,
+} from '../services/research-consent.service';
 import { settingsService } from '../services/settings.service';
 import { studyContextService } from '../services/study-context.service';
 import type { SupportedLocale } from '../types';
@@ -47,6 +50,9 @@ export function OnboardingScreen() {
       language: selectedLocale,   // legacy back-compat; matches locale
       onboardingCompleted: true,
       aiConsentGiven: true,
+      researchConsentGiven: true,
+      researchConsentVersion: RESEARCH_CONSENT_VERSION,
+      researchConsentGivenAt: new Date().toISOString(),
     });
     const settings = settingsService.getSync();
     if (studyContextService.isBound() && hasAffirmativeResearchConsent()
@@ -192,20 +198,28 @@ export function OnboardingScreen() {
               {t('onboarding.consent.intro')}
             </p>
 
-            {/* Data flow info rows */}
+            {/* Study disclosure rows */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
               {[
                 {
-                  icon: <Smartphone size={18} color="var(--primary-40)" />,
-                  text: t('onboarding.consent.rowLocal'),
+                  icon: <Activity size={18} color="var(--primary-40)" />,
+                  text: t('onboarding.consent.itemLogging'),
                 },
                 {
-                  icon: <Cloud size={18} color="var(--primary-40)" />,
-                  text: t('onboarding.consent.rowCloud'),
+                  icon: <MessageCircle size={18} color="var(--primary-40)" />,
+                  text: t('onboarding.consent.itemQaStorage'),
                 },
                 {
-                  icon: <Lock size={18} color="var(--primary-40)" />,
-                  text: t('onboarding.consent.rowNoServer'),
+                  icon: <Mic size={18} color="var(--primary-40)" />,
+                  text: t('onboarding.consent.itemOralRecording'),
+                },
+                {
+                  icon: <UserRound size={18} color="var(--primary-40)" />,
+                  text: t('onboarding.consent.itemAnonymization'),
+                },
+                {
+                  icon: <LogOut size={18} color="var(--primary-40)" />,
+                  text: t('onboarding.consent.itemWithdrawal'),
                 },
               ].map(({ icon, text }) => (
                 <div key={text} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', padding: '12px', backgroundColor: 'var(--surface-variant)', borderRadius: 'var(--radius)' }}>

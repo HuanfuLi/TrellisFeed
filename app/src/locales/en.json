@@ -629,11 +629,13 @@
     },
     "consent": {
       "title": "Study Data & Privacy",
-      "intro": "QuestionTrace is a research study app. Here is how interaction and question/answer records are handled:",
-      "rowLocal": "Interaction and question/answer records are stored on your device first.",
-      "rowCloud": "These records are securely uploaded to the study's research data collector. The app works offline and retries uploads when a connection returns.",
-      "rowNoServer": "The research collector receives only the records needed for this study; it does not collect device metadata or activity outside QuestionTrace.",
-      "consent": "I understand and agree that my interaction and question/answer records will be collected for this study.",
+      "intro": "Before you begin, please review what taking part in this study involves:",
+      "itemLogging": "Your interactions inside QuestionTrace (posts you open, time on posts, taps, questions, saves) are logged for research.",
+      "itemQaStorage": "Questions you ask the AI and the answers you receive are stored and securely uploaded for research analysis.",
+      "itemOralRecording": "Your spoken answers in the pre-test and post-test interviews are audio-recorded by the researcher and transcribed for analysis.",
+      "itemAnonymization": "Your study data is stored under a neutral participant ID and anonymized according to the study protocol.",
+      "itemWithdrawal": "You may withdraw from the study at any time as described in the study protocol; contact the research team to withdraw.",
+      "consent": "I have read the five points above and agree to take part in this study.",
       "continue": "Continue"
     },
     "llm": {

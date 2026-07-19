@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 const store = new Map();
@@ -16,6 +17,10 @@ const { settingsService } = await import('../../src/services/settings.service.ts
 const consentModule = await import('../../src/services/research-consent.service.ts');
 const { studyContextService } = await import('../../src/services/study-context.service.ts');
 const { createInteractionLog } = await import('../../src/services/interaction-log.service.ts');
+const onboardingSource = await readFile(
+  new URL('../../src/screens/OnboardingScreen.tsx', import.meta.url),
+  'utf8',
+);
 
 const {
   RESEARCH_CONSENT_VERSION,
@@ -93,4 +98,24 @@ test('interaction logging returns an event but does not persist legacy-only cons
   assert.equal((await dbQuery('SELECT * FROM research_records')).length, 0);
   assert.equal((await dbQuery('SELECT * FROM research_upload_queue')).length, 0);
   assert.equal(enqueued.length, 0);
+});
+
+test('onboarding renders all five section 14.3 disclosures', () => {
+  for (const key of [
+    'itemLogging',
+    'itemQaStorage',
+    'itemOralRecording',
+    'itemAnonymization',
+    'itemWithdrawal',
+  ]) {
+    assert.match(onboardingSource, new RegExp(`t\\(['"]onboarding\\.consent\\.${key}['"]\\)`));
+  }
+});
+
+test('onboarding remains three steps and grants current versioned consent', () => {
+  assert.match(onboardingSource, /type Step = 'welcome' \| 'language' \| 'consent';/);
+  assert.match(onboardingSource, /researchConsentGiven:\s*true/);
+  assert.match(onboardingSource, /researchConsentVersion:\s*RESEARCH_CONSENT_VERSION/);
+  assert.match(onboardingSource, /researchConsentGivenAt:\s*new Date\(\)\.toISOString\(\)/);
+  assert.doesNotMatch(onboardingSource, /apiKey|topic/i);
 });
