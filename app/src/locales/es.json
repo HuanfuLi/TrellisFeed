@@ -629,11 +629,13 @@
     },
     "consent": {
       "title": "Datos y privacidad del estudio",
-      "intro": "QuestionTrace es una aplicación para un estudio de investigación. Así se gestionan los registros de interacción y de preguntas/respuestas:",
-      "rowLocal": "Los registros de interacción y de preguntas/respuestas se almacenan primero en tu dispositivo.",
-      "rowCloud": "Estos registros se cargan de forma segura al recolector de datos de investigación. La app funciona sin conexión y reintenta las cargas al recuperar la conexión.",
-      "rowNoServer": "El recolector de investigación recibe solo los registros necesarios para este estudio; no recopila metadatos del dispositivo ni actividad fuera de QuestionTrace.",
-      "consent": "Entiendo y acepto que se recopilen mis registros de interacción y de preguntas/respuestas para este estudio.",
+      "intro": "Antes de comenzar, revise lo que implica participar en este estudio:",
+      "itemLogging": "Sus interacciones dentro de QuestionTrace (publicaciones que abre, tiempo de lectura, toques, preguntas y elementos guardados) se registran para la investigación.",
+      "itemQaStorage": "Las preguntas que haga a la AI y las respuestas que reciba se almacenan y se cargan de forma segura para el análisis de la investigación.",
+      "itemOralRecording": "Sus respuestas orales en las entrevistas previas y posteriores a la prueba son grabadas en audio fuera de la aplicación por el personal investigador y transcritas para su análisis.",
+      "itemAnonymization": "Sus datos del estudio se almacenan con un ID neutral de participante y se anonimizan de acuerdo con el protocolo del estudio.",
+      "itemWithdrawal": "Puede retirarse del estudio en cualquier momento según lo descrito en el protocolo del estudio; para retirarse, contacte con el equipo investigador.",
+      "consent": "He leído los cinco puntos anteriores y acepto participar en este estudio.",
       "continue": "Continuar"
     },
     "llm": {
