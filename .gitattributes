@@ -1,2 +1,4 @@
 # Frozen content-pool manifests hash exact bytes; checkout must not rewrite EOLs.
 data/content_pool_graph_20260718/** -text
+app/src/generated/content-pool-v1/** -text
+app/public/content-pool-v1/** -text
