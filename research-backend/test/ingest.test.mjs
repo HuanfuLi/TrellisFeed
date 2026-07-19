@@ -207,7 +207,7 @@ test('admin status includes recommendation count and recommendation receipt time
   const token = 'token-a-0000000000000000000000000000';
   const db = await fakeD1([[token, accountA]]);
   await worker.fetch(ingestRequest([event(), questionAnswer(), recommendation()], token), { DB: db });
-  db.recommendations.get('recommendation-1').receivedAt = '2026-07-11T12:05:00.000Z';
+  db.recommendations.get('recommendation-1').receivedAt = '2099-07-11T12:05:00.000Z';
   const authorization = `Basic ${Buffer.from('researcher:correct-password').toString('base64')}`;
 
   const response = await worker.fetch(
@@ -218,5 +218,5 @@ test('admin status includes recommendation count and recommendation receipt time
 
   assert.equal(response.status, 200);
   assert.match(html, /Recommendations<\/dt>\s*<dd>1<\/dd>/);
-  assert.match(html, /2026-07-11T12:05:00.000Z/);
+  assert.match(html, /2099-07-11T12:05:00.000Z/);
 });

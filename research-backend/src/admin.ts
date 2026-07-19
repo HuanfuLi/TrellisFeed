@@ -65,10 +65,12 @@ function safeCount(value: unknown) {
 export function renderStatusPage({
   behavioralEventCount,
   questionAnswerRecordCount,
+  recommendationCount,
   lastReceivedAt,
 }: {
   behavioralEventCount: unknown;
   questionAnswerRecordCount: unknown;
+  recommendationCount?: unknown;
   lastReceivedAt: unknown;
 }) {
   const lastReceived = lastReceivedAt ? escapeHtml(lastReceivedAt) : 'No uploads received yet';
@@ -87,6 +89,8 @@ export function renderStatusPage({
         <dd>${safeCount(behavioralEventCount)}</dd>
         <dt>Question/answer records</dt>
         <dd>${safeCount(questionAnswerRecordCount)}</dd>
+        <dt>Recommendations</dt>
+        <dd>${safeCount(recommendationCount)}</dd>
         <dt>Last received</dt>
         <dd>${lastReceived}</dd>
       </dl>

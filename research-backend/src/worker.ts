@@ -228,6 +228,35 @@ function bindQuestionAnswerUpsert(db, record, account, receivedAt) {
   );
 }
 
+function bindRecommendationInsert(db, record, account, receivedAt) {
+  return db.prepare(
+    `INSERT OR IGNORE INTO recommendations
+      (id, user_id, condition, topic_id, session_id, batch_id, batch_seq, batch_position,
+       post_id, generated_at, strategy, score, reason_text, contributing_question_ids,
+       contributing_concept_ids, contributing_post_ids, component_scores, received_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).bind(
+    record.id,
+    account.userId,
+    account.condition,
+    account.topicId,
+    record.sessionId,
+    record.batchId,
+    record.batchSeq,
+    record.batchPosition,
+    record.postId,
+    record.generatedAt,
+    record.strategy,
+    record.score,
+    record.reasonText,
+    JSON.stringify(record.contributingQuestionIds ?? []),
+    JSON.stringify(record.contributingConceptIds ?? []),
+    JSON.stringify(record.contributingPostIds ?? []),
+    record.componentScores === undefined ? null : JSON.stringify(record.componentScores),
+    receivedAt,
+  );
+}
+
 async function handleIngest(request, env) {
   const account = await requireInstallAuth(request, env.DB);
   if (!account) return json({ error: 'Unauthorized.' }, 401);
@@ -237,6 +266,7 @@ async function handleIngest(request, env) {
   const receivedAt = new Date().toISOString();
   const eventStatements = [];
   const questionAnswerStatements = [];
+  const recommendationStatements = [];
 
   for (const record of records) {
     if (record.kind === 'event') {
@@ -246,6 +276,13 @@ async function handleIngest(request, env) {
         return json({ error: 'Record conflict.' }, 409);
       }
       eventStatements.push(bindEventInsert(env.DB, record, account, receivedAt));
+    } else if (record.kind === 'recommendation') {
+      const existing = await env.DB.prepare('SELECT user_id FROM recommendations WHERE id = ?')
+        .bind(record.id).all();
+      if (existing?.results?.[0]?.user_id && existing.results[0].user_id !== account.userId) {
+        return json({ error: 'Record conflict.' }, 409);
+      }
+      recommendationStatements.push(bindRecommendationInsert(env.DB, record, account, receivedAt));
     } else {
       const existing = await env.DB.prepare(
         'SELECT user_id, question_id, revision FROM question_answer_records WHERE id = ? OR question_id = ?',
@@ -258,7 +295,7 @@ async function handleIngest(request, env) {
     }
   }
 
-  const statements = [...eventStatements, ...questionAnswerStatements];
+  const statements = [...eventStatements, ...questionAnswerStatements, ...recommendationStatements];
   if (statements.length > 0) await env.DB.batch(statements);
 
   return json({ acknowledgedIds: [...new Set(records.map((record) => record.id))] });
@@ -305,15 +342,22 @@ async function selectAdminRows(db, sql) {
 }
 
 async function handleAdminStatus(env) {
-  const [events, questionAnswers, lastReceived] = await Promise.all([
+  const [events, questionAnswers, aggregate] = await Promise.all([
     selectAdminRows(env.DB, 'SELECT COUNT(*) AS total FROM behavioral_events'),
     selectAdminRows(env.DB, 'SELECT COUNT(*) AS total FROM question_answer_records'),
     selectAdminRows(
       env.DB,
-      `SELECT MAX(received_at) AS last_received_at FROM (
+      `WITH recommendation_totals AS (
+        SELECT COUNT(*) AS total FROM recommendations
+      )
+      SELECT MAX(received_at) AS last_received_at,
+        (SELECT total FROM recommendation_totals) AS recommendation_count
+      FROM (
         SELECT received_at FROM behavioral_events
         UNION ALL
         SELECT received_at FROM question_answer_records
+        UNION ALL
+        SELECT received_at FROM recommendations
       )`,
     ),
   ]);
@@ -321,7 +365,8 @@ async function handleAdminStatus(env) {
   return new Response(renderStatusPage({
     behavioralEventCount: events[0]?.total,
     questionAnswerRecordCount: questionAnswers[0]?.total,
-    lastReceivedAt: lastReceived[0]?.last_received_at,
+    recommendationCount: aggregate[0]?.recommendation_count,
+    lastReceivedAt: aggregate[0]?.last_received_at,
   }), {
     headers: {
       'cache-control': 'no-store',
