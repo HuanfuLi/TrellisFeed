@@ -32,7 +32,8 @@ import { HeaderScrollContext } from './lib/header-scroll-context';
 import { interactionLog } from './services/interaction-log.service';
 import { eventBus } from './lib/event-bus';
 import { hasAffirmativeResearchConsent, resolveParticipantRoute } from './services/research-consent.service';
-import { contentPoolRepository, type ContentPoolRepositorySnapshot } from './services/content-pool.repository';
+import type { ContentPoolRepositorySnapshot } from './services/content-pool.repository';
+import { contentPoolBootService } from './services/content-pool-boot.service';
 import { hydratePostQa } from './services/post-qa.service';
 import { questionExtractionService } from './services/question-extraction.service';
 import { graphMemoryService } from './services/graph-memory.service';
@@ -276,7 +277,7 @@ async function hydrateAllFromSQLite(): Promise<ContentPoolRepositorySnapshot> {
     hydratePostHistoryFromSQLite(), // post history
     hydrateEngagementFromSQLite(),  // saved/liked/dismissed
     studyContextService.hydrate(),   // immutable participant identity
-    contentPoolRepository.hydrate(), // validated, version-pinned frozen pool
+    contentPoolBootService.hydrate(), // validated pool plus loaded global graph indexes
     hydratePostQa(),                 // canonical same-post Q&A records
   ]);
   // One-time stale-key sweep (quota reclamation) — safe now that every mirror is
