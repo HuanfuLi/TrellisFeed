@@ -52,6 +52,7 @@ function setConsent(aiConsentGiven) {
     preferences: {
       theme: 'system', locale: 'en', language: 'en',
       onboardingCompleted: true, aiConsentGiven,
+      researchConsentGiven: aiConsentGiven, researchConsentVersion: 1,
     },
   }));
 }

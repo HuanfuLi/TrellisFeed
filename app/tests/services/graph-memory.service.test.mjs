@@ -220,7 +220,12 @@ test('question extraction writes contributions, asks_about edges, and serializab
 
 test('interaction logging resolves when the fire-and-forget graph hook throws', async () => {
   localStorage.setItem('questiontrace_settings', JSON.stringify({
-    preferences: { onboardingCompleted: true, aiConsentGiven: true },
+    preferences: {
+      onboardingCompleted: true,
+      aiConsentGiven: true,
+      researchConsentGiven: true,
+      researchConsentVersion: 1,
+    },
   }));
   let hookCalled;
   const called = new Promise((resolve) => { hookCalled = resolve; });

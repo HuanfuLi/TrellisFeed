@@ -42,6 +42,7 @@ const defaultSettings: AppSettings = {
     language: 'en',
     onboardingCompleted: false,
     aiConsentGiven: false,
+    researchConsentGiven: false,
   },
 };
 

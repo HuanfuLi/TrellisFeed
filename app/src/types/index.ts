@@ -127,6 +127,12 @@ export interface AppPreferences {
   onboardingCompleted: boolean;
   /** Explicit user consent to transmit questions to the configured AI provider. Required by App Store / Play Store AI policies. */
   aiConsentGiven?: boolean;
+  /** Explicit acceptance of the current research disclosures in §14.3 (D-04). */
+  researchConsentGiven?: boolean;
+  /** Version of the §14.3 research disclosures accepted under D-04. */
+  researchConsentVersion?: number;
+  /** ISO timestamp recording when the participant accepted the §14.3 disclosures (D-04). */
+  researchConsentGivenAt?: string;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
