@@ -1,0 +1,17 @@
+This presentation explores the technological progression of AI from baseline probability-based next-token prediction to supervised fine-tuning and reinforcement learning. The speaker examines the 'ReAct' architecture as a mechanism for interleaving reasoning with tool use and discusses how agentic frameworks mitigate short-term memory limitations by offloading state to external databases, enabling the execution of long-running workflows that exceed a model’s immediate context window.
+Central claims:
+- The speaker cites METR (METR, Inc.) performance research, noting that recent frontier models demonstrate significant task success rates for complex, multi-hour software work.
+- The speaker identifies an AI model's context window as a principal limitation for performing autonomous, long-running cognitive work without external state management.
+Concepts:
+- Large Language Model: A deep learning model trained on large datasets to predict the most probable next token in a sequence.
+- Supervised Fine-Tuning: Training a base model on manually curated datasets of questions and answers to adapt it to specific task formats.
+- Reinforcement Learning: A machine learning paradigm where an agent is trained through reward or penalty feedback loops, often incorporating human evaluation to align model output.
+- ReAct Architecture: A prompt engineering and architectural pattern where a model interleaves its reasoning (thought) with actions (tool calls) to complete multi-step tasks.
+- Agentic Frameworks: Systems that combine an AI model with external memory, tools, and loop-based orchestration to manage autonomous, iterative work processes.
+- Context Window: The limited capacity of an AI model to maintain and process information within its immediate working memory for a single request.
+Counterpoints:
+- Autonomous agent performance is often constrained by the reliability and availability of the integrated external tools rather than just the model's reasoning capabilities.
+- Reported success rates in professional environments may be influenced by the specific task-selection methodology rather than universal agent competence.
+Reliability notes:
+- The video attributes specific performance metrics to 'METR' without providing the full context of their research benchmarks.
+- Reinforcement learning is described as inherently requiring human-in-the-loop evaluators or a simulated environment, which is a specific, not exhaustive, definition.

@@ -1,0 +1,17 @@
+Heather McGowan presents a framework for understanding how work is being divided into automated, atomized (gig-based), and augmented (AI-assisted) labor. She highlights a shift in focus from task-based AI to agentic AI, which operates toward broad goals rather than specific instructions. Drawing on research by economist David Deming, McGowan suggests that while the economic returns on strictly cognitive skills have shown a relative decline since 2000, social skills have become increasingly valuable. McGowan notes that while projections suggest agentic AI will handle a significant portion of relevant software-based work in the coming years, human beings remain essential for strategic direction and judgment.
+Central claims:
+- Research cited by Heather McGowan suggests that since 2000, economic returns on cognitive skills have declined relative to those for social skills.
+- Agentic AI requires an increased human focus on goal definition, judgment, and ethical oversight.
+Concepts:
+- Agentic AI: AI systems that operate toward specific goals independently, requiring human specification, evaluation, and strategic oversight.
+- AI Chatbot: Conversational AI models designed to answer queries, explain, and summarize information.
+- Automation: The use of technology to perform repetitive, known, or predictable tasks.
+- Atomized Work: A labor model characterized by discrete tasks that can be outsourced to platforms independently of a traditional organizational structure.
+- Social Skills: Uniquely human capacities for interaction, emotional intelligence, and interpersonal collaboration identified by Deming as having increased economic value.
+- Cognitive Skills: Mental abilities involving data analysis, calculation, and technical knowledge.
+Counterpoints:
+- The decline in economic returns for cognitive skills may be cyclical rather than a permanent trend.
+- Projected adoption rates for agentic AI may be inhibited by unforeseen privacy concerns and technological limitations.
+Reliability notes:
+- The specific numerical projections for AI adoption presented in the video are speculative.
+- The interpretation of academic research requires verification against the broader literature.

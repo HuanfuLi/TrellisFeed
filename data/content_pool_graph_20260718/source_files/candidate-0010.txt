@@ -1,0 +1,131 @@
+AI agents have the potential to accelerate efficiency, dial up agility, and improve productivity. The question is not just how you'll automate or augment work, but how you'll transform the operating model, balancing human talent and agentic AI for lasting impact.
+
+At a glance
+
+Agentic AI differs from Gen AI by autonomously planning, deciding, and executing tasks with minimal human input.
+
+Agentic AI creates use cases for work transformation beyond legacy AI models.
+
+It has the potential to significantly impact business performance, driving transformation across operational, customer-facing, and knowledge work.
+
+To succeed, businesses need to address eight key change drivers.
+
+Executing an AI-augmented operating system requires the redesign of work and adapting talent, skills, and change management strategies to continuously orchestrate the optimal combination of human talent and AI agents.
+
+How is agentic AI different and why should it matter for executives?
+
+Agentic AI represents a new generation of AI. Unlike previous models, agentic AI can plan, make decisions, and execute tasks with minimal human supervision. For business leaders, this distinction matters: it expands AI from a tool that boosts productivity to a strategic capability that reshapes how work gets done and where value is created.
+
+Evidence of the shift is mounting. Salesforce research finds that 80% of HR leaders expect that most workforces will have humans and AI agents working together within five years. Research highlights a paradox: broad experimentation with GenAI, but limited impact on the bottom line so far. This makes a strong case to move beyond using AI tools toward scalable, goal-driven agents that execute real work and deliver measurable results. Complementing this, recent MIT research indicates little-to-no measurable impact on profit and loss (P&L), reinforcing the need to design for integrated workflows and enterprise outcomes from the start.
+
+As agent capabilities expand, so too must our imaginations about the nature and design of work itself. Agentic AI unlocks unprecedented automation of complex workflows by integrating sophisticated cognitive tasks and accessing diverse data sources beyond what humans can do. A successful AI transformation strategy must therefore balance safely adapting legacy systems for operational continuity with rapid innovation to future-proof the enterprise.
+
+As AI reshapes business models, agents will serve as the primary interface between users (including business partners, customers, and employees) and systems. Every business and consumer app is destined to become a tool for agents to access; the adoption of Anthropic’s Model Context Protocol shows this in motion by enabling seamless access across siloed enterprise applications.
+
+How agentic AI is evolving
+
+By their goal-driven design, enterprise-integrated agents allow organizations to orchestrate work across humans and AI, generating measurable performance gains and strategic advantage.
+
+In a 2025 survey, approximately 29% of large enterprises have deployed agentic AI or advanced autonomous agents, with a further 44% planning to within the next year. By 2026, up to 40% of enterprise applications are expected to feature task-specific AI agents, expanding the technology’s footprint beyond the current 5% (2025), and making agentic AI a core component of enterprise IT architectures.
+
+Rapid adoption is driving transformation across operational, customer-facing, and knowledge work functions. Citibank predicts that agentic AI will effectively “turbocharge the Do It For Me economy”. Research points to how autonomous systems mediating choices (rather than user-driven) shifts the competitive battlefield, prioritizing outcomes over brand loyalty. For example, an agent doesn’t care how long a customer has been with the same insurance provider; they’ll simply recommend where to go to get the best outcome.
+
+Figure 1. Sector deep-dives: Agentic AI’s use cases
+
+This chart is unable to display due to Privacy Settings.
+
+The chart could not be loaded because the Privacy Settings are disabled. Under the "Manage Cookies" option in the footer, accept the “Functional cookies” and refresh the page to allow the chart to display.
+
+Mobilizing humans and AI agents: Sustaining the transformation
+
+Agentic AI is a strategic opportunity to redesign work–roles, workflows, measures, and governance, to translate investment into lasting enterprise value. As agentic AI capabilities evolve, how will business leaders keep the operating model sustainable?
+
+The answer lies in an AI-augmented operating system (AOS). In such a model, AI is integrated across the entire value chain to drive continuous reinvention for exponential performance gains, while making work more accessible and more human. This requires an ecosystem comprising eight critical change drivers:
+
+1. Integrated infrastructure
+
+Agents integrated into enterprise systems, data, and workflows to sense, decide, and act. Standardized interfaces (application programming interface (APIs)) and enterprise tool access (such as robotic process automation, enterprise resource planning, customer relationship management) enable execution. For large organizations with inconsistent processes, agents may also help institutionalize best practices and data hygiene, creating a multiplier effect on growth and efficiency.
+
+AI agents grounded in external evidence to improve factuality. Technologies such as retrieval-augmented generation (allowing AI systems to retrieve relevant data from trusted external sources in real time) can deliver this, but the choice of evidence is not technical, it’s organizational. Deciding what constitutes appropriate knowledge and data requires strategic governance .
+
+Data is a managed supply chain, rather than a static asset. As agentic AI solutions increasingly rely on third-party platforms, APIs, and cloud infrastructure, robust vendor management (roadmaps, interoperability, agreements, risks) and ecosystem orchestration across the AI supply chain become essential.
+
+Rather than focusing solely on traditional labor costs (such as salaries and benefits of (full-time employees (FTEs), the total cost of work (TCoW) lens normalizes costs across different sources of work, including contractors and digital labor, to compare investments on a like-to-like basis.
+
+Full-time employees
+
+Contractors & gig workers
+
+Agentic AI operational costs
+
+Traditional outsourcing
+
+AI/robotic service fees
+
+AI systems
+
+Infrastructure investments
+
+Alliances/partnerships
+
+The TCoW approach reflects the evolving reality that work is no longer confined to the classic employer-employee model but includes a spectrum of human, digital, and automated agents. By applying TCoW, companies can weigh these comprehensive costs against expected returns to make informed decisions about how much to automate, where to deploy AI agents, and how to optimize hybrid workforce models. Therefore, all costs associated with performing work are captured, including:
+
+Traditional labor costs (FTEs, contractors, free agents)
+
+Costs associated with gig workers and talent platforms
+
+Outsourcing and vendor costs, including fees for AI and robotics services
+
+Capital expenses related to investments in technology and strategic alliances, amortized as annualized capital charges
+
+2. Leadership for human-AI hybrid work
+
+Leaders implement business transformation programs that bring their people along, factoring in how the transition from apps to agents changes their business models. A clear vision for human-AI collaboration requires that leaders at all levels are accountable for sustainable transformation and perpetual reinvention as AI’s capabilities evolve.
+
+Leadership capabilities extend to managing hybrid teams, actively advocating AI-led innovation and change, and making portfolio and operating trade-offs between automation and talent.
+
+3. Employee empowerment and enablement
+
+Transparent communication about what agents can/cannot do, and how they support (not replace) employees builds trust rather than feeds fear.
+
+Shared ownership and change readiness via co-creating solutions with frontline teams while aligning incentives so employees benefit from productivity gains (including upskilling credits and career mobility).
+
+4. New-age governance frameworks
+
+Ethical and legal frameworks: New governance defines intellectual property rights, data usage, and accountability for both AI contributions and human work, ensuring ethical and legal clarity in AI-augmented environments. For example, in creative industries, contracts specify ownership between AI-generated content and human inputs to safeguard competitive advantage and compliance.
+
+Quality control and risk management: Business leaders apply and monitor rigorous and auditable cybersecurity frameworks to navigate a new wave of cybersecurity risks. For example, malicious actors could manipulate LLMs at the prompt level and trick agents to leak sensitive data or perform unintended actions. Model hallucinations can not only cause bad user experience, but also expose a business to legal and compliance risks, particularly in regulated industries such as banking and insurance. Liability frameworks address AI-driven decisions and risks with clear accountability, while standardized metrics assess AI outputs against organizational goals.
+
+Collaborative and adaptive systems: Governance supports AI-enabled knowledge sharing and integrates real-time monitoring systems to manage dynamic workflows. This shifts focus from traditional roles to task- and project-based lifecycles involving humans and AI agents (both short-lived and long term projects). For instance, tech companies use cloud-based platforms where human employees and AI agents update project data collaboratively, while oversight systems track progress and compliance.
+
+5. Reimagined structures
+
+Businesses need to value adaptive structures (e.g., platform models) over rigid hierarchies to enable greater agility. Technological innovation is balanced with a workforce strategy that caters seamlessly to a blended model (FTEs, gig and digital labor combined).
+
+One bold approach to navigating the complexities of AI-driven transformation is combining HR and digital functions under one leadership role, as Moderna achieved by pioneering the role of Chief People and Digital Technology Officer. This role merges talent strategy with technological innovation to drive a holistic digital transformation, effectively aligning workforce and agent management, digital tools, and data-driven decision-making.
+
+6. A culture of human-AI collaboration and transparency
+
+Employees are encouraged to take a “leap of trust” to push AI capabilities. One way to achieve this is by recognizing and rewarding not only output, but active problem-finding and process redesign. Another is introducing incentives for employees to adopt AI in their work (e.g., spot rewards for developing innovative agents that reduce time and cost of a workflow or increase human productivity).
+
+To access a near-infinite supply of innovation to sustain growth, businesses need to rely on a culture of experimentation (with appropriate guardrails) underpinned by psychological safety. Incorporating "AI agent sandboxes" (controlled environments for proof-of-concept development before broader deployment) empowers employees to safely experiment with AI tools while mitigating risks. Successful, secure experiments that show clear ROI can then be scaled, with contributors recognized and rewarded for driving innovation.
+
+7. Process pragmatism
+
+The use cases for AI agents will only grow as the technology evolves, giving rise to redesigned workflows for human-AI execution. For executives, this evolution brings the opportunity to drive greater agility and focus on strategic priorities that deliver value.
+
+To drive true transformation, technology must be complemented by adaptive workflows and agile workforce strategies that fully integrate AI agents into daily operations. This means redesigning processes to accommodate AI agents as active collaborators that handle routine or complex cognitive tasks so employees can focus on high-value, strategic work. Operational practices such as decision-making, knowledge sharing, and performance management must be recalibrated to reflect this new human-AI partnership. For example, embed checkpoints to validate AI outputs within workflows, ensure quality, and maintain compliance, while continuing to foster experimentation and learning.
+
+8. The power of skills
+
+Agents will rapidly shift the skills required of the workforce. Enable talent to continuously upskill from sunset to sunrise work by forecasting emerging skills with workforce data and agent telemetry (data and signals collected from AI agents).
+
+Open programs on AI literacy and employee career pathing supported by personalized learning content to address skills gaps and aspirations. Mercer’s skills-first approaches and future skills resources showcase how to underpin this shift.
+
+Where to start with agentic AI?
+
+Business leaders can lay the foundation for lasting success with agentic AI by taking a structured approach, starting with pilot programs, testing agentic AI via sprints in key areas and gaining insights before scaling transformation. Quick wins include focusing on processes where AI can deliver immediate value, to build confidence and momentum. Involving leaders at all levels would better facilitate change. It is important to develop initial guidelines to ensure responsible and compliant AI use.
+
+To facilitate further adoption, continue to review existing infrastructure and capital expenditure to support effective AI deployment, all while establishing clear KPIs to measure the impact and sustainability of your AI initiatives. With open communication, a culture of continuous learning and change management, implementation becomes smoother, enabling your organization to fully realize the benefits of AI-driven transformation.
+
+Will agentic AI become the cornerstone of a stronger, more human enterprise or a shallow foundation that cracks under the weight of change? The future that awaits your business hinges on how you redesign work. By focusing on eight change drivers, leaders can build an AOS that gets the best from both people and agents, with an impact that shows up on the P&L.

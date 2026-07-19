@@ -1,0 +1,193 @@
+Gabriel S. M. Dias Vitor L. Fabris Lucas D. Gessoni Leonardo R. do Nascimento Charles S. Oliveira Vitor G. C. B. de Farias Fabiana C. Q. de O. Marucci Matheus H. R. Vicente Gabriel U. Talasso Erik Soares Amparo Munoz Sildolfo Gomes Maria L. A. de S. Cruvinel Leonardo T. dos Santos Renata De Paris Wandemberg S. P. Gibaut Eldorado Institute of Research – Av. Alan Turing, 275, Cidade Universitária, 13.083-898 – Campinas – SP – Brazil (e-mail: {gabriel.moraes, gabriel.martins, vitor.fabris, lucas.gessoni, leonardo.nascimento, charles.oliveira, vitor.farias, fabiana.marucci, matheus.rosado, gabriel.talasso, erik.soares, amparo.munoz, sildolfo.gomes, maria.cruvinel, leonardo.santos, renata.paris, wandemberg.gibaut,}@eldorado.org.br)
+
+Abstract:
+
+The Consolidation of Labor Laws (CLT) serves as the primary legal framework governing labor relations in Brazil, ensuring essential protections for workers. However, its complexity creates challenges for Human Resources (HR) professionals in navigating regulations and ensuring compliance. Traditional methods for addressing labor law inquiries often lead to inefficiencies, delays, and inconsistencies. To enhance the accuracy and efficiency of legal question-answering (Q&A), a multi-agent system powered by Large Language Models (LLMs) is introduced. This approach employs specialized agents to address distinct aspects of employment law while integrating Retrieval-Augmented Generation (RAG) to enhance contextual relevance. Implemented using CrewAI, the system enables cooperative agent interactions, ensuring response validation and reducing misinformation. The effectiveness of this framework is evaluated through a comparison with a baseline RAG pipeline utilizing a single LLM, using automated metrics such as BLEU, LLM-as-judge evaluations, and expert human assessments. Results indicate that the multi-agent approach improves response coherence and correctness, providing a more reliable and efficient solution for HR professionals. This study contributes to AI-driven legal assistance by demonstrating the potential of multi-agent LLM architectures in improving labor law compliance and streamlining HR operations.
+
+keywords:
+
+Brazilian Labor Law, Large Language Models (LLMs), Multi-agent Systems, Human Resources Compliance, Retrieval-Augmented Generation (RAG)
+
+, , , , , , , , , , , , , , , and
+
+1 Introduction
+
+The Consolidation of Labor Laws (CLT) (Brasil, 1943) is the main legal framework governing labor relations in Brazil, ensuring key rights such as working hour regulations, minimum wage, vacation entitlements, and protections against unjust dismissal. Influenced by both civil and common law traditions, the CLT follows a corporatist model, where state intervention mediates labor relations to promote social justice (Cabral and Del Mônaco, 2015). However, over the decades, this model has faced criticism for its rigidity and the challenges it poses in adapting to the dynamic demands of a globalized economy (Silva, 2017).
+
+Given the complexity and extensive nature of CLT regulations, Human Resources (HR) departments frequently encounter intricate and detailed legal inquiries related to employment laws, compliance, and workplace policies. Recently, Large Language Models (LLMs) have emerged as powerful tools for enhancing the efficiency and accuracy of information retrieval and response generation across diverse domains, streamlining complex inquiries and reducing operational burdens (Zhao et al., 2023). Furthermore, previous research on multi-agent systems has demonstrated additional potential in verifying responses, reducing misinformation, and improving accuracy (Wu et al., 2023; Talebirad and Nadiri, 2023), as well as enhancing efficiency in obtaining legal information (Blair-Stanek et al., 2023; Minaee et al., 2024). Nevertheless, to the best of our knowledge, no prior work has specifically implemented a multi-agent LLM tailored explicitly for the HR legal domain.
+
+This study addresses this gap by introducing a specialized multi-agent LLM system explicitly designed to support HR professionals in navigating CLT labor legislation. The proposed framework leverages collaborative interactions among multiple specialized agents and employs Retrieval-Augmented Generation (RAG) methodologies (Gao et al., 2023) to generate detailed, contextually appropriate, and legally accurate responses. This multi-agent approach addresses an existing research gap by tailoring advanced language modeling techniques specifically to the complexities of the HR legal domain.
+
+The main contributions of this work are:
+
+• The presentation of an multi-agent LLM-based Q&A solution aligned with Human Preferences to answer questions about Brazilian labor law;
+
+The presentation of an multi-agent LLM-based Q&A solution aligned with Human Preferences to answer questions about Brazilian labor law;
+
+• A study evaluating the effectiveness of a multi-agent LLM framework in the HR legal domain, comparing it to a RAG pipeline with a single LLM providing CLT-contextualized responses.
+
+A study evaluating the effectiveness of a multi-agent LLM framework in the HR legal domain, comparing it to a RAG pipeline with a single LLM providing CLT-contextualized responses.
+
+2 Theoretical background
+
+2.1 Large Language Models
+
+LLMs are advanced language models based on the Transformer architecture (Vaswani, 2017), designed to process and generate human language with remarkable flexibility and capability. By leveraging massive parameter sizes, extensive datasets, and significant computational power, LLMs represent the latest generation in the evolution of language models, profoundly transforming Natural Language Processing (NLP) (Zhao et al., 2023). At their core, Transformers rely on the self-attention mechanism (Vaswani, 2017), which enables efficient processing of sequential data by capturing long-range dependencies while allowing parallelization during training. These characteristics make LLMs highly scalable, capable of handling vast datasets, and adaptable to diverse linguistic contexts.
+
+LLMs can scale to hundreds of billions of parameters or more, and they demonstrate remarkable emergent capabilities. These include: In-Context Learning (Brown, 2020), where models learn new tasks from a few examples provided at inference time without additional training; Instruction Following (Chung et al., 2024), where they generalize to new tasks based solely on instructions—even in the absence of examples—after fine-tuning; and Multi-Step Reasoning, where they decompose complex problems into intermediate steps using techniques such as chain-of-thought prompting (Wei et al., 2022).
+
+2.2 LLM-based Agents
+
+LLM-based agents are designed to process information, make decisions, and perform complex tasks by utilizing resources such as Short-Term and Long-Term Memory. They rely on historical data to contextualize and retain relevant information throughout their operation. Moreover, these agents can interface with external tools, including APIs, scripts, and web browsers, facilitating capabilities like web scraping. This integration not only enhances the agents’ ability to retrieve and process real-time data but also optimizes their performance and accuracy in multi-agent systems. As a result, this approach significantly augments the agents’ potential for collaborative problem-solving, decision-making, and adaptability across diverse operational contexts (Zhang et al., 2024; Shinn et al., 2024).
+
+CrewAI is a framework that allows the creation of environments with multiple agents, each assigned distinct roles, background stories and specifics descriptions. This structure is essential for ensuring that agents can validate outputs before advancing to the next stage. Additionally, CrewAI allows for individual agent configuration, including the selection of which LLM each agent will use, and the specification of attributes such as task delegation to designated agents and the integration of custom tools for task execution.
+
+The CrewAI framework supports the use of various tools, including RAG. To improve development efficiency and modularity, specific code snippets can be created to configure the parameters required for implementing RAG within the context of a specific use case. This approach enables a more structured and organized integration of RAG resources, ensuring alignment with the project’s specific requirements.
+
+3 Methodology
+
+3.1 LLM Preliminary Accuracy Comparison
+
+In this study, we conducted an analysis involving various models, including Llama 2 (7B), Llama 3 (8B), and Llama 3.1 (8B), along with models based from Llama’s architecture, such as Bode 7B (NLP, 2024), Sabiá 2 (Sales Almeida et al., 2024), and Periquito 3B (Gibaut, 2024) which was derived from a smaller model (Open-Llama 3B). Additionally, OpenAI models - GPT 3.5, GPT-4o, and GPT-4o-mini - were also included in the evaluation.
+
+The selection of LLMs was guided by responses to 19 questions focused on Human Resources and Brazilian labor laws. These questions were developed by legal experts to reflect common concerns raised by workers. The ground truth for the responses was established using the specialists’ expertise and references from the CLT, ensuring a reliable basis for evaluation. Following initial testing, the models were ranked according to the quality of their answers, considering aspects such as coherence, clarity, hallucination frequency, and code-switching. Based on this assessment, GPT 4o, and Llama 3.1 8B (AI, 2024) were selected for their precision and consistent accuracy in delivering trustworthy responses.
+
+3.2 HR-Agents System
+
+For this project, the CrewAI framework was used to create multiple agents, one of which has access to an external custom RAG tool. A structure comprising three agents was defined, with the aim of promoting cooperation among them by passing input sequentially along the workflow. The roles of each agent are as follows:
+
+• Office Clerk: This agent is responsible for filtering the relevant information from the user’s question and forwarding it to the appropriate output. If the question is unrelated to the Human Resources context, the agent will direct the inquiry to another processing flow.
+
+Office Clerk: This agent is responsible for filtering the relevant information from the user’s question and forwarding it to the appropriate output. If the question is unrelated to the Human Resources context, the agent will direct the inquiry to another processing flow.
+
+• HR Specialist: This agent’s role is to filter the information contained in the PDF dataset and, based on the previously described RAG (retrieval-augmented generation), formulate appropriate responses.
+
+HR Specialist: This agent’s role is to filter the information contained in the PDF dataset and, based on the previously described RAG (retrieval-augmented generation), formulate appropriate responses.
+
+• Chief of Human Resource Department: The main role of this agent is to review the responses generated by the previous agents, with the goal of guaranteeing the clarity and coherence of the information provided. If necessary, the agent makes corrections to ensure that the responses are well-structured and consistent.
+
+Chief of Human Resource Department: The main role of this agent is to review the responses generated by the previous agents, with the goal of guaranteeing the clarity and coherence of the information provided. If necessary, the agent makes corrections to ensure that the responses are well-structured and consistent.
+
+To process the document with precision, the tool uses a Character Text Splitter which breaks the text into smaller, manageable chunks. These chunks are structured to include overlapping sections, ensuring that the ideas flow continuously between them. By setting a chunk size of 512 characters and an overlap of 256, the tool reaches a balance between comprehensiveness and usability, making it easier for language models to process and understand the dataset’s data.
+
+RAG was employed to provide relevant context from the CLT to the LLMs for answering questions. The source CLT document was segmented into individual articles using the delimiter “Art.”, with each segment representing a distinct article. This process produced a structured collection of textual chunks, each corresponding to a logically coherent and independently retrievable section of the original text.
+
+Following segmentation, dense embedding vectors were generated using the Multilingual E5 text embedding model (Wang et al., 2024). Retrieval was performed using the FAISS library (Douze et al., 2024), configured to identify the top 20 most semantically similar document segments based on the cosine similarity between the query vector and document embeddings. The retrieved document segments were then concatenated into a single textual context provided to the LLM.
+
+3.3 Evaluation Metrics
+
+Using the same set of questions from the initial model selection test, the evaluation process in this study employed four distinct metrics: one statistical (BLEU), two based on the "LLM-as-judge" approach—answer similarity and answer correctness—and one based on subjective human evaluation.
+
+3.3.1 BLEU
+
+The BiLingual Evaluation Understudy (BLEU) (Papineni et al., 2002) is a metric initialy for evaluate machine translations to measure the quality of text generated by machine translation systems or language generation models. Comparing the generated text with one or more references texts, it calculate the precision of n-grams (sequences of n words) that match between the generated text and the references, making BLEU an effective choice for tasks where exact wording is important. However, BLEU has limitations when evaluating tasks that allow semantic variation, as it does not account for synonyms or paraphrases.
+
+3.3.2 Answer Similarity
+
+Using LLM itself as a "judge" is a one approach to evaluate complex answers from others LLM’s, focusing on how well they align with reference answers in terms of content and relevance.
+
+Answer Similarity measures how closely the generated answer matches the reference answer, which is often provided by human evaluators. It is essential in tasks such as question answering and, where exists multiple valid answers. The goal is not for the answers to be identical but for them to convey the same meaning and content. Metrics like cosine similarity, Jaccard similarity, and BLEU score are commonly used to quantify answer similarity.
+
+In this project, the Cosine Similarity metric was utilized through the RAGAS framework, which allows for a more context-aware evaluation of generated answers. By leveraging vectorized text representations, Cosine Similarity measures the angular distance between the generated and reference answers, ensuring that the assessment captures semantic relationships beyond simple lexical overlap.
+
+3.3.3 Answer Correctness
+
+Answer Correctness is one type of evaluation where measures how accurately a model’s generated response reflects the factual content and semantic meaning of the ground truth answer. It is computed by considering both factual correctness and semantic similarity. Factual correctness measures the overlap between the generated answer and the ground truth in terms of true positive (TP), false positive (FP), and false negative (FN) facts. TP represents facts that are present in both the generated answer and the reference answer, while FP and FN refer to discrepancies between the two. Additionally, semantic similarity evaluates how closely the meaning of the generated answer aligns with the reference answer. These combined factors help assess the overall correctness of the model’s response.
+
+3.3.4 Subjective Evaluation Metrics
+
+Recognizing the limitations of automated lexical metrics like BLEU, we conducted complementary subjective evaluations to better assess LLM performance. These focused on two key qualitative dimensions: response precision and response quality.
+
+LLM responses to 19 expert-formulated questions in labor law and HR were systematically evaluated. Response precision measured the legal accuracy and contextual appropriateness of the answers. Response quality assessed coherence, clarity, relevance, and logical flow.
+
+Labor law and HR specialists performed these evaluations manually, capturing critical aspects often missed by automated metrics, such as interpretative accuracy, tone, regulatory compliance, and implicit meaning. These expert insights provided essential human-centered validation, complementing objective metrics and ensuring a more reliable assessment of LLM performance in real-world legal contexts.
+
+4 Results
+
+After collecting responses and metrics, the results were obtained and the analysis assessed the performance of the models comparing RAG and CrewAI Agent responses, providing insights into the effectiveness of the LLMs in generating answers.
+
+Figures 1 and 2 present a BLEU score comparison between GPT-4o and Llama 3.1 8B, showing improved results for the GPT-4o when using CrewAI agents. This improvement may be attributed to the nature of GPT’s responses, which were generally brief and often replying with statements like “I don’t know”. In contrast, Llama produced longer and more detailed answers, though these occasionally introduced discrepancies or inaccuracies. The higher BLUE scores for GTP-4o might be linked to its shorter responses, which resulted in a higher overlap of words with the ground truth.
+
+It’s also important to note that the BLEU metric evaluates responses by comparing their n-grams to those in the ground truth. Given the complexity of certain questions, the wording in the LLMs’ responses may differ from the reference answers, even if the meaning is accurate. This lexical variation can result in lower BLEU scores despite the presence of valid content.
+
+Figures 3 and 4 display the answer similarity scores, indicating that GPT-4o outperformed Llama within the CrewAI agent configuration, although both models demonstrated satisfactory lexical alignment with the ground truth across both RAG and CrewAI settings. These results indicate that, in the tests conducted, both models were generally capable of producing responses containing terms closely aligned with those found in the reference answers.
+
+However, it is important to note that the answer similarity metric evaluates textual overlap and does not penalize semantically similar responses that may still arrive at factually incorrect conclusions. To address this limitation, the answer correctness metric is employed, offering a more rigorous assessment of the factual alignment between model outputs and the ground truth.
+
+Based on the results showed in Figures 5 and 6, RAG consistently achieved higher answer correctness scores for both GPT-4o and Llama 3.1 8B, with median values of 0.67 and 0.60, respectively. These results highlight RAG’s effectiveness in grounding answers with retrieved legal content, which enhances factual accuracy and semantic alignment with the ground truth. While the advantage was clear, the differences were not substantial when compared to CrewAI agents, which scored 0.55 for GPT-4o and 0.54 for Llama—demonstrating that agent-based cooperation can approximate similar levels of correctness even without explicit retrieval.
+
+These findings suggest that while RAG improves factual grounding, CrewAI agents offer a competitive alternative by leveraging role-based task handling and multi-agent reasoning. The relatively small performance gap underscores the potential for further enhancing agent coordination or integrating fine-tuned legal modules.
+
+Table 1 reports the results of the subjective evaluation for GPT-4o, revealing a mean precision score of 6.47 with substantial variability, suggesting inconsistency in the model’s ability to provide accurate responses. In contrast, the model demonstrates a high mean quality score of 9.75, indicating that despite occasional imprecision, the responses were consistently well-articulated and coherent. These results underscore a key area for improvement in precision while reinforcing the model’s strength in generating high-quality outputs.
+
+Table 2 presents the subjective evaluation statistics for Llama 3.1 8B. The results indicate that precision demonstrates considerable variability, with a mean score of 4.72 and a coefficient of variation of 72.94%, suggesting notable inconsistencies in evaluators’ assessments. In contrast, response quality appears more stable, with a mean score of 8.72 and a coefficient of variation of 15.38%, reflecting greater consistency across evaluations. When compared to the earlier findings for GPT-4o, precision remains a key area of concern—exhibiting even higher variability—whereas quality continues to be relatively high and stable, albeit marginally lower than GPT-4o’s mean quality score of 9.75.
+
+It is important to acknowledge that while automated metrics such as BLEU offer valuable insights into model performance, these metrics may not fully capture the intricacies and diverse interpretations inherent to the CLT’s legal definitions. Recognizing this limitation, we complemented our evaluation approach with detailed human assessments conducted by HR and legal specialists, ensuring that critical nuances, contextual subtleties, and interpretative variations specific to labor law were appropriately considered. This combined methodology provides a more holistic and robust evaluation of our proposed system, underlining the essential role of human judgment alongside automated measures in complex legal domains.
+
+5 Conclusion
+
+The creation and integration of environments containing agents with LLMs through frameworks such as CrewAI have facilitated the understanding of this technology, while also enabling the use of customized tools tailored to specific purposes. Applied to the context of Human Resources and labor laws, this study highlights, through various comparisons and evaluation methods, the impact of using such technology in specific contexts and the challenges it entails.
+
+While subtle improvements are noticeable in certain metrics, a meticulous analysis of each generated response, combined with subjective evaluation, revealed that the model was capable of producing responses consistent with expectations. It was able to reference relevant laws and articles related to each question, making it feasible for implementation in chatbot systems focused on Brazilian labor laws.
+
+Looking ahead, this study lays a solid foundation for expanding the application of multi-agent LLM systems to legal domains beyond the CLT framework. The proposed architecture demonstrates a high degree of adaptability, enabling the integration of alternative LLM models and the refinement of existing agent configurations through tailored enhancements. Future research can explore the use of domain-specific language models trained on targeted legal corpora, integrating them into the multi-agent pipeline to improve accuracy and contextual understanding in specialized areas of law.
+
+Moreover, upcoming investigations could prioritize the development of evaluation metrics tailored to legal reasoning. Traditional metrics, such as BLEU, may not fully capture the depth and nuance required for legal assessments. Addressing these limitations—alongside inconsistencies like GPT-4o’s overly concise answers or Llama’s tendency toward verbose but occasionally imprecise outputs—will be essential for fine-tuning model behavior. Collectively, these research directions can drive significant improvements in the performance, flexibility, and real-world applicability of multi-agent LLM systems across complex regulatory environments.
+
+Acknowledgements
+
+The authors are grateful to the Eldorado Research Institute.
+
+References
+
+AI (2024) AI, M. (2024). Llama 3.1 8b. https://huggingface.co/meta-llama/Llama-3.1-8B.
+
+Blair-Stanek et al. (2023) Blair-Stanek, A., Holzenberger, N., and Van Durme, B. (2023). Can gpt-3 perform statutory reasoning? In Proceedings of the Nineteenth International Conference on Artificial Intelligence and Law, 22–31.
+
+Brasil (1943) Brasil (1943). Consolidação das leis do trabalho. Decreto-Lei no 5.452, de 1o de maio de 1943.
+
+Brown (2020) Brown, T.B. (2020). Language models are few-shot learners. arXiv preprint arXiv:2005.14165.
+
+Cabral and Del Mônaco (2015) Cabral, A.A. and Del Mônaco, M. (2015). O direito civil e a sua aplicação ao direito do trabalho: Abordagem histórica e dogmática. PDF file. URL https://as1.trt3.jus.br/bd-trt3/handle/11103/27278.
+
+Chung et al. (2024) Chung, H.W., Hou, L., Longpre, S., Zoph, B., Tay, Y., Fedus, W., Li, Y., Wang, X., Dehghani, M., Brahma, S., et al. (2024). Scaling instruction-finetuned language models. Journal of Machine Learning Research, 25(70), 1–53.
+
+Douze et al. (2024) Douze, M., Guzhva, A., Deng, C., Johnson, J., Szilvasy, G., Mazaré, P.E., Lomeli, M., Hosseini, L., and Jégou, H. (2024). The faiss library. arXiv preprint arXiv:2401.08281.
+
+Gao et al. (2023) Gao, Y., Xiong, Y., Gao, X., Jia, K., Pan, J., Bi, Y., Dai, Y., Sun, J., Wang, H., and Wang, H. (2023). Retrieval-augmented generation for large language models: A survey. arXiv preprint arXiv:2312.10997, 2.
+
+Gibaut (2024) Gibaut, W. (2024). Periquito-3b: Modelo de linguagem em português. https://huggingface.co/wandgibaut/periquito-3B. Modelo de linguagem baseado em LLaMA 2-3B, ajustado para compreensão e geração de texto em português.
+
+Lin (2004) Lin, C.Y. (2004). Rouge: A package for automatic evaluation of summaries. In Text summarization branches out, 74–81.
+
+Lin and Hovy (2003) Lin, C.Y. and Hovy, E. (2003). Automatic evaluation of summaries using n-gram co-occurrence statistics. In Proceedings of the 2003 human language technology conference of the North American chapter of the association for computational linguistics, 150–157.
+
+Lin and Och (2004) Lin, C.Y. and Och, F.J. (2004). Automatic evaluation of machine translation quality using longest common subsequence and skip-bigram statistics. In Proceedings of the 42nd Annual Meeting of the Association for Computational Linguistics (ACL-04), 605–612.
+
+Minaee et al. (2024) Minaee, S., Mikolov, T., Nikzad, N., Chenaghlu, M., Socher, R., Amatriain, X., and Gao, J. (2024). Large language models: A survey. arXiv preprint arXiv:2402.06196.
+
+NLP (2024) NLP, R. (2024). Bode 7b - alpaca pt-br. https://huggingface.co/recogna-nlp/bode-7b-alpaca-pt-br. Modelo de linguagem baseado no LLaMA 2-7B, ajustado para instruções em português.
+
+OpenAI (2024) OpenAI (2024). Gpt-4o mini: Avançando a inteligência de forma econômica. URL https://openai.com/index/gpt-4o-mini-advancing-cost-efficient-intelligence/. Accessed: 2024-11-21.
+
+Papineni et al. (2002) Papineni, K., Roukos, S., Ward, T., and Zhu, W.J. (2002). Bleu: a method for automatic evaluation of machine translation. In Proceedings of the 40th annual meeting of the Association for Computational Linguistics, 311–318.
+
+Sales Almeida et al. (2024) Sales Almeida, T., Abonizio, H., Nogueira, R., and Pires, R. (2024). Sabiá-2: A new generation of portuguese large language models. arXiv e-prints, arXiv–2403.
+
+Shinn et al. (2024) Shinn, N., Cassano, F., Gopinath, A., Narasimhan, K., and Yao, S. (2024). Reflexion: Language agents with verbal reinforcement learning. Advances in Neural Information Processing Systems, 36.
+
+Silva (2017) Silva, M.d. (2017). A justiça do trabalho: Importância e desafios em 76 anos de história. Tribunal Regional do Trabalho da 3o Região de Minas Gerais. URL https://sistemas.trt3.jus.br/bd-trt3/handle/11103/27501.
+
+Talebirad and Nadiri (2023) Talebirad, Y. and Nadiri, A. (2023). Multi-agent collaboration: Harnessing the power of intelligent llm agents. arXiv preprint arXiv:2306.03314.
+
+Vaswani (2017) Vaswani, A. (2017). Attention is all you need. Advances in Neural Information Processing Systems.
+
+Wang et al. (2024) Wang, L., Yang, N., Huang, X., Yang, L., Majumder, R., and Wei, F. (2024). Multilingual e5 text embeddings: A technical report. arXiv preprint arXiv:2402.05672.
+
+Wei et al. (2022) Wei, J., Wang, X., Schuurmans, D., Bosma, M., Xia, F., Chi, E., Le, Q.V., Zhou, D., et al. (2022). Chain-of-thought prompting elicits reasoning in large language models. Advances in neural information processing systems, 35, 24824–24837.
+
+Wu et al. (2023) Wu, Q., Bansal, G., Zhang, J., Wu, Y., Zhang, S., Zhu, E., Li, B., Jiang, L., Zhang, X., and Wang, C. (2023). Autogen: Enabling next-gen llm applications via multi-agent conversation framework. arXiv preprint arXiv:2308.08155.
+
+Zhang et al. (2024) Zhang, Y., Mao, S., Ge, T., Wang, X., de Wynter, A., Xia, Y., Wu, W., Song, T., Lan, M., and Wei, F. (2024). Llm as a mastermind: A survey of strategic reasoning with large language models. arXiv preprint arXiv:2404.01230.
+
+Zhao et al. (2023) Zhao, W.X., Zhou, K., Li, J., Tang, T., Wang, X., Hou, Y., Min, Y., Zhang, B., Zhang, J., Dong, Z., et al. (2023). A survey of large language models. arXiv preprint arXiv:2303.18223.

@@ -1,0 +1,43 @@
+With the rise of AI agents, AI programs that can perform tasks for you without being explicitly told how to carry out every individual step, a problem has arisen. It's an old one in tech circles: Interoperability. How do you get AI agents to work together? One answer is Cisco's AGNTCY (pronounced "agency") project.
+
+To prevent AI agency fragmentation, Cisco has donated the AGNTCY project to the Linux Foundation. The Thai project is backed by numerous industry heavyweights, including Dell, Google Cloud, Oracle, and Red Hat. The aim is to create a foundational, open-standard infrastructure, an "Internet of Agents," to enable disparate AI agents to communicate and collaborate seamlessly.
+
+Also: How agentic AI is transforming the very foundations of business strategy
+
+Without such an interoperable standard, companies have been rushing to build specialized AI agents. These work in isolated silos that cannot work and play well with each other. This, in turn, makes them less useful for customers than they could be.
+
+We've seen this story before. Sometimes, the result is a single de facto standard, such as Windows for PCs, in which one company dominates. At other times, you end with technology slowdowns as companies fight over standards. For example, the first Wi-Fi deployment took place in 1970. It wasn't until 1997 that the first Wi-Fi standard, 802.11, was finalized. In the best of all possible worlds, companies and developers agree on a single, universal standard that enables a technology to flourish. Perhaps the most important of these was the TCP/IP protocol, which gave us the Internet. The AGNTCY project aims to establish that kind of common ground for the world of agentic AI.
+
+"Building the foundational infrastructure for the Internet of Agents requires community ownership, not vendor control," said Vijoy Pandey, GM and SVP of Outshift by Cisco, in a blog post accompanying the announcement. "The missing piece isn't smarter agents — it's complete infrastructure that lets any agent work with any other agent, regardless of who built it or where it runs."
+
+AGNTCY was first open-sourced by Cisco in March 2025 and has since attracted support from over 75 companies. By moving it under the Linux Foundation's neutral governance, the hope is that everyone else will jump on the AGNTCY bandwagon, thus making it an industry-wide standard. The Linux Foundation has a long history of providing common ground for what otherwise might be contentious technology battles.
+
+The project provides a complete framework to solve the core challenges of multi-agent collaboration:
+
+Agent Discovery: An Open Agent Schema Framework (OASF) acts like a "DNS for agents," allowing them to find and understand the capabilities of others.
+
+Agent Identity: A system for cryptographically verifiable identities ensures agents can prove who they are and perform authorized actions securely across different vendors and organizations.
+
+Agent Messaging: A protocol named Secure Low-latency Interactive Messaging (SLIM) is designed for the complex, multi-modal communication patterns of agents, with built-in support for human-in-the-loop interaction and quantum-safe security.
+
+Agent Observability: A specialized monitoring framework provides visibility into complex, multi-agent workflows, which is crucial for debugging probabilistic AI systems.
+
+"The AGNTCY project lays groundwork for secure, interoperable collaboration among autonomous agents," said Jim Zemlin, the Linux Foundation's executive director. "We are pleased to welcome the AGNTCY project... to ensure its infrastructure remains open, neutral, and community-driven."
+
+Also: How AI agents can generate $450 billion by 2028 - and what stands in the way
+
+You may well ask, aren't there other emerging AI agency standards? You're right. There are. These include the Agent2Agent (A2A) protocol, which was also recently contributed to the Linux Foundation, and Anthropic's Model Context Protocol (MCP). AGNTCY will help agents using these protocols discover each other and communicate securely.
+
+In more detail, it looks like this: AGNTCY enables interoperability and collaboration in three primary ways:
+
+Discovery: Agents using the A2A protocol and servers using MCP can be listed and found through AGNTCY's directories. This enables different agents to discover each other and understand their functions.
+
+Messaging: A2A and MCP communications can be transported over SLIM, AGNTCY's messaging protocol designed for secure and efficient agent interaction.
+
+Observability: The interactions between these different agents and protocols can be monitored using AGNTCY's observability software development kits (SDKs), which increase transparency and help with debugging complex workflows
+
+Companies see the win here. In a statement, John Roese, Dell Technologies's global CTO and chief AI officer, said, "Interoperability is central to Dell's agentic AI vision. Interworking technologies must accommodate agents wherever they are deployed, whether in public clouds, private data centers, the edge, or on devices."
+
+With the project now under Linux Foundation stewardship, the existing working groups will continue their development, inviting broader community participation to accelerate adoption. AGNTCY's code and documentation are available on GitHub for developers or anyone else looking to contribute.
+
+Get the morning's top stories in your inbox each day with our Tech Today newsletter.

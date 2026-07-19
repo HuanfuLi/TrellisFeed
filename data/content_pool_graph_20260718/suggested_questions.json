@@ -1,0 +1,5438 @@
+[
+  {
+    "id": "question-candidate-0000-01",
+    "postId": "candidate-0000",
+    "topicId": "ai-agents-future-work",
+    "text": "How do AI agents, which do not necessarily align with economic incentives, differ from the fully rational actors modeled in traditional economic theory?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-d33b22ce41f45ea7046e"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0000-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0000-02",
+    "postId": "candidate-0000",
+    "topicId": "ai-agents-future-work",
+    "text": "What evidence supports the claim that intrinsic reasoning capabilities are superior to external scaffolding in dynamic, long-horizon markets?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-2059bc5318a907c9509d"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0000-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0000-03",
+    "postId": "candidate-0000",
+    "topicId": "ai-agents-future-work",
+    "text": "How does the co-evolution of agents and market mechanisms introduce new risks for market failure?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-d33b22ce41f45ea7046e"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0000-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0000-04",
+    "postId": "candidate-0000",
+    "topicId": "ai-agents-future-work",
+    "text": "In what ways do simulated environments allow for the study of 'agentic' cognitive biases compared to human biases?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-4e40bea07635c9f1e056"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0000-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0000-05",
+    "postId": "candidate-0000",
+    "topicId": "ai-agents-future-work",
+    "text": "What role does 'Theory of Mind' play in enabling agents to effectively manage reputation within a competitive labor market?",
+    "type": "example",
+    "targetConceptIds": [
+      "concept-4e40bea07635c9f1e056"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0000-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0001-01",
+    "postId": "candidate-0001",
+    "topicId": "ai-agents-future-work",
+    "text": "How do the performance gains observed with HITL re-attempts vary across different professional domains in the benchmark?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-68e155f7aba2959df921"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0001-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0001-02",
+    "postId": "candidate-0001",
+    "topicId": "ai-agents-future-work",
+    "text": "What specific metrics beyond success rates are most useful for distinguishing the quality of AI-generated deliverables in professional contexts?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-3d119f7942924710c399"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0001-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0001-03",
+    "postId": "candidate-0001",
+    "topicId": "ai-agents-future-work",
+    "text": "Could the reliance on freelance expert evaluators introduce bias that favors specific types of AI reasoning styles?",
+    "type": "reliability",
+    "targetConceptIds": [
+      "concept-68e155f7aba2959df921"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0001-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0001-04",
+    "postId": "candidate-0001",
+    "topicId": "ai-agents-future-work",
+    "text": "How does the UpBench framework handle potential confidentiality and data privacy constraints inherent in real-world freelance marketplace jobs?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-3d119f7942924710c399"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0001-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0001-05",
+    "postId": "candidate-0001",
+    "topicId": "ai-agents-future-work",
+    "text": "In what ways do real-world economic benchmarks compare to synthetic 'sandbox' environments in testing agent resilience?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-f0e5f53af7e637286fd5",
+      "concept-3d119f7942924710c399"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0001-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0002-01",
+    "postId": "candidate-0002",
+    "topicId": "ai-agents-future-work",
+    "text": "How does the workflow coverage factor (COV) specifically distinguish agentic automation from previous task-based models?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-d923e20d267caeebae5e",
+      "concept-465dad65bdb4765b02d1"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0002-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0002-02",
+    "postId": "candidate-0002",
+    "topicId": "ai-agents-future-work",
+    "text": "What are the limitations of the keyword-based rubric used to calculate COV scores?",
+    "type": "reliability",
+    "targetConceptIds": [
+      "concept-d923e20d267caeebae5e"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0002-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0002-03",
+    "postId": "candidate-0002",
+    "topicId": "ai-agents-future-work",
+    "text": "How do reinstatement roles, such as AI Governance, differ from traditional technical positions in their skill requirements?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-ce070d0660ad51b45b5b",
+      "concept-f0e5f53af7e637286fd5"
+    ],
+    "targetClaimIds": [],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0002-04",
+    "postId": "candidate-0002",
+    "topicId": "ai-agents-future-work",
+    "text": "Why are current ATE projections considered model-derived estimates rather than empirical measurements of observed displacement?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-3acd44b3729532f42dcd"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0002-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0002-05",
+    "postId": "candidate-0002",
+    "topicId": "ai-agents-future-work",
+    "text": "What evidence supports the claim that agentic AI adoption is sensitive to regional innovation density?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-3ab9805cb32fbdf257b3"
+    ],
+    "targetClaimIds": [],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0003-01",
+    "postId": "candidate-0003",
+    "topicId": "ai-agents-future-work",
+    "text": "Why did the single-model RAG baseline outperform the multi-agent system in terms of answer correctness in this study?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-1917e406080cd1b20da1",
+      "concept-a1f9d63328074e333a90"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0003-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0003-02",
+    "postId": "candidate-0003",
+    "topicId": "ai-agents-future-work",
+    "text": "How do role-based task delegation mechanisms influence the output of LLM systems in legal domains?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-a1f9d63328074e333a90"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0003-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0003-03",
+    "postId": "candidate-0003",
+    "topicId": "ai-agents-future-work",
+    "text": "What specific limitations make BLEU an insufficient metric for evaluating legal text?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-9fd749528fd321690c30"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0003-03"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0003-04",
+    "postId": "candidate-0003",
+    "topicId": "ai-agents-future-work",
+    "text": "Does the multi-agent architecture provide benefits for transparency or explainability that aren't captured by correctness scores?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-a1f9d63328074e333a90"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0003-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0003-05",
+    "postId": "candidate-0003",
+    "topicId": "ai-agents-future-work",
+    "text": "Are there specific design trade-offs when choosing between a single-model RAG pipeline and a multi-agent coordination framework?",
+    "type": "counterpoint",
+    "targetConceptIds": [
+      "concept-1917e406080cd1b20da1",
+      "concept-a1f9d63328074e333a90"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0003-01",
+      "claim-candidate-0003-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0004-01",
+    "postId": "candidate-0004",
+    "topicId": "ai-agents-future-work",
+    "text": "How does the Compute-Anchored Wage framework differ from traditional task-based automation models?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-465dad65bdb4765b02d1",
+      "concept-630ac89d626bf57f63d2"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0004-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0004-02",
+    "postId": "candidate-0004",
+    "topicId": "ai-agents-future-work",
+    "text": "What are the limitations of assuming a competitive compute market when determining the CAW bound?",
+    "type": "reliability",
+    "targetConceptIds": [
+      "concept-630ac89d626bf57f63d2"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0004-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0004-03",
+    "postId": "candidate-0004",
+    "topicId": "ai-agents-future-work",
+    "text": "Can humans retain wage premiums on tasks that are substitutable but also require high accountability or legal liability?",
+    "type": "counterpoint",
+    "targetConceptIds": [
+      "concept-630ac89d626bf57f63d2"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0004-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0004-04",
+    "postId": "candidate-0004",
+    "topicId": "ai-agents-future-work",
+    "text": "How might algorithmic improvements in inference models impact the compute intensity parameter?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-76b9286226b3d82e1b8d"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0004-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0004-05",
+    "postId": "candidate-0004",
+    "topicId": "ai-agents-future-work",
+    "text": "What policy measures could prevent the compute-capital share of income from rising indefinitely?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-630ac89d626bf57f63d2"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0004-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0006-01",
+    "postId": "candidate-0006",
+    "topicId": "ai-agents-future-work",
+    "text": "What specific technical or organizational barriers contribute to the reliability and adoption gaps for AI systems?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-6192b50f9648ef076745"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0006-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0006-02",
+    "postId": "candidate-0006",
+    "topicId": "ai-agents-future-work",
+    "text": "How does 'task recomposition' distinguish between simple job substitution and the evolution of human roles?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-90417bd4ae3b2befc05c"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0006-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0006-03",
+    "postId": "candidate-0006",
+    "topicId": "ai-agents-future-work",
+    "text": "Does historical data support the 'alarmed' view that this technological shift is unprecedented in scale and pace?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-0edcc8fa21fb74861a49"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0006-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0006-04",
+    "postId": "candidate-0006",
+    "topicId": "ai-agents-future-work",
+    "text": "Why do some economists categorize AI as 'normal technology' rather than a distinct paradigm shift?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-1a9e55b246c9e46f34ce"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0006-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0006-05",
+    "postId": "candidate-0006",
+    "topicId": "ai-agents-future-work",
+    "text": "What are the potential risks if policymakers fail to establish proactive, evidence-based decision thresholds for AI intervention?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-6192b50f9648ef076745"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0006-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0007-01",
+    "postId": "candidate-0007",
+    "topicId": "ai-agents-future-work",
+    "text": "How do AI agents differ technically from traditional chatbots?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-e748f8750672ca8b04b2"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0007-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0007-02",
+    "postId": "candidate-0007",
+    "topicId": "ai-agents-future-work",
+    "text": "What are the primary risks associated with deploying AI agents without human oversight?",
+    "type": "reliability",
+    "targetConceptIds": [
+      "concept-bc5d19a9da020918341c",
+      "concept-f83c5553308b06963bd0"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0007-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0007-03",
+    "postId": "candidate-0007",
+    "topicId": "ai-agents-future-work",
+    "text": "How can workers demonstrate their ability to manage agentic workflows on a resume?",
+    "type": "example",
+    "targetConceptIds": [
+      "concept-18deff1e4c824148d3e1"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0007-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0007-04",
+    "postId": "candidate-0007",
+    "topicId": "ai-agents-future-work",
+    "text": "What criteria should organizations use to determine if a workflow is suitable for AI agent integration?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-18deff1e4c824148d3e1",
+      "concept-bc5d19a9da020918341c"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0007-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0007-05",
+    "postId": "candidate-0007",
+    "topicId": "ai-agents-future-work",
+    "text": "How might the widespread adoption of AI agents affect entry-level job training?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-18deff1e4c824148d3e1",
+      "concept-f83c5553308b06963bd0"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0007-01"
+    ],
+    "generic": true
+  },
+  {
+    "id": "question-candidate-0008-01",
+    "postId": "candidate-0008",
+    "topicId": "ai-agents-future-work",
+    "text": "How does the 'observed exposure' metric differ from purely theoretical assessments of AI job displacement?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-8c66673aed32f74d9b26",
+      "concept-6f8b3389ce0a18fd8ff5"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0008-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0008-02",
+    "postId": "candidate-0008",
+    "topicId": "ai-agents-future-work",
+    "text": "Why might hiring rates for young workers be a more sensitive early indicator of AI impact than aggregate unemployment rates?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-70e00972fbb7f0c9bbfa",
+      "concept-0ab37c8e4a2ef4607964"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0008-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0008-03",
+    "postId": "candidate-0008",
+    "topicId": "ai-agents-future-work",
+    "text": "What are the limitations of using current professional usage data to forecast long-term labor market shifts?",
+    "type": "reliability",
+    "targetConceptIds": [
+      "concept-c7c88ca51e71153fb785"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0008-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0008-04",
+    "postId": "candidate-0008",
+    "topicId": "ai-agents-future-work",
+    "text": "How do the observed employment trends in this study compare with other recent findings on AI-related job displacement?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-c7c88ca51e71153fb785"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0008-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0008-05",
+    "postId": "candidate-0008",
+    "topicId": "ai-agents-future-work",
+    "text": "How does the weighting of 'automated' versus 'augmentative' tasks shift the measurement of job risk?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-8c66673aed32f74d9b26"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0008-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0009-01",
+    "postId": "candidate-0009",
+    "topicId": "ai-agents-future-work",
+    "text": "What does Karpathy mean by the industry 'overshooting the tooling' regarding present capabilities?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-e748f8750672ca8b04b2"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0009-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0009-02",
+    "postId": "candidate-0009",
+    "topicId": "ai-agents-future-work",
+    "text": "How does the estimated 20% per-step error rate mathematically affect long-running autonomous workflows?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-e748f8750672ca8b04b2"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0009-03"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0009-03",
+    "postId": "candidate-0009",
+    "topicId": "ai-agents-future-work",
+    "text": "In what ways would Karpathy’s collaborative AI-human model prevent the proliferation of 'AI slop'?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-24068bda4872c564a259",
+      "concept-e748f8750672ca8b04b2"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0009-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0009-04",
+    "postId": "candidate-0009",
+    "topicId": "ai-agents-future-work",
+    "text": "How might advancements in hardware or architecture challenge the 10-year timeline cited by Karpathy?",
+    "type": "counterpoint",
+    "targetConceptIds": [
+      "concept-e748f8750672ca8b04b2"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0009-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0009-05",
+    "postId": "candidate-0009",
+    "topicId": "ai-agents-future-work",
+    "text": "What constitutes a 'fully functional' AI agent in the context of Karpathy's critique?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-e748f8750672ca8b04b2"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0009-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0010-01",
+    "postId": "candidate-0010",
+    "topicId": "ai-agents-future-work",
+    "text": "How does the autonomy of Agentic AI specifically create new legal and liability risks for corporations?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-f0e5f53af7e637286fd5"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0010-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0010-02",
+    "postId": "candidate-0010",
+    "topicId": "ai-agents-future-work",
+    "text": "What specific metrics can distinguish the performance of a 'goal-driven' agent from standard Generative AI outputs?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-f0e5f53af7e637286fd5",
+      "concept-f9dbde00c8d8d42add74"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0010-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0010-03",
+    "postId": "candidate-0010",
+    "topicId": "ai-agents-future-work",
+    "text": "How does the TCoW framework account for the long-term intangible costs of human-AI integration?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-3a8ea63d8ff98888af3a"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0010-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0010-04",
+    "postId": "candidate-0010",
+    "topicId": "ai-agents-future-work",
+    "text": "What cultural barriers are most frequently cited when implementing an AI-Augmented Operating System?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-8872207334655e131ca0"
+    ],
+    "targetClaimIds": [],
+    "generic": true
+  },
+  {
+    "id": "question-candidate-0010-05",
+    "postId": "candidate-0010",
+    "topicId": "ai-agents-future-work",
+    "text": "How can Retrieval-Augmented Generation mitigate the 'hallucination' risks inherent in autonomous decision-making agents?",
+    "type": "reliability",
+    "targetConceptIds": [
+      "concept-1917e406080cd1b20da1",
+      "concept-f0e5f53af7e637286fd5"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0010-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0011-01",
+    "postId": "candidate-0011",
+    "topicId": "ai-agents-future-work",
+    "text": "How can organizations distinguish between 'learning' and merely 'adopting' AI tools?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-749381f7066dc7b14a60"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0011-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0011-02",
+    "postId": "candidate-0011",
+    "topicId": "ai-agents-future-work",
+    "text": "What specific metrics can replace traditional productivity benchmarks to better capture the value of AI-driven work?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-fd079361801e7827d27f"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0011-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0011-03",
+    "postId": "candidate-0011",
+    "topicId": "ai-agents-future-work",
+    "text": "Does relying on Agentic AI inevitably lead to the degradation of human analytical skills?",
+    "type": "counterpoint",
+    "targetConceptIds": [
+      "concept-e406694b2fe8041d3c14"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0011-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0011-04",
+    "postId": "candidate-0011",
+    "topicId": "ai-agents-future-work",
+    "text": "What evidence supports the conclusion that management behavior is strongly associated with AI readiness?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-1df5ee1b1b2e88ebd038"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0011-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0011-05",
+    "postId": "candidate-0011",
+    "topicId": "ai-agents-future-work",
+    "text": "How do Frontier Firms ensure their security infrastructure keeps pace with autonomous agent growth?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-1df5ee1b1b2e88ebd038",
+      "concept-f0e5f53af7e637286fd5"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0011-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0012-01",
+    "postId": "candidate-0012",
+    "topicId": "ai-agents-future-work",
+    "text": "What specific metrics define 'context quality' in a production environment?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-a2f7c635002aa981cab2"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0012-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0012-02",
+    "postId": "candidate-0012",
+    "topicId": "ai-agents-future-work",
+    "text": "How can teams distinguish between helpful personalization and intrusive surveillance in memory design?",
+    "type": "implication",
+    "targetConceptIds": [],
+    "targetClaimIds": [],
+    "generic": true
+  },
+  {
+    "id": "question-candidate-0012-03",
+    "postId": "candidate-0012",
+    "topicId": "ai-agents-future-work",
+    "text": "Are there existing frameworks for 'portable' memory layers that work across different applications?",
+    "type": "connection",
+    "targetConceptIds": [],
+    "targetClaimIds": [],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0012-04",
+    "postId": "candidate-0012",
+    "topicId": "ai-agents-future-work",
+    "text": "Does replacing text-to-SQL with constraint-safe DSLs significantly impact system flexibility?",
+    "type": "counterpoint",
+    "targetConceptIds": [
+      "concept-a0a1f09f4336d0797cb4"
+    ],
+    "targetClaimIds": [],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0012-05",
+    "postId": "candidate-0012",
+    "topicId": "ai-agents-future-work",
+    "text": "How do you validate the safety of a multi-model orchestration DAG?",
+    "type": "reliability",
+    "targetConceptIds": [
+      "concept-56464474230dfe1c5cda"
+    ],
+    "targetClaimIds": [],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0013-01",
+    "postId": "candidate-0013",
+    "topicId": "ai-agents-future-work",
+    "text": "What specific metrics could be used to evaluate the success of AI agent deployments?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-04ff9e8cfbec03ce908f"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0013-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0013-02",
+    "postId": "candidate-0013",
+    "topicId": "ai-agents-future-work",
+    "text": "How do these questions reflect the current discourse on AI agent capabilities?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-70d7f9da4c0aeb8ea18c",
+      "concept-6b7385427628b4a76398"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0013-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0013-03",
+    "postId": "candidate-0013",
+    "topicId": "ai-agents-future-work",
+    "text": "What are the common arguments for why AI agents might be considered overestimated?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-70d7f9da4c0aeb8ea18c"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0013-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0013-04",
+    "postId": "candidate-0013",
+    "topicId": "ai-agents-future-work",
+    "text": "Why is it difficult to reach a consensus on the future of autonomous systems?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-6b7385427628b4a76398"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0013-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0013-05",
+    "postId": "candidate-0013",
+    "topicId": "ai-agents-future-work",
+    "text": "To what extent can historical automation trends inform current AI workforce debates?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-cad37aec82894925483d"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0013-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0014-01",
+    "postId": "candidate-0014",
+    "topicId": "ai-agents-future-work",
+    "text": "How do agent communication protocols differ from traditional microservice inter-process communication?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-74a91990e340be9dafd8"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0014-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0014-02",
+    "postId": "candidate-0014",
+    "topicId": "ai-agents-future-work",
+    "text": "What are the common failure modes for autonomous multi-agent systems when performing long-running workflows?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-e748f8750672ca8b04b2"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0014-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0014-03",
+    "postId": "candidate-0014",
+    "topicId": "ai-agents-future-work",
+    "text": "Is there a documented standard for persistent state across distributed agent networks?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-b49aa6b8063ec7270276"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0014-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0014-04",
+    "postId": "candidate-0014",
+    "topicId": "ai-agents-future-work",
+    "text": "How can one empirically verify whether an organization is truly 'autonomous' or simply utilizing human-in-the-loop scripted workflows?",
+    "type": "reliability",
+    "targetConceptIds": [
+      "concept-5a4f9c4e317579ab33f2"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0014-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0014-05",
+    "postId": "candidate-0014",
+    "topicId": "ai-agents-future-work",
+    "text": "What are the key technical distinctions between a complex scripted workflow and a true 'autonomous' agent?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-e748f8750672ca8b04b2"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0014-01"
+    ],
+    "generic": true
+  },
+  {
+    "id": "question-candidate-0015-01",
+    "postId": "candidate-0015",
+    "topicId": "ai-agents-future-work",
+    "text": "What specific operational metrics indicate the difference between human-in-the-loop assistance and autonomous agent replacement?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-ba481f7119aafd1b75e6"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0015-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0015-02",
+    "postId": "candidate-0015",
+    "topicId": "ai-agents-future-work",
+    "text": "How do concerns regarding error rates affect the actual implementation of agents in production environments?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-2adb6f18f11680d8aaf8"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0015-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0015-03",
+    "postId": "candidate-0015",
+    "topicId": "ai-agents-future-work",
+    "text": "Are there existing industry-wide reports that provide evidence of structural labor reduction directly caused by AI agents?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-cad37aec82894925483d"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0015-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0015-04",
+    "postId": "candidate-0015",
+    "topicId": "ai-agents-future-work",
+    "text": "What are the limitations of relying on anecdotal inquiries to assess the state of enterprise-level AI adoption?",
+    "type": "reliability",
+    "targetConceptIds": [
+      "concept-962b149ff68be954a950"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0015-01"
+    ],
+    "generic": true
+  },
+  {
+    "id": "question-candidate-0015-05",
+    "postId": "candidate-0015",
+    "topicId": "ai-agents-future-work",
+    "text": "How might company priorities regarding organizational stability influence the pace of AI-driven workforce displacement?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-cad37aec82894925483d",
+      "concept-ba481f7119aafd1b75e6"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0015-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0016-01",
+    "postId": "candidate-0016",
+    "topicId": "ai-agents-future-work",
+    "text": "How do existing internal compliance requirements affect the deployment speed of AI agents?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-29a3e14798aa2363dc0c"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0016-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0016-02",
+    "postId": "candidate-0016",
+    "topicId": "ai-agents-future-work",
+    "text": "What are the limitations of the author's personal suspicion regarding AI agent impact?",
+    "type": "reliability",
+    "targetConceptIds": [
+      "concept-e748f8750672ca8b04b2"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0016-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0016-03",
+    "postId": "candidate-0016",
+    "topicId": "ai-agents-future-work",
+    "text": "In what ways do existing software systems pose challenges for the integration of new AI agents?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-f7401a0176b97fd381cd"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0016-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0016-04",
+    "postId": "candidate-0016",
+    "topicId": "ai-agents-future-work",
+    "text": "How might the role of a digital coworker differ from standard workflow automation tools?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-21aa9b8db0589879cc6b",
+      "concept-9094de53555aad6ba723"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0016-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0016-05",
+    "postId": "candidate-0016",
+    "topicId": "ai-agents-future-work",
+    "text": "What are the potential implications of relying on AI for cross-platform information retrieval?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-e748f8750672ca8b04b2"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0016-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0017-01",
+    "postId": "candidate-0017",
+    "topicId": "ai-agents-future-work",
+    "text": "What does the author suggest might follow the current trend of autonomous AI agent development?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-e748f8750672ca8b04b2"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0017-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0017-02",
+    "postId": "candidate-0017",
+    "topicId": "ai-agents-future-work",
+    "text": "How does the author characterize the difference between the developer perspective and the user perspective?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-2ae60c1d840f46e99773"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0017-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0017-03",
+    "postId": "candidate-0017",
+    "topicId": "ai-agents-future-work",
+    "text": "What risks might be associated with a total transition to autonomous agents in professional workflows?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-e748f8750672ca8b04b2",
+      "concept-9094de53555aad6ba723"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0017-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0017-04",
+    "postId": "candidate-0017",
+    "topicId": "ai-agents-future-work",
+    "text": "Why might a user prefer less automation in favor of more manual control?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-2ae60c1d840f46e99773",
+      "concept-f83c5553308b06963bd0"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0017-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0017-05",
+    "postId": "candidate-0017",
+    "topicId": "ai-agents-future-work",
+    "text": "How does the 'hype cycle' impact the reliability of current industry trends in AI development?",
+    "type": "reliability",
+    "targetConceptIds": [
+      "concept-5a4f9c4e317579ab33f2"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0017-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0018-01",
+    "postId": "candidate-0018",
+    "topicId": "ai-agents-future-work",
+    "text": "How does the reliance on complex, third-party frameworks affect the reproducibility of published AI experiments?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-fb0029c243ffba400897",
+      "concept-16cb8a02338a2a2bd719"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0018-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0018-02",
+    "postId": "candidate-0018",
+    "topicId": "ai-agents-future-work",
+    "text": "Does the source provide any empirical evidence of actual framework adoption rates in university labs?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-24c24a1c764a8275d908"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0018-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0018-03",
+    "postId": "candidate-0018",
+    "topicId": "ai-agents-future-work",
+    "text": "Are there specific research domains where custom agent orchestration is mandatory?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-766c5519bf6d70baab3f"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0018-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0018-04",
+    "postId": "candidate-0018",
+    "topicId": "ai-agents-future-work",
+    "text": "What do researchers identify as the primary trade-offs between using a framework and building from scratch?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-fb0029c243ffba400897",
+      "concept-766c5519bf6d70baab3f"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0018-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0018-05",
+    "postId": "candidate-0018",
+    "topicId": "ai-agents-future-work",
+    "text": "How do academic codebases typically handle dependency management compared to industry products?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-24c24a1c764a8275d908"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0018-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0019-01",
+    "postId": "candidate-0019",
+    "topicId": "ai-agents-future-work",
+    "text": "How do AI agents improve non-coding tasks like RFC writing and system design?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-f0e5f53af7e637286fd5",
+      "concept-0c7d337a1546a9a8f555"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0019-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0019-02",
+    "postId": "candidate-0019",
+    "topicId": "ai-agents-future-work",
+    "text": "What evidence exists regarding skill atrophy in engineers using AI-assisted tools?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-2e64a0965432a5dbefd2"
+    ],
+    "targetClaimIds": [],
+    "generic": true
+  },
+  {
+    "id": "question-candidate-0019-03",
+    "postId": "candidate-0019",
+    "topicId": "ai-agents-future-work",
+    "text": "Can large context windows bridge the gap between simple script generation and complex system architecture?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-1deaf55303a16d5b3e00"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0019-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0019-04",
+    "postId": "candidate-0019",
+    "topicId": "ai-agents-future-work",
+    "text": "Is there a measurable difference in output quality between human-led and agentic-led code reviews?",
+    "type": "counterpoint",
+    "targetConceptIds": [
+      "concept-f0e5f53af7e637286fd5"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0019-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0019-05",
+    "postId": "candidate-0019",
+    "topicId": "ai-agents-future-work",
+    "text": "Does this trend indicate a shift toward commoditized engineering labor?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-e127add0777ec7a3ea7c"
+    ],
+    "targetClaimIds": [],
+    "generic": true
+  },
+  {
+    "id": "question-candidate-0020-01",
+    "postId": "candidate-0020",
+    "topicId": "ai-agents-future-work",
+    "text": "How do these four proposed scenarios differentiate between low-level coding tasks and high-level software architecture?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-f0b6c321aa75119f5c1d"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0020-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0020-02",
+    "postId": "candidate-0020",
+    "topicId": "ai-agents-future-work",
+    "text": "What economic factors would justify a shift toward a hybrid business-analyst/developer role in larger organizations?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-042ec5df065def89a634",
+      "concept-628ad2c4656881004137"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0020-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0020-03",
+    "postId": "candidate-0020",
+    "topicId": "ai-agents-future-work",
+    "text": "Could a business analyst realistically manage the complexities of modern production releases without traditional development skills?",
+    "type": "counterpoint",
+    "targetConceptIds": [
+      "concept-042ec5df065def89a634"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0020-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0020-04",
+    "postId": "candidate-0020",
+    "topicId": "ai-agents-future-work",
+    "text": "What empirical metrics could differentiate between AI acting as a tool versus AI performing automated development?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-6d65ed5c750019a199c6",
+      "concept-2978246c6d104dd778a9"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0020-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0020-05",
+    "postId": "candidate-0020",
+    "topicId": "ai-agents-future-work",
+    "text": "How does the 'lowering barrier to entry' hypothesis account for long-term software maintenance and technical debt?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-f0b6c321aa75119f5c1d"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0020-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0021-01",
+    "postId": "candidate-0021",
+    "topicId": "ai-agents-future-work",
+    "text": "What historical examples does the author cite to support the claim that software engineers displace other industries?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-0c7d337a1546a9a8f555"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0021-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0021-02",
+    "postId": "candidate-0021",
+    "topicId": "ai-agents-future-work",
+    "text": "How might the argument be limited by relying on selected historical examples of creative destruction?",
+    "type": "reliability",
+    "targetConceptIds": [
+      "concept-1e7c8d699695ec92cb5e"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0021-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0021-03",
+    "postId": "candidate-0021",
+    "topicId": "ai-agents-future-work",
+    "text": "Does the author provide evidence to suggest software engineering roles are immune to AI-driven automation?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-0c7d337a1546a9a8f555"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0021-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0021-04",
+    "postId": "candidate-0021",
+    "topicId": "ai-agents-future-work",
+    "text": "What are the potential economic limitations of assuming that current technological trends will persist indefinitely?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-a5ee337c21805f287b9d"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0021-01"
+    ],
+    "generic": true
+  },
+  {
+    "id": "question-candidate-0021-05",
+    "postId": "candidate-0021",
+    "topicId": "ai-agents-future-work",
+    "text": "How does the author characterize the nature of 'white-collar' labor in the context of digital transformation?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-ab3a49be4ba3029cf944"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0021-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0022-01",
+    "postId": "candidate-0022",
+    "topicId": "ai-agents-future-work",
+    "text": "What specific skills does the author identify as missing from their background?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-24bdce497291ba22f9c4"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0022-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0022-02",
+    "postId": "candidate-0022",
+    "topicId": "ai-agents-future-work",
+    "text": "How does the author characterize the shift in hiring expectations toward 'AI-native' roles?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-b289d05a3a12447ee498"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0022-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0022-03",
+    "postId": "candidate-0022",
+    "topicId": "ai-agents-future-work",
+    "text": "Are the author's conclusions about industry-wide hiring trends supported by the rejection email they received?",
+    "type": "reliability",
+    "targetConceptIds": [],
+    "targetClaimIds": [
+      "claim-candidate-0022-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0022-04",
+    "postId": "candidate-0022",
+    "topicId": "ai-agents-future-work",
+    "text": "What distinction does the author draw between traditional platform engineering and AI-focused infrastructure?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-63e71897121039b72864",
+      "concept-24bdce497291ba22f9c4"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0022-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0022-05",
+    "postId": "candidate-0022",
+    "topicId": "ai-agents-future-work",
+    "text": "How might an engineer bridge the gap between legacy platform experience and new AI requirements?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-36dee7a8b1f41b2a138d",
+      "concept-081654cb6a9c142ff991"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0022-01"
+    ],
+    "generic": true
+  },
+  {
+    "id": "question-candidate-0023-01",
+    "postId": "candidate-0023",
+    "topicId": "ai-agents-future-work",
+    "text": "How do we distinguish between genuine AI-driven productivity gains and the metric-focused expectations prioritized by leadership?",
+    "type": "reliability",
+    "targetConceptIds": [
+      "concept-d6cc9b557b5e7e50e14b"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0023-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0023-02",
+    "postId": "candidate-0023",
+    "topicId": "ai-agents-future-work",
+    "text": "What are the long-term implications for software security when human oversight transitions toward rapid approval of automated outputs?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-a080fd2d8584ba6f8440",
+      "concept-0c7d337a1546a9a8f555"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0023-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0023-03",
+    "postId": "candidate-0023",
+    "topicId": "ai-agents-future-work",
+    "text": "Could the evolution of software roles result in a shift toward higher-level architectural oversight rather than the elimination of the profession?",
+    "type": "counterpoint",
+    "targetConceptIds": [
+      "concept-0c7d337a1546a9a8f555"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0023-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0023-04",
+    "postId": "candidate-0023",
+    "topicId": "ai-agents-future-work",
+    "text": "Are there industry benchmarks to measure the impact of AI agents on code quality versus traditional development methodologies?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-e748f8750672ca8b04b2",
+      "concept-0c7d337a1546a9a8f555"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0023-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0023-05",
+    "postId": "candidate-0023",
+    "topicId": "ai-agents-future-work",
+    "text": "What factors should professionals consider when evaluating whether to pivot careers due to technological displacement?",
+    "type": "connection",
+    "targetConceptIds": [],
+    "targetClaimIds": [
+      "claim-candidate-0023-01"
+    ],
+    "generic": true
+  },
+  {
+    "id": "question-candidate-0024-01",
+    "postId": "candidate-0024",
+    "topicId": "ai-agents-future-work",
+    "text": "What specific indicators might differentiate current AI-driven automation from historical shifts like the Industrial Revolution?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-08156dbe9ff50d54aaef"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0024-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0024-02",
+    "postId": "candidate-0024",
+    "topicId": "ai-agents-future-work",
+    "text": "How can professionals evaluate their vulnerability to AI-driven displacement in their specific fields?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-0dc8449029c5ecd5fee4",
+      "concept-c3fb8fd7e1ba63e73ff2"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0024-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0024-03",
+    "postId": "candidate-0024",
+    "topicId": "ai-agents-future-work",
+    "text": "What are common economic arguments against the 'technological unemployment' narrative?",
+    "type": "counterpoint",
+    "targetConceptIds": [
+      "concept-0edcc8fa21fb74861a49"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0024-01"
+    ],
+    "generic": true
+  },
+  {
+    "id": "question-candidate-0024-04",
+    "postId": "candidate-0024",
+    "topicId": "ai-agents-future-work",
+    "text": "What evidence exists to suggest that AI acts as a complement rather than a replacement for human workers?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-c3fb8fd7e1ba63e73ff2",
+      "concept-3f657e8310523b812ce1"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0024-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0024-05",
+    "postId": "candidate-0024",
+    "topicId": "ai-agents-future-work",
+    "text": "How does the perceived speed of AI adoption influence the ability of the labor market to adjust?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-3f657e8310523b812ce1"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0024-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0025-01",
+    "postId": "candidate-0025",
+    "topicId": "ai-agents-future-work",
+    "text": "How do these agents handle false-positive error reports from Slack?",
+    "type": "reliability",
+    "targetConceptIds": [
+      "concept-f38faa6b8e5fee909c39"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0025-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0025-02",
+    "postId": "candidate-0025",
+    "topicId": "ai-agents-future-work",
+    "text": "What are the security implications of providing an agent read-access to internal GitHub repositories?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-e748f8750672ca8b04b2"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0025-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0025-03",
+    "postId": "candidate-0025",
+    "topicId": "ai-agents-future-work",
+    "text": "How does the agent determine which code files are relevant to a specific error context?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-bde3b89926100edd084c"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0025-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0025-04",
+    "postId": "candidate-0025",
+    "topicId": "ai-agents-future-work",
+    "text": "What is the industry standard for evaluating the success rate of automated bug fixes?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-f38faa6b8e5fee909c39"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0025-01"
+    ],
+    "generic": true
+  },
+  {
+    "id": "question-candidate-0025-05",
+    "postId": "candidate-0025",
+    "topicId": "ai-agents-future-work",
+    "text": "How do custom internal agents compare to standardized DevOps automation tools?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-aae62b5f0497c4a445ce",
+      "concept-9094de53555aad6ba723"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0025-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0027-01",
+    "postId": "candidate-0027",
+    "topicId": "ai-agents-future-work",
+    "text": "Is the observed 16% divergence in employment growth a sign of long-term structural displacement or a transitory adjustment period?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-a7b02b9701372e6c3fc3"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0027-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0027-02",
+    "postId": "candidate-0027",
+    "topicId": "ai-agents-future-work",
+    "text": "To what extent does the automation of entry-level tasks hinder long-term professional skill acquisition?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-b33cc9a3fae7a3b0a6fc"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0027-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0027-03",
+    "postId": "candidate-0027",
+    "topicId": "ai-agents-future-work",
+    "text": "How does this study distinguish between employment growth slowdowns associated with AI and those associated with other macroeconomic factors?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-44ffa76c5fdea7fa9e3b"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0027-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0027-04",
+    "postId": "candidate-0027",
+    "topicId": "ai-agents-future-work",
+    "text": "Does the speaker provide evidence to confirm that AI is the primary causal driver of the 16% employment growth gap?",
+    "type": "reliability",
+    "targetConceptIds": [
+      "concept-084a7942fbbec6506b91"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0027-01"
+    ],
+    "generic": true
+  },
+  {
+    "id": "question-candidate-0027-05",
+    "postId": "candidate-0027",
+    "topicId": "ai-agents-future-work",
+    "text": "Are there specific examples of tasks within software development or customer service that are being automated away from junior workers?",
+    "type": "example",
+    "targetConceptIds": [
+      "concept-084a7942fbbec6506b91"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0027-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0028-01",
+    "postId": "candidate-0028",
+    "topicId": "ai-agents-future-work",
+    "text": "What are the primary factors that differentiate 'workslop' from acceptable, albeit imperfect, AI output?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-620bc0fe91b5021edd82"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0028-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0028-02",
+    "postId": "candidate-0028",
+    "topicId": "ai-agents-future-work",
+    "text": "What objective, peer-reviewed evidence supports the claim that AI adoption leads to decreased corporate profitability?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-61310775bf8bb560eb78"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0028-03"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0028-03",
+    "postId": "candidate-0028",
+    "topicId": "ai-agents-future-work",
+    "text": "How might management improve AI integration to avoid the negative outcomes associated with 'workslop' and employee resistance?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-e748f8750672ca8b04b2",
+      "concept-98ca87269543784e6730"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0028-01",
+      "claim-candidate-0028-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0028-04",
+    "postId": "candidate-0028",
+    "topicId": "ai-agents-future-work",
+    "text": "Are the reported patterns of workplace resistance specific to the firms cited in the reports mentioned by the narrator?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-98ca87269543784e6730"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0028-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0028-05",
+    "postId": "candidate-0028",
+    "topicId": "ai-agents-future-work",
+    "text": "How reliable are the cited statistics regarding employee sabotage in the context of broader workforce trends?",
+    "type": "reliability",
+    "targetConceptIds": [
+      "concept-98ca87269543784e6730"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0028-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0029-01",
+    "postId": "candidate-0029",
+    "topicId": "ai-agents-future-work",
+    "text": "How does the ReAct framework handle errors or hallucinations that occur during an autonomous tool-calling loop?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-eece81a12aaa5c148004"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0029-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0029-02",
+    "postId": "candidate-0029",
+    "topicId": "ai-agents-future-work",
+    "text": "What specific methodology and task criteria does METR use to measure software autonomy in frontier models?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-d193c349e03d5542ee6e"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0029-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0029-03",
+    "postId": "candidate-0029",
+    "topicId": "ai-agents-future-work",
+    "text": "Are there inherent risks in relying on automated loops to manage long-running tasks without persistent human-in-the-loop oversight?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-d193c349e03d5542ee6e"
+    ],
+    "targetClaimIds": [],
+    "generic": true
+  },
+  {
+    "id": "question-candidate-0029-04",
+    "postId": "candidate-0029",
+    "topicId": "ai-agents-future-work",
+    "text": "Can external memory databases fully compensate for an model's internal context window limits in high-complexity reasoning tasks?",
+    "type": "counterpoint",
+    "targetConceptIds": [
+      "concept-6764434518d37f01df45",
+      "concept-d193c349e03d5542ee6e"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0029-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0029-05",
+    "postId": "candidate-0029",
+    "topicId": "ai-agents-future-work",
+    "text": "How do agentic benchmarks differentiate between actual agent autonomy and the capabilities of the underlying model?",
+    "type": "reliability",
+    "targetConceptIds": [
+      "concept-d193c349e03d5542ee6e"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0029-01"
+    ],
+    "generic": true
+  },
+  {
+    "id": "question-candidate-0030-01",
+    "postId": "candidate-0030",
+    "topicId": "ai-agents-future-work",
+    "text": "How do you distinguish between a tool-augmented chatbot and true agentic AI in a production environment?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-f0e5f53af7e637286fd5",
+      "concept-6f24aeb1711de50aae00"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0030-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0030-02",
+    "postId": "candidate-0030",
+    "topicId": "ai-agents-future-work",
+    "text": "What are the common risks of deploying an agentic system that lacks human-in-the-loop verification?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-f0e5f53af7e637286fd5"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0030-01"
+    ],
+    "generic": true
+  },
+  {
+    "id": "question-candidate-0030-03",
+    "postId": "candidate-0030",
+    "topicId": "ai-agents-future-work",
+    "text": "Can a RAG chatbot eventually become an Agentic AI, or do they require fundamentally different architectures?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-90c46adeef1068b9880a",
+      "concept-f0e5f53af7e637286fd5"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0030-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0030-04",
+    "postId": "candidate-0030",
+    "topicId": "ai-agents-future-work",
+    "text": "How reliable are multi-step reasoning models when handling edge cases in complex environments?",
+    "type": "reliability",
+    "targetConceptIds": [
+      "concept-e26938d823ec8f360ade"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0030-01"
+    ],
+    "generic": true
+  },
+  {
+    "id": "question-candidate-0030-05",
+    "postId": "candidate-0030",
+    "topicId": "ai-agents-future-work",
+    "text": "What specific indicators or metrics indicate successful autonomous planning in an AI Agent?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-0e28bc1a68759103bb3c",
+      "concept-f0e5f53af7e637286fd5"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0030-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0031-01",
+    "postId": "candidate-0031",
+    "topicId": "ai-agents-future-work",
+    "text": "What are the primary challenges of scaling LLM-as-a-Judge for large-scale enterprise deployments?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-2a17dde3f4259c280553"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0031-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0031-02",
+    "postId": "candidate-0031",
+    "topicId": "ai-agents-future-work",
+    "text": "How can developers balance the need for autonomous exploration with strict regulatory compliance constraints?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-b016bbaa163db564b4a3",
+      "concept-db1178f20ee15d8dabd5"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0031-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0031-03",
+    "postId": "candidate-0031",
+    "topicId": "ai-agents-future-work",
+    "text": "Are there specific industry-standard metrics for measuring adversarial robustness in agentic workflows?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-5dff371f2a317ed31d1a"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0031-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0031-04",
+    "postId": "candidate-0031",
+    "topicId": "ai-agents-future-work",
+    "text": "What are the limitations of relying on history-based memory for maintaining long-term state across independent sessions?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-4d407cca7e4747283653"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0031-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0031-05",
+    "postId": "candidate-0031",
+    "topicId": "ai-agents-future-work",
+    "text": "How does the non-deterministic nature of agents influence the cost of continuous testing in a production environment?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-3abd3a886f4b7baeac5d"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0031-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0033-01",
+    "postId": "candidate-0033",
+    "topicId": "ai-agents-future-work",
+    "text": "How do autonomous systems maintain rigorous error tracking when interpreting complex, non-structured scientific literature?",
+    "type": "reliability",
+    "targetConceptIds": [
+      "concept-4a07d09e4cd3b567316f"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0033-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0033-02",
+    "postId": "candidate-0033",
+    "topicId": "ai-agents-future-work",
+    "text": "What safeguards are required when AI agents manage chemical experiments that could present safety risks?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-4a07d09e4cd3b567316f",
+      "concept-ee662f0a4316976d226a"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0033-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0033-03",
+    "postId": "candidate-0033",
+    "topicId": "ai-agents-future-work",
+    "text": "How does this conceptual 'autonomous lab' differ from existing high-throughput screening technologies?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-4a07d09e4cd3b567316f"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0033-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0033-04",
+    "postId": "candidate-0033",
+    "topicId": "ai-agents-future-work",
+    "text": "Are there specific limitations in robotic versatility that would hinder the adoption of this autonomous model?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-f09ae147a0a40571260f"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0033-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0033-05",
+    "postId": "candidate-0033",
+    "topicId": "ai-agents-future-work",
+    "text": "To what extent can current 'grounding' techniques minimize hallucination in highly specialized fields like pharmacology?",
+    "type": "reliability",
+    "targetConceptIds": [
+      "concept-10c3473eccac75c8ee2a",
+      "concept-f1ce5fcd0612e62a7162"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0033-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0034-01",
+    "postId": "candidate-0034",
+    "topicId": "ai-agents-future-work",
+    "text": "How do Algorithmic Rights practically aim to replace the power dynamics inherent in traditional labor relations?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-92a80abaa850bbf35c83"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0034-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0034-02",
+    "postId": "candidate-0034",
+    "topicId": "ai-agents-future-work",
+    "text": "What are the logistical barriers cited by the speaker or identified by researchers regarding the implementation of community-owned property funds?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-38091bec924d18b2f038"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0034-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0034-03",
+    "postId": "candidate-0034",
+    "topicId": "ai-agents-future-work",
+    "text": "Could a transition to a property-based income system introduce new forms of systemic economic inequality?",
+    "type": "counterpoint",
+    "targetConceptIds": [
+      "concept-38091bec924d18b2f038"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0034-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0034-04",
+    "postId": "candidate-0034",
+    "topicId": "ai-agents-future-work",
+    "text": "How does this theory differentiate between labor displacement from automation versus other potential economic factors?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-0c93859ffb25b69df552"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0034-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0034-05",
+    "postId": "candidate-0034",
+    "topicId": "ai-agents-future-work",
+    "text": "What historical precedents, if any, exist for shifts in labor paradigms similar to the one proposed in the video?",
+    "type": "example",
+    "targetConceptIds": [
+      "concept-38091bec924d18b2f038"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0034-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0036-01",
+    "postId": "candidate-0036",
+    "topicId": "ai-agents-future-work",
+    "text": "How can developers effectively measure the ROI of an AI agent compared to a traditional script?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-e748f8750672ca8b04b2"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0036-01"
+    ],
+    "generic": true
+  },
+  {
+    "id": "question-candidate-0036-02",
+    "postId": "candidate-0036",
+    "topicId": "ai-agents-future-work",
+    "text": "What specific metrics should be monitored to detect the 'compounding failures' mentioned in the video?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-0af7f536dd9112c7159b"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0036-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0036-03",
+    "postId": "candidate-0036",
+    "topicId": "ai-agents-future-work",
+    "text": "Can hybrid systems, which combine deterministic rules and AI agents, entirely mitigate the risk of cascading failures?",
+    "type": "counterpoint",
+    "targetConceptIds": [
+      "concept-b511f6c5a6f1f476e750",
+      "concept-d02125524846cde0fe60"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0036-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0036-04",
+    "postId": "candidate-0036",
+    "topicId": "ai-agents-future-work",
+    "text": "At what point does an automation architecture become too complex for a human to maintain oversight?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-b511f6c5a6f1f476e750"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0036-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0036-05",
+    "postId": "candidate-0036",
+    "topicId": "ai-agents-future-work",
+    "text": "Are there industry standards for auditing LLM-based agent performance in production?",
+    "type": "reliability",
+    "targetConceptIds": [
+      "concept-e748f8750672ca8b04b2",
+      "concept-2c229d9fff93795f5e6a"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0036-01"
+    ],
+    "generic": true
+  },
+  {
+    "id": "question-candidate-0037-01",
+    "postId": "candidate-0037",
+    "topicId": "ai-agents-future-work",
+    "text": "How can businesses distinguish between genuine implementation of Agentic AI and superficial 'agentic washing' during the procurement process?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-ab812bb51683f92b783c"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0037-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0037-02",
+    "postId": "candidate-0037",
+    "topicId": "ai-agents-future-work",
+    "text": "What specific indicators suggest that a role is better suited for human expertise rather than automation?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-a44ae2574b3b9e024aad",
+      "concept-6d65ed5c750019a199c6"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0037-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0037-03",
+    "postId": "candidate-0037",
+    "topicId": "ai-agents-future-work",
+    "text": "How might the widespread adoption of Agentic AI alter the traditional organizational chart and hierarchy in large firms?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-b80856b226c854ddb0ad"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0037-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0037-04",
+    "postId": "candidate-0037",
+    "topicId": "ai-agents-future-work",
+    "text": "To what extent do existing AI agents require data access across multiple enterprise platforms to function effectively?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-f0e5f53af7e637286fd5"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0037-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0037-05",
+    "postId": "candidate-0037",
+    "topicId": "ai-agents-future-work",
+    "text": "Does the increased reliance on AI agents lead to a greater risk of systemic failure if these tools are used without adequate human supervision?",
+    "type": "counterpoint",
+    "targetConceptIds": [
+      "concept-f0e5f53af7e637286fd5",
+      "concept-6d65ed5c750019a199c6"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0037-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0038-01",
+    "postId": "candidate-0038",
+    "topicId": "ai-agents-future-work",
+    "text": "How can one accurately identify the boundary between tasks that are truly routine and those that require nuanced situational judgment?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-444b657a8702fa02d606"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0038-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0038-02",
+    "postId": "candidate-0038",
+    "topicId": "ai-agents-future-work",
+    "text": "What are the limitations of the factory-power analogy when applied to modern cognitive and service-based work?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-6d65ed5c750019a199c6"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0038-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0038-03",
+    "postId": "candidate-0038",
+    "topicId": "ai-agents-future-work",
+    "text": "Could synthetic empathy or emotional AI eventually replicate enough human interaction to challenge the necessity of high-EQ human roles?",
+    "type": "counterpoint",
+    "targetConceptIds": [
+      "concept-f0e5f53af7e637286fd5",
+      "concept-33a9d4931017cf4b51bb"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0038-03"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0038-04",
+    "postId": "candidate-0038",
+    "topicId": "ai-agents-future-work",
+    "text": "What organizational structures best support the ethical integration of AI while prioritizing the retention of human employees?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-444b657a8702fa02d606"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0038-03"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0038-05",
+    "postId": "candidate-0038",
+    "topicId": "ai-agents-future-work",
+    "text": "Is there a risk that current reskilling programs focus on skills that are also prone to future automation?",
+    "type": "reliability",
+    "targetConceptIds": [
+      "concept-bc92209636792d684e08"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0038-03"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0039-01",
+    "postId": "candidate-0039",
+    "topicId": "ai-agents-future-work",
+    "text": "How do AI agents handle task-related errors during the 'Learn' phase of the PRAL cycle?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-18ed9dad94c6ae2b7a13"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0039-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0039-02",
+    "postId": "candidate-0039",
+    "topicId": "ai-agents-future-work",
+    "text": "What are the primary technical barriers preventing current AI agents from achieving total autonomy in scientific research?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-e748f8750672ca8b04b2"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0039-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0039-03",
+    "postId": "candidate-0039",
+    "topicId": "ai-agents-future-work",
+    "text": "Can you provide a specific example of an AI agent recovering from a significant hallucination during a complex research task?",
+    "type": "example",
+    "targetConceptIds": [
+      "concept-d3255a54daae5aefd931"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0039-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0039-04",
+    "postId": "candidate-0039",
+    "topicId": "ai-agents-future-work",
+    "text": "How does the 'Perceive' component differ across different agent implementations like Claude's 'Co-work' vs other tools?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-e748f8750672ca8b04b2"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0039-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0039-05",
+    "postId": "candidate-0039",
+    "topicId": "ai-agents-future-work",
+    "text": "What security risks are introduced when AI agents are granted access to external tools and private research data?",
+    "type": "reliability",
+    "targetConceptIds": [
+      "concept-e748f8750672ca8b04b2"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0039-01"
+    ],
+    "generic": true
+  },
+  {
+    "id": "question-candidate-0040-01",
+    "postId": "candidate-0040",
+    "topicId": "ai-agents-future-work",
+    "text": "How do AI agents handle ambiguous goals that do not fit a clear sequence of steps?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-ee662f0a4316976d226a"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0040-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0040-02",
+    "postId": "candidate-0040",
+    "topicId": "ai-agents-future-work",
+    "text": "Can a system qualify as an AI Agent if the iteration loop is still triggered by human feedback?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-ee662f0a4316976d226a"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0040-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0040-03",
+    "postId": "candidate-0040",
+    "topicId": "ai-agents-future-work",
+    "text": "What are the primary security risks when giving an AI Agent access to external tools?",
+    "type": "reliability",
+    "targetConceptIds": [
+      "concept-ee662f0a4316976d226a"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0040-02"
+    ],
+    "generic": true
+  },
+  {
+    "id": "question-candidate-0040-04",
+    "postId": "candidate-0040",
+    "topicId": "ai-agents-future-work",
+    "text": "How does the ReAct framework improve output quality compared to standard prompt engineering?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-c5dd5f16d2d7fafa2ad2"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0040-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0040-05",
+    "postId": "candidate-0040",
+    "topicId": "ai-agents-future-work",
+    "text": "Is Retrieval-Augmented Generation required for an AI Workflow to be successful?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-a27cd823d06ebb9f08a2",
+      "concept-6d8db1bb17aeba1421fb"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0040-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0041-01",
+    "postId": "candidate-0041",
+    "topicId": "ai-agents-future-work",
+    "text": "In what scenarios might a Simple Reflex Agent be preferred over a more advanced Learning Agent?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-cc62b7ac5f762254925c",
+      "concept-d4fb25fb305a464de268"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0041-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0041-02",
+    "postId": "candidate-0041",
+    "topicId": "ai-agents-future-work",
+    "text": "How do utility-based models quantify the 'desirability' of an outcome?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-2fcac3a456bb6c2e4832"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0041-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0041-03",
+    "postId": "candidate-0041",
+    "topicId": "ai-agents-future-work",
+    "text": "What are the limitations of relying on an internal model in a rapidly changing environment?",
+    "type": "reliability",
+    "targetConceptIds": [
+      "concept-8718a08a4f58076cac93"
+    ],
+    "targetClaimIds": [],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0041-04",
+    "postId": "candidate-0041",
+    "topicId": "ai-agents-future-work",
+    "text": "How do multi-agent systems coordinate behavior without direct communication?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-62b251cd4e17183fc106"
+    ],
+    "targetClaimIds": [],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0041-05",
+    "postId": "candidate-0041",
+    "topicId": "ai-agents-future-work",
+    "text": "What performance standards are typically used to guide learning in autonomous systems?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-d4fb25fb305a464de268"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0041-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0042-01",
+    "postId": "candidate-0042",
+    "topicId": "ai-agents-future-work",
+    "text": "How do the participants distinguish between a multi-tool LLM integration and what they define as a true AI Agent?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-e748f8750672ca8b04b2",
+      "concept-3e6d81a1a791c50d53f0"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0042-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0042-02",
+    "postId": "candidate-0042",
+    "topicId": "ai-agents-future-work",
+    "text": "According to the panelists, what are the primary indicators of 'reliability' for an AI agent in a real-world task?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-e748f8750672ca8b04b2"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0042-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0042-03",
+    "postId": "candidate-0042",
+    "topicId": "ai-agents-future-work",
+    "text": "Are there certain categories of tasks where the guests suggest AI agents are currently demonstrating acceptable levels of reliability?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-e748f8750672ca8b04b2"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0042-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0042-04",
+    "postId": "candidate-0042",
+    "topicId": "ai-agents-future-work",
+    "text": "Do the participants consider the 'human-in-the-loop' paradigm to be a necessary component or a potential bottleneck for the scaling of AI agents?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-f83c5553308b06963bd0",
+      "concept-e748f8750672ca8b04b2"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0042-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0042-05",
+    "postId": "candidate-0042",
+    "topicId": "ai-agents-future-work",
+    "text": "What are the primary risks, as discussed by the panel, of deploying AI agents in high-stakes human environments?",
+    "type": "reliability",
+    "targetConceptIds": [
+      "concept-e748f8750672ca8b04b2"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0042-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0043-01",
+    "postId": "candidate-0043",
+    "topicId": "ai-agents-future-work",
+    "text": "How does the speaker define 'Agent Communication Interface' in the context of SaaS integration?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-16ca7770bbe19fef5ffc"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0043-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0043-02",
+    "postId": "candidate-0043",
+    "topicId": "ai-agents-future-work",
+    "text": "What evidence does the speaker provide for his forecast that AI will integrate into existing SaaS rather than replace it?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-98650c35cd5ea2afde84",
+      "concept-ee662f0a4316976d226a"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0043-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0043-03",
+    "postId": "candidate-0043",
+    "topicId": "ai-agents-future-work",
+    "text": "How do the 'platform risks' mentioned by the speaker align with his argument that SaaS remains indispensable?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-98650c35cd5ea2afde84"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0043-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0043-04",
+    "postId": "candidate-0043",
+    "topicId": "ai-agents-future-work",
+    "text": "What are the long-term implications for SaaS business models if they shift from user interfaces to API-first communication?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-98650c35cd5ea2afde84"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0043-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0043-05",
+    "postId": "candidate-0043",
+    "topicId": "ai-agents-future-work",
+    "text": "How does the speaker respond to the potential counterpoint that AI could eventually perform complex, industry-specific business logic?",
+    "type": "counterpoint",
+    "targetConceptIds": [
+      "concept-ab54750419c0546a6d4f",
+      "concept-ee662f0a4316976d226a"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0043-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0044-01",
+    "postId": "candidate-0044",
+    "topicId": "ai-agents-future-work",
+    "text": "What are the potential ethical implications of delegating core business tasks to autonomous agents?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-f0e5f53af7e637286fd5"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0044-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0044-02",
+    "postId": "candidate-0044",
+    "topicId": "ai-agents-future-work",
+    "text": "How might existing middle-management roles be impacted by the introduction of an 'AI Lead' designation?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-0ac7518c1fa1e9c3f13c"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0044-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0044-03",
+    "postId": "candidate-0044",
+    "topicId": "ai-agents-future-work",
+    "text": "What metrics are currently available to evaluate the efficacy of AI-orchestrated workflows?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-fc435bafbe728eee140e"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0044-01"
+    ],
+    "generic": true
+  },
+  {
+    "id": "question-candidate-0044-04",
+    "postId": "candidate-0044",
+    "topicId": "ai-agents-future-work",
+    "text": "To what extent is human oversight necessary to prevent errors in autonomous agent-led code generation?",
+    "type": "reliability",
+    "targetConceptIds": [
+      "concept-f83c5553308b06963bd0"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0044-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0044-05",
+    "postId": "candidate-0044",
+    "topicId": "ai-agents-future-work",
+    "text": "How could this organizational model influence long-term professional development for junior employees?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-dfad9f0ce1d62674188a"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0044-02"
+    ],
+    "generic": true
+  },
+  {
+    "id": "question-candidate-0045-01",
+    "postId": "candidate-0045",
+    "topicId": "ai-agents-future-work",
+    "text": "What specific mechanisms allow an AI agent to 'self-audit' effectively?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-8d602b4edfad9e5b6821"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0045-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0045-02",
+    "postId": "candidate-0045",
+    "topicId": "ai-agents-future-work",
+    "text": "How might current AI agent capabilities be limited by security or access protocols on external sites?",
+    "type": "reliability",
+    "targetConceptIds": [
+      "concept-ee662f0a4316976d226a"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0045-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0045-03",
+    "postId": "candidate-0045",
+    "topicId": "ai-agents-future-work",
+    "text": "Could shifting entry-level tasks to AI impact the development of necessary professional skills?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-df99071b995e15cbf658"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0045-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0045-04",
+    "postId": "candidate-0045",
+    "topicId": "ai-agents-future-work",
+    "text": "Are there fundamental architectural differences between AI agents and traditional automation scripts?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-ee662f0a4316976d226a",
+      "concept-df99071b995e15cbf658"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0045-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0045-05",
+    "postId": "candidate-0045",
+    "topicId": "ai-agents-future-work",
+    "text": "How does the performance of autonomous AI self-auditing compare to human oversight?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-8d602b4edfad9e5b6821",
+      "concept-f83c5553308b06963bd0"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0045-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0046-01",
+    "postId": "candidate-0046",
+    "topicId": "ai-agents-future-work",
+    "text": "How does an agent determine which tools are necessary for a specific task?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-ee662f0a4316976d226a"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0046-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0046-02",
+    "postId": "candidate-0046",
+    "topicId": "ai-agents-future-work",
+    "text": "Are there automated ways to detect prompt injections before they reach the model?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-3173623593e219d749ba"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0046-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0046-03",
+    "postId": "candidate-0046",
+    "topicId": "ai-agents-future-work",
+    "text": "What specific security protocols should be implemented when giving an AI agent system-level permissions?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-5d2d3ceb7abe55234427"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0046-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0046-04",
+    "postId": "candidate-0046",
+    "topicId": "ai-agents-future-work",
+    "text": "How do agents manage the long-term memory needed for complex, multi-step workflows?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-ee662f0a4316976d226a"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0046-01"
+    ],
+    "generic": true
+  },
+  {
+    "id": "question-candidate-0046-05",
+    "postId": "candidate-0046",
+    "topicId": "ai-agents-future-work",
+    "text": "What are the limitations of the hub-and-spoke architecture in scaling agent systems?",
+    "type": "counterpoint",
+    "targetConceptIds": [
+      "concept-96a4bc2602655473120f"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0046-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0047-01",
+    "postId": "candidate-0047",
+    "topicId": "ai-agents-future-work",
+    "text": "How do these agents reliably ensure accuracy when handling complex, unseen tasks without human oversight?",
+    "type": "reliability",
+    "targetConceptIds": [
+      "concept-ee662f0a4316976d226a"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0047-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0047-02",
+    "postId": "candidate-0047",
+    "topicId": "ai-agents-future-work",
+    "text": "What are the specific technical prerequisites for an AI system to transition from basic automation to autonomous reasoning?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-53b1aeefd21f2c9a4a41",
+      "concept-6d65ed5c750019a199c6"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0047-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0047-03",
+    "postId": "candidate-0047",
+    "topicId": "ai-agents-future-work",
+    "text": "How does the role of a human worker change when interacting with an autonomous AI 'teammate'?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-ee662f0a4316976d226a",
+      "concept-58de99de20c3a8a3fd78"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0047-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0047-04",
+    "postId": "candidate-0047",
+    "topicId": "ai-agents-future-work",
+    "text": "Can you provide more examples of non-technical domains where AI agents could function as 'teammates'?",
+    "type": "example",
+    "targetConceptIds": [
+      "concept-ee662f0a4316976d226a"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0047-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0047-05",
+    "postId": "candidate-0047",
+    "topicId": "ai-agents-future-work",
+    "text": "What safeguards exist to prevent AI agents from committing errors while performing autonomous tasks?",
+    "type": "reliability",
+    "targetConceptIds": [
+      "concept-ee662f0a4316976d226a"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0047-01"
+    ],
+    "generic": true
+  },
+  {
+    "id": "question-candidate-0048-01",
+    "postId": "candidate-0048",
+    "topicId": "ai-agents-future-work",
+    "text": "How do agentic workflows differ technically from standard automated scripts?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-f0e5f53af7e637286fd5"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0048-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0048-02",
+    "postId": "candidate-0048",
+    "topicId": "ai-agents-future-work",
+    "text": "What are the primary risks to a company if it fails to maintain data sovereignty?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-5056aacfd7bcd039c710"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0048-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0048-03",
+    "postId": "candidate-0048",
+    "topicId": "ai-agents-future-work",
+    "text": "How might the Rule of 40 evolve as companies pivot toward AI-heavy cost structures?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-ff2a236431f9f48db735"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0048-01"
+    ],
+    "generic": true
+  },
+  {
+    "id": "question-candidate-0048-04",
+    "postId": "candidate-0048",
+    "topicId": "ai-agents-future-work",
+    "text": "What evidence exists that current enterprise software architectures are compatible with autonomous agents?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-c993857f268fc011c7a4",
+      "concept-f0e5f53af7e637286fd5"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0048-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0048-05",
+    "postId": "candidate-0048",
+    "topicId": "ai-agents-future-work",
+    "text": "Why might foundational models be insufficient for specific enterprise applications?",
+    "type": "counterpoint",
+    "targetConceptIds": [
+      "concept-fd24d2cbb080b1722d20",
+      "concept-c993857f268fc011c7a4"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0048-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0049-01",
+    "postId": "candidate-0049",
+    "topicId": "ai-agents-future-work",
+    "text": "How do developers establish and maintain guardrails when delegating agency to AI agents?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-c4b2af4722ee54e31767",
+      "concept-e748f8750672ca8b04b2"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0049-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0049-02",
+    "postId": "candidate-0049",
+    "topicId": "ai-agents-future-work",
+    "text": "What are the potential risks if agents are deployed in business environments without rigorous human oversight?",
+    "type": "reliability",
+    "targetConceptIds": [
+      "concept-e748f8750672ca8b04b2"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0049-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0049-03",
+    "postId": "candidate-0049",
+    "topicId": "ai-agents-future-work",
+    "text": "Does the presentation provide comparative data on error rates between RPA and AI agent-led workflows?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-d14ef10a10307dfa16b1",
+      "concept-e748f8750672ca8b04b2"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0049-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0049-04",
+    "postId": "candidate-0049",
+    "topicId": "ai-agents-future-work",
+    "text": "How does the complexity of managing an 'army' of sub-agents compare to maintaining traditional script-based automation?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-e748f8750672ca8b04b2",
+      "concept-d14ef10a10307dfa16b1"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0049-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0049-05",
+    "postId": "candidate-0049",
+    "topicId": "ai-agents-future-work",
+    "text": "What are the common technical barriers to integrating AI orchestration with existing CRM or financial software?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-1644362afea001461594"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0049-01"
+    ],
+    "generic": true
+  },
+  {
+    "id": "question-candidate-0050-01",
+    "postId": "candidate-0050",
+    "topicId": "ai-agents-future-work",
+    "text": "What specific methodologies are recommended for continuous monitoring to ensure AI systems remain within acceptable ethical boundaries?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-82049cb32dade4d7a7a7"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0050-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0050-02",
+    "postId": "candidate-0050",
+    "topicId": "ai-agents-future-work",
+    "text": "How can organizations balance the need for rapid AI innovation with the requirement for slow, methodical governance processes?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-bc5d19a9da020918341c"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0050-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0050-03",
+    "postId": "candidate-0050",
+    "topicId": "ai-agents-future-work",
+    "text": "In what ways do external frameworks like the EU AI Act directly impact internal governance standards for companies?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-bc5d19a9da020918341c"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0050-03"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0050-04",
+    "postId": "candidate-0050",
+    "topicId": "ai-agents-future-work",
+    "text": "Are there documented instances where the absence of transparency in an AI system resulted in significant financial loss?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-3e8898175a823ae43b70"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0050-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0050-05",
+    "postId": "candidate-0050",
+    "topicId": "ai-agents-future-work",
+    "text": "How do developers distinguish between acceptable system performance and algorithmic bias during the implementation phase?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-8567c72fc1f0702ee2a9"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0050-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0051-01",
+    "postId": "candidate-0051",
+    "topicId": "ai-agents-future-work",
+    "text": "How do guardrails differ when applied to agentic systems versus traditional microservices?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-5dc897f81321d2bafc2d",
+      "concept-b5ce5d92d4b51191f2ac"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0051-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0051-02",
+    "postId": "candidate-0051",
+    "topicId": "ai-agents-future-work",
+    "text": "What specific metrics should developers prioritize when observing the Cognitive Layer?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-5d05cec61b2bd6e10291",
+      "concept-58ee00072efbff714350"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0051-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0051-03",
+    "postId": "candidate-0051",
+    "topicId": "ai-agents-future-work",
+    "text": "Are there scenarios where deterministic governance models remain superior to observer-based ones?",
+    "type": "counterpoint",
+    "targetConceptIds": [
+      "concept-b5ce5d92d4b51191f2ac"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0051-01"
+    ],
+    "generic": true
+  },
+  {
+    "id": "question-candidate-0051-04",
+    "postId": "candidate-0051",
+    "topicId": "ai-agents-future-work",
+    "text": "What are the long-term performance implications of adding intensive monitoring to autonomous agent loops?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-58ee00072efbff714350"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0051-02"
+    ],
+    "generic": true
+  },
+  {
+    "id": "question-candidate-0051-05",
+    "postId": "candidate-0051",
+    "topicId": "ai-agents-future-work",
+    "text": "How can teams validate that an agent's reasoning process remains aligned with organizational goals?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-b5ce5d92d4b51191f2ac"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0051-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0052-01",
+    "postId": "candidate-0052",
+    "topicId": "ai-agents-future-work",
+    "text": "How do traditional software security practices specifically differ from the security requirements of an AI Agent?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-ee662f0a4316976d226a",
+      "concept-da0a67a1d01482326c00"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0052-01",
+      "claim-candidate-0052-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0052-02",
+    "postId": "candidate-0052",
+    "topicId": "ai-agents-future-work",
+    "text": "What are the most effective ways to validate the outputs of a probabilistic system like a Large Language Model for business compliance?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-9c26adb26ee86916ba8a"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0052-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0052-03",
+    "postId": "candidate-0052",
+    "topicId": "ai-agents-future-work",
+    "text": "Are there existing tools that can automate the monitoring of Agent Development Lifecycle compliance?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-a4ef6365b488f0f928c4"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0052-02"
+    ],
+    "generic": true
+  },
+  {
+    "id": "question-candidate-0052-04",
+    "postId": "candidate-0052",
+    "topicId": "ai-agents-future-work",
+    "text": "How does the Model Context Protocol mitigate or potentially introduce new security risks for AI agents?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-9c5da690faad4836d35b",
+      "concept-ee662f0a4316976d226a"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0052-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0052-05",
+    "postId": "candidate-0052",
+    "topicId": "ai-agents-future-work",
+    "text": "What is the industry consensus on the best way to define 'acceptable agency' for an autonomous system?",
+    "type": "reliability",
+    "targetConceptIds": [
+      "concept-ee662f0a4316976d226a"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0052-01"
+    ],
+    "generic": true
+  },
+  {
+    "id": "question-candidate-0053-01",
+    "postId": "candidate-0053",
+    "topicId": "ai-agents-future-work",
+    "text": "How do we distinguish between 'task-based' AI and goal-oriented 'agentic' AI in a professional environment?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-f0e5f53af7e637286fd5"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0053-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0053-02",
+    "postId": "candidate-0053",
+    "topicId": "ai-agents-future-work",
+    "text": "What are the potential risks when delegating complex, goal-based tasks to AI agents without sufficient human oversight?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-f0e5f53af7e637286fd5"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0053-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0053-03",
+    "postId": "candidate-0053",
+    "topicId": "ai-agents-future-work",
+    "text": "If returns on strictly cognitive skills are declining, how should education systems pivot their focus?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-50914afd97f0903d5d8c"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0053-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0053-04",
+    "postId": "candidate-0053",
+    "topicId": "ai-agents-future-work",
+    "text": "Could the expansion of atomized work lead to a decrease in long-term career stability?",
+    "type": "counterpoint",
+    "targetConceptIds": [
+      "concept-e918b7f17e2f8cc2316b"
+    ],
+    "targetClaimIds": [],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0053-05",
+    "postId": "candidate-0053",
+    "topicId": "ai-agents-future-work",
+    "text": "To what extent can machines ever truly replicate human social skills in professional settings?",
+    "type": "reliability",
+    "targetConceptIds": [
+      "concept-174f5280f2b2bd1217ba"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0053-01"
+    ],
+    "generic": true
+  },
+  {
+    "id": "question-candidate-0054-01",
+    "postId": "candidate-0054",
+    "topicId": "ai-agents-future-work",
+    "text": "What are the specific risks associated with 'on-behalf-of' delegation that do not exist with 'trusted assertion'?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-c8710e7e1cc97137fe33"
+    ],
+    "targetClaimIds": [],
+    "generic": true
+  },
+  {
+    "id": "question-candidate-0054-02",
+    "postId": "candidate-0054",
+    "topicId": "ai-agents-future-work",
+    "text": "How can an API Gateway effectively manage token exchange without introducing significant latency to the agent flow?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-a34b1bb46bda4c0e6e1a",
+      "concept-7d0a583b038539f42bd3"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0054-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0054-03",
+    "postId": "candidate-0054",
+    "topicId": "ai-agents-future-work",
+    "text": "In what ways do agentic workflows deviate from standard web-based identity propagation models?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-a6245fd12c55c88d8fee"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0054-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0054-04",
+    "postId": "candidate-0054",
+    "topicId": "ai-agents-future-work",
+    "text": "Can token exchange be automated to ensure that context, scope, and audience are always enforced consistently?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-7d0a583b038539f42bd3"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0054-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0054-05",
+    "postId": "candidate-0054",
+    "topicId": "ai-agents-future-work",
+    "text": "What metrics should be monitored to detect the impersonation attacks described in the video?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-a6245fd12c55c88d8fee"
+    ],
+    "targetClaimIds": [],
+    "generic": true
+  },
+  {
+    "id": "question-candidate-0056-01",
+    "postId": "candidate-0056",
+    "topicId": "ai-agents-future-work",
+    "text": "How does the Open Agent Schema Framework (OASF) functionally differ from traditional DNS infrastructure?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-492a73d1b54627d3c668"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0056-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0056-02",
+    "postId": "candidate-0056",
+    "topicId": "ai-agents-future-work",
+    "text": "What are the potential security risks of creating a centralized discovery service for autonomous AI agents?",
+    "type": "reliability",
+    "targetConceptIds": [
+      "concept-28f94fa723d335133cbc"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0056-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0056-03",
+    "postId": "candidate-0056",
+    "topicId": "ai-agents-future-work",
+    "text": "Can a single 'Internet of Agents' standard coexist with proprietary, vendor-locked agent ecosystems?",
+    "type": "counterpoint",
+    "targetConceptIds": [
+      "concept-83ed0d25f7691418e3db"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0056-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0056-04",
+    "postId": "candidate-0056",
+    "topicId": "ai-agents-future-work",
+    "text": "In what ways does human-in-the-loop interaction within the SLIM protocol affect the latency of agent communication?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-ebe4136fc8889cbf5560"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0056-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0056-05",
+    "postId": "candidate-0056",
+    "topicId": "ai-agents-future-work",
+    "text": "How will the governance model of the Linux Foundation prevent 'standards wars' between competing industry heavyweights?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-28f94fa723d335133cbc"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0056-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0057-01",
+    "postId": "candidate-0057",
+    "topicId": "ai-agents-future-work",
+    "text": "What specific actions are recommended by the signers to prepare for the economic impact of AI?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-b782c581e74dd2c1e8df"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0057-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0057-02",
+    "postId": "candidate-0057",
+    "topicId": "ai-agents-future-work",
+    "text": "What are the stated objectives of the institutions and governments mentioned in the request?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-03e942734f24318ef1b1"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0057-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0057-03",
+    "postId": "candidate-0057",
+    "topicId": "ai-agents-future-work",
+    "text": "How do these researchers define the economic impact of AI in their statement?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-b782c581e74dd2c1e8df"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0057-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0057-04",
+    "postId": "candidate-0057",
+    "topicId": "ai-agents-future-work",
+    "text": "What does the statement suggest regarding the timing of institutional preparation?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-03e942734f24318ef1b1"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0057-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0057-05",
+    "postId": "candidate-0057",
+    "topicId": "ai-agents-future-work",
+    "text": "Are there additional experts or economists who have expressed different perspectives on AI-related economic preparations?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-b782c581e74dd2c1e8df"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0057-01"
+    ],
+    "generic": true
+  },
+  {
+    "id": "question-candidate-0058-01",
+    "postId": "candidate-0058",
+    "topicId": "ai-agents-future-work",
+    "text": "What specific metrics could quantify the 'soul-draining' drudgery being removed by AI?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-d493848f3391c922d4ce"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0058-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0058-02",
+    "postId": "candidate-0058",
+    "topicId": "ai-agents-future-work",
+    "text": "Are there historical precedents for technology-driven 'liberation' from administrative labor that did not result in mass unemployment?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-6e17c125fea523d0f3d9"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0058-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0058-03",
+    "postId": "candidate-0058",
+    "topicId": "ai-agents-future-work",
+    "text": "How might the reliance on Agentic AI introduce new forms of institutional risk if the agents operate on biased or inaccurate data?",
+    "type": "counterpoint",
+    "targetConceptIds": [
+      "concept-f0e5f53af7e637286fd5"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0058-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0058-04",
+    "postId": "candidate-0058",
+    "topicId": "ai-agents-future-work",
+    "text": "In what ways does 'Human-Centric Labor' inherently require the support of data-heavy systems to function effectively?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-883d1925bf5b30b46341"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0058-01",
+      "claim-candidate-0058-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0058-05",
+    "postId": "candidate-0058",
+    "topicId": "ai-agents-future-work",
+    "text": "How do companies managed by 'legacy-free' leaders differ in their approach to AI adoption compared to traditional firms?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-c07b03a12b00b6b48ac7"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0058-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0059-01",
+    "postId": "candidate-0059",
+    "topicId": "ai-agents-future-work",
+    "text": "What specific content and policy recommendations are included in the 2026 International AI Safety Report?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-ce6d9dec5de90f3f2e42"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0059-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0059-02",
+    "postId": "candidate-0059",
+    "topicId": "ai-agents-future-work",
+    "text": "What quantitative criteria support the claim that this is the largest global AI safety collaboration?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-6bef98fc1b1b72c76be4"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0059-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0059-03",
+    "postId": "candidate-0059",
+    "topicId": "ai-agents-future-work",
+    "text": "Which nations and international organizations participated in the production of this report?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-6bef98fc1b1b72c76be4"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0059-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0059-04",
+    "postId": "candidate-0059",
+    "topicId": "ai-agents-future-work",
+    "text": "How does the scope of this collaborative effort compare to previous international AI governance initiatives?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-bc5d19a9da020918341c"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0059-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0059-05",
+    "postId": "candidate-0059",
+    "topicId": "ai-agents-future-work",
+    "text": "What were the specific responsibilities of the reviewers involved in the report's development?",
+    "type": "clarification",
+    "targetConceptIds": [],
+    "targetClaimIds": [
+      "claim-candidate-0059-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0060-01",
+    "postId": "candidate-0060",
+    "topicId": "ai-agents-future-work",
+    "text": "How does the research team define 'new work' in the context of their findings?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-65c999721364379b3e5a"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0060-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0060-02",
+    "postId": "candidate-0060",
+    "topicId": "ai-agents-future-work",
+    "text": "What is the primary objective of the MIT Stone Center in utilizing Substack for research communication?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-a518b69a0c1655aad814"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0060-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0060-03",
+    "postId": "candidate-0060",
+    "topicId": "ai-agents-future-work",
+    "text": "Are the full findings or the complete research paper accessible via the provided newsletter link?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-d411633327714b72268a"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0060-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0060-04",
+    "postId": "candidate-0060",
+    "topicId": "ai-agents-future-work",
+    "text": "How does this platform align with broader trends in academic communication?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-a415989b67b9f59d0fcc"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0060-01"
+    ],
+    "generic": true
+  },
+  {
+    "id": "question-candidate-0060-05",
+    "postId": "candidate-0060",
+    "topicId": "ai-agents-future-work",
+    "text": "Who are the other co-directors of the MIT Stone Center besides David Autor and Daron Acemoglu?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-a518b69a0c1655aad814"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0060-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0061-01",
+    "postId": "candidate-0061",
+    "topicId": "ai-agents-future-work",
+    "text": "What specific user interface design patterns does the author imply are needed to better support management workflows?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-c8a531834a6ed29ec92e"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0061-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0061-02",
+    "postId": "candidate-0061",
+    "topicId": "ai-agents-future-work",
+    "text": "How do these identified teachable skills differ from project management skills in traditional software development?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-c175691fe681c6075e3c",
+      "concept-c8a531834a6ed29ec92e"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0061-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0061-03",
+    "postId": "candidate-0061",
+    "topicId": "ai-agents-future-work",
+    "text": "What evidence supports the assertion that these management tasks are teachable skills?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-c175691fe681c6075e3c"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0061-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0061-04",
+    "postId": "candidate-0061",
+    "topicId": "ai-agents-future-work",
+    "text": "Could the emphasis on 'management' inadvertently overlook the necessity of technical fluency for verifying AI output?",
+    "type": "counterpoint",
+    "targetConceptIds": [
+      "concept-c8a531834a6ed29ec92e"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0061-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0061-05",
+    "postId": "candidate-0061",
+    "topicId": "ai-agents-future-work",
+    "text": "How might the requirement for management skills change the profile of individuals who are considered productive coders?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-c8a531834a6ed29ec92e"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0061-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0062-01",
+    "postId": "candidate-0062",
+    "topicId": "ai-agents-future-work",
+    "text": "What practical frameworks does Mollick suggest for 'centering people' in work environments?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-092e855bb196ff23371f"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0062-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0062-02",
+    "postId": "candidate-0062",
+    "topicId": "ai-agents-future-work",
+    "text": "How does the author distinguish between 'just using AI' and deliberate AI strategy?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-25df864c52c201cef298",
+      "concept-df8678a3e4a4a81bf23d"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0062-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0062-03",
+    "postId": "candidate-0062",
+    "topicId": "ai-agents-future-work",
+    "text": "What are the common organizational consequences of treating AI adoption as a technical issue rather than a management issue?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-bd7dcf41b1e1a10ac7c6"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0062-02"
+    ],
+    "generic": true
+  },
+  {
+    "id": "question-candidate-0062-04",
+    "postId": "candidate-0062",
+    "topicId": "ai-agents-future-work",
+    "text": "Are there historical precedents for organizational shifts in response to technological change that support Mollick's view?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-b816d7bab0dd893c1500"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0062-02"
+    ],
+    "generic": true
+  },
+  {
+    "id": "question-candidate-0062-05",
+    "postId": "candidate-0062",
+    "topicId": "ai-agents-future-work",
+    "text": "To what extent can these claims be verified without empirical data or case studies?",
+    "type": "reliability",
+    "targetConceptIds": [
+      "concept-25df864c52c201cef298"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0062-01"
+    ],
+    "generic": true
+  },
+  {
+    "id": "question-candidate-0063-01",
+    "postId": "candidate-0063",
+    "topicId": "ai-agents-future-work",
+    "text": "What specific metrics or datasets is Alex using to track these potential productivity shifts?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-3f90e40a586c0aeec0ec"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0063-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0063-02",
+    "postId": "candidate-0063",
+    "topicId": "ai-agents-future-work",
+    "text": "How does the timeframe for this potential shift compare to historical patterns of technological diffusion?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-25e71dbd3b580534e498"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0063-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0063-03",
+    "postId": "candidate-0063",
+    "topicId": "ai-agents-future-work",
+    "text": "Why has it been historically difficult to capture AI-driven gains within productivity statistics?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-1a9e55b246c9e46f34ce"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0063-01"
+    ],
+    "generic": true
+  },
+  {
+    "id": "question-candidate-0063-04",
+    "postId": "candidate-0063",
+    "topicId": "ai-agents-future-work",
+    "text": "Are there alternative economic factors that could explain the shifts currently being observed?",
+    "type": "counterpoint",
+    "targetConceptIds": [
+      "concept-b3e460eb1bb5c82bd901"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0063-01"
+    ],
+    "generic": true
+  },
+  {
+    "id": "question-candidate-0063-05",
+    "postId": "candidate-0063",
+    "topicId": "ai-agents-future-work",
+    "text": "What are the limitations of using current aggregate statistics to measure AI's impact on human labor?",
+    "type": "reliability",
+    "targetConceptIds": [
+      "concept-6958be718d1cfc8918d5"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0063-01"
+    ],
+    "generic": true
+  },
+  {
+    "id": "question-candidate-0064-01",
+    "postId": "candidate-0064",
+    "topicId": "ai-agents-future-work",
+    "text": "Why does Ethan Mollick believe that individual productivity is a less interesting subject than organizational efficiency?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-4355cb884addea0557de",
+      "concept-f3ff88ad7efc5bb5ecf5"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0064-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0064-02",
+    "postId": "candidate-0064",
+    "topicId": "ai-agents-future-work",
+    "text": "What does the author suggest might happen to individual gains if organizational structures remain unchanged?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-7294fe28c20551b6ac76"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0064-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0064-03",
+    "postId": "candidate-0064",
+    "topicId": "ai-agents-future-work",
+    "text": "Are there historical examples where new technology led to organizational restructuring rather than just individual efficiency gains?",
+    "type": "example",
+    "targetConceptIds": [
+      "concept-f3ff88ad7efc5bb5ecf5",
+      "concept-2622426f5cb82e2709f0"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0064-01"
+    ],
+    "generic": true
+  },
+  {
+    "id": "question-candidate-0064-04",
+    "postId": "candidate-0064",
+    "topicId": "ai-agents-future-work",
+    "text": "How can an organization determine if its current structure is hindering the benefits of AI-augmented work?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-7294fe28c20551b6ac76",
+      "concept-2622426f5cb82e2709f0"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0064-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0064-05",
+    "postId": "candidate-0064",
+    "topicId": "ai-agents-future-work",
+    "text": "Is there a consensus among experts regarding the relationship between individual output and overall organizational success?",
+    "type": "reliability",
+    "targetConceptIds": [
+      "concept-4355cb884addea0557de",
+      "concept-f3ff88ad7efc5bb5ecf5"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0064-01"
+    ],
+    "generic": true
+  },
+  {
+    "id": "question-candidate-0065-01",
+    "postId": "candidate-0065",
+    "topicId": "ai-agents-future-work",
+    "text": "How can labs objectively distinguish between agentic behaviors that augment a role versus those that replace it?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-3dca6f19b24e2e81f6f6",
+      "concept-25138e6987a80d80850a"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0065-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0065-02",
+    "postId": "candidate-0065",
+    "topicId": "ai-agents-future-work",
+    "text": "What are the core technical constraints in creating agentic workflows that require human oversight?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-f0e5f53af7e637286fd5",
+      "concept-092e855bb196ff23371f"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0065-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0065-03",
+    "postId": "candidate-0065",
+    "topicId": "ai-agents-future-work",
+    "text": "To what extent can 'human-centric' design mitigate the economic pressures favoring automation?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-092e855bb196ff23371f",
+      "concept-25138e6987a80d80850a"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0065-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0065-04",
+    "postId": "candidate-0065",
+    "topicId": "ai-agents-future-work",
+    "text": "Are there specific professional domains where total job replacement by agents is broadly considered beneficial?",
+    "type": "counterpoint",
+    "targetConceptIds": [
+      "concept-25138e6987a80d80850a"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0065-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0065-05",
+    "postId": "candidate-0065",
+    "topicId": "ai-agents-future-work",
+    "text": "How does the shift from 'chatbot' to 'agent' change the fundamental relationship between worker and software?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-f0e5f53af7e637286fd5",
+      "concept-3dca6f19b24e2e81f6f6"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0065-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0066-01",
+    "postId": "candidate-0066",
+    "topicId": "ai-agents-future-work",
+    "text": "How reliable is anecdotal executive feedback when predicting long-term corporate hiring trends?",
+    "type": "reliability",
+    "targetConceptIds": [
+      "concept-eb70b4bce8db1e2b427e"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0066-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0066-02",
+    "postId": "candidate-0066",
+    "topicId": "ai-agents-future-work",
+    "text": "What specific AI capabilities might allow an internal employee to replace a specialized external vendor?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-192f9ead80de1b81a9a5",
+      "concept-bc069d50948393c82d9e"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0066-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0066-03",
+    "postId": "candidate-0066",
+    "topicId": "ai-agents-future-work",
+    "text": "How might insourcing impact the cost structure and risk profile of a large corporation?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-92af0f16e321c4e80a84",
+      "concept-3f92678e9884fe2d3fb5"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0066-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0066-04",
+    "postId": "candidate-0066",
+    "topicId": "ai-agents-future-work",
+    "text": "Is this trend currently being implemented, or is it purely theoretical?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-3f92678e9884fe2d3fb5"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0066-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0066-05",
+    "postId": "candidate-0066",
+    "topicId": "ai-agents-future-work",
+    "text": "What are the common benefits of maintaining external vendors that AI might not be able to replicate?",
+    "type": "counterpoint",
+    "targetConceptIds": [
+      "concept-bc069d50948393c82d9e"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0066-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0067-01",
+    "postId": "candidate-0067",
+    "topicId": "ai-agents-future-work",
+    "text": "Under what economic conditions might labor maintain its importance alongside AI?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-48cc1bd6c01bbc32d443"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0067-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0067-02",
+    "postId": "candidate-0067",
+    "topicId": "ai-agents-future-work",
+    "text": "What does economic history suggest about the relationship between technological change and the labor share of income?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-964bf0f62a438b7bc336"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0067-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0067-03",
+    "postId": "candidate-0067",
+    "topicId": "ai-agents-future-work",
+    "text": "How might different definitions of capital influence projections of future economic inequality?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-d2d9d5ab036e87730e39",
+      "concept-058b3ef1740aa3c22102"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0067-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0067-04",
+    "postId": "candidate-0067",
+    "topicId": "ai-agents-future-work",
+    "text": "What factors might limit the degree to which capital replaces labor in cognitive domains?",
+    "type": "reliability",
+    "targetConceptIds": [
+      "concept-48cc1bd6c01bbc32d443"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0067-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0067-05",
+    "postId": "candidate-0067",
+    "topicId": "ai-agents-future-work",
+    "text": "Are there conceptual frameworks for decoupling human wellbeing from traditional labor income?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-d2d9d5ab036e87730e39"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0067-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0068-01",
+    "postId": "candidate-0068",
+    "topicId": "ai-agents-future-work",
+    "text": "What are the specific parameters and time horizons defined in the survey of experts mentioned by Brynjolfsson?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-d875ead50fb8e8282945"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0068-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0068-02",
+    "postId": "candidate-0068",
+    "topicId": "ai-agents-future-work",
+    "text": "Does historical data suggest that expert consensus often underestimates or overestimates GDP growth?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-259b1f23fd452983aac6"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0068-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0068-03",
+    "postId": "candidate-0068",
+    "topicId": "ai-agents-future-work",
+    "text": "How do expert panels account for transformative technological shifts in their macroeconomic models?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-b4395f50080067536171",
+      "concept-27ab249cef58e36a63d7"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0068-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0068-04",
+    "postId": "candidate-0068",
+    "topicId": "ai-agents-future-work",
+    "text": "What are the common psychological factors that lead experts to adopt conservative economic outlooks?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-259b1f23fd452983aac6"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0068-01"
+    ],
+    "generic": true
+  },
+  {
+    "id": "question-candidate-0068-05",
+    "postId": "candidate-0068",
+    "topicId": "ai-agents-future-work",
+    "text": "How reliable are surveys of expert opinion compared to predictive algorithmic models in economics?",
+    "type": "reliability",
+    "targetConceptIds": [
+      "concept-8914bdf558a7289c479b"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0068-01"
+    ],
+    "generic": true
+  },
+  {
+    "id": "question-candidate-0069-01",
+    "postId": "candidate-0069",
+    "topicId": "ai-agents-future-work",
+    "text": "What methodology is used to classify 'AI exposure' levels for specific worker groups?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-084a7942fbbec6506b91"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0069-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0069-02",
+    "postId": "candidate-0069",
+    "topicId": "ai-agents-future-work",
+    "text": "How does this dashboard compare to other ongoing labor market tracking tools?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-44ffa76c5fdea7fa9e3b"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0069-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0069-03",
+    "postId": "candidate-0069",
+    "topicId": "ai-agents-future-work",
+    "text": "Are there specific criteria for what constitutes a 'labor market outcome' in this dataset?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-44ffa76c5fdea7fa9e3b"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0069-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0069-04",
+    "postId": "candidate-0069",
+    "topicId": "ai-agents-future-work",
+    "text": "What are the limitations of relying on monthly updates to capture changes in the labor market?",
+    "type": "reliability",
+    "targetConceptIds": [
+      "concept-a0826cad7308bb1db0ac"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0069-01"
+    ],
+    "generic": true
+  },
+  {
+    "id": "question-candidate-0069-05",
+    "postId": "candidate-0069",
+    "topicId": "ai-agents-future-work",
+    "text": "How might findings from this dashboard influence future economic policy discussions?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-44ffa76c5fdea7fa9e3b"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0069-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0070-01",
+    "postId": "candidate-0070",
+    "topicId": "ai-agents-future-work",
+    "text": "What specific metrics could help distinguish between net industry job creation and simple market share shifting?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-cd77000dd848c43d2a0d"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0070-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0070-02",
+    "postId": "candidate-0070",
+    "topicId": "ai-agents-future-work",
+    "text": "How does aggregation bias influence the way policymakers evaluate the success of new technologies?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-d479fdc3ed2a48b42754"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0070-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0070-03",
+    "postId": "candidate-0070",
+    "topicId": "ai-agents-future-work",
+    "text": "Are there historical instances where technology-driven market shifts resulted in net employment growth rather than redistribution?",
+    "type": "example",
+    "targetConceptIds": [
+      "concept-d00284b769972152803e"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0070-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0070-04",
+    "postId": "candidate-0070",
+    "topicId": "ai-agents-future-work",
+    "text": "Why is firm-level employment data insufficient for predicting economy-wide labor trends?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-d479fdc3ed2a48b42754"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0070-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0070-05",
+    "postId": "candidate-0070",
+    "topicId": "ai-agents-future-work",
+    "text": "What conditions are necessary to move from firm-level adoption to aggregate net job creation?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-d3b4b017087b673154fc"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0070-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0071-01",
+    "postId": "candidate-0071",
+    "topicId": "ai-agents-future-work",
+    "text": "What specific metrics or historical parallels define a transformation as 'larger' than the Industrial Revolution?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-ee366cf440ca1ac9cee1"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0071-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0071-02",
+    "postId": "candidate-0071",
+    "topicId": "ai-agents-future-work",
+    "text": "How can institutional guardrails effectively balance the acceleration of AI with the goal of protecting labor?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-ac153fd29b0e42161e63",
+      "concept-f8bf6b1ce4ed4a18441f"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0071-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0071-03",
+    "postId": "candidate-0071",
+    "topicId": "ai-agents-future-work",
+    "text": "What criteria signify the transition toward AI becoming 'radically more powerful' within a decade?",
+    "type": "reliability",
+    "targetConceptIds": [
+      "concept-66062449b58ad36336cc"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0071-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0071-04",
+    "postId": "candidate-0071",
+    "topicId": "ai-agents-future-work",
+    "text": "Are there historical examples of institutional steering that can serve as models for contemporary technology policy?",
+    "type": "example",
+    "targetConceptIds": [
+      "concept-ac153fd29b0e42161e63"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0071-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0071-05",
+    "postId": "candidate-0071",
+    "topicId": "ai-agents-future-work",
+    "text": "What are the primary challenges in ensuring that technological advancement leads to improvements in living standards for all demographic groups?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-ffd31760b48f5599bb18"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0071-01"
+    ],
+    "generic": true
+  },
+  {
+    "id": "question-candidate-0072-01",
+    "postId": "candidate-0072",
+    "topicId": "ai-agents-future-work",
+    "text": "What defines the boundary between a 'verifiable' and 'non-verifiable' task in a professional setting?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-efb35ae4c8543cc7209d"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0072-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0072-02",
+    "postId": "candidate-0072",
+    "topicId": "ai-agents-future-work",
+    "text": "Could advances in formal verification methods eventually reduce the reliance on human oversight?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-efb35ae4c8543cc7209d",
+      "concept-f83c5553308b06963bd0"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0072-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0072-03",
+    "postId": "candidate-0072",
+    "topicId": "ai-agents-future-work",
+    "text": "Are there specific industries where full automation is currently considered 'end-to-end verifiable'?",
+    "type": "counterpoint",
+    "targetConceptIds": [
+      "concept-efb35ae4c8543cc7209d"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0072-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0072-04",
+    "postId": "candidate-0072",
+    "topicId": "ai-agents-future-work",
+    "text": "Does the requirement for human oversight lead to 'task creep' or additional burden for workers?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-f83c5553308b06963bd0"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0072-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0072-05",
+    "postId": "candidate-0072",
+    "topicId": "ai-agents-future-work",
+    "text": "How reliable are current AI systems at tasks deemed non-verifiable by industry standards?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-711662adba527ed8ff3c"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0072-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0073-01",
+    "postId": "candidate-0073",
+    "topicId": "ai-agents-future-work",
+    "text": "How do Multi-Agent Workflows differ in their operational capacity compared to existing enterprise automation tools?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-e0e8308f08ce7c1ba3e2"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0073-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0073-02",
+    "postId": "candidate-0073",
+    "topicId": "ai-agents-future-work",
+    "text": "What are the potential limitations of AI agents that might prevent them from fully displacing human-led service business models?",
+    "type": "counterpoint",
+    "targetConceptIds": [
+      "concept-e748f8750672ca8b04b2"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0073-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0073-03",
+    "postId": "candidate-0073",
+    "topicId": "ai-agents-future-work",
+    "text": "What empirical indicators would signify the transition toward 'Business Model Compression' in the software industry?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-b91901fd5e1c63a0911d"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0073-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0073-04",
+    "postId": "candidate-0073",
+    "topicId": "ai-agents-future-work",
+    "text": "In what ways could the shift to AI infrastructure influence the overall costs of enterprise software for end users?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-24bdce497291ba22f9c4"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0073-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0073-05",
+    "postId": "candidate-0073",
+    "topicId": "ai-agents-future-work",
+    "text": "How does the source's prediction regarding 'seat expansion' models align with historical cycles of software automation?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-ba639af034415c5cea71"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0073-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0074-01",
+    "postId": "candidate-0074",
+    "topicId": "ai-agents-future-work",
+    "text": "How can we increase the 'verifiability' of traditionally subjective or creative tasks to fit the Software 2.0 model?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-efb35ae4c8543cc7209d"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0074-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0074-02",
+    "postId": "candidate-0074",
+    "topicId": "ai-agents-future-work",
+    "text": "Does the 'jagged frontier' imply that AI will be permanently incapable of tasks requiring context or common sense?",
+    "type": "counterpoint",
+    "targetConceptIds": [
+      "concept-e7d60135dc6606cdfe13"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0074-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0074-03",
+    "postId": "candidate-0074",
+    "topicId": "ai-agents-future-work",
+    "text": "What is the distinction between Software 1.0 and Software 2.0 in terms of long-term economic scalability?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-a4b417506ff408f39317"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0074-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0074-04",
+    "postId": "candidate-0074",
+    "topicId": "ai-agents-future-work",
+    "text": "Are there ethical risks in prioritizing tasks that are 'easily verifiable' for automation?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-efb35ae4c8543cc7209d"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0074-01"
+    ],
+    "generic": true
+  },
+  {
+    "id": "question-candidate-0074-05",
+    "postId": "candidate-0074",
+    "topicId": "ai-agents-future-work",
+    "text": "Can reinforcement learning be effectively applied to tasks where 'verifiability' is fuzzy or probabilistic?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-2a8bdad2e969732694f9",
+      "concept-efb35ae4c8543cc7209d"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0074-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0075-01",
+    "postId": "candidate-0075",
+    "topicId": "ai-agents-future-work",
+    "text": "What does Karpathy mean by 'Claws' being a new layer above existing LLM agents?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-083f7d4ed19eb1dee590"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0075-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0075-02",
+    "postId": "candidate-0075",
+    "topicId": "ai-agents-future-work",
+    "text": "How does the author describe the difference between large 'vibe-coded' frameworks and smaller projects like NanoClaw?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-2c56afdd8aa6c70c2471",
+      "concept-083f7d4ed19eb1dee590"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0075-02",
+      "claim-candidate-0075-03"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0075-03",
+    "postId": "candidate-0075",
+    "topicId": "ai-agents-future-work",
+    "text": "What specific security concerns does Karpathy raise regarding local agent execution?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-4823a507151bc5fda5bb"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0075-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0075-04",
+    "postId": "candidate-0075",
+    "topicId": "ai-agents-future-work",
+    "text": "In what way is 'skill-based' configuration intended to replace traditional configuration files?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-083f7d4ed19eb1dee590"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0075-03"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0075-05",
+    "postId": "candidate-0075",
+    "topicId": "ai-agents-future-work",
+    "text": "Does the author suggest that local execution is universally safer than cloud-based alternatives?",
+    "type": "counterpoint",
+    "targetConceptIds": [
+      "concept-9ee643fec66d56fba56d"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0075-03"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0076-01",
+    "postId": "candidate-0076",
+    "topicId": "ai-agents-future-work",
+    "text": "What specific metrics is OpenAI using to measure the effectiveness of these internal AI agents?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-e748f8750672ca8b04b2"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0076-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0076-02",
+    "postId": "candidate-0076",
+    "topicId": "ai-agents-future-work",
+    "text": "How do these agents facilitate communication between different departments?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-f17398fd18413ee5e1cc"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0076-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0076-03",
+    "postId": "candidate-0076",
+    "topicId": "ai-agents-future-work",
+    "text": "What are the limitations of Codex in handling high-stakes professional tasks?",
+    "type": "reliability",
+    "targetConceptIds": [
+      "concept-57de4cf40144bdf7d000"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0076-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0076-04",
+    "postId": "candidate-0076",
+    "topicId": "ai-agents-future-work",
+    "text": "Does the use of agents create dependency risks for human workers?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-dcac14e02145b60097c0"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0076-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0076-05",
+    "postId": "candidate-0076",
+    "topicId": "ai-agents-future-work",
+    "text": "How might these internal findings apply to non-technical industries?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-b80856b226c854ddb0ad"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0076-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0077-01",
+    "postId": "candidate-0077",
+    "topicId": "ai-agents-future-work",
+    "text": "How does the author distinguish between market disruption and the creation of new markets via latent demand?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-bb574f1b80def0c76f8a"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0077-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0077-02",
+    "postId": "candidate-0077",
+    "topicId": "ai-agents-future-work",
+    "text": "What evidence supports the claim that cost reduction consistently leads to market expansion at this scale?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-974154ccb4352a9a4eec"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0077-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0077-03",
+    "postId": "candidate-0077",
+    "topicId": "ai-agents-future-work",
+    "text": "Could an influx of low-cost, AI-generated content negatively impact the quality or saturation levels of the digital market?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-1b144e8f3d5396dbbf19"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0077-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0077-04",
+    "postId": "candidate-0077",
+    "topicId": "ai-agents-future-work",
+    "text": "Are there service sectors where lower costs might not unlock demand due to inherent quality requirements or trust barriers?",
+    "type": "counterpoint",
+    "targetConceptIds": [
+      "concept-b0de598f2e8e4753650e"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0077-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0077-05",
+    "postId": "candidate-0077",
+    "topicId": "ai-agents-future-work",
+    "text": "How do we measure 'productivity' when the cost of output drops but the required oversight by human agents remains high?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-0b022444d43e9919f4af"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0077-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0078-01",
+    "postId": "candidate-0078",
+    "topicId": "ai-agents-future-work",
+    "text": "How might new forms of taxation or universal basic income mitigate the potential collapse of government fiscal solvency?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-9a77394822d9153bb7b5"
+    ],
+    "targetClaimIds": [],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0078-02",
+    "postId": "candidate-0078",
+    "topicId": "ai-agents-future-work",
+    "text": "Are there historical precedents for economic systems surviving the mass obsolescence of a previously scarce resource?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-7f609756085fdda0f436"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0078-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0078-03",
+    "postId": "candidate-0078",
+    "topicId": "ai-agents-future-work",
+    "text": "What assumptions about the speed of AI adoption are necessary for this 'unstoppable loop' to occur as described?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-ae22410ee947ecd6fe70"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0078-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0078-04",
+    "postId": "candidate-0078",
+    "topicId": "ai-agents-future-work",
+    "text": "Could the reduction of 'consumer friction' actually increase overall economic efficiency and standard of living?",
+    "type": "counterpoint",
+    "targetConceptIds": [
+      "concept-c6a94ae1fdce956de8f3"
+    ],
+    "targetClaimIds": [],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0078-05",
+    "postId": "candidate-0078",
+    "topicId": "ai-agents-future-work",
+    "text": "In the author's view, how does the erosion of subscription-based software revenues threaten the stability of life insurance and retirement funds?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-0ca36a73b0828a465e70"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0078-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0079-01",
+    "postId": "candidate-0079",
+    "topicId": "ai-agents-future-work",
+    "text": "What specific categories of information, such as tool preferences, are most effective for improving agent performance?",
+    "type": "example",
+    "targetConceptIds": [
+      "concept-8e135d823813d7103241"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0079-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0079-02",
+    "postId": "candidate-0079",
+    "topicId": "ai-agents-future-work",
+    "text": "Does the presence of existing repository documentation diminish the utility of human-written context files?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-8e135d823813d7103241"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0079-01",
+      "claim-candidate-0079-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0079-03",
+    "postId": "candidate-0079",
+    "topicId": "ai-agents-future-work",
+    "text": "How do researchers account for variability in agent performance across different tasks?",
+    "type": "reliability",
+    "targetConceptIds": [
+      "concept-9713986e1b235462eda8",
+      "concept-942c238bf0e70446a94e"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0079-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0079-04",
+    "postId": "candidate-0079",
+    "topicId": "ai-agents-future-work",
+    "text": "Are there specific types of coding tasks where auto-generated context files are more beneficial than manual ones?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-8e135d823813d7103241"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0079-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0079-05",
+    "postId": "candidate-0079",
+    "topicId": "ai-agents-future-work",
+    "text": "What are the primary metrics used to determine the efficacy of an AI agent's patch?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-9713986e1b235462eda8"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0079-01",
+      "claim-candidate-0079-02"
+    ],
+    "generic": true
+  },
+  {
+    "id": "question-candidate-0080-01",
+    "postId": "candidate-0080",
+    "topicId": "ai-agents-future-work",
+    "text": "What does the source mean by 'compaction' in the context of an AI agent's memory?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-9267da2d3a9289ceac96"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0080-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0080-02",
+    "postId": "candidate-0080",
+    "topicId": "ai-agents-future-work",
+    "text": "Are there other reported instances of agents losing persistent instructions during data processing?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-eb70b4bce8db1e2b427e"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0080-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0080-03",
+    "postId": "candidate-0080",
+    "topicId": "ai-agents-future-work",
+    "text": "How might different agent architectures approach the persistence of user instructions?",
+    "type": "implication",
+    "targetConceptIds": [
+      "concept-8857387a8e4de6f5c1fb"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0080-01"
+    ],
+    "generic": true
+  },
+  {
+    "id": "question-candidate-0080-04",
+    "postId": "candidate-0080",
+    "topicId": "ai-agents-future-work",
+    "text": "Is it possible that the instruction was not lost, but rather superseded by the agent's updated context?",
+    "type": "counterpoint",
+    "targetConceptIds": [
+      "concept-8857387a8e4de6f5c1fb"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0080-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0080-05",
+    "postId": "candidate-0080",
+    "topicId": "ai-agents-future-work",
+    "text": "How does the size of an input dataset impact the reliability of AI memory retention?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-85212176c67e17a7694d"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0080-01"
+    ],
+    "generic": true
+  },
+  {
+    "id": "question-candidate-0081-01",
+    "postId": "candidate-0081",
+    "topicId": "ai-agents-future-work",
+    "text": "What specific methodologies fall under 'Constraint Management' in the context of corporate strategy?",
+    "type": "clarification",
+    "targetConceptIds": [
+      "concept-d822d3fb753239d77c2e"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0081-02"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0081-02",
+    "postId": "candidate-0081",
+    "topicId": "ai-agents-future-work",
+    "text": "Are there historical precedents where management roles were redefined by automation rather than eliminated?",
+    "type": "evidence",
+    "targetConceptIds": [
+      "concept-24a416c4979c89b49a39"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0081-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0081-03",
+    "postId": "candidate-0081",
+    "topicId": "ai-agents-future-work",
+    "text": "How can an individual distinguish between a passing fad and a foundational career skill?",
+    "type": "connection",
+    "targetConceptIds": [
+      "concept-1bad29176aa3f4c276a2"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0081-01",
+      "claim-candidate-0081-02"
+    ],
+    "generic": true
+  },
+  {
+    "id": "question-candidate-0081-04",
+    "postId": "candidate-0081",
+    "topicId": "ai-agents-future-work",
+    "text": "Could the 'orchestrator' role evolve into a technical reality once AI agent frameworks mature?",
+    "type": "counterpoint",
+    "targetConceptIds": [
+      "concept-b29dca2df604357a271f"
+    ],
+    "targetClaimIds": [
+      "claim-candidate-0081-01"
+    ],
+    "generic": false
+  },
+  {
+    "id": "question-candidate-0081-05",
+    "postId": "candidate-0081",
+    "topicId": "ai-agents-future-work",
+    "text": "How reliable is the source data from consultancy firms regarding long-term workforce forecasting?",
+    "type": "reliability",
+    "targetConceptIds": [],
+    "targetClaimIds": [
+      "claim-candidate-0081-01"
+    ],
+    "generic": true
+  }
+]

@@ -1,0 +1,1 @@
+When you see how people use Claude Code/Codex/etc it becomes clear that managing agents is really a management problemCan you specify goals? Can you provide context? Can you divide up tasks? Can you give feedback?These are teachable skills. Also UIs need to support management

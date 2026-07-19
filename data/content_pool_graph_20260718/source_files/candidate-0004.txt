@@ -1,0 +1,287 @@
+Abstract
+
+A natural intuition about the economics of AI agents is that, because agents can be replicated at near-zero marginal cost, they constitute a labor input in infinitely elastic supply, and therefore drive cognitive-labor wages to zero. We argue this framing is wrong in mechanism but partially correct in conclusion, and that the correction matters for both theory and policy. Agents are not labor; they are a production technology that converts compute capital KcK_{c} into effective units of cognitive labor LAL_{A}. Once this is recognized, the elastic-supply margin that anchors the equilibrium wage migrates from the labor market to the compute capital market. Building on the classic factor-pricing framework [mankiw2020], we derive a Compute-Anchored Wage (CAW) bound stating that, on tasks where human and agent cognitive labor are substitutes, the competitive human wage is bounded above by λ⋅k⋅rc\lambda\cdot k\cdot r_{c}, where rcr_{c} is the rental rate of compute capital, kk is the compute intensity of one effective agent-labor unit, and λ\lambda is the relative human-to-agent productivity. We generalize the result through constant elasticity of substitution (CES) aggregation, separate substitutable from complementary tasks, and discuss factor-share consequences. The conclusion is concise: the price-setter for cognitive labor is no longer the labor market.
+
+1 Introduction
+
+The standard textbook account of wage determination, as presented by mankiw2020, has two ingredients: a downward-sloping labor demand curve given by the marginal product of labor, and a labor supply curve determined by household time allocation and demographics. Equilibrium wages clear the labor market.
+
+The arrival of capable AI agents disturbs this picture, and the analytical question is where the disturbance enters. A tempting accounting models agents as a new labor input that substitutes for human cognitive labor, is reproducible at near-zero marginal cost, and has a supply curve horizontal at zero, and then reads off a collapsing wage from that horizontal supply. We argue this accounting misplaces the elastic margin. Agents are not a labor input; they are a technology that converts compute capital into effective cognitive labor. Their supply elasticity is therefore inherited from the supply elasticity of compute capital, which is finite and governed by physical and political-economic constraints such as semiconductor fab capacity, electricity, water, land, and geopolitics. The correct model reroutes the price-determination question through the compute capital market rather than the labor market.
+
+A concrete instance.
+
+Consider a junior contract-review paralegal whose work consists largely of clause extraction, redlining against templates, and summary memos. A frontier large language model performs each of these tasks at quality close to or above the paralegal’s, at a marginal compute cost on the order of single-digit dollars per labor-hour-equivalent at 2024–2025 prices (Section 7). The competitive wage on this paralegal’s substitutable hours is therefore not set by the supply of paralegals; it is set by the rental rate of compute capital, scaled by an algorithmic constant. The same logic applies to first-pass equity-research drafting, customer-support triage, and a long list of cognitive tasks that the popular discussion classifies as “automatable” without identifying the specific market in which the new price is determined.
+
+This paper makes that rerouting explicit, derives a closed-form ceiling on competitive wages that we call the Compute-Anchored Wage (henceforth CAW), generalizes the substitution structure via a constant elasticity of substitution (CES) aggregator, separates wage effects across heterogeneous tasks, calibrates the bound to current compute prices, and discusses limitations and policy. Our claim is that the analytical primitive of where to put the elastic supply has been miscoded in much current discussion, and that fixing this miscoding yields a sharp, testable prediction about cognitive-labor pricing. The mathematical content of the bound is standard cost minimization; the substantive content is the identification of the elastic margin.
+
+The remainder of the paper is organized as follows. Section 2 reviews the related literature and locates our contribution relative to the task-based automation framework of acemoglu2018, acemoglu2022 and the capital-skill complementarity tradition of korv2000. Section 3 sets up the textbook factor-pricing model, Section 4 reformulates AI agents as a capital-to-labor conversion technology, and Section 5 derives the CAW bound. Section 6 generalizes the bound to imperfect substitution via CES, while Section 7 calibrates it to current compute prices. Section 8 visualizes the migration of the price-setter, Section 9 develops the cross-task heterogeneity prediction, and Section 10 discusses macro factor-share consequences and policy levers. Section 11 states limitations.
+
+2 Related Work
+
+Our work intersects five strands of literature. We summarize each, and then state explicitly what the Compute-Anchored Wage (CAW) framework adds.
+
+Factor pricing and capital–skill complementarity.
+
+The marginal-productivity theory of factor pricing in competitive markets, codified in mankiw2020, supplies the entire formal apparatus we use; we make no modifications to the underlying theory, and the only re-coding is in how an AI agent enters the production function. Closer to our setup, korv2000 show that a CES production function in which capital equipment complements skilled labor and substitutes for unskilled labor matches the joint behavior of the skill premium and capital–output ratios over decades. We treat compute capital KcK_{c} as a factor that, when paired with the inference stack φ\phi, becomes a quasi-substitute for human cognitive labor on a measurable subset of tasks. The crucial difference is that in korv2000 the substitution margin is between physical equipment and unskilled labor; in CAW the margin is between compute capital and cognitive labor previously regarded as the complement of capital. CAW thus inherits korv2000’s machinery but inverts the sign of the implied skill premium on the substitutable margin.
+
+Task-based automation (Acemoglu–Restrepo).
+
+The closest theoretical antecedent is the task-based automation framework of Acemoglu and Restrepo (henceforth A–R) [acemoglu2018, acemoglu2019, acemoglu2020, acemoglu2022], in which capital automates a contiguous subset of tasks, displacing labor on the automated margin and reinstating labor through the creation of new tasks. Our framework can be read as a specialization of A–R to the case where the automating capital is compute and the displaced labor is cognitive; the price effect we isolate (WH≤λ​k​rcW_{H}\leq\lambda kr_{c}) is the explicit equilibrium consequence of A–R’s displacement effect when the automating capital is in elastic but finite supply. We extend A–R in three ways. First, we identify a specific elastic margin, namely the compute capital market, that anchors the equilibrium wage on automated tasks and traces the price-determination problem to a measurable rental rate rcr_{c}. Second, we make the task partition explicit through an elasticity-of-substitution parameter σ\sigma that is in principle estimable from observed factor demands. Third, we discuss the political economy of compute-market concentration as a determinant of rcr_{c} that has no analogue in standard A–R. The reinstatement effect of A–R is consistent with our complementary-task subset TCT_{C} and is preserved.
+
+Skill-biased technical change and occupational exposure to AI.
+
+katz1992 document the rising college premium and frame technology–skill complementarity as the principal driver. autor2003 sharpen this into a task-based account in which information technology substitutes for routine cognitive and manual tasks while complementing non-routine analytic and interpersonal tasks, and subsequent empirical work (autor2013; autor2015; goldinkatz2008) traces job polarization and the long-run race between education and technology. A nascent empirical literature now measures occupation-level exposure to large language models: eloundou2023 estimate that 80% of US workers could see at least 10% of their tasks affected, felten2023 provide an alternative occupational exposure score, brynjolfsson2023 document a 14% productivity gain among customer-support agents using a generative-AI assistant, and noyzhang2023 find a roughly 40% time reduction and 18% quality improvement on professional writing tasks. Our framework predicts a directional inversion within cognitive labor itself: the salient axis becomes the substitutable–complementary mix on which an occupation is exposed to AI agents, rather than its position on a one-dimensional skill ladder, and these exposure studies provide the natural empirical input to the TST_{S}/TCT_{C} partition and to estimating σ\sigma on each task.
+
+AI in macroeconomics, general-purpose technologies, and compute supply.
+
+aghion2017 model AI as a sequence of new general-purpose technologies that automate task production and study balanced-growth implications; korinek2019 examine distributional consequences of AI under capital–labor substitution; trammellkorinek2023 survey the macroeconomics of transformative AI; and korinek2023 discusses large language models specifically. bresnahan1995 formalize GPTs as innovations whose value derives from co-invention in downstream sectors, and goldfarb2023 provide empirical support for treating machine learning as a GPT. On the supply side, sevilla2022 document the doubling time of frontier-model training compute, and cottier2024 estimate the rising cost of frontier-model training, pinning down the empirical content of the rcr_{c} time path that drives CAW. CAW operates at a different level of abstraction from the macro and GPT literatures: rather than modeling growth dynamics or diffusion, it identifies an equilibrium pricing relation that any of these dynamic models must satisfy on the substitutable margin in any period. We do not model compute supply explicitly but rely on the stylized fact that it is finite and only moderately elastic in the medium run because of fab capacity, energy, water, land, and policy.
+
+Declining labor share.
+
+karabarbounis2014, piketty2014, and autorvanreenen2020 document the long-run decline in the labor share and the rise of superstar firms, and susskind2020 provides a non-technical synthesis. CAW refines this discussion by identifying a specific channel, the compute share of capital income, through which capital-income concentration is now operating, and by predicting that the same mechanism will compress wages within cognitive labor.
+
+Summary of contribution.
+
+Our central analytical re-coding is that agents are a capital-to-labor conversion technology rather than a labor input, and we trace its equilibrium consequences. Relative to the closest antecedent in A–R, we add three things. We identify the compute capital market as the elastic margin that prices substitutable cognitive labor; we propose σ\sigma on each task as the empirical primitive that replaces the binary “automated or not” coding; and we connect the wage bound to a quantitatively tractable factor price rcr_{c} for which there is now an active spot and contract market. The remainder of the paper develops the consequences of that re-coding.
+
+3 Setup: Factor Markets in the Mankiw Framework
+
+Following the textbook factor-market model, consider a representative competitive firm with a constant-returns-to-scale production technology
+
+where KK is physical capital and LL is labor. Profit maximization in a competitive output market with price PP yields
+
+Factor prices equal the value of the marginal product. Equilibrium in the labor market is
+
+with LsL^{s} determined by household time allocation and demographic factors. The wage WW is set by where these curves intersect.
+
+The question is what happens when an AI agent becomes available as a partial substitute for LL. The temptation is to add a new labor type LAL_{A} with infinitely elastic supply at zero price, mechanically forcing W→0W\to 0 on the substitutable margin. We now argue this addition is the wrong primitive.
+
+4 Reformulation: Agents as Capital-to-Labor Conversion
+
+Definition 1 (Agent-Produced Cognitive Labor).
+
+An agent-produced cognitive labor unit LAL_{A} is the cognitive-labor-equivalent output produced when a fixed bundle of compute capital kk (GPU-hours, energy, memory, bandwidth, model weights amortized as IP rents) is operated for one unit of time. Formally, LA=φ​(Kc)L_{A}=\phi(K_{c}), where φ\phi is increasing and at the relevant scale approximately linear, φ​(Kc)≈Kc/k\phi(K_{c})\approx K_{c}/k.
+
+The augmented production function is
+
+where KoK_{o} is non-compute capital, LHL_{H} is human cognitive labor, and KcK_{c} is compute capital with rental rate rcr_{c} determined in the compute capital market. The firm’s first-order conditions become
+
+The crucial observation: LAL_{A} has no household supply curve. Its supply derives entirely from the supply of KcK_{c}, which is governed by fab capacity, energy infrastructure, data-center construction lead times, and policy. These are finite and relatively inelastic in the short run, only moderately elastic in the long run.
+
+5 The Compute-Anchored Wage Bound
+
+We state the central proposition first under the strong, illustrative case of perfect substitution, then generalize.
+
+Assumption 1 (Perfect substitutability on the margin).
+
+There exists a set of tasks on which one unit of human cognitive labor and λ\lambda units of agent-produced labor are perfect substitutes in FF, so that effective cognitive labor on these tasks aggregates as Leff=LH+λ−1​LAL_{\text{eff}}=L_{H}+\lambda^{-1}L_{A}. Equivalently, one human unit produces the same effective cognitive output as λ\lambda agent units, so that λ>1\lambda>1 corresponds to humans being more productive per unit, and λ<1\lambda<1 to agents dominating.
+
+Proposition 1 (Compute-Anchored Wage).
+
+Under Assumption 1 and competitive factor markets, the equilibrium human cognitive wage on the substitutable task set satisfies
+
+in any equilibrium with LH>0L_{H}>0. Moreover, in any equilibrium with both LH>0L_{H}>0 and LA>0L_{A}>0, the bound holds with equality, WH=λ​k​rcW_{H}=\lambda kr_{c}.
+
+Proof sketch.
+
+The unit cost of effective cognitive labor on the substitutable task is min⁡{WH,λ​k​rc}\min\{W_{H},\,\lambda kr_{c}\}, since λ\lambda units of LAL_{A} substitute for one unit of LHL_{H} and each unit of LAL_{A} requires kk units of compute at rental rate rcr_{c}. Three cases follow. When WH<λ​k​rcW_{H}<\lambda kr_{c}, firms substitute fully toward LHL_{H} on this task, so that LAd=0L_{A}^{d}=0 on TST_{S} and the bound is slack but nonbinding because no agent-produced labor is used. When WH>λ​k​rcW_{H}>\lambda kr_{c}, firms substitute fully toward LAL_{A}, so that LHd=0L_{H}^{d}=0 on TST_{S}; any positive supply of LHL_{H} at this wage on this task is unemployed, and the wage cannot be sustained in any equilibrium with positive employment of LHL_{H} on TST_{S}. Hence WH≤λ​k​rcW_{H}\leq\lambda kr_{c} in any such equilibrium. Finally, interior coexistence with LH,LA>0L_{H},L_{A}>0 on TST_{S} requires the marginal indifference WH=λ​k​rcW_{H}=\lambda kr_{c}. The detailed cost-minimization derivation is in Appendix B. ∎
+
+Corollary 1 (Migration of the price-setter).
+
+The equilibrium wage on substitutable cognitive tasks is determined by the parameters of the compute capital market (k,rc)(k,r_{c}) and the technology parameter λ\lambda. The labor supply curve LHsL_{H}^{s} does not appear in the binding condition. The price-setting margin has migrated from the labor market to the compute capital market.
+
+This is the formal content of our claim. Three clarifications are in order: wages do not collapse to zero but to λ​k​rc\lambda kr_{c}, which can be high or low depending on compute-market conditions; human workers need not become unemployed, since they may relocate to complementary tasks (Section 9); and the bound applies only on tasks where Assumption 1 approximately holds, not in all sectors.
+
+6 CES Generalization: Imperfect Substitution
+
+Perfect substitution overstates the case. Generalize via constant elasticity of substitution. Let
+
+with σ∈(0,∞)\sigma\in(0,\infty) the elasticity of substitution between human and agent cognitive labor, and CES weights α,β>0\alpha,\beta>0. The effective unit cost of an agent-produced labor is its compute cost, WAeff≡k​rcW_{A}^{\text{eff}}\equiv kr_{c}, since LA=Kc/kL_{A}=K_{c}/k and the rental rate of KcK_{c} is rcr_{c}. Cost minimization of (8) for one unit of LeffL_{\text{eff}} delivers the conditional factor demands and the relative-wage condition
+
+With normalization α/β=λ\alpha/\beta=\lambda on the perfect-substitute limit, (9) reduces to WH=λ​WAeffW_{H}=\lambda W_{A}^{\text{eff}} as σ→∞\sigma\to\infty, recovering the CAW bound (7).
+
+Proposition 2 (Compute-driven wage compression).
+
+Hold the human-labor supply LHsL_{H}^{s} and the level of demand for LeffL_{\text{eff}} fixed. Consider an exogenous increase in compute capital supply K ̄c\bar{K}_{c} (equivalently, a fall in kk via φ\phi improvement) at a fixed rental rate rcr_{c} that lowers WAeffW_{A}^{\text{eff}}. Then in the new equilibrium the human cognitive wage falls with semi-elasticity
+
+and in the polar limit of perfectly elastic LHsL_{H}^{s} this collapses to ∂log⁡WH/∂log⁡WAeff=1\partial\log W_{H}/\partial\log W_{A}^{\text{eff}}=1. As σ→∞\sigma\to\infty, the CES bound collapses to the perfect-substitute CAW bound (7); as σ→0\sigma\to 0 (Leontief), LHL_{H} and LAL_{A} are used in fixed proportion, the binding factor is whichever is shorter in supply, and the comparative-static channel from WAeffW_{A}^{\text{eff}} to WHW_{H} vanishes.
+
+The CES form makes precise an empirically tractable claim: the magnitude of CAW pressure on a given task is governed by the elasticity of substitution between human and agent cognitive labor on that task. This is the right object for empirical estimation, replacing the binary “AI replaces / does not replace” framing common in policy discourse. eloundou2023, felten2023, brynjolfsson2023, and noyzhang2023 provide the natural empirical input.
+
+7 A Numerical Calibration of CAW
+
+To give the bound (7) empirical traction, we now plug in plausible 2024–2025 numbers. The exercise is illustrative, not estimation; the goal is to show that λ​k​rc\lambda kr_{c} takes economically meaningful values that vary by orders of magnitude across tasks.
+
+Compute rental rate rcr_{c}.
+
+On-demand H100 GPU rental from major cloud providers traded in the $​2\mathdollar 2–$​5\mathdollar 5/GPU-hour range in 2024, with multi-year contract pricing closer to $​1.50\mathdollar 1.50/GPU-hour. We take rc=$​2r_{c}=\mathdollar 2/GPU-hour as a midpoint. Frontier-model inference is typically priced per million tokens; converting to GPU-hour-equivalents using public throughput benchmarks for a 70B-class model on an H100 yields roughly the same order of magnitude.
+
+Compute intensity kk.
+
+For a frontier reasoning agent producing sustained, high-quality output, current inference stacks consume on the order of 0.50.5–22 H100-hours of compute to deliver one “hour” of effective senior-knowledge-worker output, depending on whether the workload is interactive (heavy KV-cache reuse) or batched. We take k=1k=1 H100-hour per agent-labor-hour for a frontier model and k=0.05k=0.05 H100-hour per agent-labor-hour for a small distilled model on a substitutable subtask.
+
+Productivity ratio λ\lambda.
+
+The empirical literature on LLM productivity gains [brynjolfsson2023, noyzhang2023] reports time savings of 14–40% on substitutable tasks, with quality at or above human baseline. We take λ∈{0.5,1.0,2.0}\lambda\in\{0.5,1.0,2.0\} to span the cases where agents are absolutely more productive (λ<1\lambda<1), at parity (λ=1\lambda=1), and where humans retain a productivity edge (λ>1\lambda>1).
+
+Implied CAW.
+
+Combining these, the bound WH≤λ​k​rcW_{H}\leq\lambda kr_{c} implies the per-hour ceilings shown in Table 1.
+
+Two implications are immediate. First, on tasks where small distilled models suffice (high-volume classification, summarization, first-pass document review), CAW is already binding well below any plausible human reservation wage; the wage on such tasks is effectively pinned at the marginal-product floor. Second, on tasks requiring frontier-model reasoning, CAW currently sits between roughly $1 and $10/hour. Any human cognitive labor on tasks where Assumption 1 approximately holds and the frontier model is competent must be priced under that ceiling to retain employment. As φ\phi improves and kk falls, every cell of Table 1 moves down monotonically.
+
+Sensitivity.
+
+The ceiling is linear in each of λ\lambda, kk, and rcr_{c}. A doubling of compute prices (e.g., from a supply shock or geopolitical disruption) doubles CAW; a halving of kk from algorithmic improvement halves it. Thus the empirical content of the framework is the joint trajectory (kt,rc,t)(k_{t},r_{c,t}) on a task-by-task basis, with σ\sigma governing how rapidly the relevant occupational wage tracks that trajectory.
+
+8 Visualizing the Migration of the Price-Setter
+
+Figure 1 traces the migration of the price-setter across three panels: the textbook labor market in (a), the compute capital market in (b), and the CAW-anchored cognitive labor market on TST_{S} in (c). The reading order is important. Agent labor has no household supply curve; its supply is derived from the supply of compute capital KcK_{c}, which in the short run is steep (panel (b)) due to fab capacity, energy, and data-center lead times. Compute demand therefore pins the rental rate rc∗r_{c}^{*} in (b). Conditional on that rc∗r_{c}^{*}, the horizontal line at W ̄H=λ​k​rc∗\bar{W}_{H}=\lambda kr_{c}^{*} in panel (c) is a wage ceiling on human cognitive labor on TST_{S}, not an agent-labor supply curve: it does not assert that agent supply is infinitely elastic. The human-labor supply curve LHsL_{H}^{s} is drawn but does not determine the equilibrium wage on TST_{S}. In general equilibrium, shifts in compute demand move rc∗r_{c}^{*} in (b), and the CAW line in (c) shifts in lockstep.
+
+9 Task Heterogeneity: A Directional Inversion of Skill-Biased Technical Change (SBTC)
+
+katz1992 and the subsequent skill-biased technical change (SBTC) literature document that information technology has historically complemented high-skill cognitive labor and substituted for routine labor [autor2003, autor2013, autor2015]. The CAW framework predicts a directional inversion within cognitive labor.
+
+We partition tasks into two sets. The first is the set of substitutable cognitive tasks TST_{S}, comprising drafting, code generation against specifications, summarization, first-pass analysis, scheduling, retrieval, and classification. On TST_{S}, σ\sigma is large, CAW binds, and WHW_{H} is anchored by λ​k​rc\lambda kr_{c}; the empirical exposure scores of eloundou2023 and felten2023 provide useful proxies for membership in TST_{S}. The second is the set of complementary cognitive tasks TCT_{C}, comprising judgment under deep uncertainty, accountability and legal liability, relational and political work, cross-domain integration, taste, principal-agent monitoring, and any task where ∂F/∂LH\partial F/\partial L_{H} is increasing in LAL_{A}. On TCT_{C}, σ\sigma is small or the cross-partial ∂2F/∂LH​∂LA>0\partial^{2}F/\partial L_{H}\partial L_{A}>0, so that WHW_{H} rises with LAL_{A}.
+
+The wage distribution across cognitive workers therefore widens, but the relevant axis is no longer traditional skill; it is the TST_{S}/TCT_{C} exposure mix of each occupation. To make this concrete, consider two occupations with similar formal credentials. A junior contract-review paralegal performs work that is roughly 80% on TST_{S} (clause extraction, redlining against templates, summary memos) and 20% on TCT_{C} (escalation judgment). A senior litigation associate, by contrast, performs work that is roughly 30% on TST_{S} (document review, brief drafting) and 70% on TCT_{C} (case strategy, client management, courtroom work). Under CAW the paralegal’s wage is dominated by λ​k​rc\lambda kr_{c} on the substitutable component and is squeezed downward as kk falls, whereas the associate’s wage is dominated by complementary tasks and may rise. This is consistent with the early empirical findings of brynjolfsson2023 that productivity gains are concentrated in less-experienced workers, but it does not by itself imply that less-experienced workers gain in compensation, since the same tasks that they used to monopolize have been priced down. Two occupations with identical traditional skill requirements but different TST_{S}/TCT_{C} shares will diverge sharply in compensation. This is a testable cross-sectional prediction distinct from canonical SBTC.
+
+10 Macro Implications: Factor Shares
+
+Aggregating across tasks, define the labor share sL=WH​LH/Ys_{L}=W_{H}L_{H}/Y. As compute substitutes for human cognitive labor on TST_{S}, the wage bill WH​LHW_{H}L_{H} shrinks on those tasks, while the compute rental bill rc​Kcr_{c}K_{c} grows. The capital share rises. Recipients of the rising capital share are owners of compute infrastructure, energy producers, and holders of model intellectual property; these need not coincide with the historical owners of physical capital.
+
+This connects the CAW framework to the literature on declining labor shares [karabarbounis2014, autorvanreenen2020] and the long-run dynamics emphasized by piketty2014, with an important refinement: under CAW, the capital share rises specifically through the compute channel. Policy interventions targeting that channel (compute taxation, public compute provision, antitrust on accelerator markets, energy policy) have first-order effects on the cognitive-labor wage distribution that interventions targeting the labor market do not. We discuss four such levers in turn.
+
+Compute taxation.
+
+A tax on rcr_{c} raises the CAW ceiling proportionally. Incidence depends on the elasticity of compute supply and on the elasticity of demand for substitutable cognitive output. With moderately inelastic compute supply in the short run, much of the tax falls on compute owners; in the long run, with more elastic capacity expansion, incidence shifts toward output prices and ultimately toward human wages on TST_{S} via the bound. Pigouvian arguments based on energy externalities and Ramsey arguments based on the relative inelasticity of KcK_{c} supply both push toward positive optimal τc>0\tau_{c}>0.
+
+Public compute provision.
+
+A public option that supplies compute at marginal cost compresses the markup component of rcr_{c} and tightens the CAW ceiling. The effect is symmetric to compute taxation in sign on rcr_{c} but distributionally different: public provision lowers WHW_{H} on TST_{S}, raising the consumer surplus of cognitive output buyers without redistributing to workers on TST_{S}.
+
+Antitrust on accelerator markets.
+
+If the accelerator market is concentrated, rcr_{c} contains a markup over marginal cost. Antitrust enforcement that erodes that markup again lowers the CAW ceiling. The substantive question is whether the resulting consumer-surplus gains in cognitive output exceed the wage compression on TST_{S}; under standard welfare assumptions they do, but the distributional consequences are large.
+
+Energy policy.
+
+A binding fraction of rcr_{c} is electricity cost. Policy that lowers the levelized cost of electricity to data centers (transmission build-out, nuclear permitting, renewable subsidies) operates through rcr_{c} in the same direction as capacity expansion. Because CAW is a price relationship that propagates through tradable cognitive output, its incidence is largely national to global rather than local, even when underlying electricity costs vary regionally.
+
+11 Limitations and Boundary Conditions
+
+Several caveats would invalidate or complicate the argument and deserve discussion.
+
+Jevons effects.
+
+A fall in the unit cost of cognitive labor may expand demand for cognitive output enough to raise total LHL_{H} employment even on TST_{S} tasks. CAW bounds the wage, not the wage bill, so whether total compensation rises or falls depends on the demand elasticity for cognitive output.
+
+Ricardian comparative advantage.
+
+Even if agents are absolutely more productive on every task, humans retain employment via comparative advantage. Comparative advantage, however, determines allocation rather than price, so that wages on the substitutable margin remain anchored.
+
+Non-productivity wage components.
+
+Liability, accountability, signaling, trust, and physical co-presence add a non-marginal-product premium to human labor that the production-function setup does not capture. CAW bounds the marginal-product component of wages, not the total.
+
+Compute-market structure.
+
+The derivation assumes competitive compute markets. If compute is monopolized, vertically integrated with model providers, or politically rationed, then rcr_{c} is no longer a competitive rental rate and the bound is replaced by a markup-adjusted version. The argument then becomes a claim about political economy as much as about prices.
+
+Endogenous φ\phi.
+
+Algorithmic improvement reduces kk over time, so that CAW is a moving target, declining secularly even at constant rcr_{c}. The relevant long-run object is the joint trajectory of (kt,rc,t)(k_{t},r_{c,t}). As a first-pass dynamic statement, holding rcr_{c} constant and assuming exponential improvement in φ\phi at rate gg, the implied CAW trajectory is W ̄H​(t)=λ​k0​e−g​t​rc\bar{W}_{H}(t)=\lambda k_{0}e^{-gt}r_{c}, which converges to zero as t→∞t\to\infty unless arrested by hardware bottlenecks or model-quality saturation.
+
+Endogenous task boundaries.
+
+The partition TS∪TCT_{S}\cup T_{C} shifts with the capability frontier, with tasks migrating from TCT_{C} to TST_{S} as agents improve. The empirical content of the framework therefore depends on a measurable, time-indexed task taxonomy.
+
+Heterogeneity of KcK_{c}.
+
+As noted in the remark on KcK_{c} heterogeneity in the reformulation, KcK_{c} is a composite of physical compute (rival, competitive), model-weight IP (non-rival, often monopolistic), and sunk training capital. A more refined version of CAW would carry these as separate factors with their own pricing equations.
+
+12 Conclusion
+
+Our claim can be stated in one sentence: on tasks where AI agents substitute for human cognitive labor, the equilibrium wage ceiling is set in the compute capital market, not the labor market. The standard textbook framework already contains all the machinery needed to see this; the only required correction is to recognize agents as a capital-to-labor conversion technology rather than a labor input. Once that correction is made, the Compute-Anchored Wage bound WH≤λ​k​rcW_{H}\leq\lambda kr_{c} follows directly from competitive cost minimization, and a number of empirical and policy questions reorient accordingly: the relevant elasticity to estimate is σ\sigma across task categories; the relevant macro outcome is the compute share of capital income; the relevant policy levers are compute-market levers, not labor-market levers. The numerical calibration in Section 7 suggests CAW is already binding on the high-volume substitutable margin and approaching binding on frontier-substitutable tasks at present compute prices.
+
+References
+
+\beginappendix
+
+13 Notation Summary
+
+For convenience we collect the symbols used throughout the paper.
+
+• YY: aggregate output of the representative competitive firm.
+
+YY: aggregate output of the representative competitive firm.
+
+• KK, LL: generic physical capital and labor in the mankiw2020 setup.
+
+KK, LL: generic physical capital and labor in the mankiw2020 setup.
+
+• KoK_{o}: non-compute physical capital.
+
+KoK_{o}: non-compute physical capital.
+
+• KcK_{c}: compute capital (GPUs, accelerators, data-center capacity, energy, model-weight IP rents).
+
+KcK_{c}: compute capital (GPUs, accelerators, data-center capacity, energy, model-weight IP rents).
+
+• rcr_{c}: competitive rental rate of compute capital, in $/compute-unit-hour.
+
+rcr_{c}: competitive rental rate of compute capital, in $/compute-unit-hour.
+
+• LHL_{H}: human cognitive labor, in labor-hours.
+
+LHL_{H}: human cognitive labor, in labor-hours.
+
+• LAL_{A}: agent (cognitive-labor-equivalent) units, satisfying LA=φ​(Kc)≈Kc/kL_{A}=\phi(K_{c})\approx K_{c}/k.
+
+LAL_{A}: agent (cognitive-labor-equivalent) units, satisfying LA=φ​(Kc)≈Kc/kL_{A}=\phi(K_{c})\approx K_{c}/k.
+
+• kk: compute intensity, defined as units of compute capital required per effective agent-labor unit, in compute-units per agent-labor-hour.
+
+kk: compute intensity, defined as units of compute capital required per effective agent-labor unit, in compute-units per agent-labor-hour.
+
+• φ\phi: capital-to-labor conversion technology embedding model architecture and inference stack.
+
+φ\phi: capital-to-labor conversion technology embedding model architecture and inference stack.
+
+• λ\lambda: relative human-to-agent productivity on the substitutable task set, where one human-labor unit produces the same effective output as λ\lambda agent-labor units. Values λ>1\lambda>1 correspond to humans being more productive per unit, while λ<1\lambda<1 corresponds to agents dominating.
+
+λ\lambda: relative human-to-agent productivity on the substitutable task set, where one human-labor unit produces the same effective output as λ\lambda agent-labor units. Values λ>1\lambda>1 correspond to humans being more productive per unit, while λ<1\lambda<1 corresponds to agents dominating.
+
+• WHW_{H}: human cognitive wage, in $/labor-hour.
+
+WHW_{H}: human cognitive wage, in $/labor-hour.
+
+• WAeff≡k​rcW_{A}^{\text{eff}}\equiv kr_{c}: effective agent unit wage, in $/agent-labor-hour.
+
+WAeff≡k​rcW_{A}^{\text{eff}}\equiv kr_{c}: effective agent unit wage, in $/agent-labor-hour.
+
+• σ\sigma: elasticity of substitution between human and agent cognitive labor in the CES aggregator.
+
+σ\sigma: elasticity of substitution between human and agent cognitive labor in the CES aggregator.
+
+• TST_{S}, TCT_{C}: substitutable and complementary cognitive task sets.
+
+TST_{S}, TCT_{C}: substitutable and complementary cognitive task sets.
+
+14 Detailed Derivation of the CAW Bound
+
+We expand the proof sketch of Proposition 1. Under Assumption 1, the effective cognitive-labor input on the substitutable task set is Leff=LH+λ−1​LAL_{\text{eff}}=L_{H}+\lambda^{-1}L_{A}. A profit-maximizing firm chooses (LH,LA)(L_{H},L_{A}) to minimize the cost of producing one unit of LeffL_{\text{eff}}:
+
+Since the constraint is linear and the objective is linear, the solution is a corner whenever the per-unit cost WHW_{H} of LHL_{H} and the per-unit cost λ​k​rc\lambda kr_{c} of effective labor delivered through LAL_{A} are unequal. If WH<λ​k​rcW_{H}<\lambda kr_{c}, the firm substitutes fully toward LHL_{H}, so that LAd=0L_{A}^{d}=0 on TST_{S}. If instead WH>λ​k​rcW_{H}>\lambda kr_{c}, the firm substitutes fully toward LAL_{A}, so that LHd=0L_{H}^{d}=0 on TST_{S}; any positive supply of LHL_{H} at this wage on this task is therefore unemployed, and the wage cannot be sustained in any equilibrium with LH>0L_{H}>0 on TST_{S}. Interior coexistence in turn requires WH=λ​k​rcW_{H}=\lambda kr_{c}. Across all cases consistent with positive employment, WH≤λ​k​rcW_{H}\leq\lambda kr_{c} on the substitutable margin, with equality whenever both factors are simultaneously employed. When LA=0L_{A}=0 everywhere, for example because compute is unavailable or prohibitively expensive, the standard labor-market wage prevails and the bound is slack.
+
+15 CES Algebra
+
+Cost minimization of the CES aggregator (8) subject to producing one unit of LeffL_{\text{eff}} yields the conditional factor demands
+
+where Λ\Lambda is the dual CES price index (a function of WHW_{H} and WAeffW_{A}^{\text{eff}} alone). Taking the ratio gives (9).
+
+The two limits are immediate. As σ→∞\sigma\to\infty (perfect substitutes), the relative wage (9) forces WH→(α/β)​WAeffW_{H}\to(\alpha/\beta)\,W_{A}^{\text{eff}}, which under the normalization α/β=λ\alpha/\beta=\lambda recovers the perfect-substitute CAW bound. As σ→0\sigma\to 0 (Leontief), the conditional demand for LHL_{H} is fixed by the technology in proportion to LAL_{A}, so LHL_{H} and LAL_{A} are used together in fixed ratio; the binding factor is then whichever is shorter in supply. If human-labor supply is the binding constraint at the prevailing demand for LeffL_{\text{eff}}, then WHW_{H} is determined by LHsL_{H}^{s} and the comparative-static channel from WAeffW_{A}^{\text{eff}} to WHW_{H} vanishes; if compute is the binding constraint, then WHW_{H} tracks WAeffW_{A}^{\text{eff}} scaled by the technology proportion.
+
+For Proposition 2, holding LHsL_{H}^{s} and the demand for LeffL_{\text{eff}} fixed, totally differentiating (9) with respect to WAeffW_{A}^{\text{eff}} yields
+
+Under perfectly elastic LHsL_{H}^{s}, WHW_{H} tracks WAeffW_{A}^{\text{eff}} one-for-one and the second term vanishes. Under inelastic LHsL_{H}^{s}, the cross-derivative term partially offsets the direct effect, with the magnitude controlled by 1/σ1/\sigma.
