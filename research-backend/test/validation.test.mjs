@@ -11,6 +11,25 @@ const validEvent = () => ({
   postId: 'post-1',
 });
 
+const validRecommendation = (overrides = {}) => ({
+  kind: 'recommendation',
+  id: 'recommendation-1',
+  batchId: 'batch-1',
+  sessionId: 'session-1',
+  batchSeq: 1,
+  batchPosition: 1,
+  postId: 'post-1',
+  generatedAt: '2026-07-11T12:00:00.000Z',
+  strategy: 'deepen',
+  score: 0,
+  reasonText: 'Builds on a concept explored in this session.',
+  contributingQuestionIds: ['question-1'],
+  contributingConceptIds: ['concept-1'],
+  contributingPostIds: ['post-0'],
+  componentScores: { semantic: 0.75, diversity: 0 },
+  ...overrides,
+});
+
 test('wire records reject every client-owned identity field', () => {
   for (const field of ['userId', 'condition', 'topicId']) {
     assert.throws(
@@ -63,6 +82,113 @@ test('parseIngest accepts a valid allowlisted event', () => {
   const [record] = parseIngest({ records: [validEvent()] });
   assert.equal(record.kind, 'event');
   assert.equal(record.id, 'event-1');
+});
+
+test('parseIngest accepts a complete recommendation and exact boundary values', () => {
+  const recommendation = validRecommendation({ reasonText: 'r'.repeat(2048) });
+  const [record] = parseIngest({ records: [recommendation] });
+
+  assert.deepEqual(record, recommendation);
+  assert.equal(record.kind, 'recommendation');
+  assert.equal(record.batchPosition, 1);
+  assert.equal(record.score, 0);
+});
+
+test('recommendation records reject extras and every client-owned identity field', () => {
+  for (const field of ['userId', 'condition', 'topicId', 'payload']) {
+    assert.throws(
+      () => parseIngest({ records: [validRecommendation({ [field]: 'client-owned' })] }),
+      (error) => error instanceof ValidationError && error.message.includes(`disallowed field: ${field}`),
+    );
+  }
+});
+
+test('recommendation records reject unknown strategies and non-finite or non-number scores', () => {
+  for (const strategy of ['unknown', '', null]) {
+    assert.throws(
+      () => parseIngest({ records: [validRecommendation({ strategy })] }),
+      (error) => error instanceof ValidationError && /strategy/i.test(error.message),
+    );
+  }
+
+  for (const score of [Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY, '1']) {
+    assert.throws(
+      () => parseIngest({ records: [validRecommendation({ score })] }),
+      (error) => error instanceof ValidationError && /score/i.test(error.message),
+    );
+  }
+});
+
+test('recommendation batch sequence and position must be positive safe integers', () => {
+  for (const field of ['batchSeq', 'batchPosition']) {
+    for (const value of [0, -1, 1.5, '1']) {
+      assert.throws(
+        () => parseIngest({ records: [validRecommendation({ [field]: value })] }),
+        (error) => error instanceof ValidationError && error.message.includes(field),
+      );
+    }
+  }
+});
+
+test('recommendation reason text is required and bounded by the shared contract', () => {
+  for (const reasonText of ['', 'r'.repeat(2049)]) {
+    assert.throws(
+      () => parseIngest({ records: [validRecommendation({ reasonText })] }),
+      (error) => error instanceof ValidationError && /reasonText/i.test(error.message),
+    );
+  }
+});
+
+test('recommendation contributor arrays enforce item count, non-empty strings, and ID length', () => {
+  for (const field of ['contributingQuestionIds', 'contributingConceptIds', 'contributingPostIds']) {
+    for (const value of [
+      Array.from({ length: 65 }, (_, index) => `id-${index}`),
+      [''],
+      ['x'.repeat(257)],
+    ]) {
+      assert.throws(
+        () => parseIngest({ records: [validRecommendation({ [field]: value })] }),
+        (error) => error instanceof ValidationError && error.message.includes(field),
+      );
+    }
+  }
+});
+
+test('recommendation component scores require bounded keys and finite numeric values', () => {
+  const invalidComponentScores = [
+    null,
+    [],
+    'semantic=1',
+    Object.fromEntries(Array.from({ length: 33 }, (_, index) => [`score-${index}`, index])),
+    { ['k'.repeat(65)]: 1 },
+    { semantic: Number.NaN },
+    { semantic: Number.POSITIVE_INFINITY },
+    { semantic: '1' },
+  ];
+
+  for (const componentScores of invalidComponentScores) {
+    assert.throws(
+      () => parseIngest({ records: [validRecommendation({ componentScores })] }),
+      (error) => error instanceof ValidationError && /componentScores/i.test(error.message),
+    );
+  }
+});
+
+test('kind-bearing ingest records reject ambiguous and unknown shapes', () => {
+  for (const discriminator of [
+    { eventType: 'app_open' },
+    { revision: 1 },
+  ]) {
+    assert.throws(
+      () => parseIngest({ records: [validRecommendation(discriminator)] }),
+      (error) => error instanceof ValidationError && /ambiguous/i.test(error.message),
+    );
+  }
+
+  assert.throws(
+    () => parseIngest({ records: [validRecommendation({ kind: 'unknown' })] }),
+    (error) => error instanceof ValidationError && /kind/i.test(error.message),
+  );
 });
 
 test('parseIngest accepts canonical Q&A fields and rejects unknown or identity fields', () => {
