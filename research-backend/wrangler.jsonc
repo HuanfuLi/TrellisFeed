@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "questiontrace-research",
+  "name": "question-trace-research-collector",
   "main": "src/worker.ts",
   "compatibility_date": "2026-07-11",
   "d1_databases": [
