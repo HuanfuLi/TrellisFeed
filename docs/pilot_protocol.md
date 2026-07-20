@@ -30,6 +30,14 @@ The packaged `pilot-v1-20260717` manifest predates the typed Phase 3 exporter. T
 
 Migration `research-backend/migrations/0004_recommendations.sql` and the Worker deployment must reach the live backend before any pilot device receives a client build that emits recommendation records. A new client against an old backend permanently quarantines the unknown record kind as `server_rejected`.
 
+- [ ] From `research-backend`, run the complete backend suite before any deploy:
+
+  ```text
+  npm test
+  ```
+
+  Confirm it executes `test/deployment-config.test.mjs` and finishes with zero failures and zero skips. This test pins the canonical Worker, D1 binding, exact origin allowlist, and fail-closed public preflights.
+- [ ] Inspect `wrangler.jsonc` and confirm the deployment target is exactly `question-trace-research-collector`. Do not create or deploy a similarly named Worker.
 - [ ] From `research-backend`, have the authorized operator apply the migration to the live D1 database bound as `DB` in `wrangler.jsonc`:
 
   ```text
@@ -45,8 +53,32 @@ Migration `research-backend/migrations/0004_recommendations.sql` and the Worker 
   npx wrangler deploy
   ```
 
+- [ ] Inspect deployment status and the uploaded version serving 100% of canonical traffic:
+
+  ```text
+  npx wrangler deployments status
+  npx wrangler versions view <100%-traffic-version-id>
+  ```
+
+  Confirm the version is for `question-trace-research-collector`; its D1 binding remains `DB`; and its non-secret `RESEARCH_ALLOWED_ORIGINS` binding is exactly `capacitor://localhost,http://localhost,http://localhost:5173,https://localhost`. Confirm `RESEARCH_ADMIN_PASSWORD` and `RESEARCH_ENROLLMENT_CREDENTIAL` are identified as Worker secrets. Never print, copy, or record either secret value. A wildcard, reflected origin, suffix match, missing origin, duplicate origin, or extra origin fails this gate.
+- [ ] Set `<canonical-worker-base-url>` below to the deployed `question-trace-research-collector` base URL, then run both real Android-WebView-origin preflights:
+
+  ```text
+  curl.exe --include --request OPTIONS "<canonical-worker-base-url>/v1/install/resolve" --header "Origin: https://localhost" --header "Access-Control-Request-Method: POST" --header "Access-Control-Request-Headers: Content-Type, Authorization"
+  curl.exe --include --request OPTIONS "<canonical-worker-base-url>/v1/ingest" --header "Origin: https://localhost" --header "Access-Control-Request-Method: POST" --header "Access-Control-Request-Headers: Content-Type, Authorization"
+  ```
+
+  Each response must be HTTP `204` and must grant `Access-Control-Allow-Origin: https://localhost`, `Vary: Origin`, `Access-Control-Allow-Methods: POST, OPTIONS`, and `Access-Control-Allow-Headers: Content-Type, Authorization` exactly.
+- [ ] Run a disallowed near-match negative preflight:
+
+  ```text
+  curl.exe --include --request OPTIONS "<canonical-worker-base-url>/v1/ingest" --header "Origin: https://localhost.invalid" --header "Access-Control-Request-Method: POST" --header "Access-Control-Request-Headers: Content-Type, Authorization"
+  ```
+
+  It must return HTTP `403` with no `Access-Control-Allow-Origin` header. Wildcard access is forbidden.
 - [ ] Open the authenticated `/admin` page and confirm it shows a recommendations count row. A count of zero is acceptable before pilot traffic.
 - [ ] Download authenticated `/admin/export.zip` and confirm it contains exactly the four CSV files named in Section 4.
+- [ ] Treat the origin-less `/admin` and `/admin/export.zip` smoke as supplementary only. It cannot substitute for uploaded-version binding inspection or either real-origin `OPTIONS` check above.
 - [ ] Only after every backend smoke check passes, authorize installation of the recommendation-projection client build on pilot devices.
 
 ### 1.3 Enroll and seed accounts
