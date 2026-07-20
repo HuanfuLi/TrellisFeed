@@ -3,6 +3,9 @@
   "name": "question-trace-research-collector",
   "main": "src/worker.ts",
   "compatibility_date": "2026-07-11",
+  "vars": {
+    "RESEARCH_ALLOWED_ORIGINS": "capacitor://localhost,http://localhost,http://localhost:5173,https://localhost"
+  },
   "d1_databases": [
     {
       "binding": "DB",
