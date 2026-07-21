@@ -1,0 +1,200 @@
+[
+  {
+    "url": "https://www.reddit.com/r/cscareerquestions/comments/1t6f33z/ai_isnt_going_to_take_your_job_and_heres_why/",
+    "sourceType": "reddit_discussion",
+    "author": "throwaway09234023322",
+    "title": "AI isn't going to take your job and here's why",
+    "publicationDate": "2026-05-07T16:10:08.214000+0000",
+    "durationSeconds": null,
+    "evergreen": true,
+    "directContentVerified": true,
+    "expectedContentForm": "reddit_discussion",
+    "selectionReason": "Provocative worker-centered argument about whether software engineers will use AI to automate other industries rather than be replaced themselves, with substantial disagreement in the thread.",
+    "verificationEvidence": "Direct Reddit result exposed a non-deleted OP and a multi-viewpoint discussion; live OP metadata will be canonicalized from Reddit's official embed.",
+    "verifiedAt": "2026-07-17T02:20:00Z",
+    "meaningfulWordCountEstimate": 139,
+    "liveVerification": {
+      "liveAuthor": "throwaway09234023322",
+      "liveTitle": "AI isn't going to take your job and here's why",
+      "livePublishedAt": "2026-05-07T16:10:08.214000+0000",
+      "liveOpWordCount": 139,
+      "repliesRequireOriginalUrl": true
+    }
+  },
+  {
+    "url": "https://www.reddit.com/r/AI_Agents/comments/1t25omv/state_of_ai_agents_in_corporates_in_mid2026/",
+    "sourceType": "reddit_discussion",
+    "author": "Putrid-Pay5714",
+    "title": "State of AI Agents in corporates in mid-2026?",
+    "publicationDate": "2026-05-02T23:51:54.695000+0000",
+    "durationSeconds": null,
+    "evergreen": true,
+    "directContentVerified": true,
+    "expectedContentForm": "reddit_discussion",
+    "selectionReason": "Asks for concrete evidence from operations-heavy workplaces and distinguishes employee augmentation, process redesign, headcount effects, and agent failure modes.",
+    "verificationEvidence": "Direct Reddit result exposed a substantial non-deleted OP and detailed practitioner replies; live OP metadata will be canonicalized from Reddit's official embed.",
+    "verifiedAt": "2026-07-17T02:20:00Z",
+    "meaningfulWordCountEstimate": 179,
+    "liveVerification": {
+      "liveAuthor": "Putrid-Pay5714",
+      "liveTitle": "State of AI Agents in corporates in mid-2026?",
+      "livePublishedAt": "2026-05-02T23:51:54.695000+0000",
+      "liveOpWordCount": 179,
+      "repliesRequireOriginalUrl": true
+    }
+  },
+  {
+    "url": "https://www.reddit.com/r/cscareerquestions/comments/1qzzql2/serious_what_am_i_missing_about_agentic_ai/",
+    "sourceType": "reddit_discussion",
+    "author": "XellosDrak",
+    "title": "[Serious] What am I missing about agentic AI?",
+    "publicationDate": "2026-02-09T09:25:33.017000+0000",
+    "durationSeconds": null,
+    "evergreen": true,
+    "directContentVerified": true,
+    "expectedContentForm": "reddit_discussion",
+    "selectionReason": "First-person workplace account questioning a company mandate to use coding agents when coding occupies only a small part of engineering work.",
+    "verificationEvidence": "Direct Reddit result exposed a substantial non-deleted OP and a large discussion; live OP metadata will be canonicalized from Reddit's official embed.",
+    "verifiedAt": "2026-07-17T02:20:00Z",
+    "meaningfulWordCountEstimate": 207,
+    "liveVerification": {
+      "liveAuthor": "XellosDrak",
+      "liveTitle": "[Serious] What am I missing about agentic AI?",
+      "livePublishedAt": "2026-02-09T09:25:33.017000+0000",
+      "liveOpWordCount": 207,
+      "repliesRequireOriginalUrl": true
+    }
+  },
+  {
+    "url": "https://www.reddit.com/r/AI_Agents/comments/1t1imwx/is_anyone_actually_running_a_company_with_30_ai/",
+    "sourceType": "reddit_discussion",
+    "author": "Unhappy_Lavishness20",
+    "title": "Is anyone actually running a company with 30+ AI agents, or is this just hype?",
+    "publicationDate": "2026-05-02T07:02:56.960000+0000",
+    "durationSeconds": null,
+    "evergreen": true,
+    "directContentVerified": true,
+    "expectedContentForm": "reddit_discussion",
+    "selectionReason": "An experienced engineer asks for operational details behind claims that small firms are run by dozens of agents, separating real workflows from marketing hype.",
+    "verificationEvidence": "Direct Reddit result exposed a non-deleted OP with concrete architecture questions and multiple replies; live OP metadata will be canonicalized from Reddit's official embed.",
+    "verifiedAt": "2026-07-17T02:20:00Z",
+    "meaningfulWordCountEstimate": 114,
+    "liveVerification": {
+      "liveAuthor": "Unhappy_Lavishness20",
+      "liveTitle": "Is anyone actually running a company with 30+ AI agents, or is this just hype?",
+      "livePublishedAt": "2026-05-02T07:02:56.960000+0000",
+      "liveOpWordCount": 114,
+      "repliesRequireOriginalUrl": true
+    }
+  },
+  {
+    "url": "https://www.reddit.com/r/learnAIAgents/comments/1tkqjkv/how_is_your_company_using_ai_agents_in_workplace/",
+    "sourceType": "reddit_discussion",
+    "author": "white_pinkman",
+    "title": "How is your company using AI Agents in workplace to improve efficiency",
+    "publicationDate": "2026-05-22T17:54:44.283000+0000",
+    "durationSeconds": null,
+    "evergreen": true,
+    "directContentVerified": true,
+    "expectedContentForm": "reddit_discussion",
+    "selectionReason": "Provides a concrete internal debugging-agent example and asks workers to compare real workplace uses across coding, testing, DevOps, and operations.",
+    "verificationEvidence": "Direct Reddit result exposed a non-deleted OP and practitioner replies; live OP metadata will be canonicalized from Reddit's official embed.",
+    "verifiedAt": "2026-07-17T02:20:00Z",
+    "meaningfulWordCountEstimate": 106,
+    "liveVerification": {
+      "liveAuthor": "white_pinkman",
+      "liveTitle": "How is your company using AI Agents in workplace to improve efficiency",
+      "livePublishedAt": "2026-05-22T17:54:44.283000+0000",
+      "liveOpWordCount": 106,
+      "repliesRequireOriginalUrl": true
+    }
+  },
+  {
+    "url": "https://www.reddit.com/r/AI_Agents/comments/1tn22qy/i_mapped_100_companies_selling_ai_employees_and/",
+    "sourceType": "reddit_discussion",
+    "author": "akshitkrnagpal",
+    "title": "I mapped 100 companies selling AI employees and role-based agents",
+    "publicationDate": "2026-05-25T07:43:14.759000+0000",
+    "durationSeconds": null,
+    "evergreen": false,
+    "directContentVerified": true,
+    "expectedContentForm": "reddit_discussion",
+    "selectionReason": "Maps job-shaped agent products across many functions and asks whether 'AI employee' denotes real recurring workflow ownership or merely temporary positioning.",
+    "verificationEvidence": "Direct Reddit result exposed a substantial non-deleted OP, category breakdown, and discussion; live OP metadata will be canonicalized from Reddit's official embed.",
+    "verifiedAt": "2026-07-17T02:20:00Z",
+    "meaningfulWordCountEstimate": 220,
+    "liveVerification": {
+      "liveAuthor": "akshitkrnagpal",
+      "liveTitle": "I mapped 100 companies selling AI employees and role-based agents",
+      "livePublishedAt": "2026-05-25T07:43:14.759000+0000",
+      "liveOpWordCount": 220,
+      "repliesRequireOriginalUrl": true
+    }
+  },
+  {
+    "url": "https://x.com/AndrewBenson/status/2023841994246852726",
+    "sourceType": "x_post",
+    "author": "Andrew Benson",
+    "title": "Stripe's Minions as unattended coding agents",
+    "publicationDate": "2026-02-17T16:28:00Z",
+    "durationSeconds": null,
+    "evergreen": false,
+    "directContentVerified": true,
+    "expectedContentForm": "x_post",
+    "selectionReason": "A concrete, falsifiable account of engineers supervising parallel coding agents that submit production pull requests, illustrating a possible near-term change in software work.",
+    "verificationEvidence": "Direct X status page exposed the complete post text, author, timestamp, and engagement metadata; official oEmbed will be rechecked mechanically.",
+    "verifiedAt": "2026-07-17T02:20:00Z",
+    "meaningfulWordCountEstimate": 135,
+    "liveVerification": {
+      "liveAuthor": "Andrew Benson",
+      "liveText": "Stripe is $100 billion company replacing its software engineers with agents They call them Minions. Fully unattended coding agents that one-shot real work. 1,000+ pull requests merged every week with ZERO human-written code (only human review) Start in a Slack thread → ends in a clean, CI-passing PR. No babysitting. Engineers spin up multiple in parallel. On-call becomes a superpower. 100s of millions of lines of Ruby (not Rails) + Sorbet, homegrown libs, and $1T+ in live payment volume. Uses the exact same dev tooling, devboxes, MCP tools, and rule files that human Stripe engineers use — because if it’s good for humans, it’s good for LLMs. Off-the-shelf agents vibe-code prototypes. Minions ship production changes to the most complex financial codebase on earth. This is the future of enterprise coding for the next 5 years",
+      "liveTextWordCount": 135,
+      "officialOEmbedPrefixMatched": true,
+      "fullTextSnapshotSource": "api.fxtwitter.com"
+    }
+  },
+  {
+    "url": "https://x.com/biancoresearch/status/2026272586666062080",
+    "sourceType": "x_post",
+    "author": "Jim Bianco",
+    "title": "Agentic AI could remove database drudgery and make work more human",
+    "publicationDate": "2026-02-24T12:26:00Z",
+    "durationSeconds": null,
+    "evergreen": true,
+    "directContentVerified": true,
+    "expectedContentForm": "x_post",
+    "selectionReason": "A strong optimistic counterpoint arguing that agents can eliminate administrative drudgery while increasing the value of human judgment, relationships, and creativity.",
+    "verificationEvidence": "Direct X status page exposed the complete post text, author, timestamp, and engagement metadata; official oEmbed will be rechecked mechanically.",
+    "verifiedAt": "2026-07-17T02:20:00Z",
+    "meaningfulWordCountEstimate": 386,
+    "liveVerification": {
+      "liveAuthor": "Jim Bianco",
+      "liveText": "We need to rule the database — and end its rule over us. Citrini assumes AI will destroy thousands of high-paying jobs and create none in return. He’s missing the real story. The modern job has become soul-draining, mind-numbing database slavery. Millions of talented, ambitious people spend hours of their lives chained to a screen: fixing other people’s mistakes, chasing missing fields, reformatting decks for the tenth time, and babysitting bloated spreadsheets no one will ever read. Our entire existence is ruled by the database. You can’t board a plane, clear security, close a mortgage, pay taxes, or resolve a customer issue unless the system approves — and it’s wrong half the time. Customer service has been reduced to apologizing while you clean up someone else’s mistake. This system is broken, expensive, and — until AI — no one saw another way. Fear of the unknown is why AI scares so many people. They see only disruption and lost jobs because they can’t picture the world when the drudgery finally dies. This is why Citrini's piece below struck a nerve. That’s why we don’t just want agentic AI. We need it. We need thousands — soon millions — of intelligent agents to annihilate this soul-crushing layer. When that weight lifts, work transforms. Humans get to do what lights us up: judgment, relationships, creativity, and solving problems that matter. The office stops being a prison. It becomes a place people genuinely want to be — buzzing with collaboration and the thrill of “we built this together.”This is the real revolution: better, richer, more human lives at work. The transition won’t be easy. Transitions never are. But we need it. The only question is whether the people at the top have the courage to let the old model die. Many C-suite leaders fought hard against even basic hybrid work. If they struggled with that, how will they lead the bigger reinvention coming? The bitter irony: their own jobs are most at risk. That’s why the most exciting companies today are run by 30-year-olds with no legacy baggage. So, are the boomer executives ready to reinvent themselves, or will they scream that everyone needs to stay stuck in the past as slaves to the database, as they demanded everyone stay slaves to the office when they fought remote work?",
+      "liveTextWordCount": 386,
+      "officialOEmbedPrefixMatched": true,
+      "fullTextSnapshotSource": "api.fxtwitter.com"
+    }
+  },
+  {
+    "url": "https://x.com/Saboo_Shubham_/status/2026134519317934393",
+    "sourceType": "x_post",
+    "author": "Shubham Saboo",
+    "title": "Human-written agent context beats auto-generated instruction files",
+    "publicationDate": "2026-02-24T01:18:00Z",
+    "durationSeconds": null,
+    "evergreen": true,
+    "directContentVerified": true,
+    "expectedContentForm": "x_post",
+    "selectionReason": "Uses empirical results about coding-agent instruction files to show where human judgment and tacit repository knowledge still improve agent performance.",
+    "verificationEvidence": "Direct X status page exposed the complete long-form post text, author, timestamp, and study claims; official oEmbed will be rechecked mechanically.",
+    "verifiedAt": "2026-07-17T02:20:00Z",
+    "meaningfulWordCountEstimate": 363,
+    "liveVerification": {
+      "liveAuthor": "Shubham Saboo",
+      "liveText": "DO NOT \"Delete your http://CLAUDE.md files\" just yet. READ THIS POST once before you do. ETH Zurich researchers tested whether CLAUDE AGENTS md files actually help coding agents or not. they tested 138 real GitHub issues across 4 coding agents. they wanted to know one thing: do context files actually help agents write better code? The success metric was: did the agent ship a working patch? not tokens, not speed. working code. two findings came out of it and most people are only citing one: auto-generated context files (the ones you get from running /init) hurt task resolution by 0.5-2% and bump your inference cost by 20%. that part is true. but human-written ones improved performance by 4%. that's the result from same study. the reason auto-generated files hurt is actually kind of funny once you see it. agents are obedient. they follow whatever's in the file. so when a generated file adds unnecessary requirements, the agent does more testing, more file traversal, burns upto 22% more reasoning tokens, and still produces worse results than if you'd given it nothing at all. now this is interesting: when researchers stripped all existing documentation from the repos, auto-generated files suddenly went from hurting to helping by 2.7%. repos with good documentation don't need a generated context file because the agent was already going to find that information on its own. /init just repackages what's already there. what actually works in a context file is stuff the agent can't find on its own. which test runner to use. which package manager you prefer. repo-specific commands that aren't obvious. the researchers proved this by tracking actual tool usage: mention uv in your context file and the agent uses it. don't mention it and the agent almost never reaches for it on its own. so no, don't delete it. but if you ran /init and committed whatever came out, that's the thing to delete. the study doesn't say http://CLAUDE.md is useless. it says auto-generated, bloated ones are. delete the auto-generated one. write a minimal human one. or don't write one at all if your repo is well-documented. just stop letting the loudest take win over the actual DATA.",
+      "liveTextWordCount": 363,
+      "officialOEmbedPrefixMatched": true,
+      "fullTextSnapshotSource": "api.fxtwitter.com"
+    }
+  }
+]

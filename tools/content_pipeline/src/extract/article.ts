@@ -39,6 +39,16 @@ function inertDocument(document: Document): void {
   });
 }
 
+function revealStreamedServerContent(document: Document): void {
+  // React/Next.js can stream the rendered page into a hidden staging container
+  // and move it into place with an inline script. Scripts are deliberately never
+  // executed here, so expose only staging containers that contain the page's
+  // semantic root. Ordinary hidden UI, menus, and promotional content stay hidden.
+  for (const element of document.querySelectorAll('[hidden]')) {
+    if (element.querySelector('main,article')) element.removeAttribute('hidden');
+  }
+}
+
 function blocksFromContent(content: string, fallback: string): ExtractedTextBlock[] {
   const dom = new JSDOM(`<body>${content}</body>`, { url: 'https://inert.invalid/', runScripts: undefined, resources: undefined });
   try {
@@ -60,6 +70,7 @@ export function extractArticle(html: string, sourceUrl: string): ArticleExtracti
     const author = meta(document, ['meta[name="author"]', 'meta[property="article:author"]', '[rel="author"]']);
     const publicationDate = meta(document, ['meta[property="article:published_time"]', 'meta[name="date"]', 'time[datetime]']);
     const documentLanguage = cleanText(document.documentElement.lang) || undefined;
+    revealStreamedServerContent(document);
     inertDocument(document);
     const article = new Readability(document, { keepClasses: false }).parse();
     if (!article) throw new Error('article extraction produced no readable content');

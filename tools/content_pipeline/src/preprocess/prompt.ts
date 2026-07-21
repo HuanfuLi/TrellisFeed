@@ -37,6 +37,7 @@ export function buildPreprocessPrompt(candidate: NormalizedCandidate, topic: str
     `SOURCE URL (metadata only): ${candidate.canonicalUrl}`,
     `ORIGINAL TITLE (metadata only): ${candidate.title}`,
     'Create a cleaned display title, faithful one-sentence hook, 2-3 sentence short summary, longer summary, 5-8 concepts, 1-3 central claims with source block IDs and stance, difficulty/quality/interestingness/educational/topic scores, exactly five varied post-anchored questions, counterpoints, related/prerequisite concepts, and reliability/safety/content-warning fields.',
+    'All five scores must be numbers from 0 through 1 inclusive. Every concept label referenced by a claim, question, related concept, or prerequisite concept must exactly copy one label from the concepts array; use an empty related/prerequisite array instead of inventing an unmatched label. Every claim sourceBlockId must exactly copy one supplied evidence ID.',
     `${delimiter}_START`,
     ...sourceSection,
     `${delimiter}_END`,

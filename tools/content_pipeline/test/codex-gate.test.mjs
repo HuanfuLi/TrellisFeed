@@ -39,10 +39,10 @@ const verdict = (overrides = {}) => ({
 
 test('codex-review CLI route forwards exact arguments to the injected handler', async () => {
   let received;
-  await dispatchCli(['codex-review', '--run-dir', 'run', '--codex-command', 'C:/tools/codex.exe', '--timeout-ms', '4321'], {
+  await dispatchCli(['codex-review', '--run-dir', 'run', '--codex-command', 'C:/tools/codex.exe', '--timeout-ms', '4321', '--resume'], {
     codexReview: async (options) => { received = options; return { reviewed: 0 }; },
   });
-  assert.deepEqual(received, { command: 'codex-review', runDir: 'run', codexCommand: 'C:/tools/codex.exe', timeoutMs: 4321 });
+  assert.deepEqual(received, { command: 'codex-review', runDir: 'run', codexCommand: 'C:/tools/codex.exe', timeoutMs: 4321, resume: true });
 });
 
 test('fixed Codex invocation is read-only, tool-less, network-disabled, and never uses a shell', () => {
@@ -50,7 +50,8 @@ test('fixed Codex invocation is read-only, tool-less, network-disabled, and neve
   assert.equal(invocation.executable, 'C:/tools/codex.exe');
   assert.deepEqual(invocation.args, [
     'exec', '--sandbox', 'read-only', '--skip-git-repo-check', '--output-schema', 'C:/repo/schema.json',
-    '--config', 'web_search="disabled"', '--config', 'sandbox_workspace_write.network_access=false', '-',
+    '--config', 'web_search="disabled"', '--config', 'sandbox_workspace_write.network_access=false',
+    '--config', 'model_reasoning_effort="low"', '-',
   ]);
   assert.equal(invocation.shell, false);
   assert.equal(invocation.workspaceAccess, 'read-only');
@@ -68,10 +69,34 @@ test('stored injection is fresh-delimited data and cannot alter executable, argu
   assert.equal(result.status, 'advisory-ready');
   assert.ok(seen.stdin.includes(source));
   assert.match(seen.stdin, /untrusted reference data/i);
+  assert.match(seen.stdin, /Do not require stylistic perfection before human review/i);
   assert.equal(seen.args.includes('https://evil.test'), false);
   assert.equal(seen.shell, false);
   assert.equal(seen.workspaceAccess, 'read-only');
   assert.equal(seen.networkAccess, false);
+});
+
+test('video review explains the no-transcript boundary and carries fixed attribution metadata to the human-advancement gate', async () => {
+  let seen;
+  const execute = async (request) => {
+    seen = request;
+    return { exitCode: 0, stdout: JSON.stringify(verdict()), stderr: '', timedOut: false };
+  };
+  const sourceContext = {
+    kind: 'video', canonicalUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+    title: 'Fixed video', sourceName: 'YouTube', author: 'Channel', publicationDate: '2026-01-01',
+    evidenceBlockIds: ['video:dQw4w9WgXcQ'],
+  };
+  const result = await runCodexGate({
+    candidate: candidate(), sourceText: '[video:dQw4w9WgXcQ] Official Gemini YouTube URL input.', sourceContext,
+    codexCommand: 'codex', timeoutMs: 5000, maxOutputBytes: 10_000, execute,
+  });
+  assert.equal(result.status, 'advisory-ready');
+  assert.match(seen.stdin, /no transcript or video bytes are persisted/i);
+  assert.match(seen.stdin, /Do not reject solely because a transcript is absent/i);
+  assert.match(seen.stdin, /operator must verify fidelity by playing the fixed URL/i);
+  assert.match(seen.stdin, /video:dQw4w9WgXcQ/);
+  assert.equal(seen.args.includes(sourceContext.canonicalUrl), false);
 });
 
 test('advance_to_human remains advisory and can never create approved or frozen state', async () => {

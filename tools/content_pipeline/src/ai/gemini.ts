@@ -1,10 +1,30 @@
 import { parseRetryAfter, type StructuredProvider, type StructuredRequest, type StructuredResult } from './provider.ts';
 
+// Gemini accepts more JSON Schema keywords individually, but this canonical
+// schema exceeds its structured-output complexity limit when all supported
+// constraints are sent together. Keep the server-side projection to the
+// structural core; the canonical AJV schema still enforces every constraint
+// locally before any result is persisted.
+const GEMINI_JSON_SCHEMA_KEYS = new Set(['type', 'properties', 'required', 'items', 'enum', 'minimum', 'maximum']);
+
+export function toGeminiJsonSchema(value: unknown, parentKey?: string): unknown {
+  if (Array.isArray(value)) return value.map((item) => toGeminiJsonSchema(item));
+  if (!value || typeof value !== 'object') return value;
+  const result: Record<string, unknown> = {};
+  for (const [key, child] of Object.entries(value)) {
+    // Property names inside `properties` are user-defined, not JSON Schema
+    // keywords, so retain them while filtering their nested schemas.
+    if (parentKey !== 'properties' && !GEMINI_JSON_SCHEMA_KEYS.has(key)) continue;
+    result[key] = toGeminiJsonSchema(child, key);
+  }
+  return result;
+}
+
 export function toGeminiRequest(request: StructuredRequest) {
   const repair = request.validationPaths?.length
     ? `\n\nREPAIR REQUIRED: the prior JSON failed local validation at ${request.validationPaths.join(', ')}. Return a complete corrected object. All related/prerequisite concept labels must exactly match labels in concepts; all claim sourceBlockIds must use the supplied evidence IDs.`
     : '';
-  const schemaPrompt = `${request.prompt.user}\n\nSTRICT OUTPUT JSON SCHEMA:\n${JSON.stringify(request.schema)}${repair}`;
+  const schemaPrompt = `${request.prompt.user}${repair}`;
   const parts: Array<Record<string, unknown>> = [{ text: schemaPrompt }];
   if (request.media) {
     const parsed = new URL(request.media.url);
@@ -21,7 +41,12 @@ export function toGeminiRequest(request: StructuredRequest) {
     contents: [{ role: 'user', parts }],
     generationConfig: {
       maxOutputTokens: request.maxTokens,
-      responseMimeType: 'application/json',
+      responseFormat: {
+        text: {
+          mimeType: 'APPLICATION_JSON',
+          schema: toGeminiJsonSchema(request.schema),
+        },
+      },
     },
   };
 }

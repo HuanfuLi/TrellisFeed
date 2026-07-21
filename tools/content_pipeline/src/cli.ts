@@ -4,6 +4,7 @@ import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { fetchCandidate as collectOne, redactUrl, type FetchCandidateOptions, type RawCandidate } from './collect/fetch-candidate.ts';
+import { fetchSocialCandidate, isSocialUrl } from './collect/social.ts';
 import { extractArticle } from './extract/article.ts';
 import { parseYouTubeVideoId } from './extract/youtube.ts';
 import { createAnthropicProvider } from './ai/anthropic.ts';
@@ -36,7 +37,7 @@ export interface NormalizeOptions {
 }
 
 export interface CodexReviewCliOptions {
-  command: 'codex-review'; runDir: string; codexCommand: string; timeoutMs: number;
+  command: 'codex-review'; runDir: string; codexCommand: string; timeoutMs: number; resume: boolean;
 }
 
 export interface ReviewCliOptions {
@@ -56,7 +57,13 @@ export interface CliHandlers {
   freeze?: (options: FreezeCliOptions) => Promise<unknown>;
 }
 
-type Seed = { url: string; evergreen?: boolean; publicationDate?: string };
+type Seed = {
+  url: string;
+  sourceType?: string;
+  evergreen?: boolean;
+  publicationDate?: string;
+  calibration?: { originalTitle?: string; originalAuthor?: string };
+};
 type CollectDeps = { fetchCandidate?: (url: string, options: FetchCandidateOptions) => Promise<RawCandidate> };
 
 export function parseCollectArgs(argv: string[]): CollectOptions {
@@ -203,7 +210,25 @@ export async function normalizeRunDirectory(options: NormalizeOptions): Promise<
       const raw: RawCandidate = JSON.parse(await readFile(resolveOutputPath(options.runDir, `raw/${stem}.json`), 'utf8'));
       if (raw.status !== 'collected') throw new Error('source was not collected');
       let candidate: NormalizedCandidate;
-      if (isVideo(seed.url)) {
+      if (raw.rawMetadata?.contentKind === 'social-post') {
+        if (typeof raw.rawBody !== 'string' || !raw.rawBody) throw new Error('social post snapshot is missing');
+        candidate = normalizeCandidate({
+          id: candidateId,
+          kind: 'article',
+          sourceUrl: seed.url,
+          sourceName: raw.sourceName ?? raw.platform ?? 'Social',
+          author: raw.author ?? seed.calibration?.originalAuthor,
+          title: raw.title ?? seed.calibration?.originalTitle ?? 'Social post',
+          publicationDate: raw.publicationDate ?? seed.publicationDate,
+          language: raw.language ?? 'en',
+          fullText: raw.rawBody,
+          blocks: [{ kind: 'paragraph', text: raw.rawBody }],
+          collectedAt: raw.collectedAt,
+          collectorVersion: raw.collectorVersion,
+          extractionMethod: String(raw.rawMetadata.extractionMethod ?? 'social-snapshot'),
+          rawMetadata: { ...raw.rawMetadata, sourceHash: raw.sourceHash },
+        });
+      } else if (isVideo(seed.url)) {
         const videoId = parseYouTubeVideoId(seed.url);
         const canonicalVideoUrl = `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}`;
         candidate = normalizeYouTubeCandidate({
@@ -264,7 +289,11 @@ export async function collectSeeds(options: CollectOptions, deps: CollectDeps = 
       try { await readFile(output); continue; } catch { /* collect missing artifact */ }
     }
     let candidate: RawCandidate;
-    try { candidate = await fetcher(seeds[index].url, { maxBytes: options.maxBytes, timeoutMs: options.timeoutMs }); }
+    try {
+      candidate = isSocialUrl(seeds[index].url)
+        ? await fetchSocialCandidate(seeds[index].url, { maxBytes: options.maxBytes, timeoutMs: options.timeoutMs, fetcher })
+        : await fetcher(seeds[index].url, { maxBytes: options.maxBytes, timeoutMs: options.timeoutMs });
+    }
     catch (error) {
       const safeFailureReason = error instanceof Error ? error.message.replace(/https?:\/\/\S+/g, '[REDACTED_URL]').slice(0, 200) : 'collection failed';
       candidate = { sourceUrl: seeds[index].url, canonicalUrl: seeds[index].url, collectedAt: new Date().toISOString(), collectorVersion: '0.1.0', sourceHash: createHash('sha256').update(seeds[index].url).digest('hex'), status: 'failed', safeFailureReason };
@@ -314,14 +343,14 @@ async function preprocessRunDirectory(options: PreprocessOptions): Promise<unkno
 }
 
 function parseCodexReviewArgs(argv: string[]): CodexReviewCliOptions {
-  const { values } = parseValues(argv, []);
+  const { values, flags } = parseValues(argv, ['--resume']);
   const allowed = new Set(['--run-dir', '--codex-command', '--timeout-ms']);
   for (const key of values.keys()) if (!allowed.has(key)) throw new Error(`unsupported codex-review option ${key}`);
   const runDir = values.get('--run-dir');
   if (!runDir) throw new Error('codex-review requires --run-dir');
   const timeoutMs = Number(values.get('--timeout-ms') ?? '120000');
   if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 1) throw new Error('--timeout-ms must be a positive integer');
-  return { command: 'codex-review', runDir, codexCommand: values.get('--codex-command') ?? 'codex', timeoutMs };
+  return { command: 'codex-review', runDir, codexCommand: values.get('--codex-command') ?? 'codex', timeoutMs, resume: flags.has('--resume') };
 }
 
 async function codexReviewRunDirectory(options: CodexReviewCliOptions): Promise<unknown> {
@@ -344,8 +373,35 @@ async function codexReviewRunDirectory(options: CodexReviewCliOptions): Promise<
       const edit = JSON.parse(await readFile(resolveOutputPath(options.runDir, `review/edits/${candidate.candidateId}.json`), 'utf8'));
       candidate = { ...candidate, draft: edit.draft, candidateContentHash: edit.contentHash };
     } catch { /* review has no operator-authored revision */ }
+    if (options.resume) {
+      try {
+        const existing = JSON.parse(await readFile(resolveOutputPath(options.runDir, `codex-review/${candidate.cacheKey}.json`), 'utf8'));
+        if (existing.status === 'advisory-ready' && existing.advisory?.candidateContentHash === candidate.candidateContentHash) {
+          if (existing.canAdvanceToHuman) advanced += 1; else blocked += 1;
+          continue;
+        }
+      } catch { /* missing or unreadable advisory is regenerated */ }
+    }
     const source = normalized.get(candidate.candidateId);
-    const result = source ? await runCodexGate({ candidate, sourceText: source.fullText, codexCommand: options.codexCommand, timeoutMs: options.timeoutMs, maxOutputBytes: 64 * 1024, cwd: resolve(options.runDir) }) : { status: 'blocked', reasonCode: 'missing_source', canAdvanceToHuman: false, requiresHumanApproval: true };
+    const result = source ? await runCodexGate({
+      candidate,
+      sourceText: source.kind === 'video'
+        ? source.blocks.map((block) => `[${block.id}] ${block.text}`).join('\n\n')
+        : source.fullText,
+      sourceContext: {
+        kind: source.kind,
+        canonicalUrl: source.canonicalUrl,
+        title: source.title,
+        sourceName: source.sourceName,
+        author: source.author,
+        publicationDate: source.publicationDate,
+        evidenceBlockIds: source.blocks.map((block) => block.id),
+      },
+      codexCommand: options.codexCommand,
+      timeoutMs: options.timeoutMs,
+      maxOutputBytes: 64 * 1024,
+      cwd: resolve(options.runDir),
+    }) : { status: 'blocked', reasonCode: 'missing_source', canAdvanceToHuman: false, requiresHumanApproval: true };
     await writeFile(resolveOutputPath(options.runDir, `codex-review/${candidate.cacheKey}.json`), `${JSON.stringify(result, null, 2)}\n`);
     if (result.canAdvanceToHuman) advanced += 1; else blocked += 1;
   }

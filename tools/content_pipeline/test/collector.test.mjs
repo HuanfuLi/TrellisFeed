@@ -6,6 +6,7 @@ import test from 'node:test';
 
 import { collectSeeds, dispatchCli, normalizeRunDirectory, parseCollectArgs, parseNormalizeArgs, resolveOutputPath } from '../src/cli.ts';
 import { fetchCandidate } from '../src/collect/fetch-candidate.ts';
+import { fetchSocialCandidate } from '../src/collect/social.ts';
 import { assertPublicHttpUrl } from '../src/collect/url-policy.ts';
 import { extractArticle } from '../src/extract/article.ts';
 import { extractYouTubeTranscript, parseYouTubeVideoId } from '../src/extract/youtube.ts';
@@ -65,6 +66,79 @@ test('public fixture collection records bounded metadata and redacts query secre
   assert.match(result.sourceHash, /^[a-f0-9]{64}$/);
   assert.equal(logs.join(' ').includes('super-secret'), false);
   assert.equal(logs.join(' ').includes('<p>safe</p>'), false);
+});
+
+test('X social collection replaces a truncated oEmbed only after full-text prefix verification', async () => {
+  const fetched = [];
+  const fetcher = async (url) => {
+    fetched.push(url);
+    const common = { sourceUrl: url, canonicalUrl: url, collectedAt: '2026-07-17T00:00:00.000Z', collectorVersion: '0.1.0', sourceHash: 'a'.repeat(64), status: 'collected' };
+    if (url.startsWith('https://publish.twitter.com/oembed')) return {
+      ...common, mimeType: 'application/json', rawBody: JSON.stringify({
+        author_name: 'Worker Researcher',
+        html: '<blockquote><p>Agents change work by moving people from repetitive execution to judgment and review…</p></blockquote>',
+      }),
+    };
+    if (url.startsWith('https://api.fxtwitter.com/')) return {
+      ...common, mimeType: 'application/json', rawBody: JSON.stringify({ tweet: { text: 'Agents change work by moving people from repetitive execution to judgment and review. Teams still need accountable humans for exceptions.' } }),
+    };
+    throw new Error(`unexpected URL ${url}`);
+  };
+  const result = await fetchSocialCandidate('https://x.com/example/status/2023841994246852726', { fetcher });
+  assert.equal(result.platform, 'x');
+  assert.equal(result.author, 'Worker Researcher');
+  assert.match(result.rawBody, /accountable humans/);
+  assert.equal(result.rawMetadata.extractionMethod, 'x-oembed-verified-fxtwitter-snapshot');
+  assert.equal(result.rawMetadata.officialOEmbedPrefixMatched, true);
+  assert.equal(fetched.length, 2);
+});
+
+test('Reddit social collection stores an attributed OP without flattening replies', async () => {
+  const fetcher = async (url) => {
+    const common = { sourceUrl: url, canonicalUrl: url, collectedAt: '2026-07-17T00:00:00.000Z', collectorVersion: '0.1.0', sourceHash: 'b'.repeat(64), status: 'collected' };
+    if (url.startsWith('https://www.reddit.com/oembed')) return {
+      ...common, mimeType: 'application/json', rawBody: JSON.stringify({ title: 'How agents changed our workflow', author_name: 'u/operator' }),
+    };
+    if (url.startsWith('https://www.redditmedia.com/')) return {
+      ...common,
+      mimeType: 'text/html',
+      rawBody: '<shreddit-embed-title>How agents changed our workflow</shreddit-embed-title><a href="/user/operator">operator</a><faceplate-timeago ts="2026-06-01T12:00:00.000Z"></faceplate-timeago><div id="post-post-rtjson-content">Our team uses agents for bounded repetitive work. Humans own exceptions, review, and final accountability.</div>',
+    };
+    throw new Error(`unexpected URL ${url}`);
+  };
+  const result = await fetchSocialCandidate('https://www.reddit.com/r/work/comments/abc123/how_agents_changed_our_workflow/', { fetcher });
+  assert.equal(result.platform, 'reddit');
+  assert.equal(result.title, 'How agents changed our workflow');
+  assert.equal(result.author, 'operator');
+  assert.match(result.rawBody, /Humans own exceptions/);
+  assert.equal(result.rawMetadata.repliesStored, false);
+  assert.equal(result.rawMetadata.repliesRequireCanonicalUrl, true);
+});
+
+test('normalization treats a verified social snapshot as inert stored source text', async () => {
+  const runDir = await mkdtemp(join(tmpdir(), 'qt-social-normalize-'));
+  const seeds = join(runDir, 'seeds.json');
+  await writeFile(seeds, JSON.stringify([{
+    url: 'https://x.com/example/status/2023841994246852726',
+    publicationDate: '2026-02-17',
+    calibration: { originalTitle: 'Agents reshape engineering work', originalAuthor: 'Example Author' },
+  }]));
+  await mkdir(join(runDir, 'raw'), { recursive: true });
+  await writeFile(join(runDir, 'raw', '0000.json'), JSON.stringify({
+    sourceUrl: 'https://x.com/example/status/2023841994246852726',
+    canonicalUrl: 'https://x.com/example/status/2023841994246852726',
+    platform: 'x', sourceName: 'X', author: 'Example Author', publicationDate: '2026-02-17T12:00:00.000Z',
+    collectedAt: '2026-07-17T00:00:00.000Z', collectorVersion: '0.1.0+social-snapshot-v1', sourceHash: 'c'.repeat(64),
+    status: 'collected', mimeType: 'text/plain', rawBody: 'A complete social post stored as inert plain text.',
+    rawMetadata: { contentKind: 'social-post', platform: 'x', extractionMethod: 'x-official-oembed' },
+  }));
+  const report = await normalizeRunDirectory(parseNormalizeArgs(['normalize', '--seeds', seeds, '--run-dir', runDir]));
+  assert.deepEqual(report, { candidates: 1, normalized: 1, failed: 0, operatorTranscriptsUsed: 0 });
+  const normalized = JSON.parse(await readFile(join(runDir, 'normalized', '0000.json'), 'utf8'));
+  assert.equal(normalized.kind, 'article');
+  assert.equal(normalized.title, 'Agents reshape engineering work');
+  assert.equal(normalized.fullText, 'A complete social post stored as inert plain text.');
+  assert.equal(normalized.rawMetadata.platform, 'x');
 });
 
 test('CLI constrains output paths and dry-run performs no network or process calls', async () => {
@@ -145,6 +219,28 @@ test('article extraction makes hostile XSS HTML inert and produces stable normal
     collectedAt: '2026-07-11T00:00:00Z', collectorVersion: '0.1.0', ...extracted,
   }).blocks.map((block) => block.id));
   assert.match(normalized.contentHash, /^[a-f0-9]{64}$/);
+});
+
+test('article extraction reads Next.js streamed content from its hidden semantic staging container', () => {
+  const html = `<!doctype html><html lang="en"><head>
+    <title>Streamed research paper</title>
+    <meta name="author" content="Researcher">
+  </head><body>
+    <div hidden><p>This ordinary hidden promotion must not become the article.</p></div>
+    <div hidden id="S:0"><main><article>
+      <h1>Streamed research paper</h1>
+      <p>${'A substantive paragraph about labor-market adaptation and artificial intelligence. '.repeat(12)}</p>
+      <p>${'A second substantive paragraph explains the evidence and policy implications. '.repeat(12)}</p>
+    </article></main></div>
+    <script>document.querySelector('#S\\:0').removeAttribute('hidden')</script>
+  </body></html>`;
+
+  const extracted = extractArticle(html, 'https://example.org/research/streamed-paper');
+  assert.equal(extracted.title, 'Streamed research paper');
+  assert.equal(extracted.author, 'Researcher');
+  assert.match(extracted.fullText, /labor-market adaptation/);
+  assert.match(extracted.fullText, /policy implications/);
+  assert.doesNotMatch(extracted.fullText, /ordinary hidden promotion/);
 });
 
 test('YouTube extraction accepts canonical IDs and only invokes an injected transcript adapter', async () => {

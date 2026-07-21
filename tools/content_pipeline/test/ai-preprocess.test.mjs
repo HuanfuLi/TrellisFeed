@@ -8,7 +8,7 @@ import { dispatchCli } from '../src/cli.ts';
 import { deriveProviderSchema } from '../src/ai/provider.ts';
 import { toAnthropicRequest } from '../src/ai/anthropic.ts';
 import { toOpenAiRequest } from '../src/ai/openai.ts';
-import { createGeminiProvider, toGeminiRequest } from '../src/ai/gemini.ts';
+import { createGeminiProvider, toGeminiJsonSchema, toGeminiRequest } from '../src/ai/gemini.ts';
 import { validateCompletedResult } from '../src/ai/validate.ts';
 import { buildPreprocessPrompt } from '../src/preprocess/prompt.ts';
 import { runStructuredPreprocess } from '../src/preprocess/run.ts';
@@ -104,8 +104,15 @@ test('canonical schema is projected into provider-native structured output witho
   assert.equal('tools' in anthropic, false);
   assert.deepEqual(openai.response_format.json_schema.schema, schema);
   assert.equal('tools' in openai, false);
-  assert.equal(gemini.generationConfig.responseJsonSchema, undefined);
-  assert.match(gemini.contents[0].parts[0].text, /STRICT OUTPUT JSON SCHEMA/);
+  assert.deepEqual(gemini.generationConfig.responseFormat, {
+    text: { mimeType: 'APPLICATION_JSON', schema: toGeminiJsonSchema(schema) },
+  });
+  assert.equal(gemini.generationConfig.responseFormat.text.schema.$schema, undefined);
+  assert.equal(gemini.generationConfig.responseFormat.text.schema.properties.displayTitle.minLength, undefined);
+  assert.equal(gemini.generationConfig.responseFormat.text.schema.properties.potentialCounterpoints.uniqueItems, undefined);
+  assert.equal(gemini.generationConfig.responseFormat.text.schema.properties.concepts.maxItems, undefined);
+  assert.equal(gemini.generationConfig.responseFormat.text.schema.properties.difficulty.maximum, 1);
+  assert.equal(gemini.contents[0].parts[0].text, 'data');
   assert.equal('tools' in gemini, false);
 });
 
@@ -119,8 +126,10 @@ test('Gemini official YouTube URL input is attached only for a validated video c
   assert.deepEqual(payload.contents[0].parts[0], {
     fileData: { fileUri: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' },
   });
-  assert.match(payload.contents[0].parts[1].text, /^digest this video\n\nSTRICT OUTPUT JSON SCHEMA:/);
-  assert.equal(payload.generationConfig.responseJsonSchema, undefined);
+  assert.equal(payload.contents[0].parts[1].text, 'digest this video');
+  assert.deepEqual(payload.generationConfig.responseFormat, {
+    text: { mimeType: 'APPLICATION_JSON', schema: toGeminiJsonSchema(request.schema) },
+  });
   assert.throws(() => toGeminiRequest({ ...request, media: { ...request.media, url: 'https://evil.test/video' } }), /canonical public YouTube URL/);
 });
 

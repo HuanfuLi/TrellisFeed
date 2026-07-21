@@ -19,6 +19,7 @@ export interface RawCandidate {
   canonicalUrl: string;
   platform?: string;
   sourceName?: string;
+  author?: string;
   title?: string;
   publicationDate?: string;
   thumbnailUrl?: string;
