@@ -1,0 +1,206 @@
+{
+  "https://www.reddit.com/r/cscareerquestions/comments/1uyf2dn/i_need_something_to_doooo/": {
+    "status": "unsure",
+    "note": "这个太短了，底下只有一个评论，所以先待定吧。",
+    "title": "I need something to doooo!!!!",
+    "decidedAt": "2026-07-17T01:58:22.807Z"
+  },
+  "https://www.reddit.com/r/cscareerquestions/comments/1uy7vcc/the_career_is_dead/": {
+    "status": "keep",
+    "note": "我觉得这个其实还行，但是现在 Reddit 上的内容虽然可以抓取了，但目前这个形式不太好看，所有人的评论都塞在一个地方，也没有指出哪句话是谁说的。所以根本没有办法看出其中的对话，只能感觉好像所有话都是同一个人说出来的，很难理解内容。",
+    "title": "The career is dead",
+    "decidedAt": "2026-07-17T01:59:00.049Z"
+  },
+  "https://www.reddit.com/r/cscareerquestions/comments/1uy6dc8/how_do_i_compete_and_pass_late_stage_intervews/": {
+    "status": "keep",
+    "note": "",
+    "title": "how do i compete and pass late stage interv*ews when i have a lack of ai experience?",
+    "decidedAt": "2026-07-17T01:59:41.965Z"
+  },
+  "https://www.reddit.com/r/ArtificialInteligence/comments/1uy50n4/do_aiml_research_labs_actually_use_agent/": {
+    "status": "keep",
+    "note": "",
+    "title": "Do AI/ML research labs actually use agent frameworks (LangGraph, OpenAI Agents SDK, CrewAI, etc.), or do they build everything from scratch?",
+    "decidedAt": "2026-07-17T01:59:59.540Z"
+  },
+  "https://www.youtube.com/watch?v=HfkRV9nThWc": {
+    "status": "keep",
+    "note": "",
+    "title": "Future of AI agents: Hype or amazing? | Lex Fridman Podcast",
+    "decidedAt": "2026-07-17T02:00:31.411Z"
+  },
+  "https://www.youtube.com/watch?v=wfYnair_dIc": {
+    "status": "reject",
+    "note": "这也是一个广告。",
+    "title": "The Next 3 Years of AI Agents: Why Your Job Will Never Be the Same",
+    "decidedAt": "2026-07-17T02:00:49.000Z"
+  },
+  "https://www.youtube.com/watch?v=MqXag8yTXdw": {
+    "status": "reject",
+    "note": "这个画面大多都是使用的AI，感觉缺乏深度和诚意。",
+    "title": "Future of Work: How AI Agents Will Replace Boring Jobs (2025 Skills You Need)",
+    "decidedAt": "2026-07-17T02:01:12.861Z"
+  },
+  "https://www.youtube.com/watch?v=0Iqqy3nCp54": {
+    "status": "keep",
+    "note": "",
+    "title": "Why AI Agents Are RUINING Work",
+    "decidedAt": "2026-07-17T02:01:19.275Z"
+  },
+  "https://www.youtube.com/watch?v=EDb37y_MhRw": {
+    "status": "unsure",
+    "note": "这种类型的视频价值很高，但是实在是有点太多了。就是这种人在前面说，然后在面前的黑板上书写的方式，它虽然很深入，但我感觉太多了。没别的，我们可能需要确保这些资源的多样性。",
+    "title": "Generative vs Agentic AI: Shaping the Future of AI Collaboration",
+    "decidedAt": "2026-07-17T02:01:50.436Z"
+  },
+  "https://www.youtube.com/watch?v=FwOTs4UxQS4": {
+    "status": "keep",
+    "note": "",
+    "title": "AI Agents, Clearly Explained",
+    "decidedAt": "2026-07-17T02:02:00.742Z"
+  },
+  "https://www.youtube.com/watch?v=eS9kWZFTf4A": {
+    "status": "reject",
+    "note": "",
+    "title": "The Future of Work: How AI Agents &amp; Multi-Agent Systems Are Transforming Business",
+    "decidedAt": "2026-07-17T02:02:08.741Z"
+  },
+  "https://www.youtube.com/watch?v=JGqvd10ZG8U": {
+    "status": "keep",
+    "note": "",
+    "title": "AI Agents vs SaaS - Who Wins the Future of Software?",
+    "decidedAt": "2026-07-17T02:02:24.686Z"
+  },
+  "https://www.youtube.com/watch?v=e85AxYW0Qyk": {
+    "status": "keep",
+    "note": "",
+    "title": "Agentic AI - how bots came for our workflows and drudgery | FT Working It",
+    "decidedAt": "2026-07-17T02:02:31.853Z"
+  },
+  "https://www.youtube.com/watch?v=xrJALtu3w3E": {
+    "status": "reject",
+    "note": "",
+    "title": "AI Agents Are Taking Over Jobs (What&#39;s Next?)",
+    "decidedAt": "2026-07-17T02:03:14.929Z"
+  },
+  "https://www.youtube.com/watch?v=kO6R-F-Cidw": {
+    "status": "keep",
+    "note": "",
+    "title": "How Agentic AI is shifting the future of work",
+    "decidedAt": "2026-07-17T02:03:21.063Z"
+  },
+  "https://www.youtube.com/watch?v=0lwftepuvYA": {
+    "status": "keep",
+    "note": "",
+    "title": "AI Will Replace White Collar Jobs in 12 Months? The Truth No One Explains",
+    "decidedAt": "2026-07-17T02:03:30.782Z"
+  },
+  "https://www.youtube.com/watch?v=EsRz6HKsFBI": {
+    "status": "keep",
+    "note": "",
+    "title": "Will Agentic AI Destroy Jobs?",
+    "decidedAt": "2026-07-17T02:03:41.826Z"
+  },
+  "https://www.youtube.com/watch?v=15_pppse4fY": {
+    "status": "keep",
+    "note": "",
+    "title": "What is Agentic AI and How Does it Work?",
+    "decidedAt": "2026-07-17T02:05:29.771Z"
+  },
+  "https://www.youtube.com/watch?v=fOfy-OsKWf4": {
+    "status": "keep",
+    "note": "",
+    "title": "What Is Agentic AI? AI Agents and the Revolution That Changes Everything",
+    "decidedAt": "2026-07-17T02:05:37.720Z"
+  },
+  "https://www.youtube.com/watch?v=bwvfdFWR1RI": {
+    "status": "keep",
+    "note": "",
+    "title": "How to Use Agentic AI: LLMs, AI Agents &amp; Prompt Engineering in Action",
+    "decidedAt": "2026-07-17T02:05:42.404Z"
+  },
+  "https://www.youtube.com/watch?v=goc2yyg2eH4": {
+    "status": "reject",
+    "note": "",
+    "title": "Agentic AI Transformation: Workforce Strategy &amp; Leadership | Amazon Web Services",
+    "decidedAt": "2026-07-17T02:05:45.120Z"
+  },
+  "https://www.youtube.com/watch?v=M0Bsh-AUroM": {
+    "status": "reject",
+    "note": "",
+    "title": "Agentic AI Roadmap: 10 Career Paths for the Next Wave of AI",
+    "decidedAt": "2026-07-17T02:05:48.084Z"
+  },
+  "https://www.zdnet.com/article/want-ai-agents-to-work-together-the-linux-foundation-has-a-plan/": {
+    "status": "keep",
+    "note": "",
+    "title": "Want AI agents to work together? The Linux Foundation has a plan",
+    "decidedAt": "2026-07-17T02:05:57.899Z"
+  },
+  "https://www.businessinsider.com/andrej-karpathy-ai-agents-timelines-openai-2025-10": {
+    "status": "keep",
+    "note": "",
+    "title": "OpenAI cofounder Andrej Karpathy says it will take a decade before AI agents actually work",
+    "decidedAt": "2026-07-17T02:06:04.825Z"
+  },
+  "https://www.motivenotes.ai/p/what-makes-5-of-ai-agents-actually": {
+    "status": "keep",
+    "note": "",
+    "title": "What Makes 5% of AI Agents Actually Work in Production?",
+    "decidedAt": "2026-07-17T02:06:13.319Z"
+  },
+  "https://x.com/emollick/status/2041520467450765504": {
+    "status": "keep",
+    "note": "",
+    "title": "Design agentic work around job augmentation, not replacement",
+    "decidedAt": "2026-07-17T02:06:17.895Z"
+  },
+  "https://x.com/tendon/status/2032457428344955011": {
+    "status": "keep",
+    "note": "",
+    "title": "Do not build a career strategy around hypothetical AI-manager jobs",
+    "decidedAt": "2026-07-17T02:06:22.192Z"
+  },
+  "https://x.com/InvestmentGuru_/status/2026479405036613778": {
+    "status": "keep",
+    "note": "你这个提取的原始内容不太恰当，不过帖子本身的内容还是很值得的。",
+    "title": "AI agents may compress labor-heavy service business models",
+    "decidedAt": "2026-07-17T02:07:00.749Z"
+  },
+  "https://x.com/rohanpaul_ai/status/2026170158461681846": {
+    "status": "keep",
+    "note": "",
+    "title": "A displacement scenario for abundant machine intelligence",
+    "decidedAt": "2026-07-17T02:07:08.197Z"
+  },
+  "https://x.com/recap_david/status/2030662152151843250": {
+    "status": "keep",
+    "note": "",
+    "title": "Lower AI costs may unlock latent demand instead of only destroying jobs",
+    "decidedAt": "2026-07-17T02:07:14.671Z"
+  },
+  "https://x.com/Ed_Forson/status/1997305172993929687": {
+    "status": "reject",
+    "note": "",
+    "title": "Treat coding agents as spiky junior coworkers",
+    "decidedAt": "2026-07-17T02:07:25.372Z"
+  },
+  "https://x.com/fchollet/status/2019610121371054455": {
+    "status": "keep",
+    "note": "",
+    "title": "Why automating tasks does not imply replacing whole jobs",
+    "decidedAt": "2026-07-17T02:07:35.350Z"
+  },
+  "https://x.com/philrosenn/status/2042961955292434649": {
+    "status": "reject",
+    "note": "",
+    "title": "AI exposure and declining early-career creative work",
+    "decidedAt": "2026-07-17T02:07:40.982Z"
+  },
+  "https://x.com/VibeMarketer_/status/2033641301594329138": {
+    "status": "reject",
+    "note": "",
+    "title": "Parallel coding agents expose the labor logic of software automation",
+    "decidedAt": "2026-07-17T02:07:55.086Z"
+  }
+}
