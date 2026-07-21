@@ -13,3 +13,48 @@ GEMINI.md
 
 # Phase 34 D-12 — operator local workspace, not product code
 Presentation/
+
+# GSD Core local runtime artifacts — generated per machine and may embed
+# absolute paths. Share .planning/ and project instructions instead.
+.codex/.gsd-profile
+.codex/agents/gsd-*
+.codex/config.toml
+.codex/get-shit-done/
+.codex/gsd-*
+.codex/hooks/
+.codex/hooks.json
+.codex/scripts/
+.codex/skills/gsd-*/
+
+.claude/.gsd-profile
+.claude/agents/gsd-*
+.claude/commands/gsd-*.md
+.claude/get-shit-done/
+.claude/gsd-*
+.claude/hooks/
+.claude/package.json
+.claude/scripts/
+.claude/settings.local.json
+.claude/skills/gsd-*/
+
+.opencode/.gsd-profile
+.opencode/agents/gsd-*
+.opencode/command/gsd-*.md
+.opencode/get-shit-done/
+.opencode/gsd-*
+.opencode/hooks/
+.opencode/opencode.json
+.opencode/package.json
+.opencode/scripts/
+.opencode/settings.json
+.opencode/skills/gsd-*/
+
+.agents/.gsd-profile
+.agents/agents/gsd-*
+.agents/get-shit-done/
+.agents/gsd-*
+.agents/hooks/
+.agents/package.json
+.agents/scripts/
+.agents/settings.json
+.agents/skills/gsd-*/
