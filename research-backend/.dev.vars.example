@@ -1,5 +1,25 @@
-# Local-only operator values. Copy to .dev.vars; never commit that file.
+# Copy to .dev.vars (git-ignored) for local `wrangler dev`.
+# For the LIVE deployed Worker, these are set via `wrangler secret put`
+# instead — .dev.vars only affects local dev, it does not deploy anything.
+#
+# Canonical worker: question-trace-research-collector
+# https://question-trace-research-collector.question-trace.workers.dev
+
+# Password for the authenticated /admin status + /admin/export.zip pages.
+# Generate: node -e "console.log(require('crypto').randomBytes(24).toString('base64url'))"
 RESEARCH_ADMIN_PASSWORD=change-me
+
+# Bearer credential required by /v1/install/resolve to enroll a device.
+# Must match VITE_RESEARCH_ENROLLMENT_CREDENTIAL in app/.env.local.
+# Generate: node -e "console.log(require('crypto').randomBytes(24).toString('base64url'))"
 RESEARCH_ENROLLMENT_CREDENTIAL=replace-with-a-separate-long-random-credential
-RESEARCH_ALLOWED_ORIGINS=http://localhost:5173,capacitor://localhost,http://localhost
-RESEARCH_API_BASE_URL=https://example.invalid
+
+# Exact comma-delimited CORS allowlist. No wildcard, no reflected origin.
+# This is the non-secret value already committed in wrangler.jsonc for the
+# live deploy; local `wrangler dev` against localhost:5173 uses the same
+# four origins unchanged.
+RESEARCH_ALLOWED_ORIGINS=capacitor://localhost,http://localhost,http://localhost:5173,https://localhost
+
+# Base URL of this Worker once deployed (informational / used by local
+# scripts that need to know where they're talking to).
+RESEARCH_API_BASE_URL=https://question-trace-research-collector.question-trace.workers.dev
